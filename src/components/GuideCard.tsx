@@ -39,39 +39,55 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
     >
       <Card
         className={cn(
-          'cursor-pointer transition-all duration-200 hover:shadow-lg hover:ring-2 hover:ring-primary/20',
+          'cursor-pointer transition-all duration-200 hover:shadow-lg hover:ring-2 hover:ring-primary/20 h-full flex flex-col',
           isExpanded && 'ring-2 ring-primary/20'
         )}
         onClick={handleCardClick}
       >
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <CardTitle className="text-lg leading-tight break-words">
-                  {guide.title}
-                </CardTitle>
-                {guide.wordFileData && (
-                  <FileDoc size={20} weight="duotone" className="text-accent-foreground flex-shrink-0" />
+        <CardHeader className="pb-3 flex-1">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-2 mb-2">
+                  <CardTitle className="text-base sm:text-lg leading-tight break-words flex-1">
+                    {guide.title}
+                  </CardTitle>
+                  {guide.wordFileData && (
+                    <FileDoc size={18} weight="duotone" className="text-accent-foreground flex-shrink-0 mt-0.5" />
+                  )}
+                </div>
+                <CardDescription className="flex items-center gap-2 flex-wrap">
+                  <Badge
+                    variant="outline"
+                    className={cn('text-xs font-medium', categoryColors[guide.category])}
+                  >
+                    {guide.category}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(guide.updatedAt).toLocaleDateString('da-DK', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </CardDescription>
+              </div>
+            </div>
+            {guide.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {guide.tags.slice(0, 3).map((tag) => (
+                  <Badge key={tag} variant="secondary" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+                {guide.tags.length > 3 && (
+                  <Badge variant="secondary" className="text-xs">
+                    +{guide.tags.length - 3}
+                  </Badge>
                 )}
               </div>
-              <CardDescription className="flex items-center gap-2 flex-wrap">
-                <Badge
-                  variant="outline"
-                  className={cn('text-xs font-medium', categoryColors[guide.category])}
-                >
-                  {guide.category}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(guide.updatedAt).toLocaleDateString('da-DK', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </span>
-              </CardDescription>
-            </div>
-            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+            )}
+            <div className="flex gap-1 pt-2" onClick={(e) => e.stopPropagation()}>
               <Button
                 variant="ghost"
                 size="icon"

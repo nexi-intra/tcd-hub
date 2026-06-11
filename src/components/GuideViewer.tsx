@@ -65,10 +65,10 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-border">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <DialogTitle className="text-2xl mb-3 break-words">
+        <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 border-b border-border">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
+            <div className="flex-1 min-w-0 w-full">
+              <DialogTitle className="text-xl sm:text-2xl mb-3 break-words pr-8 sm:pr-0">
                 {guide.title}
               </DialogTitle>
               <div className="flex items-center gap-2 flex-wrap">
@@ -101,7 +101,7 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
                 variant="outline"
                 size="sm"
                 onClick={handleDownload}
-                className="flex-shrink-0"
+                className="flex-shrink-0 w-full sm:w-auto"
               >
                 <DownloadSimple size={16} weight="regular" className="mr-2" />
                 Download
@@ -110,19 +110,19 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
           </div>
         </DialogHeader>
         
-        <div className="flex-1 overflow-y-auto min-h-0 px-6 py-6 bg-card">
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 py-4 sm:py-6 bg-card">
           {guide.wordFileData ? (
-            <div className="flex flex-col items-center justify-center py-12 px-6">
-              <div className="max-w-2xl w-full space-y-6">
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 sm:px-6">
+              <div className="max-w-2xl w-full space-y-4 sm:space-y-6">
                 <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="h-24 w-24 rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <FileDoc size={48} weight="duotone" className="text-primary" />
+                  <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <FileDoc size={40} weight="duotone" className="text-primary sm:w-12 sm:h-12" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">
+                    <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
                       Word-dokument vedhæftet
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-1">
+                    <p className="text-sm text-muted-foreground mb-1 break-all">
                       {guide.wordFileName || 'dokument.docx'}
                     </p>
                     <p className="text-sm text-muted-foreground">
@@ -132,7 +132,7 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
                   <Button
                     size="lg"
                     onClick={handleDownload}
-                    className="mt-4"
+                    className="mt-4 w-full sm:w-auto"
                   >
                     <DownloadSimple size={20} weight="bold" className="mr-2" />
                     Download Word-dokument
@@ -150,7 +150,7 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
               </div>
             </div>
           ) : (
-            <div className="max-w-none bg-background rounded-lg shadow-sm border border-border p-8 sm:p-12">
+            <div className="max-w-none bg-background rounded-lg shadow-sm border border-border p-6 sm:p-8 lg:p-12">
               <p className="whitespace-pre-wrap break-words">{guide.content}</p>
             </div>
           )}

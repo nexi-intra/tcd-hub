@@ -141,13 +141,13 @@ function App() {
       
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
         <header className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <div className="h-12 w-12 flex-shrink-0 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Books size={28} weight="duotone" className="text-primary" />
               </div>
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground">
                   Guide Bibliotek
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -155,37 +155,37 @@ function App() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-shrink-0">
               <Button
                 onClick={() => setShowDebug(!showDebug)}
                 variant="outline"
                 size="icon"
                 className={cn(
-                  "h-11 w-11",
+                  "h-10 w-10",
                   showDebug && "bg-accent/20 border-accent/40"
                 )}
                 title="Debug mode - Open console to see guide data"
               >
-                <Bug size={20} weight={showDebug ? "fill" : "regular"} />
+                <Bug size={18} weight={showDebug ? "fill" : "regular"} />
               </Button>
               <Button
                 onClick={() => setCategoryManagerOpen(true)}
                 variant="outline"
                 size="icon"
-                className="h-11 w-11 bg-muted hover:bg-muted/80"
+                className="h-10 w-10 bg-muted hover:bg-muted/80"
               >
-                <Gear size={20} weight="duotone" />
+                <Gear size={18} weight="duotone" />
               </Button>
               <Button
                 onClick={() => setChatOpen(true)}
                 variant="outline"
                 size="icon"
-                className="h-11 w-11 bg-accent/10 hover:bg-accent/20 border-accent/20"
+                className="h-10 w-10 bg-accent/10 hover:bg-accent/20 border-accent/20"
               >
-                <ChatsCircle size={20} weight="duotone" className="text-accent-foreground" />
+                <ChatsCircle size={18} weight="duotone" className="text-accent-foreground" />
               </Button>
-              <Button onClick={handleAddNew} className="h-11">
-                <Plus size={20} weight="bold" className="sm:mr-2" />
+              <Button onClick={handleAddNew} className="h-10">
+                <Plus size={18} weight="bold" className="sm:mr-2" />
                 <span className="hidden sm:inline">Ny guide</span>
               </Button>
             </div>
