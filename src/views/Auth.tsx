@@ -43,7 +43,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
         return
       }
 
-      const usersData = await spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users') || {}
+      const usersData = (await spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')) || {}
       
       if (usersData[email]) {
         toast.error('En bruger med denne email eksisterer allerede')
@@ -60,7 +60,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
         onAuthenticated(userId, email)
       }, 300)
     } else {
-      const usersData = await spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users') || {}
+      const usersData = (await spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')) || {}
       
       const user = usersData[email]
       if (!user || user.password !== password) {
@@ -92,7 +92,6 @@ export function Auth({ onAuthenticated }: AuthProps) {
         backgroundImage: `repeating-linear-gradient(90deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px),
                          repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px)`
       }} />
-
       <div className="container mx-auto px-4 sm:px-6 max-w-md relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -127,9 +126,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
               </div>
             </motion.div>
 
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">
-              Nexi Team Hub
-            </h1>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">Nexi Team Hub</h1>
             <p className="text-muted-foreground">
               {mode === 'login' ? 'Log ind for at fortsætte' : 'Opret en ny konto'}
             </p>
@@ -244,5 +241,5 @@ export function Auth({ onAuthenticated }: AuthProps) {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }
