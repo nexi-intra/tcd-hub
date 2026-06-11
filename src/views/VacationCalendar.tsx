@@ -63,7 +63,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
     return day === 0 || day === 6
   }
 
-  const handleAddVacation = () => {
+  const handleAddVacation = async () => {
     if (!startDate || !endDate) {
       toast.error('Vælg både start- og slutdato')
       return
@@ -98,6 +98,52 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
 
     setVacations((current) => [...(current || []), newVacation])
     toast.success('Ferie anmodning sendt til godkendelse')
+
+    const startDateFormatted = new Date(startDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const endDateFormatted = new Date(endDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const notesText = notes.trim() ? `Noter: ${notes.trim()}` : 'Ingen noter'
+
+    const promptText = spark.llmPrompt`Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
+
+Employee: ${userEmail}
+Start Date: ${startDateFormatted}
+End Date: ${endDateFormatted}
+${notesText}
+
+The email should be in Danish, professional, and include:
+- A clear subject line
+- Employee email
+- The vacation period
+- Any notes if provided
+- A note that this request is pending approval
+- A brief note that this is an automatic notification
+
+Return ONLY a JSON object with this exact structure:
+{
+  "subject": "subject line here",
+  "body": "email body here with proper line breaks"
+}`
+
+    try {
+      const emailContentJson = await spark.llm(promptText, "gpt-4o-mini", true)
+      const emailContent = JSON.parse(emailContentJson)
+      
+      console.log('Vacation request notification email:', {
+        to: 'Jacob.remmer@nexigroup.com',
+        subject: emailContent.subject,
+        body: emailContent.body
+      })
+    } catch (emailError) {
+      console.error('Error generating vacation request email:', emailError)
+    }
     
     setStartDate('')
     setEndDate('')
