@@ -42,12 +42,12 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     },
     {
       id: 'calendar',
-      title: 'Kalender',
-      description: 'Hold styr på møder, deadlines og events',
+      title: 'Feriekalender',
+      description: 'Planlæg og koordiner teamets ferieperioder',
       icon: <Calendar size={48} weight="duotone" />,
       color: 'oklch(0.65 0.26 340)',
       gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
-      available: false,
+      available: true,
     },
     {
       id: 'analytics',
@@ -145,7 +145,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
-          >Terminal & Configuration Team Hub</motion.h1>
+          >Supply Chain Services Hub</motion.h1>
           
           <motion.p 
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto"
