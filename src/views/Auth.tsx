@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Books, User, Lock, EnvelopeSi
+import { Books, User, Lock, EnvelopeSimple, Eye, EyeSlash } from '@phosphor-icons/react'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card } from '@/components/ui/card'
 import { toast } from 'sonner'
+import { motion } from 'framer-motion'
 
 interface AuthProps {
   onAuthenticated: (userId: string, email: string) => void
@@ -18,27 +18,29 @@ export function Auth({ onAuthenticated }: AuthProps) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-        return
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-      usersData[email] = { e
+    if (mode === 'signup') {
       if (!fullName.trim()) {
-      setTimeout(() => {
+        toast.error('Indtast venligst dit fulde navn')
         setIsLoading(false)
-      const us
-      }
-        toast.error('Forkert ema
-        toast.error('Adgangskoden skal være mindst 6 tegn')
-
         return
-       
-      if (password !== confirmPassword) {
-    setIsLoading(false)
+      }
+
+      if (password.length < 6) {
+        toast.error('Adgangskoden skal være mindst 6 tegn')
         setIsLoading(false)
-    setMode(mo
+        return
+      }
+
+      if (password !== confirmPassword) {
+        toast.error('Adgangskoderne matcher ikke')
+        setIsLoading(false)
+        return
       }
 
       const usersData = await spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users') || {}
@@ -46,7 +48,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
       if (usersData[email]) {
         toast.error('En bruger med denne email eksisterer allerede')
         setIsLoading(false)
-          init
+        return
       }
 
       const userId = `user_${Date.now()}`
@@ -54,9 +56,9 @@ export function Auth({ onAuthenticated }: AuthProps) {
       await spark.kv.set('users', usersData)
       
       toast.success('Konto oprettet!')
-                </div>
+      setTimeout(() => {
         onAuthenticated(userId, email)
-             
+      }, 300)
     } else {
       const usersData = await spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users') || {}
       
@@ -64,7 +66,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
       if (!user || user.password !== password) {
         toast.error('Forkert email eller adgangskode')
         setIsLoading(false)
-          </di
+        return
       }
 
       toast.success('Velkommen tilbage!')
@@ -72,9 +74,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
         const userId = `user_${email}`
         onAuthenticated(userId, email)
       }, 300)
-     
-
-              )}
+    }
   }
 
   const toggleMode = () => {
@@ -100,9 +100,9 @@ export function Auth({ onAuthenticated }: AuthProps) {
           transition={{ duration: 0.6 }}
         >
           <div className="text-center mb-8">
-                    valu
+            <motion.div
               className="inline-flex items-center justify-center mb-6"
-                    required
+              initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
             >
@@ -112,23 +112,23 @@ export function Auth({ onAuthenticated }: AuthProps) {
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,white,transparent)] opacity-20" />
                   <Books size={40} weight="duotone" className="text-primary-foreground relative z-10" />
                 </div>
-                {mode === '
+                <motion.div
                   className="absolute -inset-2 rounded-3xl bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 blur-xl -z-10"
                   animate={{
                     scale: [1, 1.1, 1],
                     opacity: [0.5, 0.7, 0.5],
                   }}
-        </motion.div>
+                  transition={{
                     duration: 3,
                     repeat: Infinity,
                     ease: "easeInOut"
-
+                  }}
                 />
-
+              </div>
             </motion.div>
 
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">
-
+              Nexi Team Hub
             </h1>
             <p className="text-muted-foreground">
               {mode === 'login' ? 'Log ind for at fortsætte' : 'Opret en ny konto'}
@@ -140,9 +140,9 @@ export function Auth({ onAuthenticated }: AuthProps) {
               {mode === 'signup' && (
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="text-sm font-semibold flex items-center gap-2">
-
+                    <User size={16} />
                     Fulde navn
-
+                  </Label>
                   <Input
                     id="fullName"
                     type="text"
@@ -158,7 +158,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-semibold flex items-center gap-2">
                   <EnvelopeSimple size={16} />
-
+                  Email
                 </Label>
                 <Input
                   id="email"
@@ -174,75 +174,75 @@ export function Auth({ onAuthenticated }: AuthProps) {
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-semibold flex items-center gap-2">
                   <Lock size={16} />
-
+                  Adgangskode
                 </Label>
-
+                <div className="relative">
                   <Input
-
+                    id="password"
                     type={showPassword ? 'text' : 'password'}
-
+                    value={password}
                     onChange={(e) => setPassword(e.target.value)}
-
+                    placeholder="••••••••"
                     className="h-11 pr-10"
                     required
                   />
                   <button
                     type="button"
-
+                    onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-
+                  >
                     {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
-
+                  </button>
                 </div>
+              </div>
 
-
-
+              {mode === 'signup' && (
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword" className="text-sm font-semibold flex items-center gap-2">
                     <Lock size={16} />
-
+                    Bekræft adgangskode
                   </Label>
-
+                  <Input
                     id="confirmPassword"
-
+                    type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-
+                    className="h-11"
                     required
-
+                  />
                 </div>
               )}
 
-
+              <Button
                 type="submit"
                 className="w-full h-11 bg-gradient-to-r from-primary via-secondary to-accent text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 disabled={isLoading}
-
+              >
                 {isLoading ? 'Behandler...' : mode === 'login' ? 'Log ind' : 'Opret konto'}
-
+              </Button>
             </form>
 
             <div className="mt-6 text-center">
-
+              <button
                 type="button"
                 onClick={toggleMode}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-
+              >
                 {mode === 'login' ? (
-
+                  <>
                     Har du ikke en konto? <span className="font-semibold text-primary">Opret en her</span>
-
+                  </>
                 ) : (
-
+                  <>
                     Har du allerede en konto? <span className="font-semibold text-primary">Log ind</span>
                   </>
                 )}
-
+              </button>
             </div>
-
+          </Card>
         </motion.div>
-
+      </div>
     </div>
-
+  )
 }
