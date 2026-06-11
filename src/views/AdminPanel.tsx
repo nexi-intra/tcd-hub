@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, UserGear, Check, Crown, ShieldCheck, User as UserIcon, Trash } from '@phosphor-icons/react'
+import { ArrowLeft, UserGear, Check, Crown, ShieldCheck, User as UserIcon, Trash, FirstAidKit, X } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,9 @@ import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { format } from 'date-fns'
+import { da } from 'date-fns/locale'
 
 type UserRole = 'admin' | 'manager' | 'user'
 
@@ -15,6 +18,17 @@ interface User {
   email: string
   fullName: string
   role: UserRole
+}
+
+interface SickLeaveEntry {
+  id: string
+  userEmail: string
+  userName: string
+  startDate: string
+  endDate: string
+  reason?: string
+  status: 'pending' | 'approved' | 'rejected'
+  submittedAt: string
 }
 
 interface AdminPanelProps {
@@ -27,16 +41,18 @@ const ADMIN_EMAIL = 'jacob.remmer@nexigroup.com'
 
 export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelProps) {
   const [users, setUsers] = useState<User[]>([])
+  const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const isAdmin = userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase()
 
   useEffect(() => {
     loadUsers()
+    loadSickLeaveEntries()
   }, [])
 
   const loadUsers = async () => {
     setIsLoading(true)
-    const usersData = await spark.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean }>>('users')
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean }>>('users')
     if (usersData) {
       const userList = Object.values(usersData).map(u => {
         let role: UserRole = 'user'
@@ -62,17 +78,24 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
     setIsLoading(false)
   }
 
+  const loadSickLeaveEntries = async () => {
+    const entries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
+    setSickLeaveEntries(entries.sort((a, b) => 
+      new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+    ))
+  }
+
   const changeUserRole = async (email: string, newRole: UserRole) => {
     if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
       toast.error('Kan ikke ændre admin brugerens rettigheder')
       return
     }
 
-    const usersData = await spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
       usersData[email].role = newRole
       usersData[email].isManager = newRole === 'manager' || newRole === 'admin'
-      await spark.kv.set('users', usersData)
+      await window.spark.kv.set('users', usersData)
       await loadUsers()
       
       const roleNames = { admin: 'Administrator', manager: 'Manager', user: 'Bruger' }
@@ -86,12 +109,35 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
       return
     }
 
-    const usersData = await spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
       delete usersData[email]
-      await spark.kv.set('users', usersData)
+      await window.spark.kv.set('users', usersData)
       await loadUsers()
       toast.success('Bruger slettet')
+    }
+  }
+
+  const handleSickLeaveStatus = async (entryId: string, newStatus: 'approved' | 'rejected') => {
+    const entries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
+    const updatedEntries = entries.map(entry => 
+      entry.id === entryId ? { ...entry, status: newStatus } : entry
+    )
+    await window.spark.kv.set('sick-leave-entries', updatedEntries)
+    await loadSickLeaveEntries()
+    
+    const statusText = newStatus === 'approved' ? 'godkendt' : 'afvist'
+    toast.success(`Sygemelding ${statusText}`)
+  }
+
+  const getStatusBadge = (status: SickLeaveEntry['status']) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-500 text-white"><Check size={14} className="mr-1" />Godkendt</Badge>
+      case 'rejected':
+        return <Badge className="bg-red-500 text-white"><X size={14} className="mr-1" />Afvist</Badge>
+      default:
+        return <Badge variant="secondary">Afventer</Badge>
     }
   }
 
@@ -190,22 +236,29 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="space-y-6"
-        >
-          <Card className="p-6 border-2">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <UserGear size={28} className="text-primary" weight="duotone" />
-                <h2 className="text-2xl font-bold">Brugeroversigt</h2>
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="users" className="gap-2">
+              <UserGear size={18} />
+              Brugere
+            </TabsTrigger>
+            <TabsTrigger value="sick-leave" className="gap-2">
+              <FirstAidKit size={18} />
+              Sygemeldinger
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="users" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <UserGear size={28} className="text-primary" weight="duotone" />
+                  <h2 className="text-2xl font-bold">Brugeroversigt</h2>
+                </div>
+                <Badge variant="outline" className="text-sm">
+                  {users.length} {users.length === 1 ? 'Bruger' : 'Brugere'}
+                </Badge>
               </div>
-              <Badge variant="outline" className="text-sm">
-                {users.length} {users.length === 1 ? 'Bruger' : 'Brugere'}
-              </Badge>
-            </div>
 
             {isLoading ? (
               <p className="text-muted-foreground text-center py-12">Indlæser brugere...</p>
@@ -337,7 +390,80 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
               </div>
             </div>
           </Card>
-        </motion.div>
+          </TabsContent>
+
+          <TabsContent value="sick-leave" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <FirstAidKit size={28} className="text-destructive" weight="duotone" />
+                  <h2 className="text-2xl font-bold">Sygemeldinger</h2>
+                </div>
+                <Badge variant="outline" className="text-sm">
+                  {sickLeaveEntries.filter(e => e.status === 'pending').length} afventer
+                </Badge>
+              </div>
+
+              {sickLeaveEntries.length === 0 ? (
+                <p className="text-muted-foreground text-center py-12">Ingen sygemeldinger</p>
+              ) : (
+                <div className="space-y-3">
+                  {sickLeaveEntries.map((entry) => (
+                    <motion.div
+                      key={entry.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center justify-between p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                          {entry.userName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold text-lg mb-1">{entry.userName}</div>
+                          <div className="text-sm text-muted-foreground">{entry.userEmail}</div>
+                          <div className="flex items-center gap-4 mt-2 text-sm">
+                            <span className="font-medium">
+                              {format(new Date(entry.startDate), 'd. MMM', { locale: da })} - {format(new Date(entry.endDate), 'd. MMM yyyy', { locale: da })}
+                            </span>
+                            {entry.reason && (
+                              <span className="text-muted-foreground">• {entry.reason}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {getStatusBadge(entry.status)}
+                        </div>
+                      </div>
+                      {entry.status === 'pending' && (
+                        <div className="ml-4 flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleSickLeaveStatus(entry.id, 'approved')}
+                            className="bg-green-500 hover:bg-green-600 text-white gap-2"
+                          >
+                            <Check size={16} />
+                            Godkend
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleSickLeaveStatus(entry.id, 'rejected')}
+                            className="gap-2"
+                          >
+                            <X size={16} />
+                            Afvis
+                          </Button>
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

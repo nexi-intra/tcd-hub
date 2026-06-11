@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, ChartBar, Gear, ChatCircle, FileText, Folder } from '@phosphor-icons/react'
+import { Books, Users, Calendar, ChartBar, Gear, ChatCircle, FileText, Folder, FirstAidKit } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { UserProfile } from '@/components/UserProfile'
+import { SickLeaveDialog } from '@/components/SickLeaveDialog'
 import { cn } from '@/lib/utils'
 
 interface HubModule {
@@ -23,6 +25,7 @@ interface HubProps {
 
 export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [isAdminOrManager, setIsAdminOrManager] = useState(false)
+  const [showSickLeaveDialog, setShowSickLeaveDialog] = useState(false)
   
   useEffect(() => {
     const checkUserRole = async () => {
@@ -117,7 +120,21 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         backgroundImage: `repeating-linear-gradient(90deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px),
                          repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px)`
       }} />
-      <div className="absolute top-4 right-4 z-20">
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-3">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Button
+            onClick={() => setShowSickLeaveDialog(true)}
+            size="lg"
+            className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold"
+          >
+            <FirstAidKit size={24} weight="duotone" />
+            Sygemelding
+          </Button>
+        </motion.div>
         <UserProfile 
           userEmail={userEmail} 
           onLogout={onLogout}
@@ -125,6 +142,12 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           onAdminClick={() => onNavigate('admin')}
         />
       </div>
+      
+      <SickLeaveDialog
+        open={showSickLeaveDialog}
+        onOpenChange={setShowSickLeaveDialog}
+        userEmail={userEmail}
+      />
       <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 max-w-7xl relative z-10">
         <motion.header 
           className="text-center mb-16"
