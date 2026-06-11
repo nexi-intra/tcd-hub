@@ -136,9 +136,9 @@ function App() {
       
       <Toaster position="top-center" richColors />
       
-      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl relative z-10">
-        <header className="mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl relative z-10">
+        <header className="mb-12">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-4">
               <motion.div 
                 className="h-16 w-16 flex-shrink-0 rounded-3xl bg-gradient-to-br from-primary via-secondary to-accent shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden"
@@ -190,7 +190,7 @@ function App() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-6">
             <div className="relative flex-1">
               <MagnifyingGlass
                 size={20}
@@ -205,9 +205,9 @@ function App() {
             </div>
           </div>
 
-          <Separator className="my-6" />
+          <Separator className="my-8" />
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {allCategories.map((category) => (
               <motion.div 
                 key={category}
@@ -286,7 +286,7 @@ function App() {
             )}
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence mode="popLayout">
               {filteredGuides.map((guide) => (
                 <GuideCard

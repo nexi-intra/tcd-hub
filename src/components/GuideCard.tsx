@@ -51,11 +51,11 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-secondary/8 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,oklch(0.55_0.22_265/0.15),transparent_50%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
-        <CardHeader className="pb-3 flex-1 relative z-10">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-start justify-between gap-2">
+        <CardHeader className="pb-5 flex-1 relative z-10">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <div className="flex items-start gap-2 mb-3">
+                <div className="flex items-start gap-3 mb-4">
                   <CardTitle className="text-base sm:text-lg leading-tight break-words flex-1 font-bold text-foreground group-hover:bg-gradient-to-r group-hover:from-primary group-hover:via-secondary group-hover:to-primary group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
                     {guide.title}
                   </CardTitle>
@@ -87,20 +87,20 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
               </div>
             </div>
             {guide.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 {guide.tags.slice(0, 3).map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs px-2.5 py-0.5 font-semibold bg-muted hover:bg-muted/80 transition-colors rounded-lg">
+                  <Badge key={tag} variant="secondary" className="text-xs px-3 py-1 font-semibold bg-muted hover:bg-muted/80 transition-colors rounded-lg">
                     {tag}
                   </Badge>
                 ))}
                 {guide.tags.length > 3 && (
-                  <Badge variant="secondary" className="text-xs px-2.5 py-0.5 font-semibold bg-muted rounded-lg">
+                  <Badge variant="secondary" className="text-xs px-3 py-1 font-semibold bg-muted rounded-lg">
                     +{guide.tags.length - 3}
                   </Badge>
                 )}
               </div>
             )}
-            <div className="flex gap-1 pt-2" onClick={(e) => e.stopPropagation()}>
+            <div className="flex gap-2 pt-3" onClick={(e) => e.stopPropagation()}>
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   variant="ghost"
