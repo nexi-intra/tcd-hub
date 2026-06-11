@@ -22,16 +22,18 @@ interface HubProps {
 }
 
 export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
-  const [isManager, setIsManager] = useState(false)
+  const [isAdminOrManager, setIsAdminOrManager] = useState(false)
   
   useEffect(() => {
-    const checkManagerStatus = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
+    const checkUserRole = async () => {
+      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role?: string; isManager?: boolean }>>('users')
       if (usersData && usersData[userEmail]) {
-        setIsManager(usersData[userEmail].isManager || false)
+        const user = usersData[userEmail]
+        const hasAdminRights = user.role === 'admin' || user.role === 'manager' || user.isManager
+        setIsAdminOrManager(hasAdminRights || false)
       }
     }
-    checkManagerStatus()
+    checkUserRole()
   }, [userEmail])
   const modules: HubModule[] = [
     {
@@ -119,7 +121,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         <UserProfile 
           userEmail={userEmail} 
           onLogout={onLogout}
-          showAdmin={isManager}
+          showAdmin={isAdminOrManager}
           onAdminClick={() => onNavigate('admin')}
         />
       </div>

@@ -52,7 +52,8 @@ export function Auth({ onAuthenticated }: AuthProps) {
       }
 
       const userId = `user_${Date.now()}`
-      usersData[email] = { email, password, fullName, isManager: false }
+      const role = email.toLowerCase() === 'jacob.remmer@nexigroup.com' ? 'admin' : 'user'
+      usersData[email] = { email, password, fullName, isManager: role === 'admin', role }
       await spark.kv.set('users', usersData)
       
       toast.success('Konto oprettet!')
