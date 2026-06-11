@@ -3,7 +3,7 @@ import { useKV } from '@github/spark/hooks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Plus, MagnifyingGlass, ChatsCircle, Books, Gear, Bug } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, ChatsCircle, Books, Gear } from '@phosphor-icons/react'
 import { Guide, GuideCategory } from '@/lib/types'
 import { GuideCard } from '@/components/GuideCard'
 import { GuideDialog } from '@/components/GuideDialog'
@@ -27,7 +27,6 @@ function App() {
   const [viewGuide, setViewGuide] = useState<Guide | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('All')
-  const [showDebug, setShowDebug] = useState(false)
 
   const filteredGuides = useMemo(() => {
     if (!guides) return []
@@ -42,17 +41,7 @@ function App() {
     })
   }, [guides, activeCategory, searchQuery])
 
-  useEffect(() => {
-    if (showDebug) {
-      console.log('=== DEBUG INFO ===')
-      console.log('Total guides in storage:', guides?.length || 0)
-      console.log('All guides:', guides)
-      console.log('Active category:', activeCategory)
-      console.log('Search query:', searchQuery)
-      console.log('Filtered guides count:', filteredGuides.length)
-      console.log('Filtered guides:', filteredGuides)
-    }
-  }, [guides, filteredGuides, activeCategory, searchQuery, showDebug])
+
 
   const handleSaveGuide = (guideData: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editGuide) {
@@ -167,20 +156,6 @@ function App() {
               </div>
             </div>
             <div className="flex gap-2 flex-shrink-0">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  onClick={() => setShowDebug(!showDebug)}
-                  variant="outline"
-                  size="icon"
-                  className={cn(
-                    "h-10 w-10 backdrop-blur-sm",
-                    showDebug && "bg-accent/20 border-accent/40 shadow-lg shadow-accent/10"
-                  )}
-                  title="Debug mode - Open console to see guide data"
-                >
-                  <Bug size={18} weight={showDebug ? "fill" : "regular"} />
-                </Button>
-              </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   onClick={() => setCategoryManagerOpen(true)}
