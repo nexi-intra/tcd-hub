@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -7,11 +6,10 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { DownloadSimple, X } from '@phosphor-icons/react'
+import { DownloadSimple, FileDoc } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import mammoth from 'mammoth'
 
 interface GuideViewerProps {
   guide: Guide | null
@@ -28,65 +26,6 @@ const categoryColors: Record<string, string> = {
 }
 
 export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
-  const [htmlContent, setHtmlContent] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {
-    const loadWordContent = async () => {
-      if (!guide?.wordFileData || !open) {
-        setHtmlContent('')
-        return
-      }
-
-      setIsLoading(true)
-      try {
-        const binaryString = atob(guide.wordFileData)
-        const bytes = new Uint8Array(binaryString.length)
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i)
-        }
-        
-        const arrayBuffer = bytes.buffer
-        const result = await mammoth.convertToHtml({ arrayBuffer }, {
-          styleMap: [
-            "p[style-name='Heading 1'] => h1:fresh",
-            "p[style-name='Heading 2'] => h2:fresh",
-            "p[style-name='Heading 3'] => h3:fresh",
-            "p[style-name='Heading 4'] => h4:fresh",
-            "p[style-name='Heading 5'] => h5:fresh",
-            "p[style-name='Heading 6'] => h6:fresh",
-            "p[style-name='Title'] => h1.title:fresh",
-            "p[style-name='Subtitle'] => p.subtitle:fresh",
-            "r[style-name='Strong'] => strong",
-            "r[style-name='Emphasis'] => em",
-          ],
-          convertImage: mammoth.images.imgElement((image) => {
-            return image.read('base64').then((imageBuffer) => {
-              return {
-                src: `data:${image.contentType};base64,${imageBuffer}`,
-              }
-            })
-          }),
-          includeDefaultStyleMap: true,
-          ignoreEmptyParagraphs: false,
-        })
-        
-        setHtmlContent(result.value)
-        
-        if (result.messages.length > 0) {
-          console.log('Mammoth conversion messages:', result.messages)
-        }
-      } catch (error) {
-        console.error('Error loading Word document:', error)
-        toast.error('Kunne ikke indlæse Word-dokumentet')
-        setHtmlContent(`<p class="text-muted-foreground">${guide.content}</p>`)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadWordContent()
-  }, [guide, open])
 
   const handleDownload = () => {
     if (!guide?.wordFileData || !guide?.wordFileName) {
@@ -169,15 +108,44 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto min-h-0 px-6 py-6 bg-card">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-muted-foreground">Indlæser dokument...</div>
+          {guide.wordFileData ? (
+            <div className="flex flex-col items-center justify-center py-12 px-6">
+              <div className="max-w-2xl w-full space-y-6">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="h-24 w-24 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <FileDoc size={48} weight="duotone" className="text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">
+                      Word-dokument vedhæftet
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {guide.wordFileName || 'dokument.docx'}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Download filen for at se det fulde indhold med formatering og billeder
+                    </p>
+                  </div>
+                  <Button
+                    size="lg"
+                    onClick={handleDownload}
+                    className="mt-4"
+                  >
+                    <DownloadSimple size={20} weight="bold" className="mr-2" />
+                    Download Word-dokument
+                  </Button>
+                </div>
+                
+                {guide.content && guide.content !== 'Se vedhæftet Word-dokument' && (
+                  <div className="pt-6 border-t border-border">
+                    <h4 className="text-sm font-semibold text-foreground mb-3">Ekstra noter:</h4>
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <p className="whitespace-pre-wrap break-words text-sm">{guide.content}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          ) : guide.wordFileData && htmlContent ? (
-            <div 
-              className="word-content max-w-none bg-background rounded-lg shadow-sm border border-border p-8 sm:p-12"
-              dangerouslySetInnerHTML={{ __html: htmlContent }}
-            />
           ) : (
             <div className="max-w-none bg-background rounded-lg shadow-sm border border-border p-8 sm:p-12">
               <p className="whitespace-pre-wrap break-words">{guide.content}</p>

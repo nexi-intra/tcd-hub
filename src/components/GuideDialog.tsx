@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import { Guide, GuideCategory } from '@/lib/types'
 import { Upload, FileDoc, X } from '@phosphor-icons/react'
-import mammoth from 'mammoth'
+
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -58,7 +58,13 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
   }, [editGuide, open, categories])
 
   const handleSave = async () => {
-    if (!title.trim() || !content.trim()) return
+    const hasWordFile = uploadedFile || editGuide?.wordFileData
+    const hasContent = content.trim()
+    
+    if (!title.trim() || (!hasWordFile && !hasContent)) {
+      toast.error('Titel og enten indhold eller Word-dokument er påkrævet')
+      return
+    }
 
     const tagArray = tags
       .split(',')
@@ -82,7 +88,7 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
     onSave({
       title: title.trim(),
       category: category as GuideCategory,
-      content: content.trim(),
+      content: hasContent ? content.trim() : 'Se vedhæftet Word-dokument',
       tags: tagArray,
       wordFileData,
       wordFileName,
@@ -112,24 +118,15 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
     setUploadedFile(file)
 
     try {
-      const arrayBuffer = await file.arrayBuffer()
-      const result = await mammoth.convertToHtml({ arrayBuffer })
-      
-      const tempDiv = document.createElement('div')
-      tempDiv.innerHTML = result.value
-      const extractedText = tempDiv.textContent || tempDiv.innerText || ''
-      
-      setContent(extractedText)
-      
       if (!title.trim()) {
         const fileName = file.name.replace(/\.(docx?|DOCX?)$/, '')
         setTitle(fileName)
       }
       
-      toast.success('Word-dokument indlæst!')
+      toast.success('Word-dokument vedhæftet!')
     } catch (error) {
       console.error('Error processing Word document:', error)
-      toast.error('Kunne ikke læse Word-dokumentet')
+      toast.error('Kunne ikke vedhæfte Word-dokumentet')
       setUploadedFile(null)
     } finally {
       setIsProcessing(false)
@@ -293,12 +290,18 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="content">Indhold</Label>
+            <Label htmlFor="content">
+              Indhold {(uploadedFile || editGuide?.wordFileData) && <span className="text-muted-foreground font-normal">(valgfrit)</span>}
+            </Label>
             <Textarea
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Beskriv trinene eller informationen i denne guide..."
+              placeholder={
+                uploadedFile || editGuide?.wordFileData
+                  ? "Tilføj ekstra noter eller lad være tom hvis Word-dokumentet indeholder alt..."
+                  : "Beskriv trinene eller informationen i denne guide..."
+              }
               className="min-h-[200px] resize-none"
             />
           </div>
@@ -316,7 +319,10 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annuller
           </Button>
-          <Button onClick={handleSave} disabled={!title.trim() || !content.trim()}>
+          <Button 
+            onClick={handleSave} 
+            disabled={!title.trim() || (!content.trim() && !uploadedFile && !editGuide?.wordFileData)}
+          >
             {editGuide ? 'Gem ændringer' : 'Opret guide'}
           </Button>
         </DialogFooter>
