@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DownloadSimple, FileDoc } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
+import { fileStorage } from '@/lib/fileStorage'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -27,21 +28,31 @@ const categoryColors: Record<string, string> = {
 
 export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
 
-  const handleDownload = () => {
-    if (!guide?.wordFileData || !guide?.wordFileName) {
+  const handleDownload = async () => {
+    if (!guide?.wordFileName) {
       toast.error('Word-filen er ikke tilgængelig')
       return
     }
 
     try {
-      const binaryString = atob(guide.wordFileData)
-      const bytes = new Uint8Array(binaryString.length)
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i)
+      let blob: Blob
+
+      if (guide.fileUrl) {
+        blob = await fileStorage.downloadFile(guide.fileUrl)
+      } else if (guide.wordFileData) {
+        const binaryString = atob(guide.wordFileData)
+        const bytes = new Uint8Array(binaryString.length)
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i)
+        }
+        blob = new Blob([bytes], { 
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+        })
+      } else {
+        toast.error('Word-filen er ikke tilgængelig')
+        return
       }
-      const blob = new Blob([bytes], { 
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-      })
+
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -96,7 +107,7 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
                 </div>
               )}
             </div>
-            {guide.wordFileData && (
+            {(guide.fileUrl || guide.wordFileData) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -111,7 +122,7 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 py-4 sm:py-6 bg-card">
-          {guide.wordFileData ? (
+          {(guide.fileUrl || guide.wordFileData) ? (
             <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 sm:px-6">
               <div className="max-w-2xl w-full space-y-4 sm:space-y-6">
                 <div className="flex flex-col items-center text-center space-y-4">
@@ -125,6 +136,11 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
                     <p className="text-sm text-muted-foreground mb-1 break-all">
                       {guide.wordFileName || 'dokument.docx'}
                     </p>
+                    {guide.fileSize && (
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Størrelse: {(guide.fileSize / 1024).toFixed(2)} KB
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground">
                       Download filen for at se det fulde indhold med formatering og billeder
                     </p>

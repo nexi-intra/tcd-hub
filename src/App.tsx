@@ -54,7 +54,7 @@ function App() {
     }
   }, [guides, filteredGuides, activeCategory, searchQuery, showDebug])
 
-  const handleSaveGuide = (guideData: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'> & { wordFileData?: string; wordFileName?: string }) => {
+  const handleSaveGuide = (guideData: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editGuide) {
       setGuides((currentGuides) =>
         (currentGuides || []).map((g) =>
@@ -65,10 +65,9 @@ function App() {
                 category: guideData.category,
                 content: guideData.content,
                 tags: guideData.tags,
-                ...(guideData.wordFileData !== undefined && {
-                  wordFileData: guideData.wordFileData,
-                  wordFileName: guideData.wordFileName
-                }),
+                fileUrl: guideData.fileUrl,
+                wordFileName: guideData.wordFileName,
+                fileSize: guideData.fileSize,
                 updatedAt: Date.now() 
               }
             : g
@@ -82,8 +81,9 @@ function App() {
         category: guideData.category,
         content: guideData.content,
         tags: guideData.tags,
-        wordFileData: guideData.wordFileData,
+        fileUrl: guideData.fileUrl,
         wordFileName: guideData.wordFileName,
+        fileSize: guideData.fileSize,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       }
@@ -94,15 +94,16 @@ function App() {
     setEditGuide(undefined)
   }
 
-  const handleBulkSaveGuides = (guidesData: Array<Omit<Guide, 'id' | 'createdAt' | 'updatedAt'> & { wordFileData?: string; wordFileName?: string }>) => {
+  const handleBulkSaveGuides = (guidesData: Array<Omit<Guide, 'id' | 'createdAt' | 'updatedAt'>>) => {
     const newGuides: Guide[] = guidesData.map((guideData, index) => ({
       id: (Date.now() + index).toString(),
       title: guideData.title,
       category: guideData.category,
       content: guideData.content,
       tags: guideData.tags,
-      wordFileData: guideData.wordFileData,
+      fileUrl: guideData.fileUrl,
       wordFileName: guideData.wordFileName,
+      fileSize: guideData.fileSize,
       createdAt: Date.now() + index,
       updatedAt: Date.now() + index,
     }))

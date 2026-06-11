@@ -10,6 +10,8 @@ export interface Guide {
   updatedAt: number
   wordFileData?: string
   wordFileName?: string
+  fileUrl?: string
+  fileSize?: number
 }
 
 export interface ChatMessage {

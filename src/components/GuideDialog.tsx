@@ -20,15 +20,15 @@ import {
 } from '@/components/ui/select'
 import { Guide, GuideCategory } from '@/lib/types'
 import { Upload, FileDoc, X } from '@phosphor-icons/react'
-
+import { fileStorage } from '@/lib/fileStorage'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 interface GuideDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (guide: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'> & { wordFileData?: string; wordFileName?: string }) => void
-  onBulkSave?: (guides: Array<Omit<Guide, 'id' | 'createdAt' | 'updatedAt'> & { wordFileData?: string; wordFileName?: string }>) => void
+  onSave: (guide: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'>) => void
+  onBulkSave?: (guides: Array<Omit<Guide, 'id' | 'createdAt' | 'updatedAt'>>) => void
   editGuide?: Guide
   categories: string[]
 }
@@ -59,7 +59,7 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
   }, [editGuide, open, categories])
 
   const handleSave = async () => {
-    const hasWordFiles = uploadedFiles.length > 0 || editGuide?.wordFileData
+    const hasWordFiles = uploadedFiles.length > 0 || editGuide?.fileUrl
     const hasContent = content.trim()
     
     if (uploadedFiles.length > 1 && onBulkSave) {
@@ -77,19 +77,31 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
       .map((tag) => tag.trim())
       .filter((tag) => tag.length > 0)
 
-    let wordFileData: string | undefined
+    let fileUrl: string | undefined
     let wordFileName: string | undefined
+    let fileSize: number | undefined
 
     if (uploadedFiles.length > 0) {
-      const file = uploadedFiles[0]
-      const arrayBuffer = await file.arrayBuffer()
-      const bytes = new Uint8Array(arrayBuffer)
-      const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
-      wordFileData = btoa(binary)
-      wordFileName = file.name
-    } else if (editGuide?.wordFileData) {
-      wordFileData = editGuide.wordFileData
+      try {
+        setIsProcessing(true)
+        const file = uploadedFiles[0]
+        const storedFile = await fileStorage.uploadFile(file)
+        fileUrl = storedFile.url
+        wordFileName = storedFile.filename
+        fileSize = storedFile.size
+        toast.success('Fil uploaded til cloud storage!')
+      } catch (error) {
+        console.error('Error uploading file:', error)
+        toast.error('Kunne ikke uploade filen')
+        setIsProcessing(false)
+        return
+      } finally {
+        setIsProcessing(false)
+      }
+    } else if (editGuide?.fileUrl) {
+      fileUrl = editGuide.fileUrl
       wordFileName = editGuide.wordFileName
+      fileSize = editGuide.fileSize
     }
 
     onSave({
@@ -97,8 +109,9 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
       category: category as GuideCategory,
       content: hasContent ? content.trim() : 'Se vedhæftet Word-dokument',
       tags: tagArray,
-      wordFileData,
+      fileUrl,
       wordFileName,
+      fileSize,
     })
 
     setTitle('')
@@ -120,10 +133,7 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
     try {
       const guides = await Promise.all(
         uploadedFiles.map(async (file) => {
-          const arrayBuffer = await file.arrayBuffer()
-          const bytes = new Uint8Array(arrayBuffer)
-          const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
-          const wordFileData = btoa(binary)
+          const storedFile = await fileStorage.uploadFile(file)
           const fileName = file.name.replace(/\.(docx?|DOCX?)$/, '')
 
           return {
@@ -131,14 +141,15 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
             category: category as GuideCategory,
             content: 'Se vedhæftet Word-dokument',
             tags: tagArray,
-            wordFileData,
-            wordFileName: file.name,
+            fileUrl: storedFile.url,
+            wordFileName: storedFile.filename,
+            fileSize: storedFile.size,
           }
         })
       )
 
       onBulkSave(guides)
-      toast.success(`${uploadedFiles.length} guides oprettet!`)
+      toast.success(`${uploadedFiles.length} guides oprettet og uploaded til cloud storage!`)
       
       setTitle('')
       setCategory(categories[0] || 'General')
