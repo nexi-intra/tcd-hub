@@ -7,30 +7,59 @@ export interface StoredFile {
 
 class FileStorageService {
   private async storeInKV(file: File): Promise<StoredFile> {
-    const arrayBuffer = await file.arrayBuffer()
-    const bytes = new Uint8Array(arrayBuffer)
-    const base64Data = this.arrayBufferToBase64(bytes)
-    
-    const fileId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    
-    await window.spark.kv.set(fileId, {
-      data: base64Data,
-      filename: file.name,
-      contentType: file.type,
-      size: file.size,
-      uploadedAt: Date.now()
-    })
+    try {
+      const MAX_FILE_SIZE = 10 * 1024 * 1024
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`Filen er for stor (max 10MB). Din fil er ${(file.size / 1024 / 1024).toFixed(2)}MB`)
+      }
 
-    return {
-      url: `kv://${fileId}`,
-      filename: file.name,
-      size: file.size,
-      uploadedAt: Date.now()
+      console.log('Starting file upload:', file.name, 'Size:', file.size)
+      
+      const arrayBuffer = await file.arrayBuffer()
+      console.log('File read as ArrayBuffer')
+      
+      const bytes = new Uint8Array(arrayBuffer)
+      console.log('Converted to Uint8Array')
+      
+      const base64Data = this.arrayBufferToBase64(bytes)
+      console.log('Converted to base64, length:', base64Data.length)
+      
+      const fileId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      
+      const fileData = {
+        data: base64Data,
+        filename: file.name,
+        contentType: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        size: file.size,
+        uploadedAt: Date.now()
+      }
+      
+      console.log('Attempting to save to KV with key:', fileId)
+      await window.spark.kv.set(fileId, fileData)
+      console.log('File saved successfully to KV')
+
+      return {
+        url: `kv://${fileId}`,
+        filename: file.name,
+        size: file.size,
+        uploadedAt: Date.now()
+      }
+    } catch (error) {
+      console.error('Error in storeInKV:', error)
+      if (error instanceof Error) {
+        throw new Error(`Upload fejlede: ${error.message}`)
+      }
+      throw new Error('Upload fejlede: Ukendt fejl')
     }
   }
 
   async uploadFile(file: File): Promise<StoredFile> {
-    return this.storeInKV(file)
+    try {
+      return await this.storeInKV(file)
+    } catch (error) {
+      console.error('Upload file error:', error)
+      throw error
+    }
   }
 
   async downloadFile(fileUrl: string): Promise<Blob> {
