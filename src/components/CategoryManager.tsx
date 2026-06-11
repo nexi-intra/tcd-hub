@@ -186,7 +186,7 @@ export function CategoryManager({
                                 <div className="font-medium">{category}</div>
                                 {isFixed && (
                                   <span className="text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
-                                    Fast
+                                    Standard
                                   </span>
                                 )}
                               </div>
