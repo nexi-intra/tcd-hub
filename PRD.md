@@ -1,23 +1,30 @@
 # Planning Guide
 
-A department knowledge base application that stores, organizes, and makes guides easily discoverable through an intuitive interface and an intelligent AI chatbot assistant.
+A centralized team hub for Nexi Group that provides easy access to multiple team resources and tools, starting with a comprehensive knowledge base (Guide Library) and designed to expand with additional modules like team directory, calendar, analytics, documents, projects, and team chat.
 
 **Experience Qualities**: 
-1. **Efficient** - Users should find the information they need within seconds, whether through browsing or asking the chatbot
-2. **Organized** - Guides should be clearly categorized and visually distinct, making the collection feel manageable rather than overwhelming
-3. **Helpful** - The AI assistant should feel like a knowledgeable colleague who understands context and provides direct, actionable guidance
+1. **Intuitive** - Users should immediately understand how to navigate between different modules and find what they need
+2. **Organized** - Clear visual hierarchy and module organization that makes the hub feel like a natural starting point for team activities
+3. **Scalable** - Architecture that allows for easy addition of new modules without cluttering the interface
 
 **Complexity Level**: Light Application (multiple features with basic state)
-This is a content management and retrieval system with CRUD operations for guides, search/filter capabilities, and an AI chat interface. It requires persistent storage but doesn't need complex workflows or multi-view navigation beyond the main interface.
+This is a hub-based application with modular navigation between different team tools. Currently implements the Guide Library module with CRUD operations, search/filter capabilities, and AI chat interface. Designed to accommodate future modules through a consistent navigation pattern.
 
 ## Essential Features
 
+### Hub Navigation
+- **Functionality**: Central dashboard displaying all available team modules as cards with visual indicators for which modules are active
+- **Purpose**: Provides single entry point to all team resources and tools
+- **Trigger**: Application loads to hub view by default, back button from any module returns to hub
+- **Progression**: Load app → See hub with module cards → Click available module → Navigate to that module → Use back button → Return to hub
+- **Success criteria**: Hub loads quickly, module cards are visually distinct, navigation is smooth, clear indication of which modules are available vs coming soon
+
 ### Guide Management
-- **Functionality**: Create, edit, and delete department guides with title, category, content, and tags
+- **Functionality**: Create, edit, and delete department guides with title, category, content, and tags. Supports Word document uploads (.docx files) stored persistently
 - **Purpose**: Allows team members to build and maintain a living knowledge base
-- **Trigger**: Click "Add Guide" button or edit icon on existing guide
-- **Progression**: Click add button → Dialog opens with form → Fill in title, category, content, tags → Save → Guide appears in library → Success toast
-- **Success criteria**: Guides persist between sessions, all fields save correctly, guides can be edited and deleted
+- **Trigger**: Navigate to Guide Library from hub, then click "Add Guide" button or edit icon on existing guide
+- **Progression**: Open hub → Click Guide Library → Click add button → Dialog opens with form → Fill in title, category, content, tags, optionally upload Word doc → Save → Guide appears in library → Success toast
+- **Success criteria**: Guides persist between sessions, all fields save correctly, Word documents are stored and downloadable, guides can be edited and deleted
 
 ### Category Organization
 - **Functionality**: Filter guides by predefined categories (Procedures, Technical, HR, Safety, General)
@@ -41,24 +48,34 @@ This is a content management and retrieval system with CRUD operations for guide
 - **Success criteria**: AI can reference specific guides, provide contextual answers, and help users find solutions even with vague queries
 
 ### Guide Detail View
-- **Functionality**: Expandable cards that show full guide content with formatted text
-- **Purpose**: Allows quick preview without leaving the main view
-- **Trigger**: Click on guide card
-- **Progression**: Click card → Card expands → Read full content → Click again or click another to collapse
-- **Success criteria**: Smooth animation, readable content, easy to collapse
+- **Functionality**: Full-screen viewer that displays Word document content with proper formatting or provides download option for uploaded files
+- **Purpose**: Allows users to view complete guide content without leaving the application
+- **Trigger**: Click on guide card in Guide Library
+- **Progression**: Click card → Viewer dialog opens → View formatted content or download file → Close with ESC or X button
+- **Success criteria**: Smooth dialog animation, content is properly formatted and readable, download works correctly, easy to close
+
+### Category Management
+- **Functionality**: Admin interface to create, edit, and delete guide categories (except "General" which is fixed)
+- **Purpose**: Allows customization of organizational structure for guides
+- **Trigger**: Click settings/gear icon in Guide Library header
+- **Progression**: Click gear → Category manager opens → Add/edit/delete categories → Save changes → Categories update across app
+- **Success criteria**: Changes persist, guides maintain their categories, "General" category cannot be removed
 
 ## Edge Case Handling
 
-- **Empty State**: Show friendly illustration and call-to-action when no guides exist yet
+- **Empty Hub State**: Show welcoming hub interface with all module cards, clearly indicating which are active vs coming soon
+- **Module Navigation**: Preserve state when navigating between hub and modules (guides don't reload unnecessarily)
+- **Empty Guide Library**: Show friendly illustration and call-to-action when no guides exist yet in the Guide Library module
 - **No Search Results**: Display "No guides found" message with suggestion to try different keywords or add a new guide
-- **Long Content**: Guide content should scroll within card when expanded, with proper text formatting
+- **Long Content**: Guide content should scroll within viewer dialog with proper text formatting
 - **Duplicate Categories**: Prevent users from creating guides without selecting a category
-- **Network Delays**: Show loading state while AI is thinking, prevent multiple simultaneous chat requests
-- **Very Long Guide Titles**: Truncate with ellipsis in card view, show full title in expanded view
+- **Network Delays**: Show loading state while AI is thinking in chat assistant, prevent multiple simultaneous chat requests
+- **Very Long Guide Titles**: Truncate with ellipsis in card view, show full title in viewer
+- **Browser Back Button**: Keep navigation in sync with browser history where appropriate
 
 ## Design Direction
 
-The design should evoke feelings of **clarity, organization, and approachability**. It should feel like a well-organized library with a helpful librarian assistant - professional but not corporate, structured but not rigid. The interface should reduce cognitive load through clear visual hierarchy and intuitive information architecture.
+The design should evoke feelings of **organization, professionalism, and teamwork**. The hub interface should feel like a well-designed workspace portal - modern and inviting, with clear visual hierarchy that makes navigation intuitive. Individual modules like the Guide Library should maintain consistent design language while having their own focused personality. The overall experience should reduce cognitive load through clear information architecture and familiar interaction patterns.
 
 ## Color Selection
 
@@ -91,6 +108,10 @@ Typography should convey **modernity and clarity** with a friendly, approachable
 
 Animations should enhance clarity and provide subtle feedback without creating distraction. Use smooth, natural transitions to maintain spatial relationships and guide attention.
 
+- **Hub Entry**: Staggered fade-in (50ms delay between module cards) when hub loads for delightful first impression
+- **Hub Logo**: Subtle pulsing glow animation on the main hub logo for visual interest
+- **Module Card Hover**: Gentle scale (1.02) and shadow elevation on hover
+- **View Transitions**: Smooth fade transition (300ms) when navigating between hub and modules
 - **Card Expansion**: Smooth height animation (300ms) with ease-in-out when expanding guide details
 - **Filter Changes**: Gentle fade (200ms) when guide list updates after filtering
 - **Chatbot Entry**: Slide-in from right (350ms) with subtle backdrop fade for the AI sidebar
@@ -98,56 +119,69 @@ Animations should enhance clarity and provide subtle feedback without creating d
 - **Search Results**: Staggered fade-in (50ms delay between items) when results update
 - **Success Actions**: Gentle bounce on toast notifications
 - **Loading States**: Pulsing animation for AI thinking indicator
+- **Back Button**: Subtle rotation on hover to reinforce navigation action
 
 ## Component Selection
 
 - **Components**:
-  - `Card` for guide items with custom hover shadow effects
-  - `Dialog` for guide creation/editing forms
-  - `Button` with variants (default for primary actions, outline for filters, ghost for secondary)
+  - `Card` for both hub module cards and guide items with custom hover shadow effects
+  - `Dialog` for guide creation/editing forms and guide viewer
+  - `Button` with variants (default for primary actions, outline for secondary actions, ghost for tertiary)
   - `Input` and `Textarea` for form fields with focus ring in primary color
-  - `Badge` for category tags and guide metadata
+  - `Badge` for category tags, guide metadata, and "coming soon" indicators
   - `ScrollArea` for chat messages and long guide content
   - `Sheet` for the AI chatbot sidebar (right-side slide)
   - `Separator` for visual breaks between sections
   
 - **Customizations**:
+  - Custom hub module card component with gradient backgrounds and icon displays
   - Custom guide card component with expand/collapse state
   - Custom chat bubble components (user vs AI with different styling)
-  - Custom empty state illustration or icon composition
+  - Custom empty state illustrations for both hub and guide library
   - Custom category filter chips with active state indicator
+  - Custom back button with arrow icon
   
 - **States**:
+  - Module cards: Default has subtle shadow, hover shows scale and elevated shadow, disabled shows "coming soon" badge
   - Buttons: Default has solid primary background, hover adds subtle scale and brightness increase, active shows pressed state, disabled is muted with reduced opacity
   - Input fields: Default has subtle border, focus shows primary color ring and border, filled state shows slight background tint
-  - Guide cards: Default has subtle shadow, hover elevates with increased shadow, expanded shows border highlight
+  - Guide cards: Default has subtle shadow, hover elevates with increased shadow
   - Filter chips: Default is ghost, active shows solid background with primary color, hover shows slight background
   
 - **Icon Selection**:
-  - `BookOpen` or `Books` for main app icon and empty state
+  - `Books` for Guide Library module and app branding
+  - `Users` for team directory module (future)
+  - `Calendar` for calendar module (future)
+  - `ChartBar` for analytics module (future)
+  - `FileText` for documents module (future)
+  - `Folder` for projects module (future)
+  - `ChatCircle` for team chat module (future) and chatbot toggle
+  - `Gear` for settings module (future) and category management
+  - `ArrowLeft` for back navigation
   - `Plus` for add new guide
   - `MagnifyingGlass` for search
-  - `Funnel` for filters
-  - `ChatCircle` or `ChatsCircle` for chatbot toggle
   - `PencilSimple` for edit actions
   - `Trash` for delete
   - `Tag` for guide tags
   - `X` for close/clear actions
   - `Check` for success states
-  - `Robot` or `Brain` for AI assistant indicator
   
 - **Spacing**:
-  - Container padding: `p-6` (24px) on desktop, `p-4` (16px) on mobile
-  - Card gaps: `gap-4` (16px) in grid layout
+  - Hub container padding: `p-12 sm:p-20` for spacious feel
+  - Module card grid gaps: `gap-6` (24px)
+  - Guide Library container padding: `p-8 sm:p-12` (32-48px)
+  - Card gaps in guide grid: `gap-6` (24px) 
   - Form fields: `gap-4` (16px) vertical spacing
-  - Section margins: `mb-6` (24px) between major sections
-  - Card internal padding: `p-5` (20px)
-  - Button padding: `px-4 py-2` for default size
+  - Section margins: `mb-8` to `mb-12` (32-48px) between major sections
+  - Card internal padding: `p-8` (32px) for module cards, `p-5` (20px) for guide cards
+  - Button padding: `px-4 py-2` for default size, `px-5 h-11` for toolbar buttons
   
 - **Mobile**:
-  - Single column grid for guide cards (2-3 columns on desktop)
+  - Hub: 1-2 column grid for module cards (4 columns on desktop)
+  - Guide Library: Single column grid for guide cards (2-3 columns on desktop)
   - Chatbot changes from sidebar Sheet to full-screen Dialog on mobile
-  - Category filters stack vertically or use horizontal scroll with snap points
-  - Search bar stays fixed at top with reduced height
+  - Category filters stack or use horizontal scroll with snap points
+  - Search bar maintains position with responsive height
   - Touch targets minimum 44px for all interactive elements
-  - Reduced padding (`p-4` instead of `p-6`) for better screen utilization
+  - Reduced padding for better screen utilization on mobile
+  - Back button remains prominent and accessible
