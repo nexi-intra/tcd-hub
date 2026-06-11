@@ -85,14 +85,17 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
       try {
         setIsProcessing(true)
         const file = uploadedFiles[0]
+        console.log('[GuideDialog] Uploading file:', file.name)
         const storedFile = await fileStorage.uploadFile(file)
+        console.log('[GuideDialog] File uploaded successfully:', storedFile)
         fileUrl = storedFile.url
         wordFileName = storedFile.filename
         fileSize = storedFile.size
         toast.success('Fil uploaded til cloud storage!')
       } catch (error) {
-        console.error('Error uploading file:', error)
-        toast.error('Kunne ikke uploade filen')
+        console.error('[GuideDialog] Error uploading file:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Kunne ikke uploade filen'
+        toast.error(errorMessage)
         setIsProcessing(false)
         return
       } finally {
@@ -131,8 +134,10 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
       .filter((tag) => tag.length > 0)
 
     try {
+      console.log('[GuideDialog] Starting bulk upload of', uploadedFiles.length, 'files')
       const guides = await Promise.all(
-        uploadedFiles.map(async (file) => {
+        uploadedFiles.map(async (file, index) => {
+          console.log(`[GuideDialog] Uploading file ${index + 1}/${uploadedFiles.length}:`, file.name)
           const storedFile = await fileStorage.uploadFile(file)
           const fileName = file.name.replace(/\.(docx?|DOCX?)$/, '')
 
@@ -148,6 +153,7 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
         })
       )
 
+      console.log('[GuideDialog] All files uploaded successfully')
       onBulkSave(guides)
       toast.success(`${uploadedFiles.length} guides oprettet og uploaded til cloud storage!`)
       
@@ -158,8 +164,9 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
       setUploadedFiles([])
       onOpenChange(false)
     } catch (error) {
-      console.error('Error processing files:', error)
-      toast.error('Kunne ikke behandle alle filer')
+      console.error('[GuideDialog] Error processing files:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Kunne ikke behandle alle filer'
+      toast.error(errorMessage)
     } finally {
       setIsProcessing(false)
     }

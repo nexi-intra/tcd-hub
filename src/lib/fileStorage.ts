@@ -7,49 +7,62 @@ export interface StoredFile {
 
 class FileStorageService {
   private async storeInKV(file: File): Promise<StoredFile> {
+    const MAX_FILE_SIZE = 10 * 1024 * 1024
+    
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error(`Filen er for stor (max 10MB). Din fil er ${(file.size / 1024 / 1024).toFixed(2)}MB`)
+    }
+
+    if (!file.name.match(/\.(docx?|DOCX?)$/)) {
+      throw new Error('Kun Word-dokumenter (.doc, .docx) understøttes')
+    }
+
+    console.log('[FileStorage] Starting upload:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    })
+    
+    const arrayBuffer = await file.arrayBuffer()
+    console.log('[FileStorage] File read as ArrayBuffer, size:', arrayBuffer.byteLength)
+    
+    const bytes = new Uint8Array(arrayBuffer)
+    console.log('[FileStorage] Converted to Uint8Array, length:', bytes.length)
+    
+    const base64Data = this.arrayBufferToBase64(bytes)
+    console.log('[FileStorage] Converted to base64, length:', base64Data.length)
+    
+    const fileId = `file_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+    
+    const fileData = {
+      data: base64Data,
+      filename: file.name,
+      contentType: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      size: file.size,
+      uploadedAt: Date.now()
+    }
+    
+    console.log('[FileStorage] Saving to KV with key:', fileId)
+    
     try {
-      const MAX_FILE_SIZE = 10 * 1024 * 1024
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error(`Filen er for stor (max 10MB). Din fil er ${(file.size / 1024 / 1024).toFixed(2)}MB`)
-      }
-
-      console.log('Starting file upload:', file.name, 'Size:', file.size)
-      
-      const arrayBuffer = await file.arrayBuffer()
-      console.log('File read as ArrayBuffer')
-      
-      const bytes = new Uint8Array(arrayBuffer)
-      console.log('Converted to Uint8Array')
-      
-      const base64Data = this.arrayBufferToBase64(bytes)
-      console.log('Converted to base64, length:', base64Data.length)
-      
-      const fileId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      
-      const fileData = {
-        data: base64Data,
-        filename: file.name,
-        contentType: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        size: file.size,
-        uploadedAt: Date.now()
-      }
-      
-      console.log('Attempting to save to KV with key:', fileId)
       await window.spark.kv.set(fileId, fileData)
-      console.log('File saved successfully to KV')
+      console.log('[FileStorage] File saved successfully to KV')
+      
+      const verification = await window.spark.kv.get(fileId)
+      if (!verification) {
+        throw new Error('Fil blev ikke gemt korrekt - verification failed')
+      }
+      console.log('[FileStorage] Verification successful')
+    } catch (kvError) {
+      console.error('[FileStorage] KV storage error:', kvError)
+      throw new Error('Kunne ikke gemme fil i storage')
+    }
 
-      return {
-        url: `kv://${fileId}`,
-        filename: file.name,
-        size: file.size,
-        uploadedAt: Date.now()
-      }
-    } catch (error) {
-      console.error('Error in storeInKV:', error)
-      if (error instanceof Error) {
-        throw new Error(`Upload fejlede: ${error.message}`)
-      }
-      throw new Error('Upload fejlede: Ukendt fejl')
+    return {
+      url: `kv://${fileId}`,
+      filename: file.name,
+      size: file.size,
+      uploadedAt: Date.now()
     }
   }
 
