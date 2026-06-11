@@ -10,6 +10,7 @@ import { GuideDialog } from '@/components/GuideDialog'
 import { GuideViewer } from '@/components/GuideViewer'
 import { ChatAssistant } from '@/components/ChatAssistant'
 import { CategoryManager } from '@/components/CategoryManager'
+import { UserProfile } from '@/components/UserProfile'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { toast, Toaster } from 'sonner'
@@ -18,9 +19,11 @@ const defaultCategories: string[] = ['Procedures', 'Technical', 'HR', 'Safety', 
 
 interface GuideLibraryProps {
   onNavigateBack: () => void
+  onLogout: () => void
+  userEmail: string
 }
 
-export function GuideLibrary({ onNavigateBack }: GuideLibraryProps) {
+export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibraryProps) {
   const [guides, setGuides] = useKV<Guide[]>('guides', [])
   const [categories, setCategories] = useKV<string[]>('categories', defaultCategories)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -173,7 +176,8 @@ export function GuideLibrary({ onNavigateBack }: GuideLibraryProps) {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex gap-2 flex-shrink-0 items-center">
+              <UserProfile userEmail={userEmail} onLogout={onLogout} />
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   onClick={() => setCategoryManagerOpen(true)}

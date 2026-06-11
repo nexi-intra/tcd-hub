@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { Books, Users, Calendar, ChartBar, Gear, ChatCircle, FileText, Folder } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
+import { UserProfile } from '@/components/UserProfile'
 import { cn } from '@/lib/utils'
 
 interface HubModule {
@@ -15,9 +16,11 @@ interface HubModule {
 
 interface HubProps {
   onNavigate: (moduleId: string) => void
+  onLogout: () => void
+  userEmail: string
 }
 
-export function Hub({ onNavigate }: HubProps) {
+export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const modules: HubModule[] = [
     {
       id: 'guides',
@@ -100,6 +103,9 @@ export function Hub({ onNavigate }: HubProps) {
         backgroundImage: `repeating-linear-gradient(90deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px),
                          repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px)`
       }} />
+      <div className="absolute top-4 right-4 z-20">
+        <UserProfile userEmail={userEmail} onLogout={onLogout} />
+      </div>
       <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 max-w-7xl relative z-10">
         <motion.header 
           className="text-center mb-16"

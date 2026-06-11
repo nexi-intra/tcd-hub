@@ -1,6 +1,6 @@
 # Planning Guide
 
-A centralized team hub for Nexi Group that provides easy access to multiple team resources and tools, starting with a comprehensive knowledge base (Guide Library) and designed to expand with additional modules like team directory, calendar, analytics, documents, projects, and team chat.
+A centralized team hub for Nexi Group that provides easy access to multiple team resources and tools with user authentication, starting with a comprehensive knowledge base (Guide Library) and designed to expand with additional modules like team directory, calendar, analytics, documents, projects, and team chat.
 
 **Experience Qualities**: 
 1. **Intuitive** - Users should immediately understand how to navigate between different modules and find what they need
@@ -8,9 +8,23 @@ A centralized team hub for Nexi Group that provides easy access to multiple team
 3. **Scalable** - Architecture that allows for easy addition of new modules without cluttering the interface
 
 **Complexity Level**: Light Application (multiple features with basic state)
-This is a hub-based application with modular navigation between different team tools. Currently implements the Guide Library module with CRUD operations, search/filter capabilities, and AI chat interface. Designed to accommodate future modules through a consistent navigation pattern.
+This is a hub-based application with modular navigation between different team tools. Features user authentication with login/signup functionality to protect access. Currently implements the Guide Library module with CRUD operations, search/filter capabilities, and AI chat interface. Designed to accommodate future modules through a consistent navigation pattern.
 
 ## Essential Features
+
+### User Authentication
+- **Functionality**: Login and signup system that protects access to the hub. Users create accounts with email, password, and full name. Session persists between page refreshes.
+- **Purpose**: Ensures each user has their own secure account and personalized experience
+- **Trigger**: Application loads, user sees authentication screen if not logged in
+- **Progression**: Load app → See login/signup form → Enter credentials → Authenticate → Access hub with personalized profile
+- **Success criteria**: User can create account, login, stay logged in across refreshes, and logout when desired. Clear error messages for invalid credentials or duplicate accounts.
+
+### User Profile & Logout
+- **Functionality**: Dropdown menu in top-right showing user email with logout option
+- **Purpose**: Provides quick access to account info and ability to sign out
+- **Trigger**: Click on user profile button in any view
+- **Progression**: Click profile → Dropdown opens → View email → Click logout → Return to login screen
+- **Success criteria**: Profile is always visible and accessible, logout clears session and returns to auth screen
 
 ### Hub Navigation
 - **Functionality**: Central dashboard displaying all available team modules as cards with visual indicators for which modules are active
