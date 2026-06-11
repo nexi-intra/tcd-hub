@@ -79,6 +79,21 @@ function App() {
     setEditGuide(undefined)
   }
 
+  const handleBulkSaveGuides = (guidesData: Array<Omit<Guide, 'id' | 'createdAt' | 'updatedAt'> & { wordFileData?: string; wordFileName?: string }>) => {
+    const newGuides: Guide[] = guidesData.map((guideData, index) => ({
+      id: (Date.now() + index).toString(),
+      title: guideData.title,
+      category: guideData.category,
+      content: guideData.content,
+      tags: guideData.tags,
+      wordFileData: guideData.wordFileData,
+      wordFileName: guideData.wordFileName,
+      createdAt: Date.now() + index,
+      updatedAt: Date.now() + index,
+    }))
+    setGuides((currentGuides) => [...newGuides, ...(currentGuides || [])])
+  }
+
   const handleEditGuide = (guide: Guide) => {
     setEditGuide(guide)
     setDialogOpen(true)
@@ -237,6 +252,7 @@ function App() {
           if (!open) setEditGuide(undefined)
         }}
         onSave={handleSaveGuide}
+        onBulkSave={handleBulkSaveGuides}
         editGuide={editGuide}
         categories={categories || defaultCategories}
       />

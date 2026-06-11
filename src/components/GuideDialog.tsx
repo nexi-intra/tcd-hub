@@ -28,16 +28,17 @@ interface GuideDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSave: (guide: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'> & { wordFileData?: string; wordFileName?: string }) => void
+  onBulkSave?: (guides: Array<Omit<Guide, 'id' | 'createdAt' | 'updatedAt'> & { wordFileData?: string; wordFileName?: string }>) => void
   editGuide?: Guide
   categories: string[]
 }
 
-export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories }: GuideDialogProps) {
+export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide, categories }: GuideDialogProps) {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string>(categories[0] || 'General')
   const [content, setContent] = useState('')
   const [tags, setTags] = useState('')
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -54,14 +55,19 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
       setContent('')
       setTags('')
     }
-    setUploadedFile(null)
+    setUploadedFiles([])
   }, [editGuide, open, categories])
 
   const handleSave = async () => {
-    const hasWordFile = uploadedFile || editGuide?.wordFileData
+    const hasWordFiles = uploadedFiles.length > 0 || editGuide?.wordFileData
     const hasContent = content.trim()
     
-    if (!title.trim() || (!hasWordFile && !hasContent)) {
+    if (uploadedFiles.length > 1 && onBulkSave) {
+      await handleBulkSave()
+      return
+    }
+
+    if (!title.trim() || (!hasWordFiles && !hasContent)) {
       toast.error('Titel og enten indhold eller Word-dokument er påkrævet')
       return
     }
@@ -74,12 +80,13 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
     let wordFileData: string | undefined
     let wordFileName: string | undefined
 
-    if (uploadedFile) {
-      const arrayBuffer = await uploadedFile.arrayBuffer()
+    if (uploadedFiles.length > 0) {
+      const file = uploadedFiles[0]
+      const arrayBuffer = await file.arrayBuffer()
       const bytes = new Uint8Array(arrayBuffer)
       const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
       wordFileData = btoa(binary)
-      wordFileName = uploadedFile.name
+      wordFileName = file.name
     } else if (editGuide?.wordFileData) {
       wordFileData = editGuide.wordFileData
       wordFileName = editGuide.wordFileName
@@ -98,36 +105,94 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
     setCategory(categories[0] || 'General')
     setContent('')
     setTags('')
-    setUploadedFile(null)
+    setUploadedFiles([])
   }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      await processFile(file)
+  const handleBulkSave = async () => {
+    if (!onBulkSave || uploadedFiles.length === 0) return
+
+    setIsProcessing(true)
+    const tagArray = tags
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0)
+
+    try {
+      const guides = await Promise.all(
+        uploadedFiles.map(async (file) => {
+          const arrayBuffer = await file.arrayBuffer()
+          const bytes = new Uint8Array(arrayBuffer)
+          const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
+          const wordFileData = btoa(binary)
+          const fileName = file.name.replace(/\.(docx?|DOCX?)$/, '')
+
+          return {
+            title: fileName,
+            category: category as GuideCategory,
+            content: 'Se vedhæftet Word-dokument',
+            tags: tagArray,
+            wordFileData,
+            wordFileName: file.name,
+          }
+        })
+      )
+
+      onBulkSave(guides)
+      toast.success(`${uploadedFiles.length} guides oprettet!`)
+      
+      setTitle('')
+      setCategory(categories[0] || 'General')
+      setContent('')
+      setTags('')
+      setUploadedFiles([])
+      onOpenChange(false)
+    } catch (error) {
+      console.error('Error processing files:', error)
+      toast.error('Kunne ikke behandle alle filer')
+    } finally {
+      setIsProcessing(false)
     }
   }
 
-  const processFile = async (file: File) => {
-    if (!file.name.endsWith('.docx') && !file.name.endsWith('.doc')) {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0) {
+      await processFiles(Array.from(files))
+    }
+  }
+
+  const processFiles = async (files: File[]) => {
+    const wordFiles = files.filter(file => 
+      file.name.endsWith('.docx') || file.name.endsWith('.doc')
+    )
+
+    if (wordFiles.length === 0) {
       toast.error('Kun Word-dokumenter (.doc, .docx) understøttes')
       return
     }
 
+    if (wordFiles.length !== files.length) {
+      toast.warning(`${files.length - wordFiles.length} fil(er) sprunget over (kun Word-filer)`)
+    }
+
     setIsProcessing(true)
-    setUploadedFile(file)
+    setUploadedFiles(wordFiles)
 
     try {
-      if (!title.trim()) {
-        const fileName = file.name.replace(/\.(docx?|DOCX?)$/, '')
+      if (!title.trim() && wordFiles.length === 1) {
+        const fileName = wordFiles[0].name.replace(/\.(docx?|DOCX?)$/, '')
         setTitle(fileName)
       }
       
-      toast.success('Word-dokument vedhæftet!')
+      toast.success(
+        wordFiles.length === 1
+          ? 'Word-dokument vedhæftet!'
+          : `${wordFiles.length} Word-dokumenter vedhæftet!`
+      )
     } catch (error) {
-      console.error('Error processing Word document:', error)
-      toast.error('Kunne ikke vedhæfte Word-dokumentet')
-      setUploadedFile(null)
+      console.error('Error processing Word documents:', error)
+      toast.error('Kunne ikke vedhæfte Word-dokumenter')
+      setUploadedFiles([])
     } finally {
       setIsProcessing(false)
     }
@@ -150,44 +215,50 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
     e.stopPropagation()
     setIsDragging(false)
 
-    const file = e.dataTransfer.files?.[0]
-    if (file) {
-      await processFile(file)
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length > 0) {
+      await processFiles(files)
     }
   }
 
-  const handleRemoveFile = () => {
-    setUploadedFile(null)
+  const handleRemoveFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index))
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
   }
 
+  const isBulkMode = uploadedFiles.length > 1
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">
-            {editGuide ? 'Rediger guide' : 'Ny guide'}
+            {editGuide ? 'Rediger guide' : isBulkMode ? 'Bulk upload af guides' : 'Ny guide'}
           </DialogTitle>
           <DialogDescription>
             {editGuide
               ? 'Opdater oplysningerne for denne guide.'
+              : isBulkMode
+              ? `Opret ${uploadedFiles.length} guides fra Word-dokumenter.`
               : 'Tilføj en ny guide til dit afdelingsleksikon.'}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          {!isBulkMode && (
+            <div className="grid gap-2">
+              <Label htmlFor="title">Titel</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="F.eks. Sådan nulstiller du en adgangskode"
+              />
+            </div>
+          )}
           <div className="grid gap-2">
-            <Label htmlFor="title">Titel</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="F.eks. Sådan nulstiller du en adgangskode"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="category">Kategori</Label>
+            <Label htmlFor="category">Kategori {isBulkMode && <span className="text-muted-foreground">(anvendes på alle)</span>}</Label>
             <Select value={category} onValueChange={(value) => setCategory(value)}>
               <SelectTrigger id="category">
                 <SelectValue />
@@ -203,8 +274,8 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
           </div>
           
           <div className="grid gap-2">
-            <Label>Upload Word-dokument (valgfrit)</Label>
-            {editGuide?.wordFileData && !uploadedFile && (
+            <Label>Upload Word-dokument{isBulkMode ? 'er' : ''} {!isBulkMode && '(valgfrit)'}</Label>
+            {editGuide?.wordFileData && uploadedFiles.length === 0 && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 mb-2">
                 <FileDoc size={20} weight="duotone" className="text-primary flex-shrink-0" />
                 <span className="text-sm flex-1 truncate">{editGuide.wordFileName || 'Eksisterende Word-dokument'}</span>
@@ -242,12 +313,12 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
                 <div className="text-center">
                   <p className="text-sm font-medium text-foreground mb-1">
                     {isDragging
-                      ? 'Slip filen her'
+                      ? 'Slip filerne her'
                       : isProcessing
-                      ? 'Behandler dokument...'
+                      ? 'Behandler dokumenter...'
                       : editGuide?.wordFileData
                       ? 'Upload nyt Word-dokument for at erstatte'
-                      : 'Træk og slip Word-fil her'}
+                      : 'Træk og slip Word-filer her'}
                   </p>
                   <p className="text-xs text-muted-foreground">eller</p>
                 </div>
@@ -258,7 +329,7 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isProcessing}
                 >
-                  Vælg fil fra computer
+                  Vælg fil(er) fra computer
                 </Button>
                 <input
                   ref={fileInputRef}
@@ -266,47 +337,54 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
                   accept=".doc,.docx"
                   onChange={handleFileChange}
                   className="hidden"
+                  multiple
                 />
                 <p className="text-xs text-muted-foreground">
-                  .doc eller .docx filer understøttes
+                  .doc eller .docx filer understøttes • Vælg flere for bulk upload
                 </p>
               </div>
             </div>
-            {uploadedFile && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-accent/10 border border-accent/20">
-                <FileDoc size={20} weight="duotone" className="text-accent-foreground flex-shrink-0" />
-                <span className="text-sm flex-1 truncate">{uploadedFile.name}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleRemoveFile}
-                  className="h-6 w-6 flex-shrink-0"
-                >
-                  <X size={16} />
-                </Button>
+            {uploadedFiles.length > 0 && (
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {uploadedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center gap-2 p-3 rounded-lg bg-accent/10 border border-accent/20">
+                    <FileDoc size={20} weight="duotone" className="text-accent-foreground flex-shrink-0" />
+                    <span className="text-sm flex-1 truncate">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveFile(index)}
+                      className="h-6 w-6 flex-shrink-0"
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
+          {!isBulkMode && (
+            <div className="grid gap-2">
+              <Label htmlFor="content">
+                Indhold {(uploadedFiles.length > 0 || editGuide?.wordFileData) && <span className="text-muted-foreground font-normal">(valgfrit)</span>}
+              </Label>
+              <Textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder={
+                  uploadedFiles.length > 0 || editGuide?.wordFileData
+                    ? "Tilføj ekstra noter eller lad være tom hvis Word-dokumentet indeholder alt..."
+                    : "Beskriv trinene eller informationen i denne guide..."
+                }
+                className="min-h-[200px] resize-none"
+              />
+            </div>
+          )}
           <div className="grid gap-2">
-            <Label htmlFor="content">
-              Indhold {(uploadedFile || editGuide?.wordFileData) && <span className="text-muted-foreground font-normal">(valgfrit)</span>}
-            </Label>
-            <Textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={
-                uploadedFile || editGuide?.wordFileData
-                  ? "Tilføj ekstra noter eller lad være tom hvis Word-dokumentet indeholder alt..."
-                  : "Beskriv trinene eller informationen i denne guide..."
-              }
-              className="min-h-[200px] resize-none"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="tags">Tags (adskilt med komma)</Label>
+            <Label htmlFor="tags">Tags (adskilt med komma) {isBulkMode && <span className="text-muted-foreground">(anvendes på alle)</span>}</Label>
             <Input
               id="tags"
               value={tags}
@@ -321,9 +399,19 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories 
           </Button>
           <Button 
             onClick={handleSave} 
-            disabled={!title.trim() || (!content.trim() && !uploadedFile && !editGuide?.wordFileData)}
+            disabled={
+              isProcessing || 
+              (!isBulkMode && !title.trim()) || 
+              (!isBulkMode && !content.trim() && uploadedFiles.length === 0 && !editGuide?.wordFileData)
+            }
           >
-            {editGuide ? 'Gem ændringer' : 'Opret guide'}
+            {isProcessing 
+              ? 'Behandler...' 
+              : editGuide 
+              ? 'Gem ændringer' 
+              : isBulkMode 
+              ? `Opret ${uploadedFiles.length} guides`
+              : 'Opret guide'}
           </Button>
         </DialogFooter>
       </DialogContent>
