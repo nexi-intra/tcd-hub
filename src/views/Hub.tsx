@@ -162,7 +162,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
-          >Supply Chain Services Hub</motion.h1>
+          >Terminal Configuration & Dispatch Hub</motion.h1>
           
           <motion.p 
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto"
