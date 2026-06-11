@@ -48,6 +48,18 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
         
         const arrayBuffer = bytes.buffer
         const result = await mammoth.convertToHtml({ arrayBuffer }, {
+          styleMap: [
+            "p[style-name='Heading 1'] => h1:fresh",
+            "p[style-name='Heading 2'] => h2:fresh",
+            "p[style-name='Heading 3'] => h3:fresh",
+            "p[style-name='Heading 4'] => h4:fresh",
+            "p[style-name='Heading 5'] => h5:fresh",
+            "p[style-name='Heading 6'] => h6:fresh",
+            "p[style-name='Title'] => h1.title:fresh",
+            "p[style-name='Subtitle'] => p.subtitle:fresh",
+            "r[style-name='Strong'] => strong",
+            "r[style-name='Emphasis'] => em",
+          ],
           convertImage: mammoth.images.imgElement((image) => {
             return image.read('base64').then((imageBuffer) => {
               return {
@@ -55,9 +67,15 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
               }
             })
           }),
+          includeDefaultStyleMap: true,
+          ignoreEmptyParagraphs: false,
         })
         
         setHtmlContent(result.value)
+        
+        if (result.messages.length > 0) {
+          console.log('Mammoth conversion messages:', result.messages)
+        }
       } catch (error) {
         console.error('Error loading Word document:', error)
         toast.error('Kunne ikke indlæse Word-dokumentet')
@@ -104,8 +122,8 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <DialogTitle className="text-2xl mb-3 break-words">
@@ -150,18 +168,18 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
           </div>
         </DialogHeader>
         
-        <div className="flex-1 overflow-y-auto min-h-0 mt-4 pr-2">
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 py-6 bg-card">
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-muted-foreground">Indlæser dokument...</div>
             </div>
           ) : guide.wordFileData && htmlContent ? (
             <div 
-              className="word-content prose prose-sm max-w-none"
+              className="word-content max-w-none bg-background rounded-lg shadow-sm border border-border p-8 sm:p-12"
               dangerouslySetInnerHTML={{ __html: htmlContent }}
             />
           ) : (
-            <div className="prose prose-sm max-w-none">
+            <div className="max-w-none bg-background rounded-lg shadow-sm border border-border p-8 sm:p-12">
               <p className="whitespace-pre-wrap break-words">{guide.content}</p>
             </div>
           )}

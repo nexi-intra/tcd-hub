@@ -75,6 +75,9 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
       const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
       wordFileData = btoa(binary)
       wordFileName = uploadedFile.name
+    } else if (editGuide?.wordFileData) {
+      wordFileData = editGuide.wordFileData
+      wordFileName = editGuide.wordFileName
     }
 
     onSave({
@@ -205,6 +208,13 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
           
           <div className="grid gap-2">
             <Label>Upload Word-dokument (valgfrit)</Label>
+            {editGuide?.wordFileData && !uploadedFile && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 mb-2">
+                <FileDoc size={20} weight="duotone" className="text-primary flex-shrink-0" />
+                <span className="text-sm flex-1 truncate">{editGuide.wordFileName || 'Eksisterende Word-dokument'}</span>
+                <span className="text-xs text-muted-foreground">(gemmes automatisk)</span>
+              </div>
+            )}
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -239,6 +249,8 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
                       ? 'Slip filen her'
                       : isProcessing
                       ? 'Behandler dokument...'
+                      : editGuide?.wordFileData
+                      ? 'Upload nyt Word-dokument for at erstatte'
                       : 'Træk og slip Word-fil her'}
                   </p>
                   <p className="text-xs text-muted-foreground">eller</p>
