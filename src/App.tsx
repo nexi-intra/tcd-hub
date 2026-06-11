@@ -7,6 +7,7 @@ import { Plus, MagnifyingGlass, ChatsCircle, Books } from '@phosphor-icons/react
 import { Guide, GuideCategory } from '@/lib/types'
 import { GuideCard } from '@/components/GuideCard'
 import { GuideDialog } from '@/components/GuideDialog'
+import { GuideViewer } from '@/components/GuideViewer'
 import { ChatAssistant } from '@/components/ChatAssistant'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -18,7 +19,9 @@ function App() {
   const [guides, setGuides] = useKV<Guide[]>('guides', [])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
+  const [viewerOpen, setViewerOpen] = useState(false)
   const [editGuide, setEditGuide] = useState<Guide | undefined>()
+  const [viewGuide, setViewGuide] = useState<Guide | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<GuideCategory | 'All'>('All')
 
@@ -72,6 +75,11 @@ function App() {
   const handleAddNew = () => {
     setEditGuide(undefined)
     setDialogOpen(true)
+  }
+
+  const handleViewGuide = (guide: Guide) => {
+    setViewGuide(guide)
+    setViewerOpen(true)
   }
 
   return (
@@ -183,6 +191,7 @@ function App() {
                   guide={guide}
                   onEdit={handleEditGuide}
                   onDelete={handleDeleteGuide}
+                  onView={handleViewGuide}
                 />
               ))}
             </AnimatePresence>
@@ -198,6 +207,15 @@ function App() {
         }}
         onSave={handleSaveGuide}
         editGuide={editGuide}
+      />
+
+      <GuideViewer
+        guide={viewGuide}
+        open={viewerOpen}
+        onOpenChange={(open) => {
+          setViewerOpen(open)
+          if (!open) setViewGuide(null)
+        }}
       />
 
       <ChatAssistant open={chatOpen} onOpenChange={setChatOpen} guides={guides || []} />
