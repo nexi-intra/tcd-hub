@@ -127,28 +127,33 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,oklch(0.35_0.15_285)_0%,transparent_50%),radial-gradient(circle_at_80%_80%,oklch(0.30_0.18_140)_0%,transparent_50%)] opacity-40 pointer-events-none" />
-      <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,oklch(0.25_0.04_270)_2px,oklch(0.25_0.04_270)_4px)] opacity-[0.03] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,oklch(0.70_0.20_340/0.15),transparent_50%),radial-gradient(ellipse_at_bottom_left,oklch(0.72_0.18_195/0.15),transparent_50%),radial-gradient(ellipse_at_center,oklch(0.55_0.22_265/0.08),transparent_60%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,oklch(0.55_0.22_265/0.12)_0%,transparent_40%)] pointer-events-none" />
+      <div className="absolute inset-0" style={{
+        backgroundImage: `repeating-linear-gradient(90deg, oklch(0.55 0.22 265 / 0.03) 0px, transparent 1px, transparent 80px, oklch(0.55 0.22 265 / 0.03) 81px),
+                         repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.03) 0px, transparent 1px, transparent 80px, oklch(0.55 0.22 265 / 0.03) 81px)`
+      }} />
       
-      <Toaster position="top-center" />
+      <Toaster position="top-center" richColors />
       
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl relative z-10">
         <header className="mb-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
               <motion.div 
-                className="h-16 w-16 flex-shrink-0 rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-accent/50 flex items-center justify-center shadow-lg shadow-primary/20 ring-1 ring-primary/20"
-                whileHover={{ scale: 1.05, rotate: 5 }}
+                className="h-16 w-16 flex-shrink-0 rounded-3xl bg-gradient-to-br from-primary via-secondary to-accent shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden"
+                whileHover={{ scale: 1.08, rotate: 5 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
-                <Books size={32} weight="duotone" className="text-primary-foreground" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-transparent to-accent/40 animate-pulse" />
+                <Books size={32} weight="duotone" className="text-primary-foreground relative z-10" />
               </motion.div>
               <div className="min-w-0">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
                   Guide Bibliotek
                 </h1>
                 <p className="text-sm sm:text-base text-muted-foreground mt-1.5 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary/15 to-secondary/15 text-primary font-semibold border border-primary/20">
                     {guides?.length || 0}
                   </span>
                   {(guides?.length || 0) === 1 ? 'guide' : 'guides'} tilgængelig
@@ -161,9 +166,9 @@ function App() {
                   onClick={() => setCategoryManagerOpen(true)}
                   variant="outline"
                   size="icon"
-                  className="h-10 w-10 backdrop-blur-sm hover:bg-secondary/80 hover:border-secondary"
+                  className="h-11 w-11 backdrop-blur-sm border-2 hover:bg-muted hover:border-primary/30 transition-all"
                 >
-                  <Gear size={18} weight="duotone" />
+                  <Gear size={20} weight="duotone" />
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -171,14 +176,14 @@ function App() {
                   onClick={() => setChatOpen(true)}
                   variant="outline"
                   size="icon"
-                  className="h-10 w-10 bg-accent/10 hover:bg-accent/20 border-accent/30 hover:border-accent shadow-lg shadow-accent/10 backdrop-blur-sm"
+                  className="h-11 w-11 bg-gradient-to-br from-accent/20 to-accent/10 hover:from-accent/30 hover:to-accent/20 border-2 border-accent/40 hover:border-accent/60 shadow-lg shadow-accent/20 backdrop-blur-sm transition-all"
                 >
-                  <ChatsCircle size={18} weight="duotone" className="text-accent" />
+                  <ChatsCircle size={20} weight="duotone" className="text-accent" />
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button onClick={handleAddNew} className="h-10 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20">
-                  <Plus size={18} weight="bold" className="sm:mr-2" />
+                <Button onClick={handleAddNew} className="h-11 px-5 bg-gradient-to-r from-primary via-secondary to-primary hover:from-primary/90 hover:via-secondary/90 hover:to-primary/90 shadow-xl shadow-primary/30 font-semibold transition-all">
+                  <Plus size={20} weight="bold" className="sm:mr-2" />
                   <span className="hidden sm:inline">Ny guide</span>
                 </Button>
               </motion.div>
@@ -195,7 +200,7 @@ function App() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Søg i guides..."
-                className="pl-12 h-12 text-base bg-card/50 backdrop-blur-sm border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                className="pl-12 h-14 text-base bg-card/80 backdrop-blur-md border-2 border-border/60 focus:border-primary/60 focus:ring-4 focus:ring-primary/10 rounded-2xl shadow-lg shadow-black/5 transition-all"
               />
             </div>
           </div>
@@ -214,19 +219,19 @@ function App() {
                   size="sm"
                   onClick={() => setActiveCategory(category)}
                   className={cn(
-                    'transition-all backdrop-blur-sm font-medium',
+                    'transition-all backdrop-blur-md font-semibold border-2 rounded-xl px-4 h-10',
                     activeCategory === category 
-                      ? 'shadow-lg shadow-primary/20 bg-gradient-to-r from-primary to-primary/80' 
-                      : 'hover:bg-secondary/50 hover:border-secondary'
+                      ? 'shadow-xl shadow-primary/30 bg-gradient-to-r from-primary via-secondary to-primary border-primary' 
+                      : 'hover:bg-muted hover:border-primary/40 border-border'
                   )}
                 >
                   {category}
                   {category !== 'All' && (
                     <span className={cn(
-                      "ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold",
+                      "ml-2 px-2 py-0.5 rounded-lg text-xs font-bold",
                       activeCategory === category 
-                        ? "bg-primary-foreground/20" 
-                        : "bg-muted"
+                        ? "bg-primary-foreground/20 text-primary-foreground" 
+                        : "bg-primary/10 text-primary"
                     )}>
                       {(guides || []).filter((g) => g.category === category).length}
                     </span>
@@ -246,23 +251,24 @@ function App() {
             <motion.div 
               className="relative mb-8"
               animate={{ 
-                y: [0, -10, 0],
+                y: [0, -12, 0],
               }}
               transition={{ 
-                duration: 3,
+                duration: 4,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
             >
-              <div className="h-28 w-28 rounded-3xl bg-gradient-to-br from-primary via-primary/80 to-accent/60 flex items-center justify-center shadow-2xl shadow-primary/30 relative">
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 blur-xl animate-pulse" />
-                <Books size={56} weight="duotone" className="text-primary-foreground relative z-10" />
+              <div className="h-32 w-32 rounded-[2rem] bg-gradient-to-br from-primary via-secondary to-accent shadow-2xl shadow-primary/40 flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/50 via-secondary/50 to-accent/50 blur-2xl animate-pulse" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,white,transparent)] opacity-20" />
+                <Books size={64} weight="duotone" className="text-primary-foreground relative z-10 drop-shadow-lg" />
               </div>
             </motion.div>
-            <h2 className="text-3xl font-bold text-foreground mb-3 text-center">
+            <h2 className="text-4xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-4 text-center">
               {searchQuery || activeCategory !== 'All' ? 'Ingen guides fundet' : 'Ingen guides endnu'}
             </h2>
-            <p className="text-muted-foreground text-center max-w-md mb-8 text-lg">
+            <p className="text-muted-foreground text-center max-w-md mb-8 text-lg leading-relaxed">
               {searchQuery || activeCategory !== 'All'
                 ? 'Prøv at justere dine filtre eller søgning'
                 : 'Kom i gang ved at oprette din første guide'}
@@ -272,8 +278,8 @@ function App() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Button onClick={handleAddNew} size="lg" className="h-12 px-8 text-base bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-xl shadow-primary/30">
-                  <Plus size={22} weight="bold" className="mr-2" />
+                <Button onClick={handleAddNew} size="lg" className="h-14 px-8 text-base bg-gradient-to-r from-primary via-secondary to-primary hover:from-primary/90 hover:via-secondary/90 hover:to-primary/90 shadow-2xl shadow-primary/40 font-semibold rounded-2xl">
+                  <Plus size={24} weight="bold" className="mr-2" />
                   Opret første guide
                 </Button>
               </motion.div>

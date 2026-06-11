@@ -15,11 +15,11 @@ interface GuideCardProps {
 }
 
 const categoryColors: Record<string, string> = {
-  Procedures: 'bg-primary/20 text-primary border-primary/40 shadow-primary/10',
-  Technical: 'bg-accent/20 text-accent border-accent/40 shadow-accent/10',
-  HR: 'bg-[oklch(0.70_0.18_330)] text-[oklch(0.98_0_0)] border-[oklch(0.70_0.18_330)]/60 shadow-[oklch(0.70_0.18_330)]/20',
-  Safety: 'bg-destructive/20 text-destructive border-destructive/40 shadow-destructive/10',
-  General: 'bg-secondary text-secondary-foreground border-secondary shadow-secondary/10',
+  Procedures: 'bg-gradient-to-br from-primary/25 to-primary/15 text-primary border-primary/50 shadow-lg shadow-primary/15',
+  Technical: 'bg-gradient-to-br from-secondary/25 to-secondary/15 text-secondary border-secondary/50 shadow-lg shadow-secondary/15',
+  HR: 'bg-gradient-to-br from-accent/25 to-accent/15 text-accent border-accent/50 shadow-lg shadow-accent/15',
+  Safety: 'bg-gradient-to-br from-destructive/25 to-destructive/15 text-destructive border-destructive/50 shadow-lg shadow-destructive/15',
+  General: 'bg-gradient-to-br from-muted to-muted/70 text-foreground border-border shadow-lg shadow-black/5',
 }
 
 export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
@@ -40,22 +40,23 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
     >
       <Card
         className={cn(
-          'group cursor-pointer transition-all duration-300 h-full flex flex-col relative overflow-hidden backdrop-blur-sm',
-          'border-border/50 bg-card/80',
-          'hover:shadow-[0_20px_50px_-12px] hover:shadow-primary/20 hover:border-primary/50',
-          'hover:bg-card/95',
-          isExpanded && 'ring-2 ring-primary/40 shadow-xl shadow-primary/20'
+          'group cursor-pointer transition-all duration-300 h-full flex flex-col relative overflow-hidden backdrop-blur-md border-2',
+          'bg-card/90',
+          'hover:shadow-[0_25px_60px_-15px] hover:shadow-primary/30 hover:border-primary/60',
+          'hover:bg-card',
+          isExpanded && 'ring-2 ring-primary/50 shadow-2xl shadow-primary/30'
         )}
         onClick={handleCardClick}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-secondary/8 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,oklch(0.55_0.22_265/0.15),transparent_50%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
         <CardHeader className="pb-3 flex-1 relative z-10">
           <div className="flex flex-col gap-3">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-2 mb-3">
-                  <CardTitle className="text-base sm:text-lg leading-tight break-words flex-1 font-bold text-foreground group-hover:text-primary transition-colors duration-200">
+                  <CardTitle className="text-base sm:text-lg leading-tight break-words flex-1 font-bold text-foreground group-hover:bg-gradient-to-r group-hover:from-primary group-hover:via-secondary group-hover:to-primary group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
                     {guide.title}
                   </CardTitle>
                   {guide.wordFileData && (
@@ -71,7 +72,7 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
                 <CardDescription className="flex items-center gap-2 flex-wrap">
                   <Badge
                     variant="outline"
-                    className={cn('text-xs font-semibold shadow-sm', categoryColors[guide.category])}
+                    className={cn('text-xs font-bold shadow-lg border-2', categoryColors[guide.category])}
                   >
                     {guide.category}
                   </Badge>
@@ -88,12 +89,12 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
             {guide.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {guide.tags.slice(0, 3).map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs px-2 py-0.5 font-medium bg-secondary/50 hover:bg-secondary/70 transition-colors">
+                  <Badge key={tag} variant="secondary" className="text-xs px-2.5 py-0.5 font-semibold bg-muted hover:bg-muted/80 transition-colors rounded-lg">
                     {tag}
                   </Badge>
                 ))}
                 {guide.tags.length > 3 && (
-                  <Badge variant="secondary" className="text-xs px-2 py-0.5 font-medium bg-secondary/50">
+                  <Badge variant="secondary" className="text-xs px-2.5 py-0.5 font-semibold bg-muted rounded-lg">
                     +{guide.tags.length - 3}
                   </Badge>
                 )}

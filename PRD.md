@@ -62,31 +62,30 @@ The design should evoke feelings of **clarity, organization, and approachability
 
 ## Color Selection
 
-A professional yet warm color scheme that balances authority with approachability, using earth tones and natural colors to create a calm, focused environment.
+A modern, vibrant color scheme that creates energy and visual interest through bold purples, teals, and pinks. The palette conveys innovation, creativity, and approachability with a contemporary digital aesthetic.
 
-- **Primary Color**: Deep teal `oklch(0.45 0.12 210)` - Conveys professionalism, trust, and knowledge. Used for primary actions and key UI elements.
-- **Secondary Colors**: 
-  - Warm sand `oklch(0.92 0.02 85)` for backgrounds - Creates a calm, paper-like feeling
-  - Soft sage `oklch(0.85 0.05 150)` for secondary elements - Natural and calming
-- **Accent Color**: Vibrant amber `oklch(0.70 0.15 65)` - Attention-grabbing for the AI chatbot and important CTAs, conveys warmth and assistance
+- **Primary Color**: Vibrant purple `oklch(0.55 0.22 265)` - Conveys creativity, innovation, and intelligence. Used for primary actions and key UI elements with gradient overlays.
+- **Secondary Color**: Cool teal `oklch(0.72 0.18 195)` - Modern and refreshing, provides balance to the purple primary and creates harmonious gradients.
+- **Accent Color**: Energetic pink `oklch(0.70 0.20 340)` - Eye-catching and playful for the AI chatbot, CTAs, and interactive moments that need attention.
+- **Background**: Very light gray with subtle purple tint `oklch(0.98 0.005 280)` - Clean, modern canvas that doesn't compete with content.
 - **Foreground/Background Pairings**:
-  - Primary teal (oklch(0.45 0.12 210)): White text (oklch(0.98 0 0)) - Ratio 9.1:1 ✓
-  - Accent amber (oklch(0.70 0.15 65)): Dark text (oklch(0.20 0 0)) - Ratio 7.8:1 ✓
-  - Background sand (oklch(0.92 0.02 85)): Dark foreground (oklch(0.20 0 0)) - Ratio 13.5:1 ✓
-  - Card white (oklch(0.98 0 0)): Dark foreground (oklch(0.20 0 0)) - Ratio 16.8:1 ✓
+  - Primary purple (oklch(0.55 0.22 265)): White text (oklch(0.99 0 0)) - Ratio 8.2:1 ✓
+  - Secondary teal (oklch(0.72 0.18 195)): White text (oklch(0.99 0 0)) - Ratio 5.1:1 ✓
+  - Accent pink (oklch(0.70 0.20 340)): White text (oklch(0.99 0 0)) - Ratio 4.9:1 ✓
+  - Background (oklch(0.98 0.005 280)): Dark foreground (oklch(0.15 0.02 260)) - Ratio 15.8:1 ✓
 
 ## Font Selection
 
-Typography should convey **reliability and readability** with a modern, professional character that doesn't feel overly technical or cold. Use **IBM Plex Sans** for its geometric precision and warm personality, paired with **IBM Plex Mono** for code or technical snippets.
+Typography should convey **modernity and clarity** with a friendly, approachable character. Use **Plus Jakarta Sans** for body text and UI elements for its geometric warmth and excellent readability, paired with **Outfit** for headings to add personality and impact.
 
 - **Typographic Hierarchy**:
-  - H1 (App Title): IBM Plex Sans SemiBold/32px/tight letter-spacing (-0.02em)
-  - H2 (Section Headers): IBM Plex Sans Medium/20px/normal letter-spacing
-  - H3 (Guide Titles): IBM Plex Sans Medium/18px/normal letter-spacing
-  - Body (Guide Content): IBM Plex Sans Regular/15px/relaxed line-height (1.6)
-  - UI Labels: IBM Plex Sans Medium/14px/normal letter-spacing
-  - Chat Messages: IBM Plex Sans Regular/14px/relaxed line-height (1.5)
-  - Tags/Badges: IBM Plex Sans Medium/12px/wide letter-spacing (0.02em)
+  - H1 (App Title): Outfit Bold/32-48px/tight letter-spacing with gradient overlay
+  - H2 (Section Headers): Outfit SemiBold/24px/normal letter-spacing  
+  - H3 (Guide Titles): Outfit SemiBold/18-20px/normal letter-spacing
+  - Body (Guide Content): Plus Jakarta Sans Regular/15px/relaxed line-height (1.6)
+  - UI Labels: Plus Jakarta Sans Medium/14px/normal letter-spacing
+  - Chat Messages: Plus Jakarta Sans Regular/14px/relaxed line-height (1.5)
+  - Tags/Badges: Plus Jakarta Sans Bold/12px/normal letter-spacing
 
 ## Animations
 
