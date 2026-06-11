@@ -6,11 +6,12 @@ export interface StoredFile {
 }
 
 class FileStorageService {
+  private readonly CHUNK_SIZE = 256 * 1024
+  private readonly MAX_FILE_SIZE = 5 * 1024 * 1024
+
   private async storeInKV(file: File): Promise<StoredFile> {
-    const MAX_FILE_SIZE = 10 * 1024 * 1024
-    
-    if (file.size > MAX_FILE_SIZE) {
-      throw new Error(`Filen er for stor (max 10MB). Din fil er ${(file.size / 1024 / 1024).toFixed(2)}MB`)
+    if (file.size > this.MAX_FILE_SIZE) {
+      throw new Error(`Filen er for stor (max ${this.MAX_FILE_SIZE / 1024 / 1024}MB). Din fil er ${(file.size / 1024 / 1024).toFixed(2)}MB`)
     }
 
     if (!file.name.match(/\.(docx?|DOCX?)$/)) {
@@ -24,38 +25,54 @@ class FileStorageService {
     })
     
     const arrayBuffer = await file.arrayBuffer()
-    console.log('[FileStorage] File read as ArrayBuffer, size:', arrayBuffer.byteLength)
-    
     const bytes = new Uint8Array(arrayBuffer)
-    console.log('[FileStorage] Converted to Uint8Array, length:', bytes.length)
-    
     const base64Data = this.arrayBufferToBase64(bytes)
-    console.log('[FileStorage] Converted to base64, length:', base64Data.length)
     
     const fileId = `file_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+    const chunks: string[] = []
     
-    const fileData = {
-      data: base64Data,
-      filename: file.name,
-      contentType: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      size: file.size,
-      uploadedAt: Date.now()
+    for (let i = 0; i < base64Data.length; i += this.CHUNK_SIZE) {
+      chunks.push(base64Data.substring(i, i + this.CHUNK_SIZE))
     }
     
-    console.log('[FileStorage] Saving to KV with key:', fileId)
+    console.log(`[FileStorage] Splitting file into ${chunks.length} chunks`)
     
     try {
-      await window.spark.kv.set(fileId, fileData)
-      console.log('[FileStorage] File saved successfully to KV')
+      const metadata = {
+        filename: file.name,
+        contentType: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        size: file.size,
+        uploadedAt: Date.now(),
+        chunkCount: chunks.length
+      }
       
-      const verification = await window.spark.kv.get(fileId)
+      await window.spark.kv.set(`${fileId}_meta`, metadata)
+      console.log('[FileStorage] Metadata saved')
+      
+      for (let i = 0; i < chunks.length; i++) {
+        await window.spark.kv.set(`${fileId}_chunk_${i}`, chunks[i])
+        console.log(`[FileStorage] Chunk ${i + 1}/${chunks.length} saved`)
+      }
+      
+      const verification = await window.spark.kv.get(`${fileId}_meta`)
       if (!verification) {
         throw new Error('Fil blev ikke gemt korrekt - verification failed')
       }
-      console.log('[FileStorage] Verification successful')
+      
+      console.log('[FileStorage] File saved successfully to KV')
     } catch (kvError) {
       console.error('[FileStorage] KV storage error:', kvError)
-      throw new Error('Kunne ikke gemme fil i storage')
+      
+      try {
+        await window.spark.kv.delete(`${fileId}_meta`)
+        for (let i = 0; i < chunks.length; i++) {
+          await window.spark.kv.delete(`${fileId}_chunk_${i}`)
+        }
+      } catch (cleanupError) {
+        console.error('[FileStorage] Cleanup error:', cleanupError)
+      }
+      
+      throw new Error('Kunne ikke gemme fil i storage. Prøv venligst en mindre fil.')
     }
 
     return {
@@ -78,21 +95,49 @@ class FileStorageService {
   async downloadFile(fileUrl: string): Promise<Blob> {
     if (fileUrl.startsWith('kv://')) {
       const fileId = fileUrl.replace('kv://', '')
-      const fileData = await window.spark.kv.get<{
-        data: string
+      
+      const metadata = await window.spark.kv.get<{
         filename: string
         contentType: string
         size: number
         uploadedAt: number
-      }>(fileId)
+        chunkCount: number
+      }>(`${fileId}_meta`)
 
-      if (!fileData) {
-        throw new Error('File not found in storage')
+      if (!metadata) {
+        const legacyData = await window.spark.kv.get<{
+          data: string
+          filename: string
+          contentType: string
+          size: number
+          uploadedAt: number
+        }>(fileId)
+
+        if (!legacyData) {
+          throw new Error('File not found in storage')
+        }
+
+        const bytes = this.base64ToUint8Array(legacyData.data)
+        return new Blob([bytes as BlobPart], { 
+          type: legacyData.contentType || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+        })
       }
 
-      const bytes = this.base64ToUint8Array(fileData.data)
+      console.log(`[FileStorage] Downloading file with ${metadata.chunkCount} chunks`)
+      
+      const chunks: string[] = []
+      for (let i = 0; i < metadata.chunkCount; i++) {
+        const chunk = await window.spark.kv.get<string>(`${fileId}_chunk_${i}`)
+        if (!chunk) {
+          throw new Error(`Missing chunk ${i} for file ${fileId}`)
+        }
+        chunks.push(chunk)
+      }
+
+      const base64Data = chunks.join('')
+      const bytes = this.base64ToUint8Array(base64Data)
       return new Blob([bytes as BlobPart], { 
-        type: fileData.contentType || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+        type: metadata.contentType || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
       })
     } else if (fileUrl.startsWith('http')) {
       const response = await fetch(fileUrl)
@@ -111,7 +156,19 @@ class FileStorageService {
   async deleteFile(fileUrl: string): Promise<void> {
     if (fileUrl.startsWith('kv://')) {
       const fileId = fileUrl.replace('kv://', '')
-      await window.spark.kv.delete(fileId)
+      
+      const metadata = await window.spark.kv.get<{
+        chunkCount: number
+      }>(`${fileId}_meta`)
+
+      if (metadata) {
+        await window.spark.kv.delete(`${fileId}_meta`)
+        for (let i = 0; i < metadata.chunkCount; i++) {
+          await window.spark.kv.delete(`${fileId}_chunk_${i}`)
+        }
+      } else {
+        await window.spark.kv.delete(fileId)
+      }
     }
   }
 
