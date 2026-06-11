@@ -46,10 +46,13 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
       const a = document.createElement('a')
       a.href = url
       a.download = guide.wordFileName
+      a.style.display = 'none'
       document.body.appendChild(a)
       a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      setTimeout(() => {
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }, 100)
       toast.success('Word-fil downloadet!')
     } catch (error) {
       console.error('Error downloading Word file:', error)
