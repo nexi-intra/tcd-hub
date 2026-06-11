@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Plus, MagnifyingGlass, ChatsCircle, Books, Gear } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, ChatsCircle, Books, Gear, Bug } from '@phosphor-icons/react'
 import { Guide, GuideCategory } from '@/lib/types'
 import { GuideCard } from '@/components/GuideCard'
 import { GuideDialog } from '@/components/GuideDialog'
@@ -27,6 +27,7 @@ function App() {
   const [viewGuide, setViewGuide] = useState<Guide | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('All')
+  const [showDebug, setShowDebug] = useState(false)
 
   const filteredGuides = useMemo(() => {
     if (!guides) return []
@@ -40,6 +41,18 @@ function App() {
       return matchesCategory && matchesSearch
     })
   }, [guides, activeCategory, searchQuery])
+
+  useEffect(() => {
+    if (showDebug) {
+      console.log('=== DEBUG INFO ===')
+      console.log('Total guides in storage:', guides?.length || 0)
+      console.log('All guides:', guides)
+      console.log('Active category:', activeCategory)
+      console.log('Search query:', searchQuery)
+      console.log('Filtered guides count:', filteredGuides.length)
+      console.log('Filtered guides:', filteredGuides)
+    }
+  }, [guides, filteredGuides, activeCategory, searchQuery, showDebug])
 
   const handleSaveGuide = (guideData: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'> & { wordFileData?: string; wordFileName?: string }) => {
     if (editGuide) {
@@ -143,6 +156,18 @@ function App() {
               </div>
             </div>
             <div className="flex gap-2">
+              <Button
+                onClick={() => setShowDebug(!showDebug)}
+                variant="outline"
+                size="icon"
+                className={cn(
+                  "h-11 w-11",
+                  showDebug && "bg-accent/20 border-accent/40"
+                )}
+                title="Debug mode - Open console to see guide data"
+              >
+                <Bug size={20} weight={showDebug ? "fill" : "regular"} />
+              </Button>
               <Button
                 onClick={() => setCategoryManagerOpen(true)}
                 variant="outline"
