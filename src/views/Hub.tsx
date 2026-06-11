@@ -100,7 +100,6 @@ export function Hub({ onNavigate }: HubProps) {
         backgroundImage: `repeating-linear-gradient(90deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px),
                          repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px)`
       }} />
-
       <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 max-w-7xl relative z-10">
         <motion.header 
           className="text-center mb-16"
@@ -140,9 +139,7 @@ export function Hub({ onNavigate }: HubProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
-          >
-            Nexi Team Hub
-          </motion.h1>
+          >Nexi Team Hub</motion.h1>
           
           <motion.p 
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto"
@@ -224,5 +221,5 @@ export function Hub({ onNavigate }: HubProps) {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }
