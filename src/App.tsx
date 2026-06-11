@@ -52,8 +52,10 @@ function App() {
                 category: guideData.category,
                 content: guideData.content,
                 tags: guideData.tags,
-                wordFileData: guideData.wordFileData,
-                wordFileName: guideData.wordFileName,
+                ...(guideData.wordFileData !== undefined && {
+                  wordFileData: guideData.wordFileData,
+                  wordFileName: guideData.wordFileName
+                }),
                 updatedAt: Date.now() 
               }
             : g
