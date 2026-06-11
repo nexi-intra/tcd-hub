@@ -228,7 +228,11 @@ export function CategoryManager({
 
         <Separator />
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <kbd className="px-2 py-1 bg-muted rounded border border-border font-mono text-xs">ESC</kbd>
+            <span>for at lukke</span>
+          </div>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Luk
           </Button>

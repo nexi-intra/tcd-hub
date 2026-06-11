@@ -79,9 +79,14 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
         <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 border-b border-border">
           <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
             <div className="flex-1 min-w-0 w-full">
-              <DialogTitle className="text-xl sm:text-2xl mb-3 break-words pr-8 sm:pr-0">
-                {guide.title}
-              </DialogTitle>
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <DialogTitle className="text-xl sm:text-2xl break-words pr-2">
+                  {guide.title}
+                </DialogTitle>
+                <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                  <kbd className="px-2 py-1 bg-muted rounded border border-border font-mono text-xs">ESC</kbd>
+                </div>
+              </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge
                   variant="outline"

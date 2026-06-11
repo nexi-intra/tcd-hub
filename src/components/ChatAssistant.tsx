@@ -92,12 +92,17 @@ Besvar på dansk. Hvis brugeren søger efter en specifik guide, referer til guid
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:w-[500px] flex flex-col p-0">
         <SheetHeader className="p-6 pb-4 border-b">
-          <SheetTitle className="flex items-center gap-2 text-xl">
-            <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
-              <Robot size={24} weight="duotone" className="text-accent-foreground" />
+          <div className="flex items-center justify-between">
+            <SheetTitle className="flex items-center gap-2 text-xl">
+              <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
+                <Robot size={24} weight="duotone" className="text-accent-foreground" />
+              </div>
+              Guide Assistent
+            </SheetTitle>
+            <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+              <kbd className="px-2 py-1 bg-muted rounded border border-border font-mono text-xs">ESC</kbd>
             </div>
-            Guide Assistent
-          </SheetTitle>
+          </div>
         </SheetHeader>
 
         <ScrollArea className="flex-1 p-6" ref={scrollRef}>
