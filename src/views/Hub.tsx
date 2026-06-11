@@ -146,9 +146,7 @@ export function Hub({ onNavigate }: HubProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-          >
-            Samlet platform for guides, ressourcer og teamværktøjer
-          </motion.p>
+          >Samlet platform for guides, ressourcer og teamværktøjer</motion.p>
         </motion.header>
 
         <motion.div 
