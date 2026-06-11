@@ -46,15 +46,29 @@ function App() {
       setGuides((currentGuides) =>
         (currentGuides || []).map((g) =>
           g.id === editGuide.id
-            ? { ...g, ...guideData, updatedAt: Date.now() }
+            ? { 
+                ...g, 
+                title: guideData.title,
+                category: guideData.category,
+                content: guideData.content,
+                tags: guideData.tags,
+                wordFileData: guideData.wordFileData,
+                wordFileName: guideData.wordFileName,
+                updatedAt: Date.now() 
+              }
             : g
         )
       )
       toast.success('Guide opdateret!')
     } else {
       const newGuide: Guide = {
-        ...guideData,
         id: Date.now().toString(),
+        title: guideData.title,
+        category: guideData.category,
+        content: guideData.content,
+        tags: guideData.tags,
+        wordFileData: guideData.wordFileData,
+        wordFileName: guideData.wordFileName,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       }
