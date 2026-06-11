@@ -29,13 +29,12 @@ interface GuideDialogProps {
   onOpenChange: (open: boolean) => void
   onSave: (guide: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'> & { wordFileData?: string; wordFileName?: string }) => void
   editGuide?: Guide
+  categories: string[]
 }
 
-const categories: GuideCategory[] = ['Procedures', 'Technical', 'HR', 'Safety', 'General']
-
-export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDialogProps) {
+export function GuideDialog({ open, onOpenChange, onSave, editGuide, categories }: GuideDialogProps) {
   const [title, setTitle] = useState('')
-  const [category, setCategory] = useState<GuideCategory>('General')
+  const [category, setCategory] = useState<string>(categories[0] || 'General')
   const [content, setContent] = useState('')
   const [tags, setTags] = useState('')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
@@ -51,12 +50,12 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
       setTags(editGuide.tags.join(', '))
     } else {
       setTitle('')
-      setCategory('General')
+      setCategory(categories[0] || 'General')
       setContent('')
       setTags('')
     }
     setUploadedFile(null)
-  }, [editGuide, open])
+  }, [editGuide, open, categories])
 
   const handleSave = async () => {
     if (!title.trim() || !content.trim()) return
@@ -82,7 +81,7 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
 
     onSave({
       title: title.trim(),
-      category,
+      category: category as GuideCategory,
       content: content.trim(),
       tags: tagArray,
       wordFileData,
@@ -90,7 +89,7 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
     })
 
     setTitle('')
-    setCategory('General')
+    setCategory(categories[0] || 'General')
     setContent('')
     setTags('')
     setUploadedFile(null)
@@ -192,7 +191,7 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
           </div>
           <div className="grid gap-2">
             <Label htmlFor="category">Kategori</Label>
-            <Select value={category} onValueChange={(value) => setCategory(value as GuideCategory)}>
+            <Select value={category} onValueChange={(value) => setCategory(value)}>
               <SelectTrigger id="category">
                 <SelectValue />
               </SelectTrigger>

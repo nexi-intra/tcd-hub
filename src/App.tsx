@@ -3,27 +3,30 @@ import { useKV } from '@github/spark/hooks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Plus, MagnifyingGlass, ChatsCircle, Books } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, ChatsCircle, Books, Gear } from '@phosphor-icons/react'
 import { Guide, GuideCategory } from '@/lib/types'
 import { GuideCard } from '@/components/GuideCard'
 import { GuideDialog } from '@/components/GuideDialog'
 import { GuideViewer } from '@/components/GuideViewer'
 import { ChatAssistant } from '@/components/ChatAssistant'
+import { CategoryManager } from '@/components/CategoryManager'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { toast, Toaster } from 'sonner'
 
-const categories: (GuideCategory | 'All')[] = ['All', 'Procedures', 'Technical', 'HR', 'Safety', 'General']
+const defaultCategories: string[] = ['Procedures', 'Technical', 'HR', 'Safety', 'General']
 
 function App() {
   const [guides, setGuides] = useKV<Guide[]>('guides', [])
+  const [categories, setCategories] = useKV<string[]>('categories', defaultCategories)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [viewerOpen, setViewerOpen] = useState(false)
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false)
   const [editGuide, setEditGuide] = useState<Guide | undefined>()
   const [viewGuide, setViewGuide] = useState<Guide | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeCategory, setActiveCategory] = useState<GuideCategory | 'All'>('All')
+  const [activeCategory, setActiveCategory] = useState<string>('All')
 
   const filteredGuides = useMemo(() => {
     if (!guides) return []
@@ -82,6 +85,12 @@ function App() {
     setViewerOpen(true)
   }
 
+  const handleUpdateCategories = (updatedCategories: string[]) => {
+    setCategories(updatedCategories)
+  }
+
+  const allCategories = ['All', ...(categories || defaultCategories)]
+
   return (
     <div className="min-h-screen bg-background">
       <Toaster position="top-center" />
@@ -103,6 +112,14 @@ function App() {
               </div>
             </div>
             <div className="flex gap-2">
+              <Button
+                onClick={() => setCategoryManagerOpen(true)}
+                variant="outline"
+                size="icon"
+                className="h-11 w-11 bg-muted hover:bg-muted/80"
+              >
+                <Gear size={20} weight="duotone" />
+              </Button>
               <Button
                 onClick={() => setChatOpen(true)}
                 variant="outline"
@@ -136,7 +153,7 @@ function App() {
           <Separator className="my-6" />
 
           <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
+            {allCategories.map((category) => (
               <Button
                 key={category}
                 variant={activeCategory === category ? 'default' : 'outline'}
@@ -207,6 +224,7 @@ function App() {
         }}
         onSave={handleSaveGuide}
         editGuide={editGuide}
+        categories={categories || defaultCategories}
       />
 
       <GuideViewer
@@ -219,6 +237,14 @@ function App() {
       />
 
       <ChatAssistant open={chatOpen} onOpenChange={setChatOpen} guides={guides || []} />
+
+      <CategoryManager
+        open={categoryManagerOpen}
+        onOpenChange={setCategoryManagerOpen}
+        categories={categories || defaultCategories}
+        onUpdateCategories={handleUpdateCategories}
+        guides={guides || []}
+      />
     </div>
   )
 }
