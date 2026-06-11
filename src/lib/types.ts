@@ -8,6 +8,8 @@ export interface Guide {
   tags: string[]
   createdAt: number
   updatedAt: number
+  wordFileData?: string
+  wordFileName?: string
 }
 
 export interface ChatMessage {

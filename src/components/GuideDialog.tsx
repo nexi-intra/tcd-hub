@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils'
 interface GuideDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (guide: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'>) => void
+  onSave: (guide: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'> & { wordFileData?: string; wordFileName?: string }) => void
   editGuide?: Guide
 }
 
@@ -58,7 +58,7 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
     setUploadedFile(null)
   }, [editGuide, open])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim() || !content.trim()) return
 
     const tagArray = tags
@@ -66,11 +66,24 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
       .map((tag) => tag.trim())
       .filter((tag) => tag.length > 0)
 
+    let wordFileData: string | undefined
+    let wordFileName: string | undefined
+
+    if (uploadedFile) {
+      const arrayBuffer = await uploadedFile.arrayBuffer()
+      const bytes = new Uint8Array(arrayBuffer)
+      const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
+      wordFileData = btoa(binary)
+      wordFileName = uploadedFile.name
+    }
+
     onSave({
       title: title.trim(),
       category,
       content: content.trim(),
       tags: tagArray,
+      wordFileData,
+      wordFileName,
     })
 
     setTitle('')

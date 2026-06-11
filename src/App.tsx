@@ -35,7 +35,7 @@ function App() {
     })
   }, [guides, activeCategory, searchQuery])
 
-  const handleSaveGuide = (guideData: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveGuide = (guideData: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'> & { wordFileData?: string; wordFileName?: string }) => {
     if (editGuide) {
       setGuides((currentGuides) =>
         (currentGuides || []).map((g) =>
