@@ -40,6 +40,11 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
     'Juli', 'August', 'September', 'Oktober', 'November', 'December'
   ]
 
+  const isWeekend = (date: Date) => {
+    const day = date.getDay()
+    return day === 0 || day === 6
+  }
+
   const handleAddVacation = () => {
     if (!startDate || !endDate) {
       toast.error('Vælg både start- og slutdato')
@@ -52,6 +57,15 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
     if (end < start) {
       toast.error('Slutdato skal være efter startdato')
       return
+    }
+
+    const current = new Date(start)
+    while (current <= end) {
+      if (isWeekend(current)) {
+        toast.error('Ferier kan ikke registreres på weekender. Vi arbejder ikke lørdag eller søndag.')
+        return
+      }
+      current.setDate(current.getDate() + 1)
     }
 
     const newVacation: VacationEntry = {
@@ -252,10 +266,13 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
             </div>
 
             <div className="grid grid-cols-7 gap-2">
-              {['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'].map((day) => (
+              {['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'].map((day, index) => (
                 <div
                   key={day}
-                  className="text-center font-semibold text-sm text-muted-foreground py-2"
+                  className={cn(
+                    "text-center font-semibold text-sm py-2",
+                    index >= 5 ? "text-muted-foreground/60" : "text-muted-foreground"
+                  )}
                 >
                   {day}
                 </div>
@@ -268,6 +285,9 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
               {Array.from({ length: daysInMonth }).map((_, index) => {
                 const day = index + 1
                 const dayVacations = getDayVacations(day)
+                const currentDate = new Date(selectedYear, selectedMonth, day)
+                const dayOfWeek = currentDate.getDay()
+                const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6
                 const isToday =
                   day === new Date().getDate() &&
                   selectedMonth === new Date().getMonth() &&
@@ -278,27 +298,39 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
                     key={day}
                     className={cn(
                       "aspect-square border rounded-lg p-1 relative",
-                      isToday && "ring-2 ring-primary"
+                      isToday && "ring-2 ring-primary",
+                      isWeekendDay && "bg-muted/50 opacity-60"
                     )}
                   >
-                    <div className="text-xs font-semibold mb-1">{day}</div>
-                    <div className="space-y-0.5">
-                      {dayVacations.slice(0, 3).map((vacation) => (
-                        <div
-                          key={vacation.id}
-                          className="text-[8px] px-1 py-0.5 rounded text-white truncate"
-                          style={{ backgroundColor: getUserColor(vacation.userEmail) }}
-                          title={`${vacation.userEmail}${vacation.notes ? ': ' + vacation.notes : ''}`}
-                        >
-                          {vacation.userEmail.split('@')[0]}
-                        </div>
-                      ))}
-                      {dayVacations.length > 3 && (
-                        <div className="text-[8px] text-muted-foreground">
-                          +{dayVacations.length - 3}
-                        </div>
-                      )}
+                    <div className={cn(
+                      "text-xs font-semibold mb-1",
+                      isWeekendDay && "text-muted-foreground"
+                    )}>
+                      {day}
                     </div>
+                    {isWeekendDay ? (
+                      <div className="text-[7px] text-muted-foreground text-center mt-2">
+                        Lukket
+                      </div>
+                    ) : (
+                      <div className="space-y-0.5">
+                        {dayVacations.slice(0, 3).map((vacation) => (
+                          <div
+                            key={vacation.id}
+                            className="text-[8px] px-1 py-0.5 rounded text-white truncate"
+                            style={{ backgroundColor: getUserColor(vacation.userEmail) }}
+                            title={`${vacation.userEmail}${vacation.notes ? ': ' + vacation.notes : ''}`}
+                          >
+                            {vacation.userEmail.split('@')[0]}
+                          </div>
+                        ))}
+                        {dayVacations.length > 3 && (
+                          <div className="text-[8px] text-muted-foreground">
+                            +{dayVacations.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}
