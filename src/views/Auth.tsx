@@ -126,7 +126,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
               </div>
             </motion.div>
 
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">Nexi Team Hub</h1>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">Supply Chain Services Hub</h1>
             <p className="text-muted-foreground">
               {mode === 'login' ? 'Log ind for at fortsætte' : 'Opret en ny konto'}
             </p>
