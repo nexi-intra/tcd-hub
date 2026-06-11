@@ -194,24 +194,27 @@ export function CategoryManager({
                                 {count} {count === 1 ? 'guide' : 'guides'}
                               </div>
                             </div>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="shrink-0"
-                              onClick={() => handleStartEdit(category)}
-                              disabled={isFixed}
-                            >
-                              <PencilSimple size={18} />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => handleDeleteCategory(category)}
-                              disabled={count > 0 || isFixed}
-                            >
-                              <Trash size={18} />
-                            </Button>
+                            {!isFixed && (
+                              <>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="shrink-0"
+                                  onClick={() => handleStartEdit(category)}
+                                >
+                                  <PencilSimple size={18} />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleDeleteCategory(category)}
+                                  disabled={count > 0}
+                                >
+                                  <Trash size={18} />
+                                </Button>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
