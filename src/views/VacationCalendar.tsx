@@ -156,7 +156,10 @@ Return ONLY a JSON object with this exact structure:
     toast.success('Ferie slettet')
   }
 
-  const handleApproveVacation = (id: string) => {
+  const handleApproveVacation = async (id: string) => {
+    const vacation = (vacations || []).find(v => v.id === id)
+    if (!vacation) return
+
     setVacations((current) =>
       (current || []).map((v) =>
         v.id === id
@@ -165,9 +168,58 @@ Return ONLY a JSON object with this exact structure:
       )
     )
     toast.success('Ferie godkendt')
+
+    const startDateFormatted = new Date(vacation.startDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const endDateFormatted = new Date(vacation.endDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+
+    const promptText = spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
+
+Vacation Request Details:
+Start Date: ${startDateFormatted}
+End Date: ${endDateFormatted}
+${vacation.notes ? `Notes: ${vacation.notes}` : 'No notes'}
+Approved by: ${userEmail}
+
+The email should be in Danish, friendly yet professional, and include:
+- A clear subject line that indicates approval
+- Confirmation that the vacation request has been approved
+- The vacation period details
+- The name/email of who approved it
+- A congratulatory or positive tone
+- A brief note that this is an automatic notification
+
+Return ONLY a JSON object with this exact structure:
+{
+  "subject": "subject line here",
+  "body": "email body here with proper line breaks"
+}`
+
+    try {
+      const emailContentJson = await spark.llm(promptText, "gpt-4o-mini", true)
+      const emailContent = JSON.parse(emailContentJson)
+      
+      console.log('Vacation approval notification email:', {
+        to: vacation.userEmail,
+        subject: emailContent.subject,
+        body: emailContent.body
+      })
+    } catch (emailError) {
+      console.error('Error generating vacation approval email:', emailError)
+    }
   }
 
-  const handleRejectVacation = (id: string) => {
+  const handleRejectVacation = async (id: string) => {
+    const vacation = (vacations || []).find(v => v.id === id)
+    if (!vacation) return
+
     setVacations((current) =>
       (current || []).map((v) =>
         v.id === id
@@ -176,6 +228,53 @@ Return ONLY a JSON object with this exact structure:
       )
     )
     toast.error('Ferie afvist')
+
+    const startDateFormatted = new Date(vacation.startDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const endDateFormatted = new Date(vacation.endDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+
+    const promptText = spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
+
+Vacation Request Details:
+Start Date: ${startDateFormatted}
+End Date: ${endDateFormatted}
+${vacation.notes ? `Notes: ${vacation.notes}` : 'No notes'}
+Rejected by: ${userEmail}
+
+The email should be in Danish, professional and respectful, and include:
+- A clear subject line that indicates rejection
+- Polite notification that the vacation request has been rejected
+- The vacation period details
+- The name/email of who rejected it
+- A professional and understanding tone
+- Suggestion that they can contact the manager for more information or to discuss alternative dates
+- A brief note that this is an automatic notification
+
+Return ONLY a JSON object with this exact structure:
+{
+  "subject": "subject line here",
+  "body": "email body here with proper line breaks"
+}`
+
+    try {
+      const emailContentJson = await spark.llm(promptText, "gpt-4o-mini", true)
+      const emailContent = JSON.parse(emailContentJson)
+      
+      console.log('Vacation rejection notification email:', {
+        to: vacation.userEmail,
+        subject: emailContent.subject,
+        body: emailContent.body
+      })
+    } catch (emailError) {
+      console.error('Error generating vacation rejection email:', emailError)
+    }
   }
 
   const getVacationsForMonth = (month: number, year: number) => {
