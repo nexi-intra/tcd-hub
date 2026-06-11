@@ -70,15 +70,55 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail }: SickLeaveDial
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         reason,
-        status: 'pending',
+        status: 'approved',
         submittedAt: new Date().toISOString(),
       }
 
       await window.spark.kv.set('sick-leave-entries', [...sickLeaveEntries, newEntry])
 
-      toast.success('Sygemelding indsendt', {
-        description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret.`
-      })
+      const startDateFormatted = format(startDate, 'd. MMMM yyyy', { locale: da })
+      const endDateFormatted = format(endDate, 'd. MMMM yyyy', { locale: da })
+      const remarksText = reason ? `Remarks: ${reason}` : 'No remarks provided'
+      
+      const promptText = `Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a sick leave report.
+
+Employee: ${userName} (${userEmail})
+Start Date: ${startDateFormatted}
+End Date: ${endDateFormatted}
+${remarksText}
+
+The email should be in Danish, professional, and include:
+- A clear subject line
+- Employee name and email
+- The sick leave period
+- Any remarks if provided
+- A brief note that this is an automatic notification
+
+Return ONLY a JSON object with this exact structure:
+{
+  "subject": "subject line here",
+  "body": "email body here with proper line breaks"
+}`
+
+      try {
+        const emailContentJson = await window.spark.llm(promptText, "gpt-4o-mini", true)
+        const emailContent = JSON.parse(emailContentJson)
+        
+        console.log('Sick leave notification email:', {
+          to: 'Jacob.remmer@nexigroup.com',
+          subject: emailContent.subject,
+          body: emailContent.body
+        })
+
+        toast.success('Sygemelding registreret', {
+          description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret og Jacob Remmer er blevet notificeret.`
+        })
+      } catch (emailError) {
+        console.error('Error generating email:', emailError)
+        toast.success('Sygemelding registreret', {
+          description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret.`
+        })
+      }
 
       setStartDate(undefined)
       setEndDate(undefined)

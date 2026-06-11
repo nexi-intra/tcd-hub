@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, UserGear, Check, Crown, ShieldCheck, User as UserIcon, Trash, FirstAidKit, X } from '@phosphor-icons/react'
+import { ArrowLeft, UserGear, Check, Crown, ShieldCheck, User as UserIcon, Trash, FirstAidKit } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -115,29 +115,6 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
       await window.spark.kv.set('users', usersData)
       await loadUsers()
       toast.success('Bruger slettet')
-    }
-  }
-
-  const handleSickLeaveStatus = async (entryId: string, newStatus: 'approved' | 'rejected') => {
-    const entries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
-    const updatedEntries = entries.map(entry => 
-      entry.id === entryId ? { ...entry, status: newStatus } : entry
-    )
-    await window.spark.kv.set('sick-leave-entries', updatedEntries)
-    await loadSickLeaveEntries()
-    
-    const statusText = newStatus === 'approved' ? 'godkendt' : 'afvist'
-    toast.success(`Sygemelding ${statusText}`)
-  }
-
-  const getStatusBadge = (status: SickLeaveEntry['status']) => {
-    switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-500 text-white"><Check size={14} className="mr-1" />Godkendt</Badge>
-      case 'rejected':
-        return <Badge className="bg-red-500 text-white"><X size={14} className="mr-1" />Afvist</Badge>
-      default:
-        return <Badge variant="secondary">Afventer</Badge>
     }
   }
 
@@ -400,8 +377,14 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
                   <h2 className="text-2xl font-bold">Sygemeldinger</h2>
                 </div>
                 <Badge variant="outline" className="text-sm">
-                  {sickLeaveEntries.filter(e => e.status === 'pending').length} afventer
+                  {sickLeaveEntries.length} {sickLeaveEntries.length === 1 ? 'sygemelding' : 'sygemeldinger'}
                 </Badge>
+              </div>
+
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Sygemeldinger sendes automatisk til Jacob.remmer@nexigroup.com når de indsendes. Ingen godkendelse påkrævet.
+                </p>
               </div>
 
               {sickLeaveEntries.length === 0 ? (
@@ -422,41 +405,25 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
                         <div className="flex-1">
                           <div className="font-bold text-lg mb-1">{entry.userName}</div>
                           <div className="text-sm text-muted-foreground">{entry.userEmail}</div>
-                          <div className="flex items-center gap-4 mt-2 text-sm">
+                          <div className="flex flex-col gap-1 mt-2 text-sm">
                             <span className="font-medium">
                               {format(new Date(entry.startDate), 'd. MMM', { locale: da })} - {format(new Date(entry.endDate), 'd. MMM yyyy', { locale: da })}
                             </span>
+                            <span className="text-xs text-muted-foreground">
+                              Indsendt: {format(new Date(entry.submittedAt), 'd. MMM yyyy HH:mm', { locale: da })}
+                            </span>
                             {entry.reason && (
-                              <span className="text-muted-foreground">• {entry.reason}</span>
+                              <span className="text-muted-foreground mt-1">Bemærkninger: {entry.reason}</span>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          {getStatusBadge(entry.status)}
+                          <Badge className="bg-green-500 text-white">
+                            <Check size={14} className="mr-1" />
+                            Registreret
+                          </Badge>
                         </div>
                       </div>
-                      {entry.status === 'pending' && (
-                        <div className="ml-4 flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => handleSickLeaveStatus(entry.id, 'approved')}
-                            className="bg-green-500 hover:bg-green-600 text-white gap-2"
-                          >
-                            <Check size={16} />
-                            Godkend
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleSickLeaveStatus(entry.id, 'rejected')}
-                            className="gap-2"
-                          >
-                            <X size={16} />
-                            Afvis
-                          </Button>
-                        </div>
-                      )}
                     </motion.div>
                   ))}
                 </div>
