@@ -155,7 +155,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-semibold flex items-center gap-2">
                   <EnvelopeSimple size={16} />
-                  Email
+                  Email : brug arbejdsmail
                 </Label>
                 <Input
                   id="email"
