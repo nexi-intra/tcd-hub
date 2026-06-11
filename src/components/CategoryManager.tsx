@@ -49,6 +49,10 @@ export function CategoryManager({
   }
 
   const handleDeleteCategory = (category: string) => {
+    if (category === 'General') {
+      toast.error('General kategorien kan ikke slettes')
+      return
+    }
     const guidesInCategory = guides.filter((g) => g.category === category)
     if (guidesInCategory.length > 0) {
       toast.error(`Kan ikke slette: ${guidesInCategory.length} guide(r) bruger denne kategori`)
@@ -59,6 +63,10 @@ export function CategoryManager({
   }
 
   const handleStartEdit = (category: string) => {
+    if (category === 'General') {
+      toast.error('General kategorien kan ikke redigeres')
+      return
+    }
     setEditingId(category)
     setEditValue(category)
   }
@@ -131,13 +139,15 @@ export function CategoryManager({
                   categories.map((category) => {
                     const count = getCategoryCount(category)
                     const isEditing = editingId === category
+                    const isFixed = category === 'General'
 
                     return (
                       <div
                         key={category}
                         className={cn(
                           'flex items-center gap-2 p-3 rounded-lg border bg-card',
-                          isEditing && 'border-primary'
+                          isEditing && 'border-primary',
+                          isFixed && 'bg-muted/50'
                         )}
                       >
                         {isEditing ? (
@@ -172,7 +182,14 @@ export function CategoryManager({
                         ) : (
                           <>
                             <div className="flex-1">
-                              <div className="font-medium">{category}</div>
+                              <div className="flex items-center gap-2">
+                                <div className="font-medium">{category}</div>
+                                {isFixed && (
+                                  <span className="text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
+                                    Fast
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-xs text-muted-foreground">
                                 {count} {count === 1 ? 'guide' : 'guides'}
                               </div>
@@ -182,6 +199,7 @@ export function CategoryManager({
                               variant="ghost"
                               className="shrink-0"
                               onClick={() => handleStartEdit(category)}
+                              disabled={isFixed}
                             >
                               <PencilSimple size={18} />
                             </Button>
@@ -190,7 +208,7 @@ export function CategoryManager({
                               variant="ghost"
                               className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                               onClick={() => handleDeleteCategory(category)}
-                              disabled={count > 0}
+                              disabled={count > 0 || isFixed}
                             >
                               <Trash size={18} />
                             </Button>
