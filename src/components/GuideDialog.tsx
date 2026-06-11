@@ -286,7 +286,7 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
           
           <div className="grid gap-2">
             <Label>Upload Word-dokument{isBulkMode ? 'er' : ''} {!isBulkMode && '(valgfrit)'}</Label>
-            {editGuide?.wordFileData && uploadedFiles.length === 0 && (
+            {editGuide?.fileUrl && uploadedFiles.length === 0 && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 mb-2">
                 <FileDoc size={20} weight="duotone" className="text-primary flex-shrink-0" />
                 <span className="text-sm flex-1 truncate">{editGuide.wordFileName || 'Eksisterende Word-dokument'}</span>
@@ -327,7 +327,7 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
                       ? 'Slip filerne her'
                       : isProcessing
                       ? 'Behandler dokumenter...'
-                      : editGuide?.wordFileData
+                      : editGuide?.fileUrl
                       ? 'Upload nyt Word-dokument for at erstatte'
                       : 'Træk og slip Word-filer her'}
                   </p>
@@ -379,14 +379,14 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
           {!isBulkMode && (
             <div className="grid gap-2">
               <Label htmlFor="content">
-                Indhold {(uploadedFiles.length > 0 || editGuide?.wordFileData) && <span className="text-muted-foreground font-normal">(valgfrit)</span>}
+                Indhold {(uploadedFiles.length > 0 || editGuide?.fileUrl) && <span className="text-muted-foreground font-normal">(valgfrit)</span>}
               </Label>
               <Textarea
                 id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder={
-                  uploadedFiles.length > 0 || editGuide?.wordFileData
+                  uploadedFiles.length > 0 || editGuide?.fileUrl
                     ? "Tilføj ekstra noter eller lad være tom hvis Word-dokumentet indeholder alt..."
                     : "Beskriv trinene eller informationen i denne guide..."
                 }
@@ -413,7 +413,7 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
             disabled={
               isProcessing || 
               (!isBulkMode && !title.trim()) || 
-              (!isBulkMode && !content.trim() && uploadedFiles.length === 0 && !editGuide?.wordFileData)
+              (!isBulkMode && !content.trim() && uploadedFiles.length === 0 && !editGuide?.fileUrl)
             }
           >
             {isProcessing 
