@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Guide, GuideCategory } from '@/lib/types'
+import { Upload, FileDoc, X } from '@phosphor-icons/react'
+import mammoth from 'mammoth'
+import { toast } from 'sonner'
 
 interface GuideDialogProps {
   open: boolean
@@ -34,6 +37,9 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
   const [category, setCategory] = useState<GuideCategory>('General')
   const [content, setContent] = useState('')
   const [tags, setTags] = useState('')
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (editGuide) {
@@ -47,6 +53,7 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
       setContent('')
       setTags('')
     }
+    setUploadedFile(null)
   }, [editGuide, open])
 
   const handleSave = () => {
@@ -68,6 +75,51 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
     setCategory('General')
     setContent('')
     setTags('')
+    setUploadedFile(null)
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.name.endsWith('.docx') && !file.name.endsWith('.doc')) {
+      toast.error('Kun Word-dokumenter (.doc, .docx) understøttes')
+      return
+    }
+
+    setIsProcessing(true)
+    setUploadedFile(file)
+
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const result = await mammoth.convertToHtml({ arrayBuffer })
+      
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = result.value
+      const extractedText = tempDiv.textContent || tempDiv.innerText || ''
+      
+      setContent(extractedText)
+      
+      if (!title.trim()) {
+        const fileName = file.name.replace(/\.(docx?|DOCX?)$/, '')
+        setTitle(fileName)
+      }
+      
+      toast.success('Word-dokument indlæst!')
+    } catch (error) {
+      console.error('Error processing Word document:', error)
+      toast.error('Kunne ikke læse Word-dokumentet')
+      setUploadedFile(null)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setUploadedFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   return (
@@ -108,6 +160,45 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
               </SelectContent>
             </Select>
           </div>
+          
+          <div className="grid gap-2">
+            <Label>Upload Word-dokument (valgfrit)</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isProcessing}
+                className="flex-1"
+              >
+                <Upload size={18} className="mr-2" />
+                {isProcessing ? 'Behandler...' : uploadedFile ? 'Skift fil' : 'Vælg Word-fil'}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".doc,.docx"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </div>
+            {uploadedFile && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-accent/10 border border-accent/20">
+                <FileDoc size={20} weight="duotone" className="text-accent-foreground flex-shrink-0" />
+                <span className="text-sm flex-1 truncate">{uploadedFile.name}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRemoveFile}
+                  className="h-6 w-6 flex-shrink-0"
+                >
+                  <X size={16} />
+                </Button>
+              </div>
+            )}
+          </div>
+
           <div className="grid gap-2">
             <Label htmlFor="content">Indhold</Label>
             <Textarea
