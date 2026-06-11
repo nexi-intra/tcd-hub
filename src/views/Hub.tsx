@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
 import { Books, Users, Calendar, ChartBar, Gear, ChatCircle, FileText, Folder } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { UserProfile } from '@/components/UserProfile'
@@ -21,6 +22,17 @@ interface HubProps {
 }
 
 export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
+  const [isManager, setIsManager] = useState(false)
+  
+  useEffect(() => {
+    const checkManagerStatus = async () => {
+      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
+      if (usersData && usersData[userEmail]) {
+        setIsManager(usersData[userEmail].isManager || false)
+      }
+    }
+    checkManagerStatus()
+  }, [userEmail])
   const modules: HubModule[] = [
     {
       id: 'guides',
@@ -104,7 +116,12 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                          repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px)`
       }} />
       <div className="absolute top-4 right-4 z-20">
-        <UserProfile userEmail={userEmail} onLogout={onLogout} />
+        <UserProfile 
+          userEmail={userEmail} 
+          onLogout={onLogout}
+          showAdmin={isManager}
+          onAdminClick={() => onNavigate('admin')}
+        />
       </div>
       <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 max-w-7xl relative z-10">
         <motion.header 

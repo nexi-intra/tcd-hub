@@ -1,4 +1,4 @@
-import { SignOut, User } from '@phosphor-icons/react'
+import { SignOut, User, UserGear } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -12,9 +12,11 @@ import {
 interface UserProfileProps {
   userEmail: string
   onLogout: () => void
+  onAdminClick?: () => void
+  showAdmin?: boolean
 }
 
-export function UserProfile({ userEmail, onLogout }: UserProfileProps) {
+export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin }: UserProfileProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -34,6 +36,18 @@ export function UserProfile({ userEmail, onLogout }: UserProfileProps) {
         <DropdownMenuItem className="text-muted-foreground text-sm">
           {userEmail}
         </DropdownMenuItem>
+        {showAdmin && onAdminClick && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={onAdminClick}
+              className="cursor-pointer"
+            >
+              <UserGear size={16} className="mr-2" />
+              Admin Panel
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem 
           onClick={onLogout}
