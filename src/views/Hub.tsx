@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, ChartBar, Gear, ChatCircle, FileText, Folder, FirstAidKit } from '@phosphor-icons/react'
+import { Books, Users, Calendar, ChartBar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { UserProfile } from '@/components/UserProfile'
 import { SickLeaveDialog } from '@/components/SickLeaveDialog'
+import { EmailNotifications } from '@/components/EmailNotifications'
 import { cn } from '@/lib/utils'
 
 interface HubModule {
@@ -26,6 +28,8 @@ interface HubProps {
 export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [isAdminOrManager, setIsAdminOrManager] = useState(false)
   const [showSickLeaveDialog, setShowSickLeaveDialog] = useState(false)
+  const [showEmailNotifications, setShowEmailNotifications] = useState(false)
+  const [unreadEmailCount, setUnreadEmailCount] = useState(0)
   
   useEffect(() => {
     const checkUserRole = async () => {
@@ -38,6 +42,18 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     }
     checkUserRole()
   }, [userEmail])
+
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      const emailNotifications = await window.spark.kv.get<Array<{ read: boolean }>>('email-notifications') || []
+      const unread = emailNotifications.filter(n => !n.read).length
+      setUnreadEmailCount(unread)
+    }
+    loadUnreadCount()
+    
+    const interval = setInterval(loadUnreadCount, 5000)
+    return () => clearInterval(interval)
+  }, [])
   const modules: HubModule[] = [
     {
       id: 'guides',
@@ -121,6 +137,28 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                          repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px)`
       }} />
       <div className="absolute top-4 right-4 z-20 flex items-center gap-3">
+        {isAdminOrManager && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Button
+              onClick={() => setShowEmailNotifications(true)}
+              size="lg"
+              variant="outline"
+              className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold relative"
+            >
+              <Envelope size={24} weight="duotone" />
+              Email Notifikationer
+              {unreadEmailCount > 0 && (
+                <Badge className="absolute -top-2 -right-2 bg-[oklch(0.58_0.25_25)] text-white px-2 py-0.5 text-xs">
+                  {unreadEmailCount}
+                </Badge>
+              )}
+            </Button>
+          </motion.div>
+        )}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -147,6 +185,21 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         open={showSickLeaveDialog}
         onOpenChange={setShowSickLeaveDialog}
         userEmail={userEmail}
+      />
+      
+      <EmailNotifications
+        open={showEmailNotifications}
+        onOpenChange={(open) => {
+          setShowEmailNotifications(open)
+          if (!open) {
+            const loadUnreadCount = async () => {
+              const emailNotifications = await window.spark.kv.get<Array<{ read: boolean }>>('email-notifications') || []
+              const unread = emailNotifications.filter(n => !n.read).length
+              setUnreadEmailCount(unread)
+            }
+            loadUnreadCount()
+          }
+        }}
       />
       <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 max-w-7xl relative z-10">
         <motion.header 

@@ -78,43 +78,48 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail }: SickLeaveDial
 
       const startDateFormatted = format(startDate, 'd. MMMM yyyy', { locale: da })
       const endDateFormatted = format(endDate, 'd. MMMM yyyy', { locale: da })
-      const remarksText = reason ? `Remarks: ${reason}` : 'No remarks provided'
       
-      const promptText = `Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a sick leave report.
+      const emailSubject = `Sygemelding - ${userName}`
+      const emailBody = `Hej Jacob,
 
-Employee: ${userName} (${userEmail})
-Start Date: ${startDateFormatted}
-End Date: ${endDateFormatted}
-${remarksText}
+${userName} (${userEmail}) har meldt sig syg.
 
-The email should be in Danish, professional, and include:
-- A clear subject line
-- Employee name and email
-- The sick leave period
-- Any remarks if provided
-- A brief note that this is an automatic notification
+Periode:
+Fra: ${startDateFormatted}
+Til: ${endDateFormatted}
 
-Return ONLY a JSON object with this exact structure:
-{
-  "subject": "subject line here",
-  "body": "email body here with proper line breaks"
-}`
+${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk genereret fra Terminal Configuration & Dispatch Hub.
+
+Med venlig hilsen,
+Terminal Configuration & Dispatch Hub`
 
       try {
-        const emailContentJson = await window.spark.llm(promptText, "gpt-4o-mini", true)
-        const emailContent = JSON.parse(emailContentJson)
+        const emailNotifications = await window.spark.kv.get<Array<{
+          id: string
+          to: string
+          subject: string
+          body: string
+          timestamp: string
+          type: 'sick-leave' | 'vacation-request' | 'vacation-approved' | 'vacation-rejected'
+          read: boolean
+        }>>('email-notifications') || []
         
-        console.log('Sick leave notification email:', {
+        await window.spark.kv.set('email-notifications', [...emailNotifications, {
+          id: `email-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           to: 'Jacob.remmer@nexigroup.com',
-          subject: emailContent.subject,
-          body: emailContent.body
-        })
+          subject: emailSubject,
+          body: emailBody,
+          timestamp: new Date().toISOString(),
+          type: 'sick-leave',
+          read: false
+        }])
 
         toast.success('Sygemelding registreret', {
-          description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret og Jacob Remmer er blevet notificeret.`
+          description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret. Email notifikation er sendt til Jacob Remmer.`,
+          duration: 5000
         })
       } catch (emailError) {
-        console.error('Error generating email:', emailError)
+        console.error('Error saving email notification:', emailError)
         toast.success('Sygemelding registreret', {
           description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret.`
         })
