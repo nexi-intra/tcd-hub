@@ -22,6 +22,7 @@ import { Guide, GuideCategory } from '@/lib/types'
 import { Upload, FileDoc, X } from '@phosphor-icons/react'
 import mammoth from 'mammoth'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 interface GuideDialogProps {
   open: boolean
@@ -39,6 +40,7 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
   const [tags, setTags] = useState('')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -80,8 +82,12 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (file) {
+      await processFile(file)
+    }
+  }
 
+  const processFile = async (file: File) => {
     if (!file.name.endsWith('.docx') && !file.name.endsWith('.doc')) {
       toast.error('Kun Word-dokumenter (.doc, .docx) understøttes')
       return
@@ -112,6 +118,29 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
       setUploadedFile(null)
     } finally {
       setIsProcessing(false)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const file = e.dataTransfer.files?.[0]
+    if (file) {
+      await processFile(file)
     }
   }
 
@@ -163,24 +192,64 @@ export function GuideDialog({ open, onOpenChange, onSave, editGuide }: GuideDial
           
           <div className="grid gap-2">
             <Label>Upload Word-dokument (valgfrit)</Label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isProcessing}
-                className="flex-1"
-              >
-                <Upload size={18} className="mr-2" />
-                {isProcessing ? 'Behandler...' : uploadedFile ? 'Skift fil' : 'Vælg Word-fil'}
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".doc,.docx"
-                onChange={handleFileChange}
-                className="hidden"
-              />
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={cn(
+                'relative rounded-lg border-2 border-dashed transition-all',
+                isDragging
+                  ? 'border-primary bg-primary/5 scale-[1.02]'
+                  : 'border-border bg-muted/30',
+                isProcessing && 'opacity-50 pointer-events-none'
+              )}
+            >
+              <div className="p-6 flex flex-col items-center gap-3">
+                <div
+                  className={cn(
+                    'h-12 w-12 rounded-full flex items-center justify-center transition-all',
+                    isDragging ? 'bg-primary/20' : 'bg-accent/20'
+                  )}
+                >
+                  <Upload
+                    size={24}
+                    weight="duotone"
+                    className={cn(
+                      'transition-colors',
+                      isDragging ? 'text-primary' : 'text-accent-foreground'
+                    )}
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground mb-1">
+                    {isDragging
+                      ? 'Slip filen her'
+                      : isProcessing
+                      ? 'Behandler dokument...'
+                      : 'Træk og slip Word-fil her'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">eller</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isProcessing}
+                >
+                  Vælg fil fra computer
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".doc,.docx"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <p className="text-xs text-muted-foreground">
+                  .doc eller .docx filer understøttes
+                </p>
+              </div>
             </div>
             {uploadedFile && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-accent/10 border border-accent/20">
