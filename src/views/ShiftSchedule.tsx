@@ -339,7 +339,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
       const dayName = dayNames[date.getDay()]
 
       rows.push(
-        <tr key={day} className={cn(isLocked && "bg-muted/30")}>
+        <tr key={day} className={cn(
+          "border-b-2 border-border",
+          isLocked && "bg-muted/30"
+        )}>
           <td className={cn(
             "sticky left-0 bg-card border-r-2 border-border px-4 py-6 font-semibold whitespace-nowrap z-10",
             isWeekend(date) && "text-destructive"
@@ -354,17 +357,20 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               )}
             </div>
           </td>
-          {(employees || []).map(employee => {
+          {(employees || []).map((employee, employeeIndex) => {
             const assignment = getAssignmentForEmployeeAndDate(employee.id, dateString)
             const role = assignment ? (roles || []).find(r => r.id === assignment.roleId) : null
+            
+            const isEvenEmployee = employeeIndex % 2 === 0
 
             return (
               <td
                 key={employee.id}
                 className={cn(
-                  "border border-border p-4 text-center transition-all",
-                  !isLocked && isAdmin && "cursor-pointer hover:bg-muted/50",
-                  isLocked && "bg-muted/20"
+                  "border-x-2 border-border p-4 text-center transition-all",
+                  !isLocked && isAdmin && "cursor-pointer hover:bg-muted/70",
+                  isLocked && "bg-muted/20",
+                  isEvenEmployee ? "bg-primary/5" : "bg-secondary/5"
                 )}
                 onClick={() => !assignment && handleCellClick(employee.id, dateString)}
               >
@@ -513,13 +519,16 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 <table className="w-full border-collapse">
                   <thead>
                     <tr>
-                      <th className="sticky left-0 bg-card border-r-2 border-b-2 border-border px-4 py-3 text-left font-semibold z-20">
+                      <th className="sticky left-0 bg-card border-r-2 border-b-2 border-border px-4 py-4 text-left font-semibold z-20">
                         Dato
                       </th>
-                      {(employees || []).map(employee => (
+                      {(employees || []).map((employee, index) => (
                         <th
                           key={employee.id}
-                          className="border border-border px-4 py-3 text-center font-semibold whitespace-nowrap min-w-[150px]"
+                          className={cn(
+                            "border-x-2 border-b-2 border-border px-4 py-4 text-center font-semibold whitespace-nowrap min-w-[150px]",
+                            index % 2 === 0 ? "bg-primary/10" : "bg-secondary/10"
+                          )}
                         >
                           {employee.name}
                         </th>
