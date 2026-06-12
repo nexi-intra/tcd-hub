@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, User, Check, X, ClockCounterClockwise } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, User, Check, X, ClockCounterClockwise, CalendarDot } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -333,6 +333,13 @@ Return ONLY a JSON object with this exact structure:
   const myApprovedVacations = myVacations.filter(v => v.status === 'approved')
   const myRejectedVacations = myVacations.filter(v => v.status === 'rejected')
 
+  const handleJumpToToday = () => {
+    const today = new Date()
+    setSelectedMonth(today.getMonth())
+    setSelectedYear(today.getFullYear())
+    toast.success('Sprang til i dag')
+  }
+
   const getStatusBadge = (status: VacationStatus) => {
     if (status === 'pending') {
       return (
@@ -486,35 +493,45 @@ Return ONLY a JSON object with this exact structure:
         >
           <Card className="p-6 border-2">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (selectedMonth === 0) {
+                        setSelectedMonth(11)
+                        setSelectedYear(selectedYear - 1)
+                      } else {
+                        setSelectedMonth(selectedMonth - 1)
+                      }
+                    }}
+                  >
+                    ←
+                  </Button>
+                  <h2 className="text-2xl font-bold">
+                    {months[selectedMonth]} {selectedYear}
+                  </h2>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (selectedMonth === 11) {
+                        setSelectedMonth(0)
+                        setSelectedYear(selectedYear + 1)
+                      } else {
+                        setSelectedMonth(selectedMonth + 1)
+                      }
+                    }}
+                  >
+                    →
+                  </Button>
+                </div>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    if (selectedMonth === 0) {
-                      setSelectedMonth(11)
-                      setSelectedYear(selectedYear - 1)
-                    } else {
-                      setSelectedMonth(selectedMonth - 1)
-                    }
-                  }}
+                  onClick={handleJumpToToday}
+                  className="gap-2"
                 >
-                  ←
-                </Button>
-                <h2 className="text-2xl font-bold">
-                  {months[selectedMonth]} {selectedYear}
-                </h2>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (selectedMonth === 11) {
-                      setSelectedMonth(0)
-                      setSelectedYear(selectedYear + 1)
-                    } else {
-                      setSelectedMonth(selectedMonth + 1)
-                    }
-                  }}
-                >
-                  →
+                  <CalendarDot size={18} weight="fill" />
+                  I dag
                 </Button>
               </div>
 
