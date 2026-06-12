@@ -83,6 +83,11 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
     const start = new Date(startDate)
     const end = new Date(endDate)
 
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      toast.error('Ugyldig dato valgt')
+      return
+    }
+
     if (end < start) {
       toast.error('Slutdato skal være efter startdato')
       return
@@ -122,7 +127,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
     })
     const notesText = notes.trim() ? `Noter: ${notes.trim()}` : 'Ingen noter'
 
-    const promptText = window.spark.llmPrompt`Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
+    const promptText = String(window.spark.llmPrompt`Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
 
 Employee: ${userEmail}
 Start Date: ${startDateFormatted}
@@ -141,7 +146,7 @@ Return ONLY a JSON object with this exact structure:
 {
   "subject": "subject line here",
   "body": "email body here with proper line breaks"
-}`
+}`)
 
     try {
       const emailContentJson = await window.spark.llm(promptText, "gpt-4o-mini", true)
@@ -191,7 +196,7 @@ Return ONLY a JSON object with this exact structure:
       year: 'numeric'
     })
 
-    const promptText = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
+    const promptText = String(window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
 
 Vacation Request Details:
 Start Date: ${startDateFormatted}
@@ -211,7 +216,7 @@ Return ONLY a JSON object with this exact structure:
 {
   "subject": "subject line here",
   "body": "email body here with proper line breaks"
-}`
+}`)
 
     try {
       const emailContentJson = await window.spark.llm(promptText, "gpt-4o-mini", true)
@@ -251,7 +256,7 @@ Return ONLY a JSON object with this exact structure:
       year: 'numeric'
     })
 
-    const promptText = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
+    const promptText = String(window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
 
 Vacation Request Details:
 Start Date: ${startDateFormatted}
@@ -272,7 +277,7 @@ Return ONLY a JSON object with this exact structure:
 {
   "subject": "subject line here",
   "body": "email body here with proper line breaks"
-}`
+}`)
 
     try {
       const emailContentJson = await window.spark.llm(promptText, "gpt-4o-mini", true)
@@ -292,6 +297,9 @@ Return ONLY a JSON object with this exact structure:
     return (vacations || []).filter((vacation) => {
       const start = new Date(vacation.startDate)
       const end = new Date(vacation.endDate)
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return false
+      
       const monthStart = new Date(year, month, 1)
       const monthEnd = new Date(year, month + 1, 0)
 

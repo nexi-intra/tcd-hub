@@ -31,9 +31,12 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
   const [showEditDialog, setShowEditDialog] = useState(false)
 
   const userEntries = (sickLeaveEntries || []).filter(entry => entry.userEmail === userEmail)
-  const sortedEntries = [...userEntries].sort((a, b) => 
-    new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-  )
+  const sortedEntries = [...userEntries].sort((a, b) => {
+    const dateA = new Date(a.startDate)
+    const dateB = new Date(b.startDate)
+    if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0
+    return dateB.getTime() - dateA.getTime()
+  })
 
   const handleDelete = (entryId: string) => {
     setSickLeaveEntries((current) => (current || []).filter(entry => entry.id !== entryId))
@@ -95,7 +98,15 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="font-bold text-lg">
-                      {format(new Date(entry.startDate), 'd. MMMM yyyy', { locale: da })}
+                      {(() => {
+                        try {
+                          const date = new Date(entry.startDate)
+                          if (isNaN(date.getTime())) return 'Ugyldig dato'
+                          return format(date, 'd. MMMM yyyy', { locale: da })
+                        } catch {
+                          return 'Ugyldig dato'
+                        }
+                      })()}
                     </div>
                     <Badge className="bg-red-100 text-red-800 border-red-300">
                       Sygemeldt
@@ -107,7 +118,15 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground mt-1">
-                    Indsendt: {format(new Date(entry.submittedAt), 'd. MMM yyyy HH:mm', { locale: da })}
+                    Indsendt: {(() => {
+                      try {
+                        const date = new Date(entry.submittedAt)
+                        if (isNaN(date.getTime())) return 'Ugyldig dato'
+                        return format(date, 'd. MMM yyyy HH:mm', { locale: da })
+                      } catch {
+                        return 'Ugyldig dato'
+                      }
+                    })()}
                   </p>
                 </div>
               </div>
@@ -135,7 +154,15 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Slet sygemelding?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Er du sikker på at du vil slette sygemeldingen fra <strong>{format(new Date(entry.startDate), 'd. MMMM yyyy', { locale: da })}</strong>? Denne handling kan ikke fortrydes.
+                        Er du sikker på at du vil slette sygemeldingen fra <strong>{(() => {
+                          try {
+                            const date = new Date(entry.startDate)
+                            if (isNaN(date.getTime())) return 'ugyldig dato'
+                            return format(date, 'd. MMMM yyyy', { locale: da })
+                          } catch {
+                            return 'ugyldig dato'
+                          }
+                        })()}</strong>? Denne handling kan ikke fortrydes.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

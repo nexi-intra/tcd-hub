@@ -44,8 +44,17 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
       
       if (editEntry) {
         setReason(editEntry.reason || '')
-        const date = new Date(editEntry.startDate)
-        setSelectedDate(format(date, 'yyyy-MM-dd'))
+        try {
+          const date = new Date(editEntry.startDate)
+          if (!isNaN(date.getTime())) {
+            setSelectedDate(format(date, 'yyyy-MM-dd'))
+          } else {
+            setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
+          }
+        } catch (error) {
+          console.error('Error parsing date:', error)
+          setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
+        }
       } else {
         setReason('')
         setSelectedDate(format(new Date(), 'yyyy-MM-dd'))

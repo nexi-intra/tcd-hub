@@ -449,16 +449,22 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     if (!sickLeaveEntries || sickLeaveEntries.length === 0) return null
     
     const targetDate = new Date(dateString)
+    if (isNaN(targetDate.getTime())) return null
     targetDate.setHours(0, 0, 0, 0)
     
     return (sickLeaveEntries || []).find(entry => {
       if (entry.userEmail !== employeeEmail) return false
       if (entry.status !== 'approved') return false
       
-      const sickDate = new Date(entry.startDate)
-      sickDate.setHours(0, 0, 0, 0)
-      
-      return sickDate.getTime() === targetDate.getTime()
+      try {
+        const sickDate = new Date(entry.startDate)
+        if (isNaN(sickDate.getTime())) return false
+        sickDate.setHours(0, 0, 0, 0)
+        
+        return sickDate.getTime() === targetDate.getTime()
+      } catch {
+        return false
+      }
     })
   }
 
