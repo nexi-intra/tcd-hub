@@ -1,7 +1,7 @@
 export type UserRole = 'admin' | 'manager' | 'user'
 
-export const ADMIN_EMAIL = 'jacob.remmer@nexigorup.com'
-export const MANAGER_EMAILS = ['jacob.remmer@nexigorup.com']
+export const ADMIN_EMAIL = 'jacob.remmer@nexigroup.com'
+export const MANAGER_EMAILS = ['jacob.remmer@nexigroup.com']
 
 interface UserData {
   email: string
