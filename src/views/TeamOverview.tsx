@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, UserCircle, EnvelopeSimple, Crown, ShieldCheck } from '@phosphor-icons/react'
+import { ArrowLeft, UserCircle, EnvelopeSimple, Crown, ShieldCheck, Phone } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -43,16 +43,22 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
 
   const loadRegisteredUsers = async () => {
     setIsLoading(true)
-    const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: UserRole }>>('users')
+    const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: UserRole; phone?: string }>>('users')
+    const userSettings = await window.spark.kv.get<Record<string, { phoneNumber?: string }>>('user-settings') || {}
     
     if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
-      const userList: TeamEmployee[] = Object.values(usersData).map(user => ({
-        id: user.email,
-        name: user.fullName,
-        email: user.email,
-        phone: '',
-        role: user.role || 'user'
-      }))
+      const userList: TeamEmployee[] = Object.values(usersData).map(user => {
+        const settingsPhone = userSettings[user.email]?.phoneNumber
+        const phone = user.phone || settingsPhone || ''
+        
+        return {
+          id: user.email,
+          name: user.fullName,
+          email: user.email,
+          phone,
+          role: user.role || 'user'
+        }
+      })
       setEmployees(userList)
     } else if (Array.isArray(usersData)) {
       setEmployees(usersData as TeamEmployee[])
@@ -190,6 +196,17 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
                           {employee.email}
                         </a>
                       </div>
+                      {employee.phone && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone size={16} className="flex-shrink-0" />
+                          <a 
+                            href={`tel:${employee.phone}`}
+                            className="hover:text-primary transition-colors"
+                          >
+                            {employee.phone}
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )
