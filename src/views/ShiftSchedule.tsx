@@ -722,6 +722,20 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <Button
+                  onClick={() => {
+                    const today = new Date()
+                    setSelectedMonth(today.getMonth())
+                    setSelectedYear(today.getFullYear())
+                    toast.success('Navigeret til i dag')
+                  }}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <CalendarIcon size={18} />
+                  Gå til i dag
+                </Button>
               </div>
 
               <div className="overflow-x-auto">
@@ -785,6 +799,20 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <Button
+                  onClick={() => {
+                    const today = new Date()
+                    setSelectedMonth(today.getMonth())
+                    setSelectedYear(today.getFullYear())
+                    toast.success('Navigeret til i dag')
+                  }}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <CalendarIcon size={18} />
+                  Gå til i dag
+                </Button>
               </div>
             </Card>
           </TabsContent>
