@@ -19,6 +19,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { Textarea } from '@/components/ui/textarea'
+import type { TeamEmployee } from '@/views/TeamOverview'
 
 interface ShiftRole {
   id: string
@@ -33,11 +34,6 @@ interface ShiftAssignment {
   roleId: string
   date: string
   comment?: string
-}
-
-interface ShiftEmployee {
-  id: string
-  name: string
 }
 
 interface ShiftScheduleProps {
@@ -69,15 +65,13 @@ const allDanishHolidays = [...danishHolidays2024, ...danishHolidays2025, ...dani
 export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftScheduleProps) {
   const [roles, setRoles] = useKV<ShiftRole[]>('shift-roles', [])
   const [assignments, setAssignments] = useKV<ShiftAssignment[]>('shift-assignments', [])
-  const [employees, setEmployees] = useKV<ShiftEmployee[]>('shift-employees', [])
+  const [employees] = useKV<TeamEmployee[]>('team-employees', [])
   const [isAdmin, setIsAdmin] = useState(false)
   
   const [showRoleDialog, setShowRoleDialog] = useState(false)
   const [showAssignmentDialog, setShowAssignmentDialog] = useState(false)
-  const [showEmployeeDialog, setShowEmployeeDialog] = useState(false)
   const [showWeekAssignmentDialog, setShowWeekAssignmentDialog] = useState(false)
   const [showCommentDialog, setShowCommentDialog] = useState(false)
-  const [editingEmployee, setEditingEmployee] = useState<ShiftEmployee | null>(null)
   const [editingRole, setEditingRole] = useState<ShiftRole | null>(null)
   const [editingComment, setEditingComment] = useState<{ employeeId: string; date: string } | null>(null)
   const [commentText, setCommentText] = useState('')
@@ -99,8 +93,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     { name: 'Lime', value: '#84cc16' },
     { name: 'Rose', value: '#f43f5e' },
   ]
-  
-  const [newEmployeeName, setNewEmployeeName] = useState('')
   
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [selectedRole, setSelectedRole] = useState('')
@@ -140,19 +132,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onNavigateBack])
-
-  useEffect(() => {
-    if (employees && employees.length > 0) {
-      const needsMigration = employees.some((emp: any) => 'email' in emp)
-      if (needsMigration) {
-        const migratedEmployees = employees.map((emp: any) => ({
-          id: emp.id,
-          name: emp.name
-        }))
-        setEmployees(migratedEmployees)
-      }
-    }
-  }, [])
 
   const isWeekend = (date: Date) => {
     const day = date.getDay()
