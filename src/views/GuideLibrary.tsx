@@ -142,13 +142,7 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
   const allCategories = ['All', ...(categories || defaultCategories)]
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,oklch(0.70_0.20_340/0.15),transparent_50%),radial-gradient(ellipse_at_bottom_left,oklch(0.72_0.18_195/0.15),transparent_50%),radial-gradient(ellipse_at_center,oklch(0.55_0.22_265/0.08),transparent_60%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,oklch(0.55_0.22_265/0.12)_0%,transparent_40%)] pointer-events-none" />
-      <div className="absolute inset-0" style={{
-        backgroundImage: `repeating-linear-gradient(90deg, oklch(0.55 0.22 265 / 0.03) 0px, transparent 1px, transparent 80px, oklch(0.55 0.22 265 / 0.03) 81px),
-                         repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.03) 0px, transparent 1px, transparent 80px, oklch(0.55 0.22 265 / 0.03) 81px)`
-      }} />
+    <div className="min-h-screen relative overflow-hidden">
       
       <Toaster position="top-center" richColors />
       

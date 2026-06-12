@@ -126,8 +126,7 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.55_0.22_265/0.15),transparent_50%),radial-gradient(ellipse_at_bottom_right,oklch(0.65_0.26_340/0.12),transparent_50%)] pointer-events-none" />
+    <div className="min-h-screen relative overflow-hidden">
       <div className="absolute top-4 right-4 z-20">
         <UserProfile 
           userEmail={userEmail} 

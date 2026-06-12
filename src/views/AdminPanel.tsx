@@ -322,12 +322,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.55_0.22_265/0.15),transparent_50%),radial-gradient(ellipse_at_bottom_right,oklch(0.65_0.26_340/0.12),transparent_50%),radial-gradient(ellipse_at_bottom_left,oklch(0.55_0.24_192/0.10),transparent_50%)] pointer-events-none" />
-      <div className="absolute inset-0" style={{
-        backgroundImage: `repeating-linear-gradient(90deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px),
-                         repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px)`
-      }} />
+    <div className="min-h-screen relative overflow-hidden">
 
       <div className="absolute top-6 right-6 z-20">
         <UserProfile userEmail={userEmail} onLogout={onLogout} />
