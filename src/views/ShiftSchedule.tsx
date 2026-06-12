@@ -20,7 +20,7 @@ import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { Textarea } from '@/components/ui/textarea'
 import type { TeamEmployee } from '@/views/TeamOverview'
-import { getEmployeeColorByEmail, getEmployeeColorByName } from '@/lib/employeeColors'
+import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 
 interface ShiftRole {
   id: string
@@ -624,7 +624,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             const vacation = getEmployeeVacationForDate(employee.email, dateString)
             const isEmployeeCellLocked = isDateLockedForEmployee(employee.email, dateString)
             
-            const employeeColor = getEmployeeColorByName(employee.name)
+            const employeeColor = getEmployeeColorByEmail(employee.email)
 
             return (
               <td
@@ -941,7 +941,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                         </th>
                         {(employees || []).map((employee) => {
                           const firstName = employee.name.split(' ')[0]
-                          const employeeColor = getEmployeeColorByName(employee.name)
+                          const employeeColor = getEmployeeColorByEmail(employee.email)
                           return (
                             <th
                               key={employee.id}
@@ -1035,7 +1035,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                                 const vacation = getEmployeeVacationForDate(employee.email, dateString)
                                 const isEmployeeCellLocked = isDateLockedForEmployee(employee.email, dateString)
                                 
-                                const employeeColor = getEmployeeColorByName(employee.name)
+                                const employeeColor = getEmployeeColorByEmail(employee.email)
 
                                 return (
                                   <td
