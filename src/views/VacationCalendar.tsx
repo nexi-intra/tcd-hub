@@ -692,7 +692,11 @@ Return ONLY a JSON object with this exact structure:
                     </div>
                     <Button
                       type="button"
-                      onClick={handleAddVacation}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleAddVacation()
+                      }}
                       className="w-full bg-gradient-to-r from-primary via-secondary to-accent text-white"
                     >
                       Send Anmodning
