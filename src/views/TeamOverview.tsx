@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, UserCircle, PencilSimple, Phone } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, UserCircle, PencilSimple, Phone, EnvelopeSimple } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 export interface TeamEmployee {
   id: string
   name: string
+  email: string
   phone: string
 }
 
@@ -30,6 +31,7 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
   const [editingEmployee, setEditingEmployee] = useState<TeamEmployee | null>(null)
   
   const [newEmployeeName, setNewEmployeeName] = useState('')
+  const [newEmployeeEmail, setNewEmployeeEmail] = useState('')
   const [newEmployeePhone, setNewEmployeePhone] = useState('')
 
   useEffect(() => {
@@ -48,6 +50,10 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
       toast.error('Indtast et navn')
       return
     }
+    if (!newEmployeeEmail.trim()) {
+      toast.error('Indtast en email')
+      return
+    }
     if (!newEmployeePhone.trim()) {
       toast.error('Indtast et telefonnummer')
       return
@@ -56,11 +62,13 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
     const newEmployee: TeamEmployee = {
       id: Date.now().toString(),
       name: newEmployeeName.trim(),
+      email: newEmployeeEmail.trim(),
       phone: newEmployeePhone.trim()
     }
 
     setEmployees((current) => [...(current || []), newEmployee])
     setNewEmployeeName('')
+    setNewEmployeeEmail('')
     setNewEmployeePhone('')
     setShowEmployeeDialog(false)
     toast.success('Medarbejder tilføjet')
@@ -72,6 +80,10 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
       toast.error('Indtast et navn')
       return
     }
+    if (!newEmployeeEmail.trim()) {
+      toast.error('Indtast en email')
+      return
+    }
     if (!newEmployeePhone.trim()) {
       toast.error('Indtast et telefonnummer')
       return
@@ -80,11 +92,12 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
     setEmployees((current) => 
       (current || []).map(emp => 
         emp.id === editingEmployee.id 
-          ? { ...emp, name: newEmployeeName.trim(), phone: newEmployeePhone.trim() }
+          ? { ...emp, name: newEmployeeName.trim(), email: newEmployeeEmail.trim(), phone: newEmployeePhone.trim() }
           : emp
       )
     )
     setNewEmployeeName('')
+    setNewEmployeeEmail('')
     setNewEmployeePhone('')
     setEditingEmployee(null)
     setShowEmployeeDialog(false)
@@ -99,6 +112,7 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
   const openEditEmployeeDialog = (employee: TeamEmployee) => {
     setEditingEmployee(employee)
     setNewEmployeeName(employee.name)
+    setNewEmployeeEmail(employee.email || '')
     setNewEmployeePhone(employee.phone)
     setShowEmployeeDialog(true)
   }
@@ -106,6 +120,7 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
   const openAddEmployeeDialog = () => {
     setEditingEmployee(null)
     setNewEmployeeName('')
+    setNewEmployeeEmail('')
     setNewEmployeePhone('')
     setShowEmployeeDialog(true)
   }
@@ -198,6 +213,17 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
                   </div>
                   
                   <div className="space-y-2 mb-4">
+                    {employee.email && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <EnvelopeSimple size={16} className="flex-shrink-0" />
+                        <a 
+                          href={`mailto:${employee.email}`}
+                          className="hover:text-primary transition-colors truncate"
+                        >
+                          {employee.email}
+                        </a>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Phone size={16} className="flex-shrink-0" />
                       <a 
@@ -260,6 +286,7 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
         if (!open) {
           setEditingEmployee(null)
           setNewEmployeeName('')
+          setNewEmployeeEmail('')
           setNewEmployeePhone('')
         }
       }}>
@@ -275,6 +302,16 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
                 value={newEmployeeName}
                 onChange={(e) => setNewEmployeeName(e.target.value)}
                 placeholder="F.eks. Anders Hansen"
+              />
+            </div>
+            <div>
+              <Label htmlFor="employee-email">Email *</Label>
+              <Input
+                id="employee-email"
+                type="email"
+                value={newEmployeeEmail}
+                onChange={(e) => setNewEmployeeEmail(e.target.value)}
+                placeholder="F.eks. anders@firma.dk"
               />
             </div>
             <div>
