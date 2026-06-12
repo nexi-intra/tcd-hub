@@ -450,6 +450,33 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
       const dayName = dayNames[date.getDay()]
       const weekNumber = getWeekNumber(date)
 
+      const dateCell = (
+        <div className="flex items-center gap-3">
+          <Badge 
+            variant={currentWeek ? "default" : "outline"} 
+            className={cn(
+              "text-[11px] px-2 py-0.5 font-bold",
+              currentWeek && "bg-primary text-primary-foreground shadow-lg",
+              todayDate && "ring-2 ring-accent"
+            )}
+          >
+            U{weekNumber}
+          </Badge>
+          <span className={cn(todayDate && "font-extrabold text-accent")}>{dayName}</span>
+          <span className={cn(todayDate && "font-extrabold text-accent")}>{day}/{selectedMonth + 1}</span>
+          {isDanishHoliday(dateString) && (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5">
+              Helligdag
+            </Badge>
+          )}
+          {todayDate && (
+            <Badge className="text-[10px] px-1.5 py-0.5 bg-accent text-accent-foreground">
+              I dag
+            </Badge>
+          )}
+        </div>
+      )
+
       rows.push(
         <tr key={day} className={cn(
           "border-b-2 border-border transition-all",
@@ -463,30 +490,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             currentWeek && "bg-primary/10",
             todayDate && "bg-accent/20 ring-2 ring-accent/50"
           )}>
-            <div className="flex items-center gap-3">
-              <Badge 
-                variant={currentWeek ? "default" : "outline"} 
-                className={cn(
-                  "text-[11px] px-2 py-0.5 font-bold",
-                  currentWeek && "bg-primary text-primary-foreground shadow-lg",
-                  todayDate && "ring-2 ring-accent"
-                )}
-              >
-                U{weekNumber}
-              </Badge>
-              <span className={cn(todayDate && "font-extrabold text-accent")}>{dayName}</span>
-              <span className={cn(todayDate && "font-extrabold text-accent")}>{day}/{selectedMonth + 1}</span>
-              {isDanishHoliday(dateString) && (
-                <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5">
-                  Helligdag
-                </Badge>
-              )}
-              {todayDate && (
-                <Badge className="text-[10px] px-1.5 py-0.5 bg-accent text-accent-foreground">
-                  I dag
-                </Badge>
-              )}
-            </div>
+            {dateCell}
           </td>
           {(employees || []).map((employee, employeeIndex) => {
             const assignment = getAssignmentForEmployeeAndDate(employee.id, dateString)
@@ -565,6 +569,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               </td>
             )
           })}
+          <td className={cn(
+            "sticky right-0 bg-card border-l-2 border-border px-4 py-6 font-semibold whitespace-nowrap z-10 transition-all",
+            isWeekend(date) && "text-destructive",
+            currentWeek && "bg-primary/10",
+            todayDate && "bg-accent/20 ring-2 ring-accent/50"
+          )}>
+            {dateCell}
+          </td>
         </tr>
       )
     }
@@ -698,6 +710,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                           {employee.name}
                         </th>
                       ))}
+                      <th className="sticky right-0 bg-card border-l-2 border-b-2 border-border px-4 py-4 text-left font-semibold z-20">
+                        Dato
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
