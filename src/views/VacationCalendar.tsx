@@ -536,7 +536,16 @@ Return ONLY a JSON object with this exact structure:
                         id="start-date"
                         type="date"
                         value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          const selectedDate = new Date(e.target.value)
+                          const dayOfWeek = selectedDate.getDay()
+                          if (dayOfWeek === 0 || dayOfWeek === 6) {
+                            toast.error('Du kan ikke vælge weekenddage (lørdag eller søndag)')
+                            return
+                          }
+                          setStartDate(e.target.value)
+                        }}
                       />
                     </div>
                     <div>
@@ -545,7 +554,16 @@ Return ONLY a JSON object with this exact structure:
                         id="end-date"
                         type="date"
                         value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
+                        min={startDate || new Date().toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          const selectedDate = new Date(e.target.value)
+                          const dayOfWeek = selectedDate.getDay()
+                          if (dayOfWeek === 0 || dayOfWeek === 6) {
+                            toast.error('Du kan ikke vælge weekenddage (lørdag eller søndag)')
+                            return
+                          }
+                          setEndDate(e.target.value)
+                        }}
                       />
                     </div>
                     <div>
