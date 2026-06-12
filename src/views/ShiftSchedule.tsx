@@ -1138,7 +1138,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </TabsContent>
         </Tabs>
       </div>
-      
       <Dialog open={showRoleDialog} onOpenChange={(open) => {
         setShowRoleDialog(open)
         if (!open) {
@@ -1255,7 +1254,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </div>
         </DialogContent>
       </Dialog>
-
       <Dialog open={showEmployeeDialog} onOpenChange={(open) => {
         setShowEmployeeDialog(open)
         if (!open) {
@@ -1286,7 +1284,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </div>
         </DialogContent>
       </Dialog>
-
       <Dialog open={showWeekAssignmentDialog} onOpenChange={(open) => {
         setShowWeekAssignmentDialog(open)
         if (!open) {
@@ -1372,7 +1369,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </div>
         </DialogContent>
       </Dialog>
-
       <Dialog open={showCommentDialog} onOpenChange={(open) => {
         setShowCommentDialog(open)
         if (!open) {
@@ -1389,9 +1385,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-              <p className="text-sm text-amber-900">
-                Tilføj en kommentar til denne celle, f.eks. hvis medarbejderen skal gå tidligere, til tandlæge, eller andre noter.
-              </p>
+              <p className="text-sm text-amber-900">Tilføj en kommentar til denne celle, f.eks. hvis medarbejderen skal gå tidligere, til tandlæge, eller andre noter.</p>
             </div>
             <div>
               <Label htmlFor="comment-text">Kommentar</Label>
