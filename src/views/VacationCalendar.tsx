@@ -113,6 +113,12 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
     }
 
     setVacations((current) => [...(current || []), newVacation])
+    
+    setStartDate('')
+    setEndDate('')
+    setNotes('')
+    setIsDialogOpen(false)
+    
     toast.success('Ferie anmodning sendt til godkendelse')
 
     const startDateFormatted = new Date(startDate).toLocaleDateString('da-DK', {
@@ -127,7 +133,8 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
     })
     const notesText = notes.trim() ? `Noter: ${notes.trim()}` : 'Ingen noter'
 
-    const promptText = String(window.spark.llmPrompt`Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
+    try {
+      const promptText = String(window.spark.llmPrompt`Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
 
 Employee: ${userEmail}
 Start Date: ${startDateFormatted}
@@ -148,7 +155,6 @@ Return ONLY a JSON object with this exact structure:
   "body": "email body here with proper line breaks"
 }`)
 
-    try {
       const emailContentJson = await window.spark.llm(promptText, "gpt-4o-mini", true)
       const emailContent = JSON.parse(emailContentJson)
       
@@ -160,11 +166,6 @@ Return ONLY a JSON object with this exact structure:
     } catch (emailError) {
       console.error('Error generating vacation request email:', emailError)
     }
-    
-    setStartDate('')
-    setEndDate('')
-    setNotes('')
-    setIsDialogOpen(false)
   }
 
   const handleDeleteVacation = (id: string) => {
