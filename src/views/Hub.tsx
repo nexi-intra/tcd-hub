@@ -54,26 +54,13 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     const interval = setInterval(loadUnreadCount, 5000)
     return () => clearInterval(interval)
   }, [])
-  const adminModules: HubModule[] = isAdminOrManager ? [
-    {
-      id: 'manager',
-      title: 'Manager Panel',
-      description: 'Administrer rettigheder og håndter sygemeldinger',
-      icon: <ShieldCheck size={48} weight="duotone" />,
-      color: 'oklch(0.55 0.24 192)',
-      gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
-      available: true,
-    },
-    {
-      id: 'admin',
-      title: 'Admin Panel',
-      description: 'Administrer brugere, medarbejdere og opgaver',
-      icon: <Gear size={48} weight="duotone" />,
-      color: 'oklch(0.58 0.25 25)',
-      gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
-      available: true,
+
+  const handleModuleClick = (moduleId: string) => {
+    if (moduleId === 'manager' && !isAdminOrManager) {
+      return
     }
-  ] : []
+    onNavigate(moduleId)
+  }
 
   const modules: HubModule[] = [
     {
@@ -94,7 +81,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
       available: true,
     },
-    ...adminModules,
     {
       id: 'team',
       title: 'Team Oversigt',
@@ -139,6 +125,15 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.58 0.25 25)',
       gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
       available: false,
+    },
+    {
+      id: 'manager',
+      title: 'Manager Panel',
+      description: isAdminOrManager ? 'Administrer rettigheder og håndter sygemeldinger' : 'Kun tilgængelig for managere og administratorer',
+      icon: <ShieldCheck size={48} weight="duotone" />,
+      color: 'oklch(0.58 0.25 25)',
+      gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
+      available: isAdminOrManager,
     },
   ]
 
@@ -284,7 +279,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     ? "cursor-pointer hover:shadow-2xl hover:scale-[1.02] hover:border-primary/40 active:scale-[0.98]" 
                     : "opacity-60 cursor-not-allowed"
                 )}
-                onClick={() => module.available && onNavigate(module.id)}
+                onClick={() => module.available && handleModuleClick(module.id)}
               >
                 <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                   style={{
