@@ -12,7 +12,9 @@ import {
   Clock,
   Paperclip,
   Funnel,
-  CalendarBlank
+  CalendarBlank,
+  Check,
+  Umbrella
 } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -24,6 +26,7 @@ import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -39,6 +42,20 @@ interface Email {
   starred?: boolean
 }
 
+type VacationStatus = 'pending' | 'approved' | 'rejected'
+
+interface VacationEntry {
+  id: string
+  userId: string
+  userEmail: string
+  startDate: string
+  endDate: string
+  notes?: string
+  status: VacationStatus
+  reviewedBy?: string
+  reviewedAt?: string
+}
+
 interface EmailSystemProps {
   onNavigateBack: () => void
   onLogout: () => void
@@ -47,8 +64,12 @@ interface EmailSystemProps {
 
 export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
   const [emails, setEmails] = useKV<Email[]>('emails', [])
+  const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
   const [users, setUsers] = useState<Array<{ email: string; name: string }>>([])
-  const [view, setView] = useState<'inbox' | 'sent' | 'compose'>('inbox')
+  const [isManager, setIsManager] = useState(false)
+  const [view, setView] = useState<'inbox' | 'sent' | 'compose' | 'vacation-requests'>('inbox')
+  const [selectedVacation, setSelectedVacation] = useState<VacationEntry | null>(null)
+  const [showCalendarPreview, setShowCalendarPreview] = useState(false)
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [dateFilter, setDateFilter] = useState<string>('all')
@@ -62,7 +83,7 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
 
   useEffect(() => {
     const loadUsers = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string }>>('users')
+      const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; isManager: boolean }>>('users')
       
       if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
         const userList = Object.values(usersData).map(user => ({
@@ -70,6 +91,10 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
           name: user.fullName
         }))
         setUsers(userList)
+        
+        if (usersData[userEmail]) {
+          setIsManager(usersData[userEmail].isManager || false)
+        }
       } else if (Array.isArray(usersData)) {
         setUsers(usersData as Array<{ email: string; name: string }>)
       }
@@ -224,6 +249,138 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
     }
   }
 
+  const pendingVacationRequests = (vacations || []).filter(v => v.status === 'pending')
+
+  const handleApproveVacation = (vacation: VacationEntry) => {
+    setVacations((current) =>
+      (current || []).map((v) =>
+        v.id === vacation.id
+          ? { ...v, status: 'approved' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString() }
+          : v
+      )
+    )
+    toast.success('Ferie godkendt')
+    setSelectedVacation(null)
+    setShowCalendarPreview(false)
+  }
+
+  const handleRejectVacation = (vacation: VacationEntry) => {
+    setVacations((current) =>
+      (current || []).map((v) =>
+        v.id === vacation.id
+          ? { ...v, status: 'rejected' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString() }
+          : v
+      )
+    )
+    toast.error('Ferie afvist')
+    setSelectedVacation(null)
+    setShowCalendarPreview(false)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+  }
+
+  const getDaysInMonth = (month: number, year: number) => {
+    return new Date(year, month + 1, 0).getDate()
+  }
+
+  const getFirstDayOfMonth = (month: number, year: number) => {
+    return new Date(year, month, 1).getDay()
+  }
+
+  const isDateInRange = (day: number, month: number, year: number, startDate: string, endDate: string) => {
+    const currentDate = new Date(year, month, day)
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    return currentDate >= start && currentDate <= end
+  }
+
+  const renderCalendarPreview = () => {
+    if (!selectedVacation) return null
+
+    const today = new Date()
+    const startDate = new Date(selectedVacation.startDate)
+    const endDate = new Date(selectedVacation.endDate)
+    
+    const monthToShow = startDate.getMonth()
+    const yearToShow = startDate.getFullYear()
+
+    const daysInMonth = getDaysInMonth(monthToShow, yearToShow)
+    const firstDay = getFirstDayOfMonth(monthToShow, yearToShow)
+    const monthName = new Date(yearToShow, monthToShow).toLocaleDateString('da-DK', { month: 'long', year: 'numeric' })
+
+    const weekdays = ['Søn', 'Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør']
+    const days = []
+
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="h-10" />)
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const currentDate = new Date(yearToShow, monthToShow, day)
+      const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6
+      const isInVacationRange = isDateInRange(day, monthToShow, yearToShow, selectedVacation.startDate, selectedVacation.endDate)
+      const isApprovedVacation = (vacations || []).some(v => 
+        v.status === 'approved' && 
+        v.id !== selectedVacation.id &&
+        isDateInRange(day, monthToShow, yearToShow, v.startDate, v.endDate)
+      )
+      const isToday = 
+        day === today.getDate() && 
+        monthToShow === today.getMonth() && 
+        yearToShow === today.getFullYear()
+
+      days.push(
+        <div
+          key={day}
+          className={cn(
+            "h-10 flex items-center justify-center rounded-md text-sm transition-colors relative",
+            isWeekend && "text-muted-foreground bg-muted/30",
+            isInVacationRange && !isWeekend && "bg-secondary text-secondary-foreground font-semibold ring-2 ring-secondary",
+            isApprovedVacation && !isWeekend && "bg-accent/20 text-accent-foreground",
+            isToday && "ring-2 ring-primary"
+          )}
+        >
+          {day}
+          {isInVacationRange && !isWeekend && (
+            <div className="absolute -top-1 -right-1">
+              <Umbrella size={12} weight="fill" className="text-secondary" />
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-4">
+        <h3 className="font-semibold text-center text-lg">{monthName}</h3>
+        <div className="grid grid-cols-7 gap-2 mb-2">
+          {weekdays.map((day) => (
+            <div key={day} className="text-xs font-medium text-center text-muted-foreground">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-2">{days}</div>
+        <div className="flex items-start gap-4 text-xs text-muted-foreground mt-4 pt-4 border-t">
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded bg-secondary ring-2 ring-secondary"></div>
+            <span>Anmodet ferie</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded bg-accent/20"></div>
+            <span>Godkendt ferie</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 py-8 max-w-7xl relative z-10">
@@ -298,6 +455,29 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
                 <PaperPlaneTilt size={20} weight={view === 'sent' ? 'fill' : 'regular'} />
                 Sendt
               </Button>
+
+              {isManager && (
+                <>
+                  <Separator className="my-2" />
+                  <Button
+                    variant={view === 'vacation-requests' ? 'secondary' : 'ghost'}
+                    className="w-full justify-start gap-2"
+                    onClick={() => {
+                      setView('vacation-requests')
+                      setSelectedEmail(null)
+                      setSelectedVacation(null)
+                    }}
+                  >
+                    <Umbrella size={20} weight={view === 'vacation-requests' ? 'fill' : 'regular'} />
+                    Ferie Anmodninger
+                    {pendingVacationRequests.length > 0 && (
+                      <Badge className="ml-auto bg-accent text-accent-foreground">
+                        {pendingVacationRequests.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </>
+              )}
             </Card>
 
             <Card className="p-4 mt-4">
@@ -733,10 +913,170 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
                     </div>
                   </motion.div>
                 )}
+
+                {view === 'vacation-requests' && (
+                  <motion.div
+                    key="vacation-requests"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                  >
+                    <h2 className="text-2xl font-bold mb-6">Ferie Anmodninger</h2>
+
+                    {pendingVacationRequests.length === 0 ? (
+                      <div className="text-center py-16 text-muted-foreground">
+                        <Umbrella size={64} className="mx-auto mb-4 opacity-50" />
+                        <p className="text-lg">Ingen ventende ferie anmodninger</p>
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-[580px]">
+                        <div className="space-y-4">
+                          {pendingVacationRequests.map((vacation) => {
+                            const user = users.find(u => u.email === vacation.userEmail)
+                            return (
+                              <Card key={vacation.id} className="p-6">
+                                <div className="flex items-start justify-between mb-4">
+                                  <div className="flex items-start gap-3">
+                                    <Avatar className="h-12 w-12">
+                                      <AvatarFallback className="bg-primary text-primary-foreground">
+                                        {getInitials(vacation.userEmail)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <div className="font-semibold text-lg">{user?.name || vacation.userEmail}</div>
+                                      <div className="text-sm text-muted-foreground">{vacation.userEmail}</div>
+                                    </div>
+                                  </div>
+                                  <Badge variant="secondary" className="gap-1">
+                                    <Clock size={14} />
+                                    Afventer
+                                  </Badge>
+                                </div>
+
+                                <Separator className="my-4" />
+
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                  <div>
+                                    <div className="text-sm text-muted-foreground mb-1">Start Dato</div>
+                                    <div className="font-medium">{formatDate(vacation.startDate)}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-sm text-muted-foreground mb-1">Slut Dato</div>
+                                    <div className="font-medium">{formatDate(vacation.endDate)}</div>
+                                  </div>
+                                </div>
+
+                                {vacation.notes && (
+                                  <div className="mb-4">
+                                    <div className="text-sm text-muted-foreground mb-1">Noter</div>
+                                    <div className="text-sm bg-muted p-3 rounded-lg">{vacation.notes}</div>
+                                  </div>
+                                )}
+
+                                <div className="flex gap-2 mt-4">
+                                  <Button
+                                    onClick={() => {
+                                      setSelectedVacation(vacation)
+                                      setShowCalendarPreview(true)
+                                    }}
+                                    variant="outline"
+                                    className="flex-1 gap-2"
+                                  >
+                                    <CalendarBlank size={18} />
+                                    Forhåndsvis Kalender
+                                  </Button>
+                                  <Button
+                                    onClick={() => handleApproveVacation(vacation)}
+                                    variant="default"
+                                    className="flex-1 gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
+                                  >
+                                    <Check size={18} weight="bold" />
+                                    Godkend
+                                  </Button>
+                                  <Button
+                                    onClick={() => handleRejectVacation(vacation)}
+                                    variant="destructive"
+                                    className="flex-1 gap-2"
+                                  >
+                                    <X size={18} weight="bold" />
+                                    Afvis
+                                  </Button>
+                                </div>
+                              </Card>
+                            )
+                          })}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </motion.div>
+                )}
               </AnimatePresence>
             </Card>
           </motion.div>
         </div>
+
+        <Dialog open={showCalendarPreview} onOpenChange={setShowCalendarPreview}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Feriekalender Forhåndsvisning</DialogTitle>
+            </DialogHeader>
+            {selectedVacation && (
+              <div className="space-y-6">
+                <div className="bg-muted p-4 rounded-lg">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                        {getInitials(selectedVacation.userEmail)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-semibold">{users.find(u => u.email === selectedVacation.userEmail)?.name || selectedVacation.userEmail}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatDate(selectedVacation.startDate)} - {formatDate(selectedVacation.endDate)}
+                      </div>
+                    </div>
+                  </div>
+                  {selectedVacation.notes && (
+                    <div className="text-sm text-muted-foreground">
+                      <strong>Noter:</strong> {selectedVacation.notes}
+                    </div>
+                  )}
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  {renderCalendarPreview()}
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    onClick={() => {
+                      setShowCalendarPreview(false)
+                      setSelectedVacation(null)
+                    }}
+                    variant="outline"
+                  >
+                    Luk
+                  </Button>
+                  <Button
+                    onClick={() => handleApproveVacation(selectedVacation)}
+                    className="gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
+                  >
+                    <Check size={18} weight="bold" />
+                    Godkend Ferie
+                  </Button>
+                  <Button
+                    onClick={() => handleRejectVacation(selectedVacation)}
+                    variant="destructive"
+                    className="gap-2"
+                  >
+                    <X size={18} weight="bold" />
+                    Afvis Ferie
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
