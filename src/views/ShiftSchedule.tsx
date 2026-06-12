@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple, ChatText, Phone, FirstAidKit } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple, ChatText, Phone, FirstAidKit, Airplane } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -47,6 +47,18 @@ interface SickLeaveEntry {
   submittedAt: string
 }
 
+interface VacationEntry {
+  id: string
+  userId: string
+  userEmail: string
+  startDate: string
+  endDate: string
+  notes?: string
+  status: 'pending' | 'approved' | 'rejected'
+  reviewedBy?: string
+  reviewedAt?: string
+}
+
 interface ShiftScheduleProps {
   onNavigateBack: () => void
   onLogout: () => void
@@ -78,6 +90,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const [assignments, setAssignments] = useKV<ShiftAssignment[]>('shift-assignments', [])
   const [employees, setEmployees] = useState<TeamEmployee[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
+  const [vacationEntries, setVacationEntries] = useKV<VacationEntry[]>('vacation-entries', [])
   const [isAdmin, setIsAdmin] = useState(false)
   
   const [showRoleDialog, setShowRoleDialog] = useState(false)
@@ -316,13 +329,18 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   }
 
   const handleAddTaskToCell = (employeeId: string, dateString: string, roleId: string) => {
-    if (isDateLocked(dateString)) {
-      toast.error('Kan ikke tildele vagter på weekender eller helligdage')
-      return
-    }
-
     const employee = (employees || []).find(e => e.id === employeeId)
     if (!employee) return
+
+    if (isDateLockedForEmployee(employee.email, dateString)) {
+      const vacation = getEmployeeVacationForDate(employee.email, dateString)
+      if (vacation) {
+        toast.error('Kan ikke tildele vagter når medarbejderen er på ferie')
+      } else {
+        toast.error('Kan ikke tildele vagter på weekender eller helligdage')
+      }
+      return
+    }
 
     const newAssignment: ShiftAssignment = {
       id: Date.now().toString(),
@@ -371,7 +389,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     let addedCount = 0
 
     weekDates.forEach(dateString => {
-      if (isDateLocked(dateString)) {
+      if (isDateLockedForEmployee(employee.email, dateString)) {
         skippedCount++
         return
       }
@@ -498,6 +516,38 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     })
   }
 
+  const getEmployeeVacationForDate = (employeeEmail: string, dateString: string) => {
+    if (!vacationEntries || vacationEntries.length === 0) return null
+    
+    const targetDate = new Date(dateString)
+    if (isNaN(targetDate.getTime())) return null
+    targetDate.setHours(0, 0, 0, 0)
+    
+    return (vacationEntries || []).find(entry => {
+      if (entry.userEmail !== employeeEmail) return false
+      if (entry.status !== 'approved') return false
+      
+      try {
+        const startDate = new Date(entry.startDate)
+        const endDate = new Date(entry.endDate)
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false
+        
+        startDate.setHours(0, 0, 0, 0)
+        endDate.setHours(0, 0, 0, 0)
+        
+        return targetDate.getTime() >= startDate.getTime() && targetDate.getTime() <= endDate.getTime()
+      } catch {
+        return false
+      }
+    })
+  }
+
+  const isDateLockedForEmployee = (employeeEmail: string, dateString: string) => {
+    const date = new Date(dateString)
+    const vacation = getEmployeeVacationForDate(employeeEmail, dateString)
+    return isWeekend(date) || isDanishHoliday(dateString) || !!vacation
+  }
+
 
 
   const renderScheduleTable = () => {
@@ -561,6 +611,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             const cellAssignments = getAssignmentsForEmployeeAndDate(employee.id, dateString)
             const cellComment = getCellComment(employee.id, dateString)
             const sickLeave = getEmployeeSickLeaveForDate(employee.email, dateString)
+            const vacation = getEmployeeVacationForDate(employee.email, dateString)
+            const isEmployeeCellLocked = isDateLockedForEmployee(employee.email, dateString)
             
             const employeeColor = getEmployeeColorByName(employee.name)
 
@@ -571,23 +623,38 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   "border-x-2 border-border p-2 text-center transition-all",
                   isLocked && "bg-muted/20",
                   sickLeave && "bg-red-50",
-                  currentWeek && !sickLeave && "ring-1 ring-inset",
-                  todayDate && !sickLeave && "ring-2 ring-inset",
-                  todayDate && sickLeave && "bg-red-100 ring-2 ring-red-300"
+                  vacation && "bg-blue-50",
+                  currentWeek && !sickLeave && !vacation && "ring-1 ring-inset",
+                  todayDate && !sickLeave && !vacation && "ring-2 ring-inset",
+                  todayDate && sickLeave && "bg-red-100 ring-2 ring-red-300",
+                  todayDate && vacation && "bg-blue-100 ring-2 ring-blue-300"
                 )}
                 style={{
                   backgroundColor: sickLeave 
                     ? undefined 
+                    : vacation
+                    ? undefined
                     : `color-mix(in oklch, ${employeeColor.bg} 15%, transparent)`,
-                  ...(currentWeek && !sickLeave && { 
+                  ...(currentWeek && !sickLeave && !vacation && { 
                     boxShadow: `inset 0 0 0 1px ${employeeColor.bg}` 
                   }),
-                  ...(todayDate && !sickLeave && { 
+                  ...(todayDate && !sickLeave && !vacation && { 
                     boxShadow: `inset 0 0 0 2px ${employeeColor.bg}` 
                   })
                 }}
               >
                 <div className="space-y-1.5">
+                  {vacation && (
+                    <div className="relative group">
+                      <div
+                        className="px-2 py-1.5 rounded-md text-xs font-bold bg-blue-100 text-blue-800 border-2 border-blue-400 flex items-center gap-1.5 cursor-pointer"
+                        title={vacation.notes || 'På ferie'}
+                      >
+                        <Airplane size={16} weight="fill" />
+                        <span className="truncate flex-1 text-left">Ferie</span>
+                      </div>
+                    </div>
+                  )}
                   {sickLeave && (
                     <div className="relative group">
                       <div
@@ -655,7 +722,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                           </div>
                         )
                       })}
-                      {!isLocked && (roles || []).length > 0 && (
+                      {!isEmployeeCellLocked && (roles || []).length > 0 && (
                         <Popover>
                           <PopoverTrigger asChild>
                             <button className="w-full h-full min-h-[28px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center border-2 border-dashed border-muted-foreground/20">
@@ -684,7 +751,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                       )}
                     </>
                   ) : (
-                    !isLocked && (roles || []).length > 0 ? (
+                    !isEmployeeCellLocked && (roles || []).length > 0 ? (
                       <Popover>
                         <PopoverTrigger asChild>
                           <button className="w-full h-full min-h-[32px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center">
