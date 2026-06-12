@@ -934,9 +934,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               <div className="shadow-inner rounded-lg border-2 border-border bg-card overflow-hidden">
                 <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%' }}>
                   <table className="w-full border-collapse" style={{ tableLayout: 'fixed', width: 'max-content' }}>
-                    <thead className="sticky top-0 z-50 bg-card shadow-sm">
+                    <thead className="sticky top-0 z-50 bg-card shadow-md">
                       <tr>
-                        <th className="sticky left-0 z-50 bg-card border-r-2 border-b-2 border-border px-3 py-4 text-left font-bold" style={{ width: '160px', minWidth: '160px', maxWidth: '160px' }}>
+                        <th className="sticky left-0 z-[60] bg-card border-r-2 border-b-2 border-border px-3 py-4 text-left font-bold shadow-[2px_0_8px_rgba(0,0,0,0.15)]" style={{ width: '160px', minWidth: '160px', maxWidth: '160px' }}>
                           <span className="text-sm font-bold">Dato</span>
                         </th>
                         {(employees || []).map((employee) => {
