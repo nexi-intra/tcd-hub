@@ -58,6 +58,17 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
     checkManagerStatus()
   }, [userEmail])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onNavigateBack()
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onNavigateBack])
+
   const isWeekend = (date: Date) => {
     const day = date.getDay()
     return day === 0 || day === 6

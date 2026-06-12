@@ -78,6 +78,17 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
     checkAdminAndLoad()
   }, [userEmail])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onNavigateBack()
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onNavigateBack])
+
   const loadUsers = async () => {
     setIsLoading(true)
     const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean }>>('users')
