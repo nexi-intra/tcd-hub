@@ -120,6 +120,21 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     }
   }
 
+  const deleteUser = async (email: string) => {
+    if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      toast.error('Kan ikke slette admin brugeren')
+      return
+    }
+
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
+    if (usersData && usersData[email]) {
+      delete usersData[email]
+      await window.spark.kv.set('users', usersData)
+      await loadUsers()
+      toast.success('Bruger slettet')
+    }
+  }
+
   const deleteSickLeave = async (id: string) => {
     const entries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
     const updatedEntries = entries.filter(e => e.id !== id)
@@ -270,34 +285,60 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                       </div>
                       <div className="ml-4 flex items-center gap-2">
                         {user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase() ? (
-                          <Select
-                            value={user.role}
-                            onValueChange={(value) => changeUserRole(user.email, value as UserRole)}
-                          >
-                            <SelectTrigger className="w-40 h-10">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="user">
-                                <div className="flex items-center gap-2">
-                                  <UserIcon size={16} />
-                                  Bruger
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="manager">
-                                <div className="flex items-center gap-2">
-                                  <ShieldCheck size={16} />
-                                  Manager
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="admin">
-                                <div className="flex items-center gap-2">
-                                  <Crown size={16} />
-                                  Administrator
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <>
+                            <Select
+                              value={user.role}
+                              onValueChange={(value) => changeUserRole(user.email, value as UserRole)}
+                            >
+                              <SelectTrigger className="w-40 h-10">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="user">
+                                  <div className="flex items-center gap-2">
+                                    <UserIcon size={16} />
+                                    Bruger
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="manager">
+                                  <div className="flex items-center gap-2">
+                                    <ShieldCheck size={16} />
+                                    Manager
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="admin">
+                                  <div className="flex items-center gap-2">
+                                    <Crown size={16} />
+                                    Administrator
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                  <Trash size={20} />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Slet bruger?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Er du sikker på at du vil slette <strong>{user.fullName}</strong>? Denne handling kan ikke fortrydes.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteUser(user.email)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Slet bruger
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
                         ) : (
                           <Badge variant="outline" className="ml-2">
                             Permanent Admin
