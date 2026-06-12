@@ -131,6 +131,16 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   
   const [activeTab, setActiveTab] = useState('schedule')
+  const dateScrollRef = useRef<HTMLDivElement>(null)
+  const contentScrollRef = useRef<HTMLDivElement>(null)
+
+  const syncScroll = (source: 'date' | 'content') => {
+    if (source === 'date' && dateScrollRef.current && contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = dateScrollRef.current.scrollTop
+    } else if (source === 'content' && dateScrollRef.current && contentScrollRef.current) {
+      dateScrollRef.current.scrollTop = contentScrollRef.current.scrollTop
+    }
+  }
 
   const months = [
     'Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni',
@@ -921,20 +931,91 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 </div>
               </div>
 
-              <div className="overflow-auto max-h-[calc(100vh-240px)] relative shadow-inner rounded-lg border-2 border-border">
-                <table className="w-full border-collapse table-fixed" style={{ minWidth: '100%' }}>
-                  <thead className="sticky top-0 z-50">
-                    <tr>
-                      <th className="sticky top-0 left-0 bg-card border-r-2 border-b-2 border-border px-3 py-5 text-left font-semibold w-[200px] z-[60] shadow-[2px_2px_8px_rgba(0,0,0,0.15)]">
-                        <span className="text-base">Dato</span>
-                      </th>
-                      {(employees || []).map((employee, index) => {
+              <div className="shadow-inner rounded-lg border-2 border-border bg-card overflow-hidden">
+                <div className="flex">
+                  <div className="flex-shrink-0 w-[200px]">
+                    <div className="border-r-2 border-b-2 border-border px-3 py-5 text-left font-semibold bg-card shadow-sm">
+                      <span className="text-base">Dato</span>
+                    </div>
+                    <div 
+                      ref={dateScrollRef}
+                      className="overflow-y-auto" 
+                      style={{ height: 'calc(100vh - 340px)' }}
+                      onScroll={() => syncScroll('date')}
+                    >
+                      <table className="w-full border-collapse">
+                        <tbody>
+                          {(() => {
+                            const daysInMonth = getDaysInMonth(selectedMonth, selectedYear)
+                            const rows = []
+                            for (let day = 1; day <= daysInMonth; day++) {
+                              const date = new Date(selectedYear, selectedMonth, day)
+                              const dateString = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                              const isLocked = isDateLocked(dateString)
+                              const currentWeek = isCurrentWeek(date)
+                              const todayDate = isToday(date)
+                              
+                              const dayNames = ['Søn', 'Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør']
+                              const dayName = dayNames[date.getDay()]
+                              const weekNumber = getWeekNumber(date)
+
+                              rows.push(
+                                <tr key={day} className={cn(
+                                  "border-b-2 border-border",
+                                  isLocked && "bg-muted/30",
+                                  currentWeek && "bg-primary/10",
+                                  todayDate && "bg-accent/20 ring-2 ring-accent/50"
+                                )}>
+                                  <td className={cn(
+                                    "bg-card border-r-2 border-border px-3 py-5 font-semibold transition-all",
+                                    isWeekend(date) && "text-destructive",
+                                    currentWeek && "bg-primary/10",
+                                    todayDate && "bg-accent/20"
+                                  )}>
+                                    <div className="flex items-center gap-3">
+                                      <Badge 
+                                        variant={currentWeek ? "default" : "outline"} 
+                                        className={cn(
+                                          "text-[11px] px-2 py-0.5 font-bold",
+                                          currentWeek && "bg-primary text-primary-foreground shadow-lg",
+                                          todayDate && "ring-2 ring-accent"
+                                        )}
+                                      >
+                                        U{weekNumber}
+                                      </Badge>
+                                      <span className={cn(todayDate && "font-extrabold text-accent")}>{dayName}</span>
+                                      <span className={cn(todayDate && "font-extrabold text-accent")}>{day}/{selectedMonth + 1}</span>
+                                      {isDanishHoliday(dateString) && (
+                                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5">
+                                          Helligdag
+                                        </Badge>
+                                      )}
+                                      {todayDate && (
+                                        <Badge className="text-[10px] px-1.5 py-0.5 bg-accent text-accent-foreground">
+                                          I dag
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            }
+                            return rows
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 overflow-x-auto">
+                    <div className="flex border-b-2 border-border bg-card shadow-sm">
+                      {(employees || []).map((employee) => {
                         const firstName = employee.name.split(' ')[0]
                         const employeeColor = getEmployeeColorByName(employee.name)
                         return (
-                          <th
+                          <div
                             key={employee.id}
-                            className="sticky top-0 bg-card border-x-2 border-b-2 border-border px-4 py-5 text-center font-bold w-[160px] z-50 shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
+                            className="flex-shrink-0 w-[160px] border-x-2 border-border px-4 py-5 text-center font-bold"
                           >
                             <div 
                               className="truncate text-base" 
@@ -945,15 +1026,242 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                             >
                               {firstName}
                             </div>
-                          </th>
+                          </div>
                         )
                       })}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {renderScheduleTable()}
-                  </tbody>
-                </table>
+                    </div>
+                    
+                    <div 
+                      ref={contentScrollRef}
+                      className="overflow-y-auto" 
+                      style={{ height: 'calc(100vh - 340px)' }}
+                      onScroll={() => syncScroll('content')}
+                    >
+                      <div className="flex flex-col">
+                        {(() => {
+                          const daysInMonth = getDaysInMonth(selectedMonth, selectedYear)
+                          const rows = []
+                          for (let day = 1; day <= daysInMonth; day++) {
+                            const date = new Date(selectedYear, selectedMonth, day)
+                            const dateString = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                            const isLocked = isDateLocked(dateString)
+                            const currentWeek = isCurrentWeek(date)
+                            const todayDate = isToday(date)
+
+                            rows.push(
+                              <div 
+                                key={day} 
+                                className={cn(
+                                  "flex border-b-2 border-border",
+                                  isLocked && "bg-muted/30",
+                                  currentWeek && "bg-primary/10",
+                                  todayDate && "bg-accent/20 ring-2 ring-accent/50"
+                                )}
+                              >
+                                {(employees || []).map((employee) => {
+                                  const cellAssignments = getAssignmentsForEmployeeAndDate(employee.id, dateString)
+                                  const cellComment = getCellComment(employee.id, dateString)
+                                  const sickLeave = getEmployeeSickLeaveForDate(employee.email, dateString)
+                                  const vacation = getEmployeeVacationForDate(employee.email, dateString)
+                                  const isEmployeeCellLocked = isDateLockedForEmployee(employee.email, dateString)
+                                  
+                                  const employeeColor = getEmployeeColorByName(employee.name)
+
+                                  return (
+                                    <div
+                                      key={employee.id}
+                                      className={cn(
+                                        "flex-shrink-0 w-[160px] border-x-2 border-border p-3 text-center transition-all",
+                                        isLocked && "bg-muted/20",
+                                        sickLeave && "bg-red-50",
+                                        vacation && "bg-blue-50",
+                                        currentWeek && !sickLeave && !vacation && "ring-1 ring-inset",
+                                        todayDate && !sickLeave && !vacation && "ring-2 ring-inset",
+                                        todayDate && sickLeave && "bg-red-100 ring-2 ring-red-300",
+                                        todayDate && vacation && "bg-blue-100 ring-2 ring-blue-300"
+                                      )}
+                                      style={{
+                                        backgroundColor: sickLeave 
+                                          ? undefined 
+                                          : vacation
+                                          ? undefined
+                                          : `color-mix(in oklch, ${employeeColor.bg} 15%, transparent)`,
+                                        ...(currentWeek && !sickLeave && !vacation && { 
+                                          boxShadow: `inset 0 0 0 1px ${employeeColor.bg}` 
+                                        }),
+                                        ...(todayDate && !sickLeave && !vacation && { 
+                                          boxShadow: `inset 0 0 0 2px ${employeeColor.bg}` 
+                                        })
+                                      }}
+                                    >
+                                      <div className="space-y-2">
+                                        {vacation && (
+                                          <div className="relative group">
+                                            <div
+                                              className="px-2 py-1.5 rounded-md text-xs font-bold bg-blue-100 text-blue-800 border-2 border-blue-400 flex items-center gap-1.5 cursor-pointer"
+                                              title={vacation.notes || 'På ferie'}
+                                            >
+                                              <Airplane size={16} weight="fill" />
+                                              <span className="truncate flex-1 text-left">Ferie</span>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {sickLeave && (
+                                          <div className="relative group">
+                                            <div
+                                              className="px-2 py-1.5 rounded-md text-xs font-bold bg-red-100 text-red-800 border-2 border-red-400 flex items-center gap-1.5 cursor-pointer"
+                                              title={sickLeave.reason || 'Sygemeldt'}
+                                            >
+                                              <FirstAidKit size={16} weight="fill" />
+                                              <span className="truncate flex-1 text-left">Syg</span>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {cellComment && (
+                                          <div className="relative group">
+                                            <div
+                                              className="px-2 py-1.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800 border-2 border-amber-400 flex items-center gap-1.5 cursor-pointer hover:bg-amber-200 transition-all"
+                                              onClick={() => openCommentDialog(employee.id, dateString)}
+                                              title={cellComment}
+                                            >
+                                              <ChatText size={14} weight="fill" />
+                                              <span className="truncate flex-1 text-left">{cellComment}</span>
+                                            </div>
+                                            <Button
+                                              size="sm"
+                                              variant="destructive"
+                                              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleDeleteComment(employee.id, dateString)
+                                              }}
+                                            >
+                                              <Trash size={12} />
+                                            </Button>
+                                          </div>
+                                        )}
+                                        {cellAssignments.length > 0 ? (
+                                          <>
+                                            {cellAssignments.map((assignment) => {
+                                              const role = (roles || []).find(r => r.id === assignment.roleId)
+                                              if (!role) return null
+                                              
+                                              return (
+                                                <div key={assignment.id} className="group relative">
+                                                  <div
+                                                    className="px-2 py-1.5 rounded-md text-xs font-semibold truncate"
+                                                    style={{ 
+                                                      backgroundColor: `${role.color}30`,
+                                                      color: role.color,
+                                                      border: `2px solid ${role.color}`
+                                                    }}
+                                                    title={role.name}
+                                                  >
+                                                    {role.name}
+                                                  </div>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="destructive"
+                                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      handleDeleteAssignment(assignment.id)
+                                                    }}
+                                                  >
+                                                    <Trash size={12} />
+                                                  </Button>
+                                                </div>
+                                              )
+                                            })}
+                                            {!isEmployeeCellLocked && (roles || []).length > 0 && (
+                                              <Popover>
+                                                <PopoverTrigger asChild>
+                                                  <button className="w-full h-full min-h-[28px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center border-2 border-dashed border-muted-foreground/20">
+                                                    <Plus size={14} />
+                                                  </button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-64 p-2" align="center">
+                                                  <div className="space-y-1">
+                                                    <p className="text-sm font-semibold mb-2 px-2">Vælg Opgave</p>
+                                                    {(roles || []).map(r => (
+                                                      <button
+                                                        key={r.id}
+                                                        onClick={() => handleAddTaskToCell(employee.id, dateString, r.id)}
+                                                        className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-all flex items-center gap-3"
+                                                      >
+                                                        <div
+                                                          className="w-4 h-4 rounded-full"
+                                                          style={{ backgroundColor: r.color }}
+                                                        />
+                                                        <span className="text-sm font-medium">{r.name}</span>
+                                                      </button>
+                                                    ))}
+                                                  </div>
+                                                </PopoverContent>
+                                              </Popover>
+                                            )}
+                                          </>
+                                        ) : (
+                                          !isEmployeeCellLocked && (roles || []).length > 0 ? (
+                                            <Popover>
+                                              <PopoverTrigger asChild>
+                                                <button className="w-full h-full min-h-[32px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center">
+                                                  <Plus size={16} />
+                                                </button>
+                                              </PopoverTrigger>
+                                              <PopoverContent className="w-64 p-2" align="center">
+                                                <div className="space-y-1">
+                                                  <p className="text-sm font-semibold mb-2 px-2">Vælg Opgave</p>
+                                                  {(roles || []).map(r => (
+                                                    <button
+                                                      key={r.id}
+                                                      onClick={() => handleAddTaskToCell(employee.id, dateString, r.id)}
+                                                      className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-all flex items-center gap-3"
+                                                    >
+                                                      <div
+                                                        className="w-4 h-4 rounded-full"
+                                                        style={{ backgroundColor: r.color }}
+                                                      />
+                                                      <span className="text-sm font-medium">{r.name}</span>
+                                                    </button>
+                                                  ))}
+                                                </div>
+                                              </PopoverContent>
+                                            </Popover>
+                                          ) : (
+                                            <div className="text-muted-foreground/40 text-xs">
+                                              {!isLocked ? '−' : ''}
+                                            </div>
+                                          )
+                                        )}
+                                        {!isLocked && (
+                                          <button
+                                            onClick={() => openCommentDialog(employee.id, dateString)}
+                                            className={cn(
+                                              "w-full h-full min-h-[28px] rounded-md transition-all flex items-center justify-center gap-1.5 text-xs font-medium",
+                                              cellComment 
+                                                ? "text-amber-700 hover:text-amber-800 hover:bg-amber-50" 
+                                                : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/30"
+                                            )}
+                                            title={cellComment ? "Rediger kommentar" : "Tilføj kommentar"}
+                                          >
+                                            <ChatText size={14} weight={cellComment ? "fill" : "regular"} />
+                                            {!cellComment && <span className="text-[10px]">Kommentar</span>}
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )
+                          }
+                          return rows
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-between mt-6 pt-6 border-t-2 border-border">
