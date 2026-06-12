@@ -95,9 +95,12 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
   const loadSickLeaveEntries = async () => {
     const entries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
-    setSickLeaveEntries(entries.sort((a, b) => 
-      new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
-    ))
+    setSickLeaveEntries(entries.sort((a, b) => {
+      const dateA = new Date(b.submittedAt)
+      const dateB = new Date(a.submittedAt)
+      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0
+      return dateA.getTime() - dateB.getTime()
+    }))
   }
 
   const changeUserRole = async (email: string, newRole: UserRole) => {
@@ -375,10 +378,26 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                           <div className="text-sm text-muted-foreground">{entry.userEmail}</div>
                           <div className="flex flex-col gap-1 mt-2 text-sm">
                             <span className="font-medium">
-                              {format(new Date(entry.startDate), 'd. MMM', { locale: da })} - {format(new Date(entry.endDate), 'd. MMM yyyy', { locale: da })}
+                              {(() => {
+                                try {
+                                  const startDate = new Date(entry.startDate)
+                                  if (isNaN(startDate.getTime())) return 'Ugyldig dato'
+                                  return format(startDate, 'd. MMM yyyy', { locale: da })
+                                } catch {
+                                  return 'Ugyldig dato'
+                                }
+                              })()}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              Indsendt: {format(new Date(entry.submittedAt), 'd. MMM yyyy HH:mm', { locale: da })}
+                              Indsendt: {(() => {
+                                try {
+                                  const date = new Date(entry.submittedAt)
+                                  if (isNaN(date.getTime())) return 'Ugyldig dato'
+                                  return format(date, 'd. MMM yyyy HH:mm', { locale: da })
+                                } catch {
+                                  return 'Ugyldig dato'
+                                }
+                              })()}
                             </span>
                             {entry.reason && (
                               <span className="text-muted-foreground mt-1">Bemærkninger: {entry.reason}</span>
