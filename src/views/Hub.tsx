@@ -262,7 +262,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.6 }}
         >
-          {modules.map((module, index) => (
+          {modules.filter(module => module.available).map((module, index) => (
             <motion.div
               key={module.id}
               initial={{ opacity: 0, y: 20 }}
@@ -270,13 +270,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               transition={{ delay: 0.5 + index * 0.05, duration: 0.4 }}
             >
               <Card
-                className={cn(
-                  "relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[220px] flex flex-col",
-                  module.available 
-                    ? "cursor-pointer hover:shadow-2xl hover:scale-[1.02] hover:border-primary/40 active:scale-[0.98]" 
-                    : "opacity-60 cursor-not-allowed"
-                )}
-                onClick={() => module.available && handleModuleClick(module.id)}
+                className="relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[220px] flex flex-col cursor-pointer hover:shadow-2xl hover:scale-[1.02] hover:border-primary/40 active:scale-[0.98]"
+                onClick={() => handleModuleClick(module.id)}
               >
                 <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                   style={{
@@ -288,11 +283,9 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                   <motion.div 
                     className={cn(
                       "mb-4 inline-flex items-center justify-center rounded-2xl p-3 shadow-lg transition-all duration-300",
-                      module.available 
-                        ? `bg-gradient-to-br ${module.gradient} group-hover:scale-110 group-hover:shadow-xl`
-                        : "bg-muted"
+                      `bg-gradient-to-br ${module.gradient} group-hover:scale-110 group-hover:shadow-xl`
                     )}
-                    style={module.available ? { color: 'white' } : {}}
+                    style={{ color: 'white' }}
                   >
                     {module.icon}
                   </motion.div>
@@ -305,20 +298,12 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     {module.description}
                   </p>
 
-                  {!module.available && (
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-semibold">
-                      Kommer snart
-                    </div>
-                  )}
-
-                  {module.available && (
-                    <div className={cn(
-                      "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold text-white transition-all duration-300 opacity-0 group-hover:opacity-100",
-                      `bg-gradient-to-r ${module.gradient}`
-                    )}>
-                      Åbn modul →
-                    </div>
-                  )}
+                  <div className={cn(
+                    "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold text-white transition-all duration-300 opacity-0 group-hover:opacity-100",
+                    `bg-gradient-to-r ${module.gradient}`
+                  )}>
+                    Åbn modul →
+                  </div>
                 </div>
               </Card>
             </motion.div>
