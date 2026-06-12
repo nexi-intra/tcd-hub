@@ -932,7 +932,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               </div>
 
               <div className="shadow-inner rounded-lg border-2 border-border bg-card overflow-hidden">
-                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 250px)' }}>
                   <table className="w-full border-collapse">
                     <thead className="sticky top-0 z-50 bg-card shadow-sm">
                       <tr>
