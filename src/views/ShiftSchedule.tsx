@@ -500,7 +500,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           todayDate && "bg-accent/20 ring-2 ring-accent/50"
         )}>
           <td className={cn(
-            "sticky left-0 bg-card border-r-2 border-border px-4 py-6 font-semibold whitespace-nowrap z-10 transition-all",
+            "bg-card border-r-2 border-border px-3 py-4 font-semibold transition-all",
             isWeekend(date) && "text-destructive",
             currentWeek && "bg-primary/10",
             todayDate && "bg-accent/20 ring-2 ring-accent/50"
@@ -517,7 +517,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               <td
                 key={employee.id}
                 className={cn(
-                  "border-x-2 border-border p-4 text-center transition-all",
+                  "border-x-2 border-border p-2 text-center transition-all",
                   isLocked && "bg-muted/20",
                   isEvenEmployee ? "bg-primary/5" : "bg-secondary/5",
                   currentWeek && "bg-primary/15",
@@ -527,33 +527,34 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 {assignment && role ? (
                   <div className="group relative">
                     <div
-                      className="px-3 py-2 rounded-md text-sm font-semibold"
+                      className="px-2 py-1.5 rounded-md text-xs font-semibold truncate"
                       style={{ 
                         backgroundColor: `${role.color}30`,
                         color: role.color,
                         border: `2px solid ${role.color}`
                       }}
+                      title={role.name}
                     >
                       {role.name}
                     </div>
                     <Button
                       size="sm"
                       variant="destructive"
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDeleteAssignment(assignment.id)
                       }}
                     >
-                      <Trash size={14} />
+                      <Trash size={12} />
                     </Button>
                   </div>
                 ) : (
                   !isLocked && (roles || []).length > 0 ? (
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className="w-full h-full min-h-[40px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center">
-                          <Plus size={20} />
+                        <button className="w-full h-full min-h-[32px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center">
+                          <Plus size={16} />
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-64 p-2" align="center">
@@ -584,14 +585,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               </td>
             )
           })}
-          <td className={cn(
-            "sticky right-0 bg-card border-l-2 border-border px-4 py-6 font-semibold whitespace-nowrap z-10 transition-all",
-            isWeekend(date) && "text-destructive",
-            currentWeek && "bg-primary/10",
-            todayDate && "bg-accent/20 ring-2 ring-accent/50"
-          )}>
-            {dateCell}
-          </td>
         </tr>
       )
     }
@@ -712,27 +705,27 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
+              <div className="overflow-x-visible">
+                <table className="w-full border-collapse table-fixed">
                   <thead>
                     <tr>
-                      <th className="sticky left-0 bg-card border-r-2 border-b-2 border-border px-4 py-4 text-left font-semibold z-20">
+                      <th className="border-r-2 border-b-2 border-border px-3 py-4 text-left font-semibold w-[180px]">
                         Dato
                       </th>
                       {(employees || []).map((employee, index) => (
                         <th
                           key={employee.id}
                           className={cn(
-                            "border-x-2 border-b-2 border-border px-4 py-4 text-center font-semibold whitespace-nowrap min-w-[150px]",
+                            "border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold",
                             index % 2 === 0 ? "bg-primary/10" : "bg-secondary/10"
                           )}
+                          style={{ width: `${100 / ((employees || []).length + 1)}%` }}
                         >
-                          {employee.name}
+                          <div className="truncate" title={employee.name}>
+                            {employee.name}
+                          </div>
                         </th>
                       ))}
-                      <th className="sticky right-0 bg-card border-l-2 border-b-2 border-border px-4 py-4 text-left font-semibold z-20">
-                        Dato
-                      </th>
                     </tr>
                   </thead>
                   <tbody>
