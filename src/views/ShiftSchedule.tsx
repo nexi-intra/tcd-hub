@@ -923,9 +923,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
 
               <div className="overflow-x-visible">
                 <table className="w-full border-collapse table-fixed">
-                  <thead>
+                  <thead className="sticky top-0 z-10">
                     <tr>
-                      <th className="border-r-2 border-b-2 border-border px-3 py-4 text-left font-semibold w-[180px]">
+                      <th className="sticky top-0 bg-card border-r-2 border-b-2 border-border px-3 py-4 text-left font-semibold w-[180px]">
                         Dato
                       </th>
                       {(employees || []).map((employee, index) => {
@@ -934,7 +934,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                         return (
                           <th
                             key={employee.id}
-                            className="border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold"
+                            className="sticky top-0 bg-card border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold"
                             style={{ 
                               width: `${100 / ((employees || []).length + 1)}%`
                             }}
