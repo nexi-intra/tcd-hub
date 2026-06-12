@@ -4,13 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { FirstAidKit, Calendar as CalendarIcon, X } from '@phosphor-icons/react'
+import { FirstAidKit, X } from '@phosphor-icons/react'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
 
 interface SickLeaveDialogProps {
   open: boolean
@@ -23,15 +20,12 @@ interface SickLeaveEntry {
   userEmail: string
   userName: string
   startDate: string
-  endDate: string
   reason?: string
   status: 'pending' | 'approved' | 'rejected'
   submittedAt: string
 }
 
 export function SickLeaveDialog({ open, onOpenChange, userEmail }: SickLeaveDialogProps) {
-  const [startDate, setStartDate] = useState<Date>()
-  const [endDate, setEndDate] = useState<Date>()
   const [reason, setReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [userName, setUserName] = useState('')
@@ -49,17 +43,9 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail }: SickLeaveDial
   }, [open, userEmail])
 
   const handleSubmit = async () => {
-    if (!startDate || !endDate) {
-      toast.error('Vælg venligst start- og slutdato')
-      return
-    }
-
-    if (endDate < startDate) {
-      toast.error('Slutdato skal være efter startdato')
-      return
-    }
-
     setIsSubmitting(true)
+    const today = new Date()
+    
     try {
       const sickLeaveEntries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
       
@@ -67,8 +53,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail }: SickLeaveDial
         id: `sick-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         userEmail,
         userName,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate: today.toISOString(),
         reason,
         status: 'approved',
         submittedAt: new Date().toISOString(),
@@ -76,17 +61,14 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail }: SickLeaveDial
 
       await window.spark.kv.set('sick-leave-entries', [...sickLeaveEntries, newEntry])
 
-      const startDateFormatted = format(startDate, 'd. MMMM yyyy', { locale: da })
-      const endDateFormatted = format(endDate, 'd. MMMM yyyy', { locale: da })
+      const dateFormatted = format(today, 'd. MMMM yyyy', { locale: da })
       
       const emailSubject = `Sygemelding - ${userName}`
       const emailBody = `Hej Jacob,
 
 ${userName} (${userEmail}) har meldt sig syg.
 
-Periode:
-Fra: ${startDateFormatted}
-Til: ${endDateFormatted}
+Dato: ${dateFormatted}
 
 ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk genereret fra Terminal Configuration & Dispatch Hub.
 
@@ -115,19 +97,17 @@ Terminal Configuration & Dispatch Hub`
         }])
 
         toast.success('✅ Sygemelding registreret', {
-          description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret.\n\n📧 Notifikation til Jacob Remmer (Jacob.remmer@nexigroup.com) er gemt og kan ses under "Email Notifikationer" i hubben.`,
+          description: `Din sygemelding fra ${format(today, 'd. MMMM yyyy', { locale: da })} er registreret.\n\n📧 Notifikation til Jacob Remmer (Jacob.remmer@nexigroup.com) er gemt og kan ses under "Email Notifikationer" i hubben.`,
           duration: 8000
         })
       } catch (emailError) {
         console.error('Error saving email notification:', emailError)
         toast.warning('Sygemelding registreret', {
-          description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret, men email notifikationen kunne ikke gemmes.`,
+          description: `Din sygemelding fra ${format(today, 'd. MMMM yyyy', { locale: da })} er registreret, men email notifikationen kunne ikke gemmes.`,
           duration: 5000
         })
       }
 
-      setStartDate(undefined)
-      setEndDate(undefined)
       setReason('')
       onOpenChange(false)
     } catch (error) {
@@ -141,8 +121,6 @@ Terminal Configuration & Dispatch Hub`
   }
 
   const handleCancel = () => {
-    setStartDate(undefined)
-    setEndDate(undefined)
     setReason('')
     onOpenChange(false)
   }
@@ -176,61 +154,16 @@ Terminal Configuration & Dispatch Hub`
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Startdato</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2" size={18} />
-                      {startDate ? format(startDate, 'd. MMMM yyyy', { locale: da }) : "Vælg dato"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={setStartDate}
-                      initialFocus
-                      locale={da}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Slutdato</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2" size={18} />
-                      {endDate ? format(endDate, 'd. MMMM yyyy', { locale: da }) : "Vælg dato"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={setEndDate}
-                      initialFocus
-                      disabled={(date) => startDate ? date < startDate : false}
-                      locale={da}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+            <div className="grid gap-2">
+              <Label>Dato</Label>
+              <Input
+                value={format(new Date(), 'd. MMMM yyyy', { locale: da })}
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-sm text-muted-foreground">
+                Sygemeldingen registreres automatisk fra dags dato
+              </p>
             </div>
 
             <div className="grid gap-2">
@@ -259,7 +192,7 @@ Terminal Configuration & Dispatch Hub`
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !startDate || !endDate}
+            disabled={isSubmitting}
             className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white gap-2"
           >
             <FirstAidKit size={18} weight="duotone" />
