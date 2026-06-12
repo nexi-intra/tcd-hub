@@ -92,7 +92,7 @@ The email should be in Danish, professional and clear, and include:
 - Information about who is requesting vacation
 - The vacation period details
 - Any notes provided by the employee
-- A reminder that they can review and approve/reject in the Manager Panel
+- A reminder that they can review and approve/reject in the Manager Panel or Email System
 - A brief note that this is an automatic notification
 
 Return ONLY a JSON object with this exact structure:
@@ -145,7 +145,72 @@ Return ONLY a JSON object with this exact structure:
         }
       }
 
-      toast.success('Ferieansøgning sendt til managers')
+      try {
+        const confirmationPrompt = window.spark.llmPrompt`Generate a confirmation email to send to ${userEmail} confirming that their vacation request has been submitted and is awaiting manager approval.
+
+Vacation Request Details:
+Start Date: ${startDateFormatted}
+End Date: ${endDateFormatted}
+${notes ? `Your notes: ${notes}` : 'No notes provided'}
+
+The email should be in Danish, friendly and reassuring, and include:
+- A clear subject line confirming the vacation request submission
+- Confirmation that the request has been received
+- The vacation period details they requested
+- Information that the request is now awaiting manager approval
+- A note that they will receive a notification once the request is reviewed
+- A brief note that this is an automatic confirmation
+
+Return ONLY a JSON object with this exact structure:
+{
+  "subject": "subject line here",
+  "body": "email body here with proper line breaks"
+}`
+
+        const confirmEmailJson = await window.spark.llm(confirmationPrompt, "gpt-4o-mini", true)
+        const confirmEmail = JSON.parse(confirmEmailJson)
+        
+        const emails = await window.spark.kv.get<Array<{
+          id: string
+          from: string
+          to: string
+          subject: string
+          message: string
+          timestamp: number
+          read: boolean
+          type?: string
+        }>>('emails') || []
+
+        const confirmationEmail = {
+          id: Date.now().toString() + '-confirmation',
+          from: 'system@nexigroup.com',
+          to: userEmail,
+          subject: confirmEmail.subject,
+          message: confirmEmail.body,
+          timestamp: Date.now(),
+          read: false,
+          type: 'vacation-confirmation'
+        }
+
+        await window.spark.kv.set('emails', [...emails, confirmationEmail])
+
+        const confirmNotification = {
+          id: Date.now().toString() + '-confirm-notif',
+          type: 'email' as const,
+          message: `Din ferieansøgning er blevet modtaget og afventer godkendelse`,
+          timestamp: Date.now(),
+          read: false,
+          from: 'system@nexigroup.com',
+          emailId: confirmationEmail.id
+        }
+
+        const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
+        await window.spark.kv.set('email-notifications', [...notifications, confirmNotification])
+      } catch (error) {
+        console.error('Error sending confirmation email:', error)
+      }
+
+      toast.success('Ferieansøgning sendt! Du vil modtage en bekræftelse i din email.')
       setStartDate('')
       setEndDate('')
       setNotes('')
