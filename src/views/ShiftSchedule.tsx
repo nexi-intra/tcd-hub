@@ -936,12 +936,16 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                             key={employee.id}
                             className="border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold"
                             style={{ 
-                              width: `${100 / ((employees || []).length + 1)}%`,
-                              backgroundColor: employeeColor.bg,
-                              color: employeeColor.text
+                              width: `${100 / ((employees || []).length + 1)}%`
                             }}
                           >
-                            <div className="truncate" title={employee.name}>
+                            <div 
+                              className="truncate" 
+                              title={employee.name}
+                              style={{ 
+                                color: employeeColor.bg
+                              }}
+                            >
                               {firstName}
                             </div>
                           </th>
