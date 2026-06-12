@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple, ChatText, Phone, Envelope as EnvelopeIcon } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple, ChatText, Phone } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -901,16 +901,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                       </div>
                       
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <EnvelopeIcon size={16} className="flex-shrink-0" />
-                          <a 
-                            href={`mailto:${employee.email}`}
-                            className="truncate hover:text-primary transition-colors"
-                            title={employee.email}
-                          >
-                            {employee.email}
-                          </a>
-                        </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Phone size={16} className="flex-shrink-0" />
                           <a 
