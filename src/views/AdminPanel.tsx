@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, UserGear, Check, Crown, ShieldCheck, User as UserIcon, Trash, FirstAidKit, Plus, Tag, UserCircle } from '@phosphor-icons/react'
+import { ArrowLeft, UserGear, Check, Crown, ShieldCheck, User as UserIcon, Trash, FirstAidKit, Plus, Tag, UserCircle, PencilSimple } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -55,6 +55,15 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
   const [showRoleDialog, setShowRoleDialog] = useState(false)
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleColor, setNewRoleColor] = useState('#8b5cf6')
+
+  const [showEmployeeDialog, setShowEmployeeDialog] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState<User | null>(null)
+  const [employeeForm, setEmployeeForm] = useState({
+    email: '',
+    fullName: '',
+    password: '',
+    role: 'user' as UserRole
+  })
 
   useEffect(() => {
     const checkAdminAndLoad = async () => {
@@ -140,6 +149,83 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
     await window.spark.kv.set('shift-assignments', updatedAssignments)
     
     toast.success('Opgave slettet')
+  }
+
+  const openEmployeeDialog = (employee?: User) => {
+    if (employee) {
+      setEditingEmployee(employee)
+      setEmployeeForm({
+        email: employee.email,
+        fullName: employee.fullName,
+        password: '',
+        role: employee.role
+      })
+    } else {
+      setEditingEmployee(null)
+      setEmployeeForm({
+        email: '',
+        fullName: '',
+        password: '',
+        role: 'user'
+      })
+    }
+    setShowEmployeeDialog(true)
+  }
+
+  const handleSaveEmployee = async () => {
+    if (!employeeForm.email.trim() || !employeeForm.fullName.trim()) {
+      toast.error('Email og navn er påkrævet')
+      return
+    }
+
+    if (!editingEmployee && !employeeForm.password.trim()) {
+      toast.error('Kodeord er påkrævet for nye medarbejdere')
+      return
+    }
+
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users') || {}
+
+    if (!editingEmployee && usersData[employeeForm.email]) {
+      toast.error('En bruger med denne email eksisterer allerede')
+      return
+    }
+
+    if (editingEmployee && editingEmployee.email !== employeeForm.email && usersData[employeeForm.email]) {
+      toast.error('En bruger med denne email eksisterer allerede')
+      return
+    }
+
+    if (editingEmployee && editingEmployee.email !== employeeForm.email) {
+      delete usersData[editingEmployee.email]
+    }
+
+    usersData[employeeForm.email] = {
+      email: employeeForm.email,
+      password: employeeForm.password.trim() || usersData[employeeForm.email]?.password || '',
+      fullName: employeeForm.fullName,
+      role: employeeForm.role,
+      isManager: employeeForm.role === 'manager' || employeeForm.role === 'admin'
+    }
+
+    await window.spark.kv.set('users', usersData)
+    await loadUsers()
+    setShowEmployeeDialog(false)
+    toast.success(editingEmployee ? 'Medarbejder opdateret' : 'Medarbejder oprettet')
+  }
+
+  const handleDeleteEmployee = async (email: string) => {
+    if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      toast.error('Kan ikke slette admin brugeren')
+      return
+    }
+
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
+    if (usersData && usersData[email]) {
+      delete usersData[email]
+      await window.spark.kv.set('users', usersData)
+      await loadUsers()
+      toast.success('Medarbejder slettet')
+    }
   }
 
   const changeUserRole = async (email: string, newRole: UserRole) => {
@@ -487,21 +573,35 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
                   <UserCircle size={28} className="text-primary" weight="duotone" />
                   <h2 className="text-2xl font-bold">Medarbejdere</h2>
                 </div>
-                <Badge variant="outline" className="text-sm">
-                  {users.filter(u => u.role !== 'admin' || u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()).length} Medarbejdere
-                </Badge>
-              </div>
-
-              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
-                <p className="text-sm text-muted-foreground">
-                  Medarbejderne nedenfor vises i vagtplanen. Kun admin kan tildele vagter.
-                </p>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-sm">
+                    {users.length} {users.length === 1 ? 'Medarbejder' : 'Medarbejdere'}
+                  </Badge>
+                  <Button
+                    onClick={() => openEmployeeDialog()}
+                    size="sm"
+                    className="gap-2 bg-gradient-to-r from-primary to-secondary"
+                  >
+                    <Plus size={16} />
+                    Tilføj Medarbejder
+                  </Button>
+                </div>
               </div>
 
               {isLoading ? (
                 <p className="text-muted-foreground text-center py-12">Indlæser medarbejdere...</p>
               ) : users.length === 0 ? (
-                <p className="text-muted-foreground text-center py-12">Ingen medarbejdere fundet</p>
+                <div className="text-center py-12">
+                  <UserCircle size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
+                  <p className="text-muted-foreground mb-4">Ingen medarbejdere endnu</p>
+                  <Button
+                    onClick={() => openEmployeeDialog()}
+                    className="gap-2"
+                  >
+                    <Plus size={20} />
+                    Tilføj Din Første Medarbejder
+                  </Button>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {users.map((user) => (
@@ -509,7 +609,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
                       key={user.email}
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 rounded-xl border-2 bg-card hover:shadow-md transition-all"
+                      className="p-4 rounded-xl border-2 bg-card hover:shadow-md transition-all group relative"
                     >
                       <div className="flex items-center gap-3 mb-2">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold shadow-md ${
@@ -526,7 +626,49 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
                           <div className="text-xs text-muted-foreground truncate">{user.email}</div>
                         </div>
                       </div>
-                      {getRoleBadge(user.role)}
+                      <div className="flex items-center justify-between">
+                        {getRoleBadge(user.role)}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-primary/10"
+                            onClick={() => openEmployeeDialog(user)}
+                          >
+                            <PencilSimple size={16} />
+                          </Button>
+                          {user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase() && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash size={16} />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Slet medarbejder?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Er du sikker på at du vil slette <strong>{user.fullName}</strong>? Denne handling kan ikke fortrydes.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteEmployee(user.email)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Slet medarbejder
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -680,6 +822,93 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
               <Button onClick={handleAddRole} className="w-full gap-2">
                 <Plus size={20} />
                 Opret Opgave
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showEmployeeDialog} onOpenChange={setShowEmployeeDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingEmployee ? 'Rediger Medarbejder' : 'Tilføj Ny Medarbejder'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div>
+                <Label htmlFor="employee-name">Fulde Navn</Label>
+                <Input
+                  id="employee-name"
+                  value={employeeForm.fullName}
+                  onChange={(e) => setEmployeeForm({ ...employeeForm, fullName: e.target.value })}
+                  placeholder="F.eks. John Doe"
+                />
+              </div>
+              <div>
+                <Label htmlFor="employee-email">Email</Label>
+                <Input
+                  id="employee-email"
+                  type="email"
+                  value={employeeForm.email}
+                  onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })}
+                  placeholder="john.doe@nexigroup.com"
+                  disabled={!!editingEmployee}
+                />
+                {editingEmployee && (
+                  <p className="text-xs text-muted-foreground mt-1">Email kan ikke ændres efter oprettelse</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="employee-password">Kodeord {editingEmployee && '(lad stå tom for at beholde nuværende)'}</Label>
+                <Input
+                  id="employee-password"
+                  type="password"
+                  value={employeeForm.password}
+                  onChange={(e) => setEmployeeForm({ ...employeeForm, password: e.target.value })}
+                  placeholder={editingEmployee ? 'Lad tom for at beholde' : 'Indtast kodeord'}
+                />
+              </div>
+              <div>
+                <Label htmlFor="employee-role">Rolle</Label>
+                <Select
+                  value={employeeForm.role}
+                  onValueChange={(value) => setEmployeeForm({ ...employeeForm, role: value as UserRole })}
+                >
+                  <SelectTrigger id="employee-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">
+                      <div className="flex items-center gap-2">
+                        <UserIcon size={16} />
+                        Bruger
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="manager">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck size={16} />
+                        Manager
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="admin">
+                      <div className="flex items-center gap-2">
+                        <Crown size={16} />
+                        Administrator
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleSaveEmployee} className="w-full gap-2">
+                {editingEmployee ? (
+                  <>
+                    <PencilSimple size={20} />
+                    Gem Ændringer
+                  </>
+                ) : (
+                  <>
+                    <Plus size={20} />
+                    Opret Medarbejder
+                  </>
+                )}
               </Button>
             </div>
           </DialogContent>
