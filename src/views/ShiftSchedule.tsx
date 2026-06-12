@@ -774,20 +774,23 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                       <th className="border-r-2 border-b-2 border-border px-3 py-4 text-left font-semibold w-[180px]">
                         Dato
                       </th>
-                      {(employees || []).map((employee, index) => (
-                        <th
-                          key={employee.id}
-                          className={cn(
-                            "border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold",
-                            index % 2 === 0 ? "bg-primary/10" : "bg-secondary/10"
-                          )}
-                          style={{ width: `${100 / ((employees || []).length + 1)}%` }}
-                        >
-                          <div className="truncate" title={employee.name}>
-                            {employee.name}
-                          </div>
-                        </th>
-                      ))}
+                      {(employees || []).map((employee, index) => {
+                        const firstName = employee.name.split(' ')[0]
+                        return (
+                          <th
+                            key={employee.id}
+                            className={cn(
+                              "border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold",
+                              index % 2 === 0 ? "bg-primary/10" : "bg-secondary/10"
+                            )}
+                            style={{ width: `${100 / ((employees || []).length + 1)}%` }}
+                          >
+                            <div className="truncate" title={employee.name}>
+                              {firstName}
+                            </div>
+                          </th>
+                        )
+                      })}
                     </tr>
                   </thead>
                   <tbody>
