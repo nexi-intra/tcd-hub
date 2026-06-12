@@ -275,7 +275,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             >
               <Card
                 className={cn(
-                  "relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[320px] flex flex-col",
+                  "relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[220px] flex flex-col",
                   module.available 
                     ? "cursor-pointer hover:shadow-2xl hover:scale-[1.02] hover:border-primary/40 active:scale-[0.98]" 
                     : "opacity-60 cursor-not-allowed"
@@ -288,10 +288,10 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                   }}
                 />
                 
-                <div className="relative p-10 flex flex-col flex-1">
+                <div className="relative p-6 flex flex-col flex-1">
                   <motion.div 
                     className={cn(
-                      "mb-8 inline-flex items-center justify-center rounded-2xl p-4 shadow-lg transition-all duration-300",
+                      "mb-4 inline-flex items-center justify-center rounded-2xl p-3 shadow-lg transition-all duration-300",
                       module.available 
                         ? `bg-gradient-to-br ${module.gradient} group-hover:scale-110 group-hover:shadow-xl`
                         : "bg-muted"
@@ -301,11 +301,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     {module.icon}
                   </motion.div>
 
-                  <h3 className="text-2xl font-bold mb-4 text-foreground">
+                  <h3 className="text-xl font-bold mb-2 text-foreground">
                     {module.title}
                   </h3>
                   
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-4">
                     {module.description}
                   </p>
 
