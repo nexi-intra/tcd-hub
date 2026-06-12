@@ -932,12 +932,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               </div>
 
               <div className="shadow-inner rounded-lg border-2 border-border bg-card overflow-hidden">
-                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-                  <table className="w-full border-collapse">
+                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%' }}>
+                  <table className="w-full border-collapse" style={{ tableLayout: 'fixed', width: 'max-content' }}>
                     <thead className="sticky top-0 z-50 bg-card shadow-sm">
                       <tr>
-                        <th className="sticky left-0 z-50 bg-card border-r-2 border-b-2 border-border px-4 py-5 text-left font-bold min-w-[220px]">
-                          <span className="text-lg">Dato</span>
+                        <th className="sticky left-0 z-50 bg-card border-r-2 border-b-2 border-border px-3 py-4 text-left font-bold" style={{ width: '160px', minWidth: '160px', maxWidth: '160px' }}>
+                          <span className="text-sm font-bold">Dato</span>
                         </th>
                         {(employees || []).map((employee) => {
                           const firstName = employee.name.split(' ')[0]
@@ -945,10 +945,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                           return (
                             <th
                               key={employee.id}
-                              className="border-x-2 border-b-2 border-border px-4 py-5 text-center font-bold min-w-[180px] bg-card"
+                              className="border-x-2 border-b-2 border-border px-2 py-4 text-center font-bold bg-card"
+                              style={{ width: '120px', minWidth: '120px', maxWidth: '120px' }}
                             >
                               <div 
-                                className="text-base font-extrabold" 
+                                className="text-xs font-extrabold truncate" 
                                 title={employee.name}
                                 style={{ 
                                   color: employeeColor.bg
@@ -986,32 +987,35 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                                 todayDate && "bg-accent/20 ring-2 ring-accent/50"
                               )}
                             >
-                              <td className={cn(
-                                "sticky left-0 z-40 bg-card border-r-2 border-border px-4 py-5 font-semibold transition-all shadow-[2px_0_8px_rgba(0,0,0,0.1)]",
-                                isWeekend(date) && "text-destructive",
-                                currentWeek && "bg-primary/10",
-                                todayDate && "bg-accent/20"
-                              )}>
-                                <div className="flex items-center gap-2.5 flex-wrap">
+                              <td 
+                                className={cn(
+                                  "sticky left-0 z-40 bg-card border-r-2 border-border px-2 py-3 font-semibold transition-all shadow-[2px_0_8px_rgba(0,0,0,0.1)]",
+                                  isWeekend(date) && "text-destructive",
+                                  currentWeek && "bg-primary/10",
+                                  todayDate && "bg-accent/20"
+                                )}
+                                style={{ width: '160px', minWidth: '160px', maxWidth: '160px' }}
+                              >
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                   <Badge 
                                     variant={currentWeek ? "default" : "outline"} 
                                     className={cn(
-                                      "text-xs px-2 py-0.5 font-bold",
+                                      "text-[10px] px-1.5 py-0.5 font-bold",
                                       currentWeek && "bg-primary text-primary-foreground shadow-lg",
                                       todayDate && "ring-2 ring-accent"
                                     )}
                                   >
                                     U{weekNumber}
                                   </Badge>
-                                  <span className={cn("text-base", todayDate && "font-extrabold text-accent")}>{dayName}</span>
-                                  <span className={cn("text-base", todayDate && "font-extrabold text-accent")}>{day}/{selectedMonth + 1}</span>
+                                  <span className={cn("text-xs", todayDate && "font-extrabold text-accent")}>{dayName}</span>
+                                  <span className={cn("text-xs", todayDate && "font-extrabold text-accent")}>{day}/{selectedMonth + 1}</span>
                                   {isDanishHoliday(dateString) && (
-                                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5">
-                                      Helligdag
+                                    <Badge variant="destructive" className="text-[9px] px-1 py-0">
+                                      Hel
                                     </Badge>
                                   )}
                                   {todayDate && (
-                                    <Badge className="text-[10px] px-1.5 py-0.5 bg-accent text-accent-foreground">
+                                    <Badge className="text-[9px] px-1 py-0 bg-accent text-accent-foreground">
                                       I dag
                                     </Badge>
                                   )}
@@ -1030,7 +1034,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                                   <td
                                     key={employee.id}
                                     className={cn(
-                                      "border-x-2 border-border p-3 text-center transition-all",
+                                      "border-x-2 border-border p-2 text-center transition-all",
                                       isLocked && "bg-muted/20",
                                       sickLeave && "bg-red-50",
                                       vacation && "bg-blue-50",
@@ -1040,6 +1044,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                                       todayDate && vacation && "bg-blue-100 ring-2 ring-blue-300"
                                     )}
                                     style={{
+                                      width: '120px',
+                                      minWidth: '120px',
+                                      maxWidth: '120px',
                                       backgroundColor: sickLeave 
                                         ? undefined 
                                         : vacation
@@ -1053,49 +1060,49 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                                       })
                                     }}
                                   >
-                                    <div className="space-y-2 min-h-[80px]">
+                                    <div className="space-y-1.5 min-h-[60px]">
                                       {vacation && (
                                         <div className="relative group">
                                           <div
-                                            className="px-2 py-1.5 rounded-md text-xs font-bold bg-blue-100 text-blue-800 border-2 border-blue-400 flex items-center gap-1.5 cursor-pointer"
+                                            className="px-1 py-1 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-400 flex items-center gap-1 cursor-pointer justify-center"
                                             title={vacation.notes || 'På ferie'}
                                           >
-                                            <Airplane size={16} weight="fill" />
-                                            <span className="truncate flex-1 text-left">Ferie</span>
+                                            <Airplane size={12} weight="fill" />
+                                            <span className="truncate">Ferie</span>
                                           </div>
                                         </div>
                                       )}
                                       {sickLeave && (
                                         <div className="relative group">
                                           <div
-                                            className="px-2 py-1.5 rounded-md text-xs font-bold bg-red-100 text-red-800 border-2 border-red-400 flex items-center gap-1.5 cursor-pointer"
+                                            className="px-1 py-1 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-400 flex items-center gap-1 cursor-pointer justify-center"
                                             title={sickLeave.reason || 'Sygemeldt'}
                                           >
-                                            <FirstAidKit size={16} weight="fill" />
-                                            <span className="truncate flex-1 text-left">Syg</span>
+                                            <FirstAidKit size={12} weight="fill" />
+                                            <span className="truncate">Syg</span>
                                           </div>
                                         </div>
                                       )}
                                       {cellComment && (
                                         <div className="relative group">
                                           <div
-                                            className="px-2 py-1.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800 border-2 border-amber-400 flex items-center gap-1.5 cursor-pointer hover:bg-amber-200 transition-all"
+                                            className="px-1 py-1 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-400 flex items-center gap-1 cursor-pointer hover:bg-amber-200 transition-all justify-center"
                                             onClick={() => openCommentDialog(employee.id, dateString)}
                                             title={cellComment}
                                           >
-                                            <ChatText size={14} weight="fill" />
-                                            <span className="truncate flex-1 text-left">{cellComment}</span>
+                                            <ChatText size={11} weight="fill" />
+                                            <span className="truncate flex-1">{cellComment}</span>
                                           </div>
                                           <Button
                                             size="sm"
                                             variant="destructive"
-                                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                             onClick={(e) => {
                                               e.stopPropagation()
                                               handleDeleteComment(employee.id, dateString)
                                             }}
                                           >
-                                            <Trash size={12} />
+                                            <Trash size={10} />
                                           </Button>
                                         </div>
                                       )}
@@ -1108,11 +1115,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                                             return (
                                               <div key={assignment.id} className="group relative">
                                                 <div
-                                                  className="px-2 py-1.5 rounded-md text-xs font-semibold truncate"
+                                                  className="px-1 py-1 rounded text-[10px] font-semibold truncate"
                                                   style={{ 
                                                     backgroundColor: `${role.color}30`,
                                                     color: role.color,
-                                                    border: `2px solid ${role.color}`
+                                                    border: `1px solid ${role.color}`
                                                   }}
                                                   title={role.name}
                                                 >
@@ -1121,13 +1128,13 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                                                 <Button
                                                   size="sm"
                                                   variant="destructive"
-                                                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                                   onClick={(e) => {
                                                     e.stopPropagation()
                                                     handleDeleteAssignment(assignment.id)
                                                   }}
                                                 >
-                                                  <Trash size={12} />
+                                                  <Trash size={10} />
                                                 </Button>
                                               </div>
                                             )
@@ -1135,8 +1142,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                                           {!isEmployeeCellLocked && (roles || []).length > 0 && (
                                             <Popover>
                                               <PopoverTrigger asChild>
-                                                <button className="w-full h-full min-h-[28px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center border-2 border-dashed border-muted-foreground/20">
-                                                  <Plus size={16} />
+                                                <button className="w-full h-full min-h-[20px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded transition-all flex items-center justify-center border border-dashed border-muted-foreground/20">
+                                                  <Plus size={12} />
                                                 </button>
                                               </PopoverTrigger>
                                               <PopoverContent className="w-64 p-2" align="center">
@@ -1164,8 +1171,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                                         !isEmployeeCellLocked && (roles || []).length > 0 ? (
                                           <Popover>
                                             <PopoverTrigger asChild>
-                                              <button className="w-full h-full min-h-[32px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center">
-                                                <Plus size={16} />
+                                              <button className="w-full h-full min-h-[24px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded transition-all flex items-center justify-center">
+                                                <Plus size={14} />
                                               </button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-64 p-2" align="center">
@@ -1197,15 +1204,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                                         <button
                                           onClick={() => openCommentDialog(employee.id, dateString)}
                                           className={cn(
-                                            "w-full h-full min-h-[28px] rounded-md transition-all flex items-center justify-center gap-1.5 text-xs font-medium",
+                                            "w-full h-full min-h-[20px] rounded transition-all flex items-center justify-center gap-1 text-[10px] font-medium",
                                             cellComment 
                                               ? "text-amber-700 hover:text-amber-800 hover:bg-amber-50" 
                                               : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/30"
                                           )}
                                           title={cellComment ? "Rediger kommentar" : "Tilføj kommentar"}
                                         >
-                                          <ChatText size={14} weight={cellComment ? "fill" : "regular"} />
-                                          {!cellComment && <span className="text-[10px]">Note</span>}
+                                          <ChatText size={11} weight={cellComment ? "fill" : "regular"} />
                                         </button>
                                       )}
                                     </div>
