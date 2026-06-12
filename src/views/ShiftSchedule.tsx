@@ -820,7 +820,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen w-full relative overflow-hidden">
       <div className="absolute top-4 right-4 z-20">
         <UserProfile 
           userEmail={userEmail} 
@@ -829,23 +829,23 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           onAdminClick={() => {}}
         />
       </div>
-      <div className="container mx-auto px-4 sm:px-6 py-8 max-w-7xl relative z-10">
+      <div className="w-full px-4 sm:px-6 py-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 mt-12"
+          className="mb-6 mt-12"
         >
           <Button
             onClick={onNavigateBack}
             variant="outline"
             size="lg"
-            className="mb-6 gap-2"
+            className="mb-4 gap-2"
           >
             <ArrowLeft size={20} />
             Tilbage til Hub
           </Button>
 
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-4xl sm:text-5xl font-bold mb-2 bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
                 Vagtplan
@@ -854,7 +854,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </div>
         </motion.div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-3 max-w-2xl">
             <TabsTrigger value="schedule" className="gap-2">
               <CalendarIcon size={18} />
@@ -870,10 +870,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="schedule" className="space-y-6">
+          <TabsContent value="schedule" className="space-y-4">
 
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="w-full">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4">
                   <Select
                     value={selectedMonth.toString()}
@@ -932,7 +932,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               </div>
 
               <div className="shadow-inner rounded-lg border-2 border-border bg-card overflow-hidden">
-                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
                   <table className="w-full border-collapse">
                     <thead className="sticky top-0 z-50 bg-card shadow-sm">
                       <tr>
@@ -1221,65 +1221,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   </table>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between mt-6 pt-6 border-t-2 border-border">
-                <div className="flex items-center gap-4">
-                  <Select
-                    value={selectedMonth.toString()}
-                    onValueChange={(value) => setSelectedMonth(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {months.map((month, index) => (
-                        <SelectItem key={index} value={index.toString()}>
-                          {month}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={selectedYear.toString()}
-                    onValueChange={(value) => setSelectedYear(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2024">2024</SelectItem>
-                      <SelectItem value="2025">2025</SelectItem>
-                      <SelectItem value="2026">2026</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <Button
-                    onClick={() => setShowWeekAssignmentDialog(true)}
-                    variant="default"
-                    className="gap-2"
-                  >
-                    <Plus size={18} />
-                    Tilføj Opgaver til Hel Uge
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const today = new Date()
-                      setSelectedMonth(today.getMonth())
-                      setSelectedYear(today.getFullYear())
-                      toast.success('Navigeret til i dag')
-                    }}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    <CalendarIcon size={18} />
-                    Gå til i dag
-                  </Button>
-                </div>
-              </div>
-            </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="employees" className="space-y-6">
