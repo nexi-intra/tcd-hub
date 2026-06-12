@@ -921,11 +921,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 </div>
               </div>
 
-              <div className="overflow-x-auto max-h-[calc(100vh-240px)] overflow-y-auto relative shadow-inner rounded-lg border-2 border-border">
+              <div className="overflow-auto max-h-[calc(100vh-240px)] relative shadow-inner rounded-lg border-2 border-border">
                 <table className="w-full border-collapse" style={{ minWidth: '100%' }}>
-                  <thead>
+                  <thead className="sticky top-0 z-30">
                     <tr>
-                      <th className="sticky top-0 left-0 bg-card border-r-2 border-b-2 border-border px-3 py-5 text-left font-semibold min-w-[200px] z-30 shadow-[2px_2px_8px_rgba(0,0,0,0.1)]">
+                      <th className="sticky top-0 left-0 bg-card border-r-2 border-b-2 border-border px-3 py-5 text-left font-semibold min-w-[200px] z-40 shadow-[2px_2px_8px_rgba(0,0,0,0.1)]">
                         <span className="text-base">Dato</span>
                       </th>
                       {(employees || []).map((employee, index) => {
@@ -934,7 +934,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                         return (
                           <th
                             key={employee.id}
-                            className="sticky top-0 bg-card border-x-2 border-b-2 border-border px-4 py-5 text-center font-bold min-w-[160px] z-20 shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                            className="sticky top-0 bg-card border-x-2 border-b-2 border-border px-4 py-5 text-center font-bold min-w-[160px] z-30 shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
                           >
                             <div 
                               className="truncate text-base" 
