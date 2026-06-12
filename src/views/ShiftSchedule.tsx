@@ -186,76 +186,103 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     return new Date(year, month, 1).getDay()
   }
 
-  const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(selectedMonth, selectedYear)
-    const firstDay = getFirstDayOfMonth(selectedMonth, selectedYear)
-    const days = []
+  const getAssignmentForEmployeeAndDate = (employeeEmail: string, dateString: string) => {
+    return (assignments || []).find(a => a.employeeEmail === employeeEmail && a.date === dateString)
+  }
 
-    const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1
-
-    for (let i = 0; i < adjustedFirstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="min-h-24" />)
+  const handleCellClick = (employeeEmail: string, dateString: string) => {
+    if (!isAdmin) return
+    if (isDateLocked(dateString)) {
+      toast.error('Kan ikke tildele vagter på weekender eller helligdage')
+      return
     }
+    
+    setSelectedEmployee(employeeEmail)
+    setSelectedDate(dateString)
+    setShowAssignmentDialog(true)
+  }
+
+  const renderScheduleTable = () => {
+    const daysInMonth = getDaysInMonth(selectedMonth, selectedYear)
+    const rows = []
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(selectedYear, selectedMonth, day)
       const dateString = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       const isLocked = isDateLocked(dateString)
-      const dayAssignments = (assignments || []).filter(a => a.date === dateString)
+      
+      const dayNames = ['Søn', 'Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør']
+      const dayName = dayNames[date.getDay()]
 
-      days.push(
-        <Card
-          key={day}
-          className={cn(
-            "min-h-24 p-2 transition-all duration-200",
-            isLocked ? "bg-muted/50 opacity-50" : "hover:shadow-md"
-          )}
-        >
-          <div className="flex justify-between items-start mb-1">
-            <span className={cn(
-              "text-sm font-semibold",
-              isWeekend(date) ? "text-destructive" : "text-foreground"
-            )}>
-              {day}
-            </span>
-            {isDanishHoliday(dateString) && (
-              <Badge variant="destructive" className="text-[10px] px-1 py-0">
-                Helligdag
-              </Badge>
-            )}
-          </div>
-          <div className="space-y-1">
-            {dayAssignments.map(assignment => {
-              const role = (roles || []).find(r => r.id === assignment.roleId)
-              return (
-                <div
-                  key={assignment.id}
-                  className="text-xs p-1.5 rounded-md flex items-center justify-between gap-1 group"
-                  style={{ backgroundColor: `${role?.color}20`, borderLeft: `3px solid ${role?.color}` }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate text-[10px]">{assignment.employeeName}</div>
-                    <div className="text-[9px] opacity-75 truncate">{role?.name}</div>
-                  </div>
-                  {isAdmin && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
-                      onClick={() => handleDeleteAssignment(assignment.id)}
+      rows.push(
+        <tr key={day} className={cn(isLocked && "bg-muted/30")}>
+          <td className={cn(
+            "sticky left-0 bg-card border-r-2 border-border px-4 py-3 font-semibold whitespace-nowrap z-10",
+            isWeekend(date) && "text-destructive"
+          )}>
+            <div className="flex items-center gap-3">
+              <span>{dayName}</span>
+              <span>{day}/{selectedMonth + 1}</span>
+              {isDanishHoliday(dateString) && (
+                <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5">
+                  Helligdag
+                </Badge>
+              )}
+            </div>
+          </td>
+          {employees.map(employee => {
+            const assignment = getAssignmentForEmployeeAndDate(employee.email, dateString)
+            const role = assignment ? (roles || []).find(r => r.id === assignment.roleId) : null
+
+            return (
+              <td
+                key={employee.email}
+                className={cn(
+                  "border border-border p-2 text-center transition-all",
+                  !isLocked && isAdmin && "cursor-pointer hover:bg-muted/50",
+                  isLocked && "bg-muted/20"
+                )}
+                onClick={() => !assignment && handleCellClick(employee.email, dateString)}
+              >
+                {assignment && role ? (
+                  <div className="group relative">
+                    <div
+                      className="px-3 py-2 rounded-md text-sm font-semibold"
+                      style={{ 
+                        backgroundColor: `${role.color}30`,
+                        color: role.color,
+                        border: `2px solid ${role.color}`
+                      }}
                     >
-                      <Trash size={12} />
-                    </Button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </Card>
+                      {role.name}
+                    </div>
+                    {isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteAssignment(assignment.id)
+                        }}
+                      >
+                        <Trash size={14} />
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground/40 text-xs">
+                    {!isLocked && isAdmin ? '−' : ''}
+                  </div>
+                )}
+              </td>
+            )
+          })}
+        </tr>
       )
     }
 
-    return days
+    return rows
   }
 
   return (
@@ -374,16 +401,27 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 mb-2">
-            {['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'].map(day => (
-              <div key={day} className="text-center font-semibold text-sm text-muted-foreground py-2">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-2">
-            {renderCalendar()}
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 bg-card border-r-2 border-b-2 border-border px-4 py-3 text-left font-semibold z-20">
+                    Dato
+                  </th>
+                  {employees.map(employee => (
+                    <th
+                      key={employee.email}
+                      className="border border-border px-4 py-3 text-center font-semibold whitespace-nowrap min-w-[150px]"
+                    >
+                      {employee.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {renderScheduleTable()}
+              </tbody>
+            </table>
           </div>
         </Card>
       </div>
@@ -425,7 +463,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </div>
         </DialogContent>
       </Dialog>
-      <Dialog open={showAssignmentDialog} onOpenChange={setShowAssignmentDialog}>
+      <Dialog open={showAssignmentDialog} onOpenChange={(open) => {
+        setShowAssignmentDialog(open)
+        if (!open) {
+          setSelectedEmployee('')
+          setSelectedRole('')
+          setSelectedDate('')
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Tildel Vagt</DialogTitle>
