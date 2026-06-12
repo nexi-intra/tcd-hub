@@ -73,6 +73,21 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleColor, setNewRoleColor] = useState('#8b5cf6')
+
+  const colorPresets = [
+    { name: 'Lilla', value: '#8b5cf6' },
+    { name: 'Blå', value: '#3b82f6' },
+    { name: 'Cyan', value: '#06b6d4' },
+    { name: 'Grøn', value: '#10b981' },
+    { name: 'Gul', value: '#f59e0b' },
+    { name: 'Orange', value: '#f97316' },
+    { name: 'Rød', value: '#ef4444' },
+    { name: 'Pink', value: '#ec4899' },
+    { name: 'Indigo', value: '#6366f1' },
+    { name: 'Teal', value: '#14b8a6' },
+    { name: 'Lime', value: '#84cc16' },
+    { name: 'Rose', value: '#f43f5e' },
+  ]
   
   const [newEmployeeName, setNewEmployeeName] = useState('')
   
@@ -641,9 +656,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                         </div>
                         <div className="flex-1">
                           <div className="font-bold text-lg mb-1">{role.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            Farve: <span className="font-mono">{role.color}</span>
-                          </div>
                         </div>
                         <div
                           className="px-5 py-2.5 rounded-lg font-semibold text-sm"
@@ -708,20 +720,34 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               />
             </div>
             <div>
-              <Label htmlFor="role-color">Farve</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="role-color"
-                  type="color"
-                  value={newRoleColor}
-                  onChange={(e) => setNewRoleColor(e.target.value)}
-                  className="w-20 h-10"
-                />
-                <Input
-                  value={newRoleColor}
-                  onChange={(e) => setNewRoleColor(e.target.value)}
-                  className="flex-1"
-                />
+              <Label>Vælg Farve</Label>
+              <div className="grid grid-cols-4 gap-3 mt-3">
+                {colorPresets.map((color) => (
+                  <button
+                    key={color.value}
+                    type="button"
+                    onClick={() => setNewRoleColor(color.value)}
+                    className={cn(
+                      "relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all hover:scale-105",
+                      newRoleColor === color.value
+                        ? "border-foreground shadow-lg scale-105"
+                        : "border-border hover:border-muted-foreground"
+                    )}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full shadow-md"
+                      style={{ backgroundColor: color.value }}
+                    />
+                    <span className="text-xs font-medium">{color.name}</span>
+                    {newRoleColor === color.value && (
+                      <div className="absolute top-1 right-1 w-5 h-5 bg-foreground text-background rounded-full flex items-center justify-center">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
             <Button onClick={handleAddRole} className="w-full">
