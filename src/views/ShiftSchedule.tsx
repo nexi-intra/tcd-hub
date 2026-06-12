@@ -387,14 +387,18 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     const year = startDate.getFullYear()
     
     const daysToAdd: string[] = []
-    let addedCount = 0
     let skippedCount = 0
     
-    for (let day = 1; day <= getDaysInMonth(startDate.getMonth(), year); day++) {
-      const date = new Date(year, startDate.getMonth(), day)
-      const dateString = `${year}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const weekStart = new Date(startDate)
+    weekStart.setDate(startDate.getDate() - startDate.getDay() + (startDate.getDay() === 0 ? -6 : 1))
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart)
+      date.setDate(weekStart.getDate() + i)
       
       if (getWeekNumber(date) === weekNumber && date.getFullYear() === year) {
+        const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+        
         if (!isDateLocked(dateString)) {
           const existing = (assignments || []).find(
             a => a.employeeId === weekFillEmployee && a.date === dateString
