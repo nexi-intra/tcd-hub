@@ -300,7 +300,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-8 mt-12"
         >
           <Button
             onClick={onNavigateBack}
