@@ -135,7 +135,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
       setIsDialogOpen(false)
 
       try {
-        const promptText = `Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
+        const prompt = window.spark.llmPrompt`Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
 
 Employee: ${userEmail}
 Start Date: ${startDateFormatted}
@@ -156,7 +156,7 @@ Return ONLY a JSON object with this exact structure:
   "body": "email body here with proper line breaks"
 }`
 
-        const emailContentJson = await window.spark.llm(promptText, "gpt-4o-mini", true)
+        const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
         const emailContent = JSON.parse(emailContentJson)
         
         const emails = await window.spark.kv.get<Array<{
@@ -219,7 +219,8 @@ Return ONLY a JSON object with this exact structure:
       year: 'numeric'
     })
 
-    const promptText = `Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
+    try {
+      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
 
 Vacation Request Details:
 Start Date: ${startDateFormatted}
@@ -241,8 +242,7 @@ Return ONLY a JSON object with this exact structure:
   "body": "email body here with proper line breaks"
 }`
 
-    try {
-      const emailContentJson = await window.spark.llm(promptText, "gpt-4o-mini", true)
+      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
       const emailContent = JSON.parse(emailContentJson)
       
       const emails = await window.spark.kv.get<Array<{
@@ -309,7 +309,8 @@ Return ONLY a JSON object with this exact structure:
       year: 'numeric'
     })
 
-    const promptText = `Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
+    try {
+      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
 
 Vacation Request Details:
 Start Date: ${startDateFormatted}
@@ -332,8 +333,7 @@ Return ONLY a JSON object with this exact structure:
   "body": "email body here with proper line breaks"
 }`
 
-    try {
-      const emailContentJson = await window.spark.llm(promptText, "gpt-4o-mini", true)
+      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
       const emailContent = JSON.parse(emailContentJson)
       
       const emails = await window.spark.kv.get<Array<{
@@ -692,11 +692,7 @@ Return ONLY a JSON object with this exact structure:
                     </div>
                     <Button
                       type="button"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        handleAddVacation()
-                      }}
+                      onClick={handleAddVacation}
                       className="w-full bg-gradient-to-r from-primary via-secondary to-accent text-white"
                     >
                       Send Anmodning
