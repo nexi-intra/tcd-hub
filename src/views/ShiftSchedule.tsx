@@ -131,6 +131,17 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   }, [userEmail])
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onNavigateBack()
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onNavigateBack])
+
+  useEffect(() => {
     if (employees && employees.length > 0) {
       const needsMigration = employees.some((emp: any) => 'email' in emp)
       if (needsMigration) {
