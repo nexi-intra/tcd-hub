@@ -280,7 +280,6 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
                       </Avatar>
                       <div className="flex-1 overflow-hidden">
                         <div className="text-sm font-medium truncate">{user.name}</div>
-                        <div className="text-xs text-muted-foreground truncate">{user.email}</div>
                       </div>
                     </button>
                   ))}
