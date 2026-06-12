@@ -324,11 +324,10 @@ Return ONLY a JSON object with this exact structure:
 
   const uniqueUsers = Array.from(new Set((vacations || []).map(v => v.userEmail)))
 
-  const myVacations = (vacations || []).filter(v => v.userEmail === userEmail)
+  const myVacations = (vacations || []).filter(v => v.userEmail === userEmail && v.status !== 'rejected')
   const pendingRequests = (vacations || []).filter(v => v.status === 'pending' && v.userEmail !== userEmail)
   const myPendingRequests = myVacations.filter(v => v.status === 'pending')
   const myApprovedVacations = myVacations.filter(v => v.status === 'approved')
-  const myRejectedVacations = myVacations.filter(v => v.status === 'rejected')
 
   const handleJumpToToday = () => {
     const today = new Date()
@@ -636,11 +635,10 @@ Return ONLY a JSON object with this exact structure:
 
           <Card className="p-6 border-2">
             <Tabs defaultValue="all" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="all">Alle ({myVacations.length})</TabsTrigger>
                 <TabsTrigger value="pending">Afventer ({myPendingRequests.length})</TabsTrigger>
                 <TabsTrigger value="approved">Godkendt ({myApprovedVacations.length})</TabsTrigger>
-                <TabsTrigger value="rejected">Afvist ({myRejectedVacations.length})</TabsTrigger>
               </TabsList>
               <TabsContent value="all" className="mt-4">
                 <h3 className="text-xl font-bold mb-4">Mine Ferier</h3>
@@ -679,20 +677,6 @@ Return ONLY a JSON object with this exact structure:
                 ) : (
                   <div className="space-y-3">
                     {myApprovedVacations
-                      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-                      .map((vacation) => renderVacationCard(vacation))}
-                  </div>
-                )}
-              </TabsContent>
-              <TabsContent value="rejected" className="mt-4">
-                <h3 className="text-xl font-bold mb-4">Afviste Anmodninger</h3>
-                {myRejectedVacations.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    Du har ingen afviste anmodninger
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {myRejectedVacations
                       .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
                       .map((vacation) => renderVacationCard(vacation))}
                   </div>
