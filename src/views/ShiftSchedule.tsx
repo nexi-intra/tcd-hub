@@ -440,7 +440,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
 
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
-                  Medarbejderne nedenfor vises i vagtplanen. {isAdmin ? 'Som admin kan du tildele vagter i Vagtplan-fanen.' : 'Kun admin kan tildele vagter.'}
+                  Medarbejderne nedenfor vises i vagtplanen. Alle brugere oprettes via Auth-systemet.
                 </p>
               </div>
 
@@ -489,22 +489,20 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   <Badge variant="outline" className="text-sm">
                     {(roles || []).length} {(roles || []).length === 1 ? 'Opgave' : 'Opgaver'}
                   </Badge>
-                  {isAdmin && (
-                    <Button
-                      onClick={() => setShowRoleDialog(true)}
-                      size="sm"
-                      className="gap-2 bg-gradient-to-r from-primary to-secondary"
-                    >
-                      <Plus size={16} />
-                      Tilføj Opgave
-                    </Button>
-                  )}
+                  <Button
+                    onClick={() => setShowRoleDialog(true)}
+                    size="sm"
+                    className="gap-2 bg-gradient-to-r from-primary to-secondary"
+                  >
+                    <Plus size={16} />
+                    Tilføj Opgave
+                  </Button>
                 </div>
               </div>
 
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
-                  Disse opgaver/roller kan tildeles medarbejdere i vagtplanen. {!isAdmin && 'Kun admin kan tilføje og slette opgaver.'}
+                  Disse opgaver/roller kan tildeles medarbejdere i vagtplanen. Alle kan tilføje og slette opgaver.
                 </p>
               </div>
 
@@ -512,15 +510,13 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 <div className="text-center py-12">
                   <Tag size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
                   <p className="text-muted-foreground mb-4">Ingen opgaver endnu</p>
-                  {isAdmin && (
-                    <Button
-                      onClick={() => setShowRoleDialog(true)}
-                      className="gap-2"
-                    >
-                      <Plus size={20} />
-                      Tilføj Din Første Opgave
-                    </Button>
-                  )}
+                  <Button
+                    onClick={() => setShowRoleDialog(true)}
+                    className="gap-2"
+                  >
+                    <Plus size={20} />
+                    Tilføj Din Første Opgave
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -558,36 +554,34 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                           Eksempel
                         </div>
                       </div>
-                      {isAdmin && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
+                          >
+                            <Trash size={20} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Slet opgave?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Er du sikker på at du vil slette <strong>{role.name}</strong>? Alle vagter tildelt til denne opgave vil også blive fjernet. Denne handling kan ikke fortrydes.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuller</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteRole(role.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
-                              <Trash size={20} />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Slet opgave?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Er du sikker på at du vil slette <strong>{role.name}</strong>? Alle vagter tildelt til denne opgave vil også blive fjernet. Denne handling kan ikke fortrydes.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuller</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteRole(role.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Slet opgave
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
+                              Slet opgave
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </motion.div>
                   ))}
                 </div>
