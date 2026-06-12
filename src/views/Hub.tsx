@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, ChartBar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -98,15 +98,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       icon: <Users size={48} weight="duotone" />,
       color: 'oklch(0.55 0.24 192)',
       gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
-      available: false,
-    },
-    {
-      id: 'analytics',
-      title: 'Analytics',
-      description: 'Rapporter og performance metrics',
-      icon: <ChartBar size={48} weight="duotone" />,
-      color: 'oklch(0.70 0.18 90)',
-      gradient: 'from-[oklch(0.70_0.18_90)] via-[oklch(0.62_0.20_150)] to-[oklch(0.70_0.18_90)]',
       available: false,
     },
     {
