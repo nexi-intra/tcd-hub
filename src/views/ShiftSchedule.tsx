@@ -310,6 +310,26 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     return new Date(year, month, 1).getDay()
   }
 
+  const getWeekNumber = (date: Date) => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    const dayNum = d.getUTCDay() || 7
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+  }
+
+  const isCurrentWeek = (date: Date) => {
+    const today = new Date()
+    return getWeekNumber(date) === getWeekNumber(today) && date.getFullYear() === today.getFullYear()
+  }
+
+  const isToday = (date: Date) => {
+    const today = new Date()
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear()
+  }
+
   const getAssignmentForEmployeeAndDate = (employeeId: string, dateString: string) => {
     return (assignments || []).find(a => a.employeeId === employeeId && a.date === dateString)
   }
@@ -334,25 +354,47 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
       const date = new Date(selectedYear, selectedMonth, day)
       const dateString = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       const isLocked = isDateLocked(dateString)
+      const currentWeek = isCurrentWeek(date)
+      const todayDate = isToday(date)
       
       const dayNames = ['Søn', 'Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør']
       const dayName = dayNames[date.getDay()]
+      const weekNumber = getWeekNumber(date)
 
       rows.push(
         <tr key={day} className={cn(
-          "border-b-2 border-border",
-          isLocked && "bg-muted/30"
+          "border-b-2 border-border transition-all",
+          isLocked && "bg-muted/30",
+          currentWeek && "bg-primary/10",
+          todayDate && "bg-accent/20 ring-2 ring-accent/50"
         )}>
           <td className={cn(
-            "sticky left-0 bg-card border-r-2 border-border px-4 py-6 font-semibold whitespace-nowrap z-10",
-            isWeekend(date) && "text-destructive"
+            "sticky left-0 bg-card border-r-2 border-border px-4 py-6 font-semibold whitespace-nowrap z-10 transition-all",
+            isWeekend(date) && "text-destructive",
+            currentWeek && "bg-primary/10",
+            todayDate && "bg-accent/20 ring-2 ring-accent/50"
           )}>
             <div className="flex items-center gap-3">
-              <span>{dayName}</span>
-              <span>{day}/{selectedMonth + 1}</span>
+              <Badge 
+                variant={currentWeek ? "default" : "outline"} 
+                className={cn(
+                  "text-[11px] px-2 py-0.5 font-bold",
+                  currentWeek && "bg-primary text-primary-foreground shadow-lg",
+                  todayDate && "ring-2 ring-accent"
+                )}
+              >
+                U{weekNumber}
+              </Badge>
+              <span className={cn(todayDate && "font-extrabold text-accent")}>{dayName}</span>
+              <span className={cn(todayDate && "font-extrabold text-accent")}>{day}/{selectedMonth + 1}</span>
               {isDanishHoliday(dateString) && (
                 <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5">
                   Helligdag
+                </Badge>
+              )}
+              {todayDate && (
+                <Badge className="text-[10px] px-1.5 py-0.5 bg-accent text-accent-foreground">
+                  I dag
                 </Badge>
               )}
             </div>
@@ -370,7 +412,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   "border-x-2 border-border p-4 text-center transition-all",
                   !isLocked && isAdmin && "cursor-pointer hover:bg-muted/70",
                   isLocked && "bg-muted/20",
-                  isEvenEmployee ? "bg-primary/5" : "bg-secondary/5"
+                  isEvenEmployee ? "bg-primary/5" : "bg-secondary/5",
+                  currentWeek && "bg-primary/15",
+                  todayDate && "bg-accent/25 ring-2 ring-accent/50"
                 )}
                 onClick={() => !assignment && handleCellClick(employee.id, dateString)}
               >
