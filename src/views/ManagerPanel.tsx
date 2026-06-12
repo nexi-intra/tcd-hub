@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +20,7 @@ interface User {
   email: string
   fullName: string
   role: UserRole
+  phone?: string
 }
 
 interface SickLeaveEntry {
@@ -62,6 +63,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [newName, setNewName] = useState('')
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [newUserName, setNewUserName] = useState('')
+  const [newUserEmail, setNewUserEmail] = useState('')
+  const [newUserPassword, setNewUserPassword] = useState('')
+  const [newUserPhone, setNewUserPhone] = useState('')
 
   useEffect(() => {
     const checkAccessAndLoad = async () => {
@@ -179,7 +185,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
     if (usersData && usersData[editingUser.email]) {
       usersData[editingUser.email].fullName = newName.trim()
       await window.spark.kv.set('users', usersData)
@@ -189,6 +195,58 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       setNewName('')
       toast.success('Navn opdateret')
     }
+  }
+
+  const handleCreateUser = async () => {
+    if (!newUserName.trim()) {
+      toast.error('Navn er påkrævet')
+      return
+    }
+    if (!newUserEmail.trim()) {
+      toast.error('Email er påkrævet')
+      return
+    }
+    if (!newUserPassword.trim()) {
+      toast.error('Kode er påkrævet')
+      return
+    }
+    if (!newUserPhone.trim()) {
+      toast.error('Telefon nummer er påkrævet')
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(newUserEmail.trim())) {
+      toast.error('Ugyldig email adresse')
+      return
+    }
+
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users') || {}
+    
+    if (usersData[newUserEmail.toLowerCase()]) {
+      toast.error('En bruger med denne email eksisterer allerede')
+      return
+    }
+
+    usersData[newUserEmail.toLowerCase()] = {
+      email: newUserEmail.toLowerCase(),
+      password: newUserPassword.trim(),
+      fullName: newUserName.trim(),
+      role: 'user',
+      isManager: false,
+      phone: newUserPhone.trim()
+    }
+
+    await window.spark.kv.set('users', usersData)
+    await loadUsers()
+    
+    setIsCreateDialogOpen(false)
+    setNewUserName('')
+    setNewUserEmail('')
+    setNewUserPassword('')
+    setNewUserPhone('')
+    
+    toast.success('Bruger oprettet succesfuldt')
   }
 
   const deleteSickLeave = async (id: string) => {
@@ -481,9 +539,18 @@ Return ONLY a JSON object with this exact structure:
                   <ShieldCheck size={28} className="text-primary" weight="duotone" />
                   <h2 className="text-2xl font-bold">Brugeroversigt & Rettigheder</h2>
                 </div>
-                <Badge variant="outline" className="text-sm">
-                  {users.length} {users.length === 1 ? 'Bruger' : 'Brugere'}
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-sm">
+                    {users.length} {users.length === 1 ? 'Bruger' : 'Brugere'}
+                  </Badge>
+                  <Button 
+                    onClick={() => setIsCreateDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Plus size={18} weight="bold" />
+                    Opret Bruger
+                  </Button>
+                </div>
               </div>
 
               {isLoading ? (
@@ -871,6 +938,76 @@ Return ONLY a JSON object with this exact structure:
             </Button>
             <Button onClick={handleSaveUserName}>
               Gem ændringer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Opret ny bruger</DialogTitle>
+            <DialogDescription>
+              Udfyld alle felter for at oprette en ny bruger i systemet
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-user-name">Fulde navn *</Label>
+              <Input
+                id="new-user-name"
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+                placeholder="f.eks. Jacob Remmer"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-email">Email *</Label>
+              <Input
+                id="new-user-email"
+                type="email"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                placeholder="f.eks. jacob@nexigroup.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-password">Kode *</Label>
+              <Input
+                id="new-user-password"
+                type="password"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                placeholder="Indtast adgangskode"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-phone">Telefon nummer *</Label>
+              <div className="flex gap-2">
+                <Phone size={20} className="text-muted-foreground mt-2.5" />
+                <Input
+                  id="new-user-phone"
+                  type="tel"
+                  value={newUserPhone}
+                  onChange={(e) => setNewUserPhone(e.target.value)}
+                  placeholder="f.eks. +45 12 34 56 78"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsCreateDialogOpen(false)
+              setNewUserName('')
+              setNewUserEmail('')
+              setNewUserPassword('')
+              setNewUserPhone('')
+            }}>
+              Annuller
+            </Button>
+            <Button onClick={handleCreateUser} className="gap-2">
+              <Plus size={18} weight="bold" />
+              Opret bruger
             </Button>
           </DialogFooter>
         </DialogContent>
