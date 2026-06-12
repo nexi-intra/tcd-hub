@@ -13,6 +13,7 @@ interface SickLeaveDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   userEmail: string
+  editEntry?: SickLeaveEntry | null
 }
 
 interface SickLeaveEntry {
@@ -25,8 +26,9 @@ interface SickLeaveEntry {
   submittedAt: string
 }
 
-export function SickLeaveDialog({ open, onOpenChange, userEmail }: SickLeaveDialogProps) {
+export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = null }: SickLeaveDialogProps) {
   const [reason, setReason] = useState('')
+  const [selectedDate, setSelectedDate] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [userName, setUserName] = useState('')
 
@@ -39,21 +41,55 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail }: SickLeaveDial
     }
     if (open) {
       fetchUserName()
+      
+      if (editEntry) {
+        setReason(editEntry.reason || '')
+        const date = new Date(editEntry.startDate)
+        setSelectedDate(format(date, 'yyyy-MM-dd'))
+      } else {
+        setReason('')
+        setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
+      }
     }
-  }, [open, userEmail])
+  }, [open, userEmail, editEntry])
 
   const handleSubmit = async () => {
+    if (!selectedDate) {
+      toast.error('Vælg en dato')
+      return
+    }
+
     setIsSubmitting(true)
-    const today = new Date()
+    const dateToUse = new Date(selectedDate)
     
     try {
       const sickLeaveEntries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
       
+      if (editEntry) {
+        const updatedEntries = sickLeaveEntries.map(entry => 
+          entry.id === editEntry.id
+            ? { ...entry, startDate: dateToUse.toISOString(), reason }
+            : entry
+        )
+        await window.spark.kv.set('sick-leave-entries', updatedEntries)
+
+        toast.success('Sygemelding opdateret', {
+          description: `Din sygemelding til ${format(dateToUse, 'd. MMMM yyyy', { locale: da })} er opdateret.`,
+          duration: 5000
+        })
+
+        setReason('')
+        setSelectedDate('')
+        onOpenChange(false)
+        setIsSubmitting(false)
+        return
+      }
+
       const newEntry: SickLeaveEntry = {
         id: `sick-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         userEmail,
         userName,
-        startDate: today.toISOString(),
+        startDate: dateToUse.toISOString(),
         reason,
         status: 'approved',
         submittedAt: new Date().toISOString(),
@@ -61,7 +97,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail }: SickLeaveDial
 
       await window.spark.kv.set('sick-leave-entries', [...sickLeaveEntries, newEntry])
 
-      const dateFormatted = format(today, 'd. MMMM yyyy', { locale: da })
+      const dateFormatted = format(dateToUse, 'd. MMMM yyyy', { locale: da })
       
       const emailSubject = `Sygemelding - ${userName}`
       const emailBody = `Hej Jacob,
@@ -97,18 +133,19 @@ Terminal Configuration & Dispatch Hub`
         }])
 
         toast.success('✅ Sygemelding registreret', {
-          description: `Din sygemelding fra ${format(today, 'd. MMMM yyyy', { locale: da })} er registreret.\n\n📧 Notifikation til Jacob Remmer (Jacob.remmer@nexigroup.com) er gemt og kan ses under "Email Notifikationer" i hubben.`,
+          description: `Din sygemelding fra ${format(dateToUse, 'd. MMMM yyyy', { locale: da })} er registreret.\n\n📧 Notifikation til Jacob Remmer (Jacob.remmer@nexigroup.com) er gemt og kan ses under "Email Notifikationer" i hubben.`,
           duration: 8000
         })
       } catch (emailError) {
         console.error('Error saving email notification:', emailError)
         toast.warning('Sygemelding registreret', {
-          description: `Din sygemelding fra ${format(today, 'd. MMMM yyyy', { locale: da })} er registreret, men email notifikationen kunne ikke gemmes.`,
+          description: `Din sygemelding fra ${format(dateToUse, 'd. MMMM yyyy', { locale: da })} er registreret, men email notifikationen kunne ikke gemmes.`,
           duration: 5000
         })
       }
 
       setReason('')
+      setSelectedDate('')
       onOpenChange(false)
     } catch (error) {
       console.error('Error submitting sick leave:', error)
@@ -134,9 +171,9 @@ Terminal Configuration & Dispatch Hub`
               <FirstAidKit size={24} weight="duotone" className="text-white" />
             </div>
             <div>
-              <DialogTitle className="text-2xl">Sygemelding</DialogTitle>
+              <DialogTitle className="text-2xl">{editEntry ? 'Rediger Sygemelding' : 'Sygemelding'}</DialogTitle>
               <DialogDescription>
-                Indsend din sygemelding med periode og eventuel begrundelse
+                {editEntry ? 'Rediger din sygemelding' : 'Indsend din sygemelding med dato og eventuel begrundelse'}
               </DialogDescription>
             </div>
           </div>
@@ -155,14 +192,16 @@ Terminal Configuration & Dispatch Hub`
             </div>
 
             <div className="grid gap-2">
-              <Label>Dato</Label>
+              <Label htmlFor="sickDate">Dato</Label>
               <Input
-                value={format(new Date(), 'd. MMMM yyyy', { locale: da })}
-                disabled
-                className="bg-muted"
+                id="sickDate"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full"
               />
               <p className="text-sm text-muted-foreground">
-                Sygemeldingen registreres automatisk fra dags dato
+                {editEntry ? 'Rediger sygemeldingsdatoen' : 'Vælg datoen for din sygemelding'}
               </p>
             </div>
 
@@ -196,7 +235,7 @@ Terminal Configuration & Dispatch Hub`
             className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white gap-2"
           >
             <FirstAidKit size={18} weight="duotone" />
-            {isSubmitting ? 'Indsender...' : 'Indsend sygemelding'}
+            {isSubmitting ? (editEntry ? 'Opdaterer...' : 'Indsender...') : (editEntry ? 'Gem ændringer' : 'Indsend sygemelding')}
           </Button>
         </DialogFooter>
       </DialogContent>
