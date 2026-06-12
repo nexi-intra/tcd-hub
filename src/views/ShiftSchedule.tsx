@@ -76,7 +76,7 @@ const allDanishHolidays = [...danishHolidays2024, ...danishHolidays2025, ...dani
 export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftScheduleProps) {
   const [roles, setRoles] = useKV<ShiftRole[]>('shift-roles', [])
   const [assignments, setAssignments] = useKV<ShiftAssignment[]>('shift-assignments', [])
-  const [employees] = useKV<TeamEmployee[]>('team-employees', [])
+  const [employees, setEmployees] = useState<TeamEmployee[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
   const [isAdmin, setIsAdmin] = useState(false)
   
@@ -133,6 +133,35 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     }
     checkAdmin()
   }, [userEmail])
+
+  useEffect(() => {
+    loadEmployees()
+  }, [])
+
+  const loadEmployees = async () => {
+    const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: string; phone?: string }>>('users')
+    const userSettings = await window.spark.kv.get<Record<string, { phoneNumber?: string }>>('user-settings') || {}
+    
+    if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
+      const userList: TeamEmployee[] = Object.values(usersData).map(user => {
+        const settingsPhone = userSettings[user.email]?.phoneNumber
+        const phone = user.phone || settingsPhone || ''
+        
+        return {
+          id: user.email,
+          name: user.fullName,
+          email: user.email,
+          phone,
+          role: user.role as any
+        }
+      })
+      setEmployees(userList)
+    } else if (Array.isArray(usersData)) {
+      setEmployees(usersData as TeamEmployee[])
+    } else {
+      setEmployees([])
+    }
+  }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
