@@ -1120,9 +1120,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
                   {(() => {
+                    const today = new Date()
+                    const currentWeekNumber = getWeekNumber(today)
                     const currentYear = new Date().getFullYear()
-                    const years = [currentYear - 1, currentYear, currentYear + 1]
-                    const weeks: { label: string; value: string }[] = []
+                    const years = [currentYear, currentYear + 1]
+                    const weeks: { label: string; value: string; weekNumber: number; year: number }[] = []
                     
                     years.forEach(year => {
                       for (let week = 1; week <= 52; week++) {
@@ -1135,13 +1137,21 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                           const dateString = `${weekDate.getFullYear()}-${String(weekDate.getMonth() + 1).padStart(2, '0')}-${String(weekDate.getDate()).padStart(2, '0')}`
                           weeks.push({
                             label: `Uge ${week} - ${year}`,
-                            value: dateString
+                            value: dateString,
+                            weekNumber: week,
+                            year: year
                           })
                         }
                       }
                     })
                     
-                    return weeks.map((week) => (
+                    const filteredWeeks = weeks.filter(week => {
+                      if (week.year > currentYear) return true
+                      if (week.year === currentYear && week.weekNumber >= currentWeekNumber) return true
+                      return false
+                    })
+                    
+                    return filteredWeeks.map((week) => (
                       <SelectItem key={week.value} value={week.value}>
                         {week.label}
                       </SelectItem>
