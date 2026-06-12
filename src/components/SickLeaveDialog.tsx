@@ -114,14 +114,15 @@ Terminal Configuration & Dispatch Hub`
           read: false
         }])
 
-        toast.success('Sygemelding registreret', {
-          description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret. Email notifikation er sendt til Jacob Remmer.`,
-          duration: 5000
+        toast.success('✅ Sygemelding registreret', {
+          description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret.\n\n📧 Notifikation til Jacob Remmer (Jacob.remmer@nexigroup.com) er gemt og kan ses under "Email Notifikationer" i hubben.`,
+          duration: 8000
         })
       } catch (emailError) {
         console.error('Error saving email notification:', emailError)
-        toast.success('Sygemelding registreret', {
-          description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret.`
+        toast.warning('Sygemelding registreret', {
+          description: `Din sygemelding fra ${format(startDate, 'd. MMM', { locale: da })} til ${format(endDate, 'd. MMM yyyy', { locale: da })} er registreret, men email notifikationen kunne ikke gemmes.`,
+          duration: 5000
         })
       }
 
