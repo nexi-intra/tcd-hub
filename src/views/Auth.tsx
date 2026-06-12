@@ -43,7 +43,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
         return
       }
 
-      const usersData = (await spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
+      const usersData = (await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
       
       if (usersData[email]) {
         toast.error('En bruger med denne email eksisterer allerede')
@@ -53,15 +53,15 @@ export function Auth({ onAuthenticated }: AuthProps) {
 
       const userId = `user_${Date.now()}`
       const role = email.toLowerCase() === 'jacob.remmer@nexigroup.com' ? 'admin' : 'user'
-      usersData[email] = { email, password, fullName, isManager: role === 'admin', role }
-      await spark.kv.set('users', usersData)
+      usersData[email] = { email, password, fullName, isManager: role === 'admin' }
+      await window.spark.kv.set('users', usersData)
       
       toast.success('Konto oprettet!')
       setTimeout(() => {
         onAuthenticated(userId, email)
       }, 300)
     } else {
-      const usersData = (await spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
+      const usersData = (await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
       
       const user = usersData[email]
       if (!user || user.password !== password) {
