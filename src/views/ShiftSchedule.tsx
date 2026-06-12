@@ -15,6 +15,9 @@ import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+import { format } from 'date-fns'
+import { da } from 'date-fns/locale'
 
 interface ShiftRole {
   id: string
@@ -1108,12 +1111,40 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             </div>
             <div>
               <Label htmlFor="week-fill-date">Vælg en dato i ugen</Label>
-              <Input
-                id="week-fill-date"
-                type="date"
-                value={weekFillStartDate}
-                onChange={(e) => setWeekFillStartDate(e.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="week-fill-date"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !weekFillStartDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon size={16} className="mr-2" />
+                    {weekFillStartDate ? (
+                      format(new Date(weekFillStartDate), "PPP", { locale: da })
+                    ) : (
+                      <span>Vælg dato</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={weekFillStartDate ? new Date(weekFillStartDate) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        const year = date.getFullYear()
+                        const month = String(date.getMonth() + 1).padStart(2, '0')
+                        const day = String(date.getDate()).padStart(2, '0')
+                        setWeekFillStartDate(`${year}-${month}-${day}`)
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label htmlFor="week-fill-employee">Medarbejder</Label>

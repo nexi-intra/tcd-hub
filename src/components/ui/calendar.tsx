@@ -15,6 +15,7 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      showWeekNumber
       className={cn("p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row gap-2",
@@ -32,6 +33,8 @@ function Calendar({
         head_row: "flex",
         head_cell:
           "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
+        week_number: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem] flex items-center justify-center",
+        week_number_header: "text-muted-foreground rounded-md w-8 font-bold text-[0.8rem]",
         row: "flex w-full mt-2",
         cell: cn(
           "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-range-end)]:rounded-r-md",
