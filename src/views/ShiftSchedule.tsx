@@ -934,7 +934,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                         return (
                           <th
                             key={employee.id}
-                            className="sticky top-0 bg-card border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold z-10 shadow-[0_2px_4px_rgba(0,0,0,0.1)]"
+                            className="sticky top-0 bg-card border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold z-20 shadow-[0_2px_4px_rgba(0,0,0,0.1)]"
                             style={{ 
                               width: `${100 / ((employees || []).length + 1)}%`
                             }}
