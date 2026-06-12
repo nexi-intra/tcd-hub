@@ -382,22 +382,24 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     const employee = (employees || []).find(e => e.id === weekFillEmployee)
     if (!employee) return
 
-    const startDate = new Date(weekFillStartDate)
-    const weekNumber = getWeekNumber(startDate)
-    const year = startDate.getFullYear()
+    const selectedDate = new Date(weekFillStartDate + 'T00:00:00')
+    const targetWeekNumber = getWeekNumber(selectedDate)
+    const targetYear = selectedDate.getFullYear()
     
     const daysToAdd: string[] = []
     let skippedCount = 0
     
-    const weekStart = new Date(startDate)
-    weekStart.setDate(startDate.getDate() - startDate.getDay() + (startDate.getDay() === 0 ? -6 : 1))
+    const dayOfWeek = selectedDate.getDay()
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const monday = new Date(selectedDate)
+    monday.setDate(selectedDate.getDate() - daysFromMonday)
     
     for (let i = 0; i < 7; i++) {
-      const date = new Date(weekStart)
-      date.setDate(weekStart.getDate() + i)
+      const currentDate = new Date(monday)
+      currentDate.setDate(monday.getDate() + i)
       
-      if (getWeekNumber(date) === weekNumber && date.getFullYear() === year) {
-        const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      if (getWeekNumber(currentDate) === targetWeekNumber && currentDate.getFullYear() === targetYear) {
+        const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`
         
         if (!isDateLocked(dateString)) {
           const existing = (assignments || []).find(
