@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple, ChatText, Phone } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple, ChatText, Phone, FirstAidKit } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -36,6 +36,16 @@ interface ShiftAssignment {
   comment?: string
 }
 
+interface SickLeaveEntry {
+  id: string
+  userEmail: string
+  userName: string
+  startDate: string
+  reason?: string
+  status: 'pending' | 'approved' | 'rejected'
+  submittedAt: string
+}
+
 interface ShiftScheduleProps {
   onNavigateBack: () => void
   onLogout: () => void
@@ -66,6 +76,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const [roles, setRoles] = useKV<ShiftRole[]>('shift-roles', [])
   const [assignments, setAssignments] = useKV<ShiftAssignment[]>('shift-assignments', [])
   const [employees] = useKV<TeamEmployee[]>('team-employees', [])
+  const [sickLeaveEntries, setSickLeaveEntries] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
   const [isAdmin, setIsAdmin] = useState(false)
   
   const [showRoleDialog, setShowRoleDialog] = useState(false)
@@ -434,6 +445,23 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     toast.success('Kommentar slettet')
   }
 
+  const getEmployeeSickLeaveForDate = (employeeEmail: string, dateString: string) => {
+    if (!sickLeaveEntries || sickLeaveEntries.length === 0) return null
+    
+    const targetDate = new Date(dateString)
+    targetDate.setHours(0, 0, 0, 0)
+    
+    return (sickLeaveEntries || []).find(entry => {
+      if (entry.userEmail !== employeeEmail) return false
+      if (entry.status !== 'approved') return false
+      
+      const sickDate = new Date(entry.startDate)
+      sickDate.setHours(0, 0, 0, 0)
+      
+      return sickDate.getTime() === targetDate.getTime()
+    })
+  }
+
 
 
   const renderScheduleTable = () => {
@@ -496,6 +524,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           {(employees || []).map((employee, employeeIndex) => {
             const cellAssignments = getAssignmentsForEmployeeAndDate(employee.id, dateString)
             const cellComment = getCellComment(employee.id, dateString)
+            const sickLeave = getEmployeeSickLeaveForDate(employee.email, dateString)
             
             const isEvenEmployee = employeeIndex % 2 === 0
 
@@ -505,12 +534,25 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 className={cn(
                   "border-x-2 border-border p-2 text-center transition-all",
                   isLocked && "bg-muted/20",
-                  isEvenEmployee ? "bg-primary/5" : "bg-secondary/5",
-                  currentWeek && "bg-primary/15",
-                  todayDate && "bg-accent/25 ring-2 ring-accent/50"
+                  sickLeave && "bg-red-50",
+                  !sickLeave && (isEvenEmployee ? "bg-primary/5" : "bg-secondary/5"),
+                  currentWeek && !sickLeave && "bg-primary/15",
+                  todayDate && !sickLeave && "bg-accent/25 ring-2 ring-accent/50",
+                  todayDate && sickLeave && "bg-red-100 ring-2 ring-red-300"
                 )}
               >
                 <div className="space-y-1.5">
+                  {sickLeave && (
+                    <div className="relative group">
+                      <div
+                        className="px-2 py-1.5 rounded-md text-xs font-bold bg-red-100 text-red-800 border-2 border-red-400 flex items-center gap-1.5 cursor-pointer"
+                        title={sickLeave.reason || 'Sygemeldt'}
+                      >
+                        <FirstAidKit size={16} weight="fill" />
+                        <span className="truncate flex-1 text-left">Syg</span>
+                      </div>
+                    </div>
+                  )}
                   {cellComment && (
                     <div className="relative group">
                       <div
