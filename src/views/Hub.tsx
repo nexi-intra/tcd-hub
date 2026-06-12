@@ -288,10 +288,10 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                   }}
                 />
                 
-                <div className="relative p-8">
+                <div className="relative p-10">
                   <motion.div 
                     className={cn(
-                      "mb-6 inline-flex items-center justify-center rounded-2xl p-4 shadow-lg transition-all duration-300",
+                      "mb-8 inline-flex items-center justify-center rounded-2xl p-4 shadow-lg transition-all duration-300",
                       module.available 
                         ? `bg-gradient-to-br ${module.gradient} group-hover:scale-110 group-hover:shadow-xl`
                         : "bg-muted"
@@ -301,11 +301,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     {module.icon}
                   </motion.div>
 
-                  <h3 className="text-2xl font-bold mb-3 text-foreground">
+                  <h3 className="text-2xl font-bold mb-4 text-foreground">
                     {module.title}
                   </h3>
                   
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-6">
                     {module.description}
                   </p>
 
