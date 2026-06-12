@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 interface ShiftRole {
   id: string
@@ -334,16 +335,34 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     return (assignments || []).find(a => a.employeeId === employeeId && a.date === dateString)
   }
 
-  const handleCellClick = (employeeId: string, dateString: string) => {
-    if (!isAdmin) return
+  const handleAddTaskToCell = (employeeId: string, dateString: string, roleId: string) => {
     if (isDateLocked(dateString)) {
       toast.error('Kan ikke tildele vagter på weekender eller helligdage')
       return
     }
-    
-    setSelectedEmployee(employeeId)
-    setSelectedDate(dateString)
-    setShowAssignmentDialog(true)
+
+    const employee = (employees || []).find(e => e.id === employeeId)
+    if (!employee) return
+
+    const existing = (assignments || []).find(
+      a => a.employeeId === employeeId && a.date === dateString
+    )
+
+    if (existing) {
+      toast.error('Medarbejderen har allerede en vagt denne dag')
+      return
+    }
+
+    const newAssignment: ShiftAssignment = {
+      id: Date.now().toString(),
+      employeeId: employeeId,
+      employeeName: employee.name,
+      roleId: roleId,
+      date: dateString
+    }
+
+    setAssignments((current) => [...(current || []), newAssignment])
+    toast.success('Opgave tilføjet')
   }
 
   const renderScheduleTable = () => {
@@ -410,13 +429,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 key={employee.id}
                 className={cn(
                   "border-x-2 border-border p-4 text-center transition-all",
-                  !isLocked && isAdmin && "cursor-pointer hover:bg-muted/70",
                   isLocked && "bg-muted/20",
                   isEvenEmployee ? "bg-primary/5" : "bg-secondary/5",
                   currentWeek && "bg-primary/15",
                   todayDate && "bg-accent/25 ring-2 ring-accent/50"
                 )}
-                onClick={() => !assignment && handleCellClick(employee.id, dateString)}
               >
                 {assignment && role ? (
                   <div className="group relative">
@@ -430,24 +447,50 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                     >
                       {role.name}
                     </div>
-                    {isAdmin && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteAssignment(assignment.id)
-                        }}
-                      >
-                        <Trash size={14} />
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteAssignment(assignment.id)
+                      }}
+                    >
+                      <Trash size={14} />
+                    </Button>
                   </div>
                 ) : (
-                  <div className="text-muted-foreground/40 text-xs">
-                    {!isLocked && isAdmin ? '−' : ''}
-                  </div>
+                  !isLocked && (roles || []).length > 0 ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="w-full h-full min-h-[40px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center">
+                          <Plus size={20} />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-2" align="center">
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold mb-2 px-2">Vælg Opgave</p>
+                          {(roles || []).map(r => (
+                            <button
+                              key={r.id}
+                              onClick={() => handleAddTaskToCell(employee.id, dateString, r.id)}
+                              className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-all flex items-center gap-3"
+                            >
+                              <div
+                                className="w-4 h-4 rounded-full"
+                                style={{ backgroundColor: r.color }}
+                              />
+                              <span className="text-sm font-medium">{r.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <div className="text-muted-foreground/40 text-xs">
+                      {!isLocked ? '−' : ''}
+                    </div>
+                  )
                 )}
               </td>
             )
