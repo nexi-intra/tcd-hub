@@ -222,13 +222,43 @@ Return ONLY a JSON object with this exact structure:
       const emailContentJson = await window.spark.llm(promptText, "gpt-4o-mini", true)
       const emailContent = JSON.parse(emailContentJson)
       
-      console.log('Vacation approval notification email:', {
+      const emails = await window.spark.kv.get<Array<{
+        id: string
+        from: string
+        to: string
+        subject: string
+        message: string
+        timestamp: number
+        read: boolean
+      }>>('emails') || []
+
+      const newEmail = {
+        id: Date.now().toString() + '-approval',
+        from: userEmail,
         to: vacation.userEmail,
         subject: emailContent.subject,
-        body: emailContent.body
-      })
+        message: emailContent.body,
+        timestamp: Date.now(),
+        read: false
+      }
+
+      await window.spark.kv.set('emails', [...emails, newEmail])
+
+      const notification = {
+        id: Date.now().toString(),
+        type: 'email' as const,
+        message: `Din ferieansøgning blev godkendt!`,
+        timestamp: Date.now(),
+        read: false,
+        from: userEmail,
+        emailId: newEmail.id
+      }
+
+      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
+      await window.spark.kv.set('email-notifications', [...notifications, notification])
     } catch (emailError) {
-      console.error('Error generating vacation approval email:', emailError)
+      console.error('Error sending vacation approval email:', emailError)
+      toast.error('Kunne ikke sende email notifikation')
     }
   }
 
@@ -283,13 +313,43 @@ Return ONLY a JSON object with this exact structure:
       const emailContentJson = await window.spark.llm(promptText, "gpt-4o-mini", true)
       const emailContent = JSON.parse(emailContentJson)
       
-      console.log('Vacation rejection notification email:', {
+      const emails = await window.spark.kv.get<Array<{
+        id: string
+        from: string
+        to: string
+        subject: string
+        message: string
+        timestamp: number
+        read: boolean
+      }>>('emails') || []
+
+      const newEmail = {
+        id: Date.now().toString() + '-rejection',
+        from: userEmail,
         to: vacation.userEmail,
         subject: emailContent.subject,
-        body: emailContent.body
-      })
+        message: emailContent.body,
+        timestamp: Date.now(),
+        read: false
+      }
+
+      await window.spark.kv.set('emails', [...emails, newEmail])
+
+      const notification = {
+        id: Date.now().toString(),
+        type: 'email' as const,
+        message: `Din ferieansøgning blev afvist`,
+        timestamp: Date.now(),
+        read: false,
+        from: userEmail,
+        emailId: newEmail.id
+      }
+
+      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
+      await window.spark.kv.set('email-notifications', [...notifications, notification])
     } catch (emailError) {
-      console.error('Error generating vacation rejection email:', emailError)
+      console.error('Error sending vacation rejection email:', emailError)
+      toast.error('Kunne ikke sende email notifikation')
     }
   }
 
