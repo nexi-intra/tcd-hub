@@ -8,6 +8,7 @@ import { UserProfile } from '@/components/UserProfile'
 import { SickLeaveDialog } from '@/components/SickLeaveDialog'
 import { EmailNotifications } from '@/components/EmailNotifications'
 import { cn } from '@/lib/utils'
+import { hasManagerAccess } from '@/lib/userRoles'
 
 interface HubModule {
   id: string
@@ -33,12 +34,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   
   useEffect(() => {
     const checkUserRole = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role?: string; isManager?: boolean }>>('users')
-      if (usersData && usersData[userEmail]) {
-        const user = usersData[userEmail]
-        const hasAdminRights = user.role === 'admin' || user.role === 'manager' || user.isManager
-        setIsAdminOrManager(hasAdminRights || false)
-      }
+      const access = await hasManagerAccess(userEmail)
+      setIsAdminOrManager(access)
     }
     checkUserRole()
   }, [userEmail])
