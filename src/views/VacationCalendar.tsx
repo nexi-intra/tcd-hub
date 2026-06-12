@@ -74,8 +74,8 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
     return day === 0 || day === 6
   }
 
-  const handleAddVacation = async (e?: React.MouseEvent) => {
-    e?.preventDefault()
+  const handleAddVacation = async () => {
+    console.log('handleAddVacation called', { startDate, endDate, notes })
     
     try {
       if (!startDate || !endDate) {
@@ -115,6 +115,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
         status: 'pending',
       }
 
+      console.log('Creating new vacation entry:', newVacation)
       setVacations((current) => [...(current || []), newVacation])
       
       const startDateFormatted = new Date(startDate).toLocaleDateString('da-DK', {
@@ -182,6 +183,7 @@ Return ONLY a JSON object with this exact structure:
         }
 
         await window.spark.kv.set('emails', [...emails, newEmail])
+        console.log('Email notification sent successfully')
       } catch (emailError) {
         console.error('Error generating vacation request email:', emailError)
       }
@@ -693,7 +695,11 @@ Return ONLY a JSON object with this exact structure:
                     </div>
                     <Button
                       type="button"
-                      onClick={handleAddVacation}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleAddVacation()
+                      }}
                       className="w-full bg-gradient-to-r from-primary via-secondary to-accent text-white"
                     >
                       Send Anmodning
