@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, ChartBar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope } from '@phosphor-icons/react'
+import { Books, Users, Calendar, ChartBar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -74,6 +74,15 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       available: false,
     },
     {
+      id: 'shifts',
+      title: 'Vagtplan',
+      description: 'Administrer vagter og roller for teamet',
+      icon: <ClipboardText size={48} weight="duotone" />,
+      color: 'oklch(0.60 0.22 220)',
+      gradient: 'from-[oklch(0.60_0.22_220)] via-[oklch(0.65_0.26_340)] to-[oklch(0.60_0.22_220)]',
+      available: true,
+    },
+    {
       id: 'calendar',
       title: 'Feriekalender',
       description: 'Planlæg og koordiner teamets ferieperioder',
@@ -87,8 +96,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: 'Analytics',
       description: 'Rapporter og performance metrics',
       icon: <ChartBar size={48} weight="duotone" />,
-      color: 'oklch(0.60 0.22 220)',
-      gradient: 'from-[oklch(0.60_0.22_220)] via-[oklch(0.65_0.26_340)] to-[oklch(0.60_0.22_220)]',
+      color: 'oklch(0.70 0.18 90)',
+      gradient: 'from-[oklch(0.70_0.18_90)] via-[oklch(0.62_0.20_150)] to-[oklch(0.70_0.18_90)]',
       available: false,
     },
     {
@@ -105,8 +114,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: 'Projekter',
       description: 'Projektadministration og opgaver',
       icon: <Folder size={48} weight="duotone" />,
-      color: 'oklch(0.70 0.18 90)',
-      gradient: 'from-[oklch(0.70_0.18_90)] via-[oklch(0.62_0.20_150)] to-[oklch(0.70_0.18_90)]',
+      color: 'oklch(0.75 0.15 60)',
+      gradient: 'from-[oklch(0.75_0.15_60)] via-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]',
       available: false,
     },
     {

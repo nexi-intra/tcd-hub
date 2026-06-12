@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { Hub } from '@/views/Hub'
 import { GuideLibrary } from '@/views/GuideLibrary'
 import { VacationCalendar } from '@/views/VacationCalendar'
+import { ShiftSchedule } from '@/views/ShiftSchedule'
 import { AdminPanel } from '@/views/AdminPanel'
 import { Auth } from '@/views/Auth'
 import { useKV } from '@github/spark/hooks'
 
-type View = 'hub' | 'guides' | 'calendar' | 'admin'
+type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin'
 
 interface UserSession {
   userId: string
@@ -36,6 +37,8 @@ function App() {
       setCurrentView('guides')
     } else if (moduleId === 'calendar') {
       setCurrentView('calendar')
+    } else if (moduleId === 'shifts') {
+      setCurrentView('shifts')
     } else if (moduleId === 'admin') {
       setCurrentView('admin')
     }
@@ -58,6 +61,7 @@ function App() {
       {currentView === 'hub' && <Hub onNavigate={handleNavigate} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'calendar' && <VacationCalendar onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
+      {currentView === 'shifts' && <ShiftSchedule onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'admin' && <AdminPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
     </>
   )
