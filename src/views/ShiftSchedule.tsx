@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple, CalendarPlus } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -70,8 +70,13 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const [showRoleDialog, setShowRoleDialog] = useState(false)
   const [showAssignmentDialog, setShowAssignmentDialog] = useState(false)
   const [showEmployeeDialog, setShowEmployeeDialog] = useState(false)
+  const [showWeekFillDialog, setShowWeekFillDialog] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<ShiftEmployee | null>(null)
   const [editingRole, setEditingRole] = useState<ShiftRole | null>(null)
+  
+  const [weekFillEmployee, setWeekFillEmployee] = useState('')
+  const [weekFillRole, setWeekFillRole] = useState('')
+  const [weekFillStartDate, setWeekFillStartDate] = useState('')
   
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleColor, setNewRoleColor] = useState('#8b5cf6')
@@ -365,6 +370,71 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     toast.success('Opgave tilføjet')
   }
 
+  const handleFillWeek = () => {
+    if (!weekFillEmployee || !weekFillRole || !weekFillStartDate) {
+      toast.error('Udfyld alle felter')
+      return
+    }
+
+    const employee = (employees || []).find(e => e.id === weekFillEmployee)
+    if (!employee) return
+
+    const startDate = new Date(weekFillStartDate)
+    const weekNumber = getWeekNumber(startDate)
+    const year = startDate.getFullYear()
+    
+    const daysToAdd: string[] = []
+    let addedCount = 0
+    let skippedCount = 0
+    
+    for (let day = 1; day <= getDaysInMonth(startDate.getMonth(), year); day++) {
+      const date = new Date(year, startDate.getMonth(), day)
+      const dateString = `${year}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      
+      if (getWeekNumber(date) === weekNumber && date.getFullYear() === year) {
+        if (!isDateLocked(dateString)) {
+          const existing = (assignments || []).find(
+            a => a.employeeId === weekFillEmployee && a.date === dateString
+          )
+          
+          if (!existing) {
+            daysToAdd.push(dateString)
+          } else {
+            skippedCount++
+          }
+        } else {
+          skippedCount++
+        }
+      }
+    }
+
+    if (daysToAdd.length === 0) {
+      toast.error('Ingen tilgængelige dage i ugen at udfylde')
+      return
+    }
+
+    const newAssignments: ShiftAssignment[] = daysToAdd.map((dateString, index) => ({
+      id: (Date.now() + index).toString(),
+      employeeId: weekFillEmployee,
+      employeeName: employee.name,
+      roleId: weekFillRole,
+      date: dateString
+    }))
+
+    setAssignments((current) => [...(current || []), ...newAssignments])
+    
+    setWeekFillEmployee('')
+    setWeekFillRole('')
+    setWeekFillStartDate('')
+    setShowWeekFillDialog(false)
+    
+    if (skippedCount > 0) {
+      toast.success(`${newAssignments.length} vagter tilføjet (${skippedCount} dage sprunget over)`)
+    } else {
+      toast.success(`${newAssignments.length} vagter tilføjet for hele ugen`)
+    }
+  }
+
   const renderScheduleTable = () => {
     const daysInMonth = getDaysInMonth(selectedMonth, selectedYear)
     const rows = []
@@ -555,8 +625,16 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </TabsList>
 
           <TabsContent value="schedule" className="space-y-6">
-            {isAdmin && (
-              <div className="flex justify-end">
+            <div className="flex justify-end gap-3">
+              <Button
+                onClick={() => setShowWeekFillDialog(true)}
+                variant="outline"
+                className="gap-2"
+              >
+                <CalendarPlus size={20} />
+                Udfyld Uge
+              </Button>
+              {isAdmin && (
                 <Button
                   onClick={() => setShowAssignmentDialog(true)}
                   className="gap-2 bg-gradient-to-r from-primary to-secondary"
@@ -564,8 +642,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   <Plus size={20} />
                   Tildel Vagt
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
 
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -990,6 +1068,76 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               className="w-full"
             >
               {editingEmployee ? 'Gem Ændringer' : 'Tilføj Medarbejder'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showWeekFillDialog} onOpenChange={(open) => {
+        setShowWeekFillDialog(open)
+        if (!open) {
+          setWeekFillEmployee('')
+          setWeekFillRole('')
+          setWeekFillStartDate('')
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Udfyld Hele Ugen</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="p-4 bg-muted/50 rounded-lg border">
+              <p className="text-sm text-muted-foreground">
+                Vælg en dato, medarbejder og opgave. Systemet vil automatisk tildele opgaven til alle hverdage (mandag-fredag) i den valgte uge, med undtagelse af helligdage og dage hvor medarbejderen allerede har en vagt.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="week-fill-date">Vælg en dato i ugen</Label>
+              <Input
+                id="week-fill-date"
+                type="date"
+                value={weekFillStartDate}
+                onChange={(e) => setWeekFillStartDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="week-fill-employee">Medarbejder</Label>
+              <Select value={weekFillEmployee} onValueChange={setWeekFillEmployee}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Vælg medarbejder" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(employees || []).map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="week-fill-role">Opgave</Label>
+              <Select value={weekFillRole} onValueChange={setWeekFillRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Vælg opgave" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(roles || []).map(role => (
+                    <SelectItem key={role.id} value={role.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: role.color }}
+                        />
+                        {role.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleFillWeek} className="w-full">
+              Udfyld Hele Ugen
             </Button>
           </div>
         </DialogContent>
