@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { UserProfile } from '@/components/UserProfile'
 import { SickLeaveDialog } from '@/components/SickLeaveDialog'
-import { SickLeaveManager } from '@/components/SickLeaveManager'
 import { EmailNotifications } from '@/components/EmailNotifications'
 import { cn } from '@/lib/utils'
 
@@ -324,15 +323,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               </Card>
             </motion.div>
           ))}
-        </motion.div>
-
-        <motion.div
-          className="mt-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-        >
-          <SickLeaveManager userEmail={userEmail} />
         </motion.div>
       </div>
     </div>
