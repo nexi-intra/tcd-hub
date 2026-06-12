@@ -723,19 +723,30 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   </Select>
                 </div>
                 
-                <Button
-                  onClick={() => {
-                    const today = new Date()
-                    setSelectedMonth(today.getMonth())
-                    setSelectedYear(today.getFullYear())
-                    toast.success('Navigeret til i dag')
-                  }}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <CalendarIcon size={18} />
-                  Gå til i dag
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={() => {
+                      const today = new Date()
+                      setSelectedMonth(today.getMonth())
+                      setSelectedYear(today.getFullYear())
+                      toast.success('Navigeret til i dag')
+                    }}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <CalendarIcon size={18} />
+                    Gå til i dag
+                  </Button>
+                  {isAdmin && (
+                    <Button
+                      onClick={() => setShowWeekAssignmentDialog(true)}
+                      className="gap-2 bg-gradient-to-r from-secondary to-accent"
+                    >
+                      <CalendarIcon size={18} />
+                      Udfyld Uge
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="overflow-x-auto">
@@ -800,19 +811,30 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   </Select>
                 </div>
                 
-                <Button
-                  onClick={() => {
-                    const today = new Date()
-                    setSelectedMonth(today.getMonth())
-                    setSelectedYear(today.getFullYear())
-                    toast.success('Navigeret til i dag')
-                  }}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <CalendarIcon size={18} />
-                  Gå til i dag
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={() => {
+                      const today = new Date()
+                      setSelectedMonth(today.getMonth())
+                      setSelectedYear(today.getFullYear())
+                      toast.success('Navigeret til i dag')
+                    }}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <CalendarIcon size={18} />
+                    Gå til i dag
+                  </Button>
+                  {isAdmin && (
+                    <Button
+                      onClick={() => setShowWeekAssignmentDialog(true)}
+                      className="gap-2 bg-gradient-to-r from-secondary to-accent"
+                    >
+                      <CalendarIcon size={18} />
+                      Udfyld Uge
+                    </Button>
+                  )}
+                </div>
               </div>
             </Card>
           </TabsContent>
