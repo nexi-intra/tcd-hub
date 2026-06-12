@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Trash, User, Check, X, ClockCounterClockwise, CalendarDot } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
@@ -36,6 +36,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [isManager, setIsManager] = useState(false)
+  const [usersData, setUsersData] = useState<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>({})
 
   const months = [
     'Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni',
@@ -44,9 +45,12 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
 
   useEffect(() => {
     const checkManagerStatus = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
-      if (usersData && usersData[userEmail]) {
-        setIsManager(usersData[userEmail].isManager || false)
+      const users = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
+      if (users) {
+        setUsersData(users)
+        if (users[userEmail]) {
+          setIsManager(users[userEmail].isManager || false)
+        }
       }
     }
     checkManagerStatus()
@@ -305,6 +309,19 @@ Return ONLY a JSON object with this exact structure:
     return userColors[hash % userColors.length]
   }
 
+  const getFirstName = (email: string) => {
+    if (usersData[email]?.fullName) {
+      return usersData[email].fullName.split(' ')[0]
+    }
+    return email.split('@')[0].split('.')[0]
+  }
+
+  const getWeekNumber = (date: Date) => {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1)
+    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7)
+  }
+
   const uniqueUsers = Array.from(new Set((vacations || []).map(v => v.userEmail)))
 
   const myVacations = (vacations || []).filter(v => v.userEmail === userEmail)
@@ -512,7 +529,10 @@ Return ONLY a JSON object with this exact structure:
               <VacationRequestDialog userEmail={userEmail} />
             </div>
 
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-8 gap-2">
+              <div className="text-center font-semibold text-sm py-2 text-muted-foreground">
+                Uge
+              </div>
               {['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'].map((day, index) => (
                 <div
                   key={day}
@@ -525,60 +545,74 @@ Return ONLY a JSON object with this exact structure:
                 </div>
               ))}
 
-              {Array.from({ length: firstDay }).map((_, index) => (
-                <div key={`empty-${index}`} className="aspect-square" />
-              ))}
-
-              {Array.from({ length: daysInMonth }).map((_, index) => {
-                const day = index + 1
-                const dayVacations = getDayVacations(day)
-                const currentDate = new Date(selectedYear, selectedMonth, day)
-                const dayOfWeek = currentDate.getDay()
-                const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6
-                const isToday =
-                  day === new Date().getDate() &&
-                  selectedMonth === new Date().getMonth() &&
-                  selectedYear === new Date().getFullYear()
-
+              {Array.from({ length: Math.ceil((firstDay + daysInMonth) / 7) }).map((_, weekIndex) => {
+                const firstDateOfWeek = new Date(selectedYear, selectedMonth, weekIndex * 7 - firstDay + 1)
+                const weekNumber = getWeekNumber(firstDateOfWeek)
+                
                 return (
-                  <div
-                    key={day}
-                    className={cn(
-                      "aspect-square border rounded-lg p-1 relative",
-                      isToday && "ring-2 ring-primary",
-                      isWeekendDay && "bg-muted/50 opacity-60"
-                    )}
-                  >
-                    <div className={cn(
-                      "text-xs font-semibold mb-1",
-                      isWeekendDay && "text-muted-foreground"
-                    )}>
-                      {day}
+                  <React.Fragment key={`week-${weekIndex}`}>
+                    <div className="flex items-center justify-center text-sm font-bold text-muted-foreground border rounded-lg bg-muted/30">
+                      {weekNumber}
                     </div>
-                    {isWeekendDay ? (
-                      <div className="text-[7px] text-muted-foreground text-center mt-2">
-                        Lukket
-                      </div>
-                    ) : (
-                      <div className="space-y-0.5">
-                        {dayVacations.slice(0, 3).map((vacation) => (
-                          <div
-                            key={vacation.id}
-                            className="text-[8px] px-1 py-0.5 rounded text-white truncate"
-                            style={{ backgroundColor: getUserColor(vacation.userEmail) }}
-                            title={`${vacation.userEmail}${vacation.notes ? ': ' + vacation.notes : ''}`}
-                          >
-                            {vacation.userEmail.split('@')[0]}
+                    {Array.from({ length: 7 }).map((_, dayIndex) => {
+                      const cellIndex = weekIndex * 7 + dayIndex
+                      const day = cellIndex - firstDay + 1
+                      
+                      if (cellIndex < firstDay || day > daysInMonth) {
+                        return <div key={`empty-${cellIndex}`} className="aspect-square" />
+                      }
+
+                      const dayVacations = getDayVacations(day)
+                      const currentDate = new Date(selectedYear, selectedMonth, day)
+                      const dayOfWeek = currentDate.getDay()
+                      const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6
+                      const isToday =
+                        day === new Date().getDate() &&
+                        selectedMonth === new Date().getMonth() &&
+                        selectedYear === new Date().getFullYear()
+
+                      return (
+                        <div
+                          key={day}
+                          className={cn(
+                            "aspect-square border rounded-lg p-1 relative",
+                            isToday && "ring-2 ring-primary",
+                            isWeekendDay && "bg-muted/50 opacity-60"
+                          )}
+                        >
+                          <div className={cn(
+                            "text-xs font-semibold mb-1",
+                            isWeekendDay && "text-muted-foreground"
+                          )}>
+                            {day}
                           </div>
-                        ))}
-                        {dayVacations.length > 3 && (
-                          <div className="text-[8px] text-muted-foreground">
-                            +{dayVacations.length - 3}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                          {isWeekendDay ? (
+                            <div className="text-[8px] text-muted-foreground text-center mt-2">
+                              Lukket
+                            </div>
+                          ) : (
+                            <div className="space-y-0.5">
+                              {dayVacations.slice(0, 3).map((vacation) => (
+                                <div
+                                  key={vacation.id}
+                                  className="text-[10px] px-1 py-0.5 rounded text-white truncate font-medium"
+                                  style={{ backgroundColor: getUserColor(vacation.userEmail) }}
+                                  title={`${getFirstName(vacation.userEmail)}${vacation.notes ? ': ' + vacation.notes : ''}`}
+                                >
+                                  {getFirstName(vacation.userEmail)}
+                                </div>
+                              ))}
+                              {dayVacations.length > 3 && (
+                                <div className="text-[9px] text-muted-foreground">
+                                  +{dayVacations.length - 3}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </React.Fragment>
                 )
               })}
             </div>
@@ -680,9 +714,9 @@ Return ONLY a JSON object with this exact structure:
                       className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
                       style={{ backgroundColor: getUserColor(email) }}
                     >
-                      {email.charAt(0).toUpperCase()}
+                      {getFirstName(email).charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm font-medium">{email}</span>
+                    <span className="text-sm font-medium">{getFirstName(email)}</span>
                   </div>
                 ))}
               </div>
