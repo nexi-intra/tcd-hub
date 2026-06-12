@@ -75,8 +75,6 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
   }
 
   const handleAddVacation = async () => {
-    console.log('handleAddVacation called', { startDate, endDate, notes })
-    
     try {
       if (!startDate || !endDate) {
         toast.error('Vælg både start- og slutdato')
@@ -115,7 +113,6 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
         status: 'pending',
       }
 
-      console.log('Creating new vacation entry:', newVacation)
       setVacations((current) => [...(current || []), newVacation])
       
       const startDateFormatted = new Date(startDate).toLocaleDateString('da-DK', {
@@ -138,7 +135,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
       setIsDialogOpen(false)
 
       try {
-        const promptText = window.spark.llmPrompt`Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
+        const promptText = `Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
 
 Employee: ${userEmail}
 Start Date: ${startDateFormatted}
@@ -183,9 +180,9 @@ Return ONLY a JSON object with this exact structure:
         }
 
         await window.spark.kv.set('emails', [...emails, newEmail])
-        console.log('Email notification sent successfully')
       } catch (emailError) {
         console.error('Error generating vacation request email:', emailError)
+        toast.error('Email kunne ikke sendes, men anmodningen er gemt')
       }
     } catch (error) {
       console.error('Error adding vacation:', error)
@@ -222,7 +219,7 @@ Return ONLY a JSON object with this exact structure:
       year: 'numeric'
     })
 
-    const promptText = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
+    const promptText = `Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
 
 Vacation Request Details:
 Start Date: ${startDateFormatted}
@@ -312,7 +309,7 @@ Return ONLY a JSON object with this exact structure:
       year: 'numeric'
     })
 
-    const promptText = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
+    const promptText = `Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
 
 Vacation Request Details:
 Start Date: ${startDateFormatted}
