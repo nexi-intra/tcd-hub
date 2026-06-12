@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, UserPlus, Gear } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -12,6 +12,8 @@ import { useKV } from '@github/spark/hooks'
 import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 
 interface ShiftRole {
   id: string
@@ -56,7 +58,7 @@ const allDanishHolidays = [...danishHolidays2024, ...danishHolidays2025, ...dani
 export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftScheduleProps) {
   const [roles, setRoles] = useKV<ShiftRole[]>('shift-roles', [])
   const [assignments, setAssignments] = useKV<ShiftAssignment[]>('shift-assignments', [])
-  const [employees, setEmployees] = useState<Array<{ email: string; name: string }>>([])
+  const [employees, setEmployees] = useState<Array<{ email: string; name: string; role?: string }>>([])
   const [isAdmin, setIsAdmin] = useState(false)
   
   const [showRoleDialog, setShowRoleDialog] = useState(false)
@@ -71,6 +73,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  
+  const [activeTab, setActiveTab] = useState('schedule')
 
   const months = [
     'Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni',
@@ -83,7 +87,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
       if (usersData) {
         const employeeList = Object.entries(usersData).map(([email, data]) => ({
           email,
-          name: data.fullName
+          name: data.fullName,
+          role: data.role
         }))
         setEmployees(employeeList)
         
@@ -94,6 +99,17 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     }
     loadEmployeesAndCheckAdmin()
   }, [userEmail])
+  
+  const getRoleBadge = (role?: string) => {
+    switch (role) {
+      case 'admin':
+        return <Badge className="bg-gradient-to-r from-accent via-primary to-secondary text-white text-xs">Admin</Badge>
+      case 'manager':
+        return <Badge className="bg-gradient-to-r from-primary to-secondary text-white text-xs">Manager</Badge>
+      default:
+        return <Badge variant="secondary" className="text-xs">Bruger</Badge>
+    }
+  }
 
   const isWeekend = (date: Date) => {
     const day = date.getDay()
@@ -318,17 +334,28 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 Vagtplan
               </h1>
             </div>
+          </div>
+        </motion.div>
 
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+            <TabsTrigger value="schedule" className="gap-2">
+              <CalendarIcon size={18} />
+              Vagtplan
+            </TabsTrigger>
+            <TabsTrigger value="employees" className="gap-2">
+              <UserCircle size={18} />
+              Medarbejdere
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="gap-2">
+              <Tag size={18} />
+              Opgaver
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="schedule" className="space-y-6">
             {isAdmin && (
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => setShowRoleDialog(true)}
-                  className="gap-2"
-                  variant="outline"
-                >
-                  <Tag size={20} />
-                  Tilføj Rolle
-                </Button>
+              <div className="flex justify-end">
                 <Button
                   onClick={() => setShowAssignmentDialog(true)}
                   className="gap-2 bg-gradient-to-r from-primary to-secondary"
@@ -338,92 +365,236 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 </Button>
               </div>
             )}
-          </div>
 
-          {isAdmin && roles && roles.length > 0 && (
-            <Card className="p-4 mb-6">
-              <h3 className="text-sm font-semibold mb-3 text-muted-foreground">ROLLER</h3>
-              <div className="flex flex-wrap gap-2">
-                {roles.map(role => (
-                  <div
-                    key={role.id}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full group"
-                    style={{ backgroundColor: `${role.color}20`, borderLeft: `4px solid ${role.color}` }}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <Select
+                    value={selectedMonth.toString()}
+                    onValueChange={(value) => setSelectedMonth(parseInt(value))}
                   >
-                    <span className="font-semibold text-sm">{role.name}</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
-                      onClick={() => handleDeleteRole(role.id)}
-                    >
-                      <Trash size={14} />
-                    </Button>
-                  </div>
-                ))}
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map((month, index) => (
+                        <SelectItem key={index} value={index.toString()}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={selectedYear.toString()}
+                    onValueChange={(value) => setSelectedYear(parseInt(value))}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2024">2024</SelectItem>
+                      <SelectItem value="2025">2025</SelectItem>
+                      <SelectItem value="2026">2026</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="sticky left-0 bg-card border-r-2 border-b-2 border-border px-4 py-3 text-left font-semibold z-20">
+                        Dato
+                      </th>
+                      {employees.map(employee => (
+                        <th
+                          key={employee.email}
+                          className="border border-border px-4 py-3 text-center font-semibold whitespace-nowrap min-w-[150px]"
+                        >
+                          {employee.name}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {renderScheduleTable()}
+                  </tbody>
+                </table>
               </div>
             </Card>
-          )}
-        </motion.div>
+          </TabsContent>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <Select
-                value={selectedMonth.toString()}
-                onValueChange={(value) => setSelectedMonth(parseInt(value))}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((month, index) => (
-                    <SelectItem key={index} value={index.toString()}>
-                      {month}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <TabsContent value="employees" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <UserCircle size={28} className="text-primary" weight="duotone" />
+                  <h2 className="text-2xl font-bold">Medarbejdere</h2>
+                </div>
+                <Badge variant="outline" className="text-sm">
+                  {employees.length} {employees.length === 1 ? 'Medarbejder' : 'Medarbejdere'}
+                </Badge>
+              </div>
 
-              <Select
-                value={selectedYear.toString()}
-                onValueChange={(value) => setSelectedYear(parseInt(value))}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2024">2024</SelectItem>
-                  <SelectItem value="2025">2025</SelectItem>
-                  <SelectItem value="2026">2026</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Medarbejderne nedenfor vises i vagtplanen. {isAdmin ? 'Som admin kan du tildele vagter i Vagtplan-fanen.' : 'Kun admin kan tildele vagter.'}
+                </p>
+              </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="sticky left-0 bg-card border-r-2 border-b-2 border-border px-4 py-3 text-left font-semibold z-20">
-                    Dato
-                  </th>
-                  {employees.map(employee => (
-                    <th
+              {employees.length === 0 ? (
+                <p className="text-muted-foreground text-center py-12">Ingen medarbejdere fundet</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {employees.map((employee) => (
+                    <motion.div
                       key={employee.email}
-                      className="border border-border px-4 py-3 text-center font-semibold whitespace-nowrap min-w-[150px]"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all"
                     >
-                      {employee.name}
-                    </th>
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md ${
+                          employee.role === 'admin' 
+                            ? 'bg-gradient-to-br from-accent via-primary to-secondary' 
+                            : employee.role === 'manager'
+                            ? 'bg-gradient-to-br from-primary to-secondary'
+                            : 'bg-gradient-to-br from-secondary to-accent'
+                        }`}>
+                          {employee.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-lg truncate mb-1">{employee.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">{employee.email}</div>
+                        </div>
+                      </div>
+                      {getRoleBadge(employee.role)}
+                    </motion.div>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {renderScheduleTable()}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="tasks" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Tag size={28} className="text-secondary" weight="duotone" />
+                  <h2 className="text-2xl font-bold">Opgaver / Roller</h2>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-sm">
+                    {(roles || []).length} {(roles || []).length === 1 ? 'Opgave' : 'Opgaver'}
+                  </Badge>
+                  {isAdmin && (
+                    <Button
+                      onClick={() => setShowRoleDialog(true)}
+                      size="sm"
+                      className="gap-2 bg-gradient-to-r from-primary to-secondary"
+                    >
+                      <Plus size={16} />
+                      Tilføj Opgave
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Disse opgaver/roller kan tildeles medarbejdere i vagtplanen. {!isAdmin && 'Kun admin kan tilføje og slette opgaver.'}
+                </p>
+              </div>
+
+              {!roles || roles.length === 0 ? (
+                <div className="text-center py-12">
+                  <Tag size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
+                  <p className="text-muted-foreground mb-4">Ingen opgaver endnu</p>
+                  {isAdmin && (
+                    <Button
+                      onClick={() => setShowRoleDialog(true)}
+                      className="gap-2"
+                    >
+                      <Plus size={20} />
+                      Tilføj Din Første Opgave
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {roles.map((role) => (
+                    <motion.div
+                      key={role.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex items-center justify-between p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all group"
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div
+                          className="w-14 h-14 rounded-xl flex items-center justify-center shadow-md"
+                          style={{ 
+                            backgroundColor: `${role.color}30`,
+                            border: `2px solid ${role.color}`
+                          }}
+                        >
+                          <Tag size={28} style={{ color: role.color }} weight="duotone" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold text-lg mb-1">{role.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Farve: <span className="font-mono">{role.color}</span>
+                          </div>
+                        </div>
+                        <div
+                          className="px-5 py-2.5 rounded-lg font-semibold text-sm"
+                          style={{ 
+                            backgroundColor: `${role.color}20`,
+                            color: role.color,
+                            border: `2px solid ${role.color}`
+                          }}
+                        >
+                          Eksempel
+                        </div>
+                      </div>
+                      {isAdmin && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
+                            >
+                              <Trash size={20} />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Slet opgave?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Er du sikker på at du vil slette <strong>{role.name}</strong>? Alle vagter tildelt til denne opgave vil også blive fjernet. Denne handling kan ikke fortrydes.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuller</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteRole(role.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Slet opgave
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
       <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
         <DialogContent>
