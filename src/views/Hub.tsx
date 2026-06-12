@@ -275,7 +275,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             >
               <Card
                 className={cn(
-                  "relative overflow-hidden border-2 transition-all duration-300 group",
+                  "relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[320px] flex flex-col",
                   module.available 
                     ? "cursor-pointer hover:shadow-2xl hover:scale-[1.02] hover:border-primary/40 active:scale-[0.98]" 
                     : "opacity-60 cursor-not-allowed"
@@ -288,7 +288,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                   }}
                 />
                 
-                <div className="relative p-10">
+                <div className="relative p-10 flex flex-col flex-1">
                   <motion.div 
                     className={cn(
                       "mb-8 inline-flex items-center justify-center rounded-2xl p-4 shadow-lg transition-all duration-300",
