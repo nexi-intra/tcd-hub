@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +12,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Textarea } from '@/components/ui/textarea'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { UserRole, ADMIN_EMAIL, hasManagerAccess, getRoleDisplayName, getRoleDescription } from '@/lib/userRoles'
@@ -58,6 +61,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [users, setUsers] = useState<User[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
   const [vacationEntries, setVacationEntries] = useState<VacationEntry[]>([])
+  const [allVacations, setAllVacations] = useState<VacationEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasAccess, setHasAccess] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -68,6 +72,12 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [newUserEmail, setNewUserEmail] = useState('')
   const [newUserPassword, setNewUserPassword] = useState('')
   const [newUserPhone, setNewUserPhone] = useState('')
+  const [isEditVacationDialogOpen, setIsEditVacationDialogOpen] = useState(false)
+  const [editingVacation, setEditingVacation] = useState<VacationEntry | null>(null)
+  const [editVacationStartDate, setEditVacationStartDate] = useState<Date | undefined>()
+  const [editVacationEndDate, setEditVacationEndDate] = useState<Date | undefined>()
+  const [editVacationNotes, setEditVacationNotes] = useState('')
+  const [vacationFilter, setVacationFilter] = useState<'all' | 'pending' | 'approved'>('all')
 
   useEffect(() => {
     const checkAccessAndLoad = async () => {
@@ -134,6 +144,12 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const loadVacationEntries = async () => {
     const entries = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
     setVacationEntries(entries.filter(e => e.status === 'pending').sort((a, b) => {
+      const dateA = new Date(a.startDate)
+      const dateB = new Date(b.startDate)
+      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0
+      return dateA.getTime() - dateB.getTime()
+    }))
+    setAllVacations(entries.filter(e => e.status !== 'rejected').sort((a, b) => {
       const dateA = new Date(a.startDate)
       const dateB = new Date(b.startDate)
       if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0
@@ -432,6 +448,54 @@ Return ONLY a JSON object with this exact structure:
     }
   }
 
+  const openEditVacationDialog = (vacation: VacationEntry) => {
+    setEditingVacation(vacation)
+    setEditVacationStartDate(new Date(vacation.startDate))
+    setEditVacationEndDate(new Date(vacation.endDate))
+    setEditVacationNotes(vacation.notes || '')
+    setIsEditVacationDialogOpen(true)
+  }
+
+  const handleSaveVacationEdit = async () => {
+    if (!editingVacation || !editVacationStartDate || !editVacationEndDate) {
+      toast.error('Start- og slutdato skal udfyldes')
+      return
+    }
+
+    if (editVacationStartDate > editVacationEndDate) {
+      toast.error('Startdato skal være før slutdato')
+      return
+    }
+
+    const allVacationsData = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
+    const updatedVacations = allVacationsData.map((v) =>
+      v.id === editingVacation.id
+        ? { 
+            ...v, 
+            startDate: editVacationStartDate.toISOString(), 
+            endDate: editVacationEndDate.toISOString(),
+            notes: editVacationNotes.trim() || undefined
+          }
+        : v
+    )
+    await window.spark.kv.set('vacation-entries', updatedVacations)
+    await loadVacationEntries()
+    setIsEditVacationDialogOpen(false)
+    setEditingVacation(null)
+    setEditVacationStartDate(undefined)
+    setEditVacationEndDate(undefined)
+    setEditVacationNotes('')
+    toast.success('Ferie opdateret')
+  }
+
+  const deleteVacation = async (id: string) => {
+    const allVacationsData = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
+    const updatedVacations = allVacationsData.filter(v => v.id !== id)
+    await window.spark.kv.set('vacation-entries', updatedVacations)
+    await loadVacationEntries()
+    toast.success('Ferie slettet')
+  }
+
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
       case 'admin':
@@ -512,7 +576,7 @@ Return ONLY a JSON object with this exact structure:
         </motion.div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-3xl">
+          <TabsList className="grid w-full grid-cols-4 max-w-5xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
@@ -523,12 +587,16 @@ Return ONLY a JSON object with this exact structure:
             </TabsTrigger>
             <TabsTrigger value="vacation-requests" className="gap-2">
               <Umbrella size={18} />
-              Ferie Anmodninger
+              Anmodninger
               {vacationEntries.length > 0 && (
                 <Badge className="ml-1 h-5 px-1.5 bg-accent text-accent-foreground">
                   {vacationEntries.length}
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="vacation-overview" className="gap-2">
+              <CalendarBlank size={18} />
+              Ferie Oversigt
             </TabsTrigger>
           </TabsList>
 
@@ -910,8 +978,234 @@ Return ONLY a JSON object with this exact structure:
               )}
             </Card>
           </TabsContent>
+
+          <TabsContent value="vacation-overview" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <CalendarBlank size={28} className="text-primary" weight="duotone" />
+                  <h2 className="text-2xl font-bold">Ferie Oversigt</h2>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Select value={vacationFilter} onValueChange={(value: 'all' | 'pending' | 'approved') => setVacationFilter(value)}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle</SelectItem>
+                      <SelectItem value="pending">Afventer</SelectItem>
+                      <SelectItem value="approved">Godkendte</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Badge variant="outline" className="text-sm">
+                    {allVacations.filter(v => vacationFilter === 'all' || v.status === vacationFilter).length} {allVacations.filter(v => vacationFilter === 'all' || v.status === vacationFilter).length === 1 ? 'ferie' : 'ferier'}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Her kan du se, redigere og slette alle ferier i systemet. Du kan filtrere efter status og redigere datoer og bemærkninger.
+                </p>
+              </div>
+
+              {allVacations.filter(v => vacationFilter === 'all' || v.status === vacationFilter).length === 0 ? (
+                <div className="text-center py-12">
+                  <CalendarBlank size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
+                  <p className="text-muted-foreground">Ingen ferier at vise</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {allVacations.filter(v => vacationFilter === 'all' || v.status === vacationFilter).map((vacation) => {
+                    const getUserName = () => {
+                      const user = users.find(u => u.email === vacation.userEmail)
+                      return user ? user.fullName : vacation.userEmail
+                    }
+
+                    return (
+                      <motion.div
+                        key={vacation.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center justify-between p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all group"
+                      >
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                            {getUserName().charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-bold text-lg mb-1">{getUserName()}</div>
+                            <div className="text-sm text-muted-foreground mb-2">{vacation.userEmail}</div>
+                            <div className="flex items-center gap-3 text-sm">
+                              <span className="font-medium">
+                                {(() => {
+                                  try {
+                                    const date = new Date(vacation.startDate)
+                                    if (isNaN(date.getTime())) return 'Ugyldig dato'
+                                    return format(date, 'd. MMM yyyy', { locale: da })
+                                  } catch {
+                                    return 'Ugyldig dato'
+                                  }
+                                })()}
+                              </span>
+                              <span className="text-muted-foreground">→</span>
+                              <span className="font-medium">
+                                {(() => {
+                                  try {
+                                    const date = new Date(vacation.endDate)
+                                    if (isNaN(date.getTime())) return 'Ugyldig dato'
+                                    return format(date, 'd. MMM yyyy', { locale: da })
+                                  } catch {
+                                    return 'Ugyldig dato'
+                                  }
+                                })()}
+                              </span>
+                            </div>
+                            {vacation.notes && (
+                              <div className="text-xs text-muted-foreground mt-2">
+                                {vacation.notes}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {vacation.status === 'pending' && (
+                              <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
+                                <ClockCounterClockwise size={14} className="mr-1" />
+                                Afventer
+                              </Badge>
+                            )}
+                            {vacation.status === 'approved' && (
+                              <Badge className="bg-green-500/20 text-green-700 border-green-500/30">
+                                <Check size={14} className="mr-1" />
+                                Godkendt
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="ml-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => openEditVacationDialog(vacation)}
+                            className="hover:bg-primary/10"
+                          >
+                            <PencilSimple size={20} />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash size={20} />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Slet ferie?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Er du sikker på at du vil slette denne ferie for <strong>{getUserName()}</strong>? Denne handling kan ikke fortrydes.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteVacation(vacation.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Slet ferie
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={isEditVacationDialogOpen} onOpenChange={setIsEditVacationDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rediger ferie</DialogTitle>
+            <DialogDescription>
+              Ændre datoer og bemærkninger for ferien
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Startdato *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarBlank size={18} className="mr-2" />
+                    {editVacationStartDate ? format(editVacationStartDate, 'd. MMMM yyyy', { locale: da }) : 'Vælg startdato'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={editVacationStartDate}
+                    onSelect={setEditVacationStartDate}
+                    locale={da}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label>Slutdato *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarBlank size={18} className="mr-2" />
+                    {editVacationEndDate ? format(editVacationEndDate, 'd. MMMM yyyy', { locale: da }) : 'Vælg slutdato'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={editVacationEndDate}
+                    onSelect={setEditVacationEndDate}
+                    locale={da}
+                    disabled={(date) => editVacationStartDate ? date < editVacationStartDate : false}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-vacation-notes">Bemærkninger</Label>
+              <Textarea
+                id="edit-vacation-notes"
+                value={editVacationNotes}
+                onChange={(e) => setEditVacationNotes(e.target.value)}
+                placeholder="Tilføj evt. bemærkninger..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsEditVacationDialogOpen(false)
+              setEditingVacation(null)
+              setEditVacationStartDate(undefined)
+              setEditVacationEndDate(undefined)
+              setEditVacationNotes('')
+            }}>
+              Annuller
+            </Button>
+            <Button onClick={handleSaveVacationEdit} className="gap-2">
+              <Check size={18} weight="bold" />
+              Gem ændringer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
