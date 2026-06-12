@@ -600,7 +600,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           todayDate && "bg-accent/20 ring-2 ring-accent/50"
         )}>
           <td className={cn(
-            "sticky left-0 bg-card border-r-2 border-border px-3 py-4 font-semibold transition-all z-20",
+            "sticky left-0 bg-card border-r-2 border-border px-3 py-5 font-semibold transition-all z-20 shadow-[2px_0_8px_rgba(0,0,0,0.1)] min-w-[200px]",
             isWeekend(date) && "text-destructive",
             currentWeek && "bg-primary/10",
             todayDate && "bg-accent/20 ring-2 ring-accent/50"
@@ -620,7 +620,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               <td
                 key={employee.id}
                 className={cn(
-                  "border-x-2 border-border p-2 text-center transition-all",
+                  "border-x-2 border-border p-3 text-center transition-all min-w-[160px]",
                   isLocked && "bg-muted/20",
                   sickLeave && "bg-red-50",
                   vacation && "bg-blue-50",
@@ -643,7 +643,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   })
                 }}
               >
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {vacation && (
                     <div className="relative group">
                       <div
@@ -921,12 +921,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 </div>
               </div>
 
-              <div className="overflow-x-auto max-h-[calc(100vh-300px)] overflow-y-auto relative shadow-inner">
-                <table className="w-full border-collapse table-fixed">
+              <div className="overflow-x-auto max-h-[calc(100vh-240px)] overflow-y-auto relative shadow-inner rounded-lg border-2 border-border">
+                <table className="w-full border-collapse" style={{ minWidth: '100%' }}>
                   <thead>
                     <tr>
-                      <th className="sticky top-0 left-0 bg-card border-r-2 border-b-2 border-border px-3 py-4 text-left font-semibold w-[180px] z-30 shadow-[0_2px_4px_rgba(0,0,0,0.1)]">
-                        Dato
+                      <th className="sticky top-0 left-0 bg-card border-r-2 border-b-2 border-border px-3 py-5 text-left font-semibold min-w-[200px] z-30 shadow-[2px_2px_8px_rgba(0,0,0,0.1)]">
+                        <span className="text-base">Dato</span>
                       </th>
                       {(employees || []).map((employee, index) => {
                         const firstName = employee.name.split(' ')[0]
@@ -934,13 +934,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                         return (
                           <th
                             key={employee.id}
-                            className="sticky top-0 bg-card border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold z-20 shadow-[0_2px_4px_rgba(0,0,0,0.1)]"
-                            style={{ 
-                              width: `${100 / ((employees || []).length + 1)}%`
-                            }}
+                            className="sticky top-0 bg-card border-x-2 border-b-2 border-border px-4 py-5 text-center font-bold min-w-[160px] z-20 shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
                           >
                             <div 
-                              className="truncate" 
+                              className="truncate text-base" 
                               title={employee.name}
                               style={{ 
                                 color: employeeColor.bg
