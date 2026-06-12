@@ -43,7 +43,7 @@ interface EmailSystemProps {
 
 export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
   const [emails, setEmails] = useKV<Email[]>('emails', [])
-  const [users, setUsers] = useKV<Array<{ email: string; name: string }>>('users', [])
+  const [users, setUsers] = useState<Array<{ email: string; name: string }>>([])
   const [view, setView] = useState<'inbox' | 'sent' | 'compose'>('inbox')
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -54,18 +54,21 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
   })
 
   useEffect(() => {
-    const ensureCurrentUserExists = async () => {
-      const currentUsers = await window.spark.kv.get<Array<{ email: string; name: string }>>('users') || []
-      const userExists = currentUsers.some(u => u.email === userEmail)
+    const loadUsers = async () => {
+      const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string }>>('users')
       
-      if (!userExists) {
-        const name = userEmail.split('@')[0]
-        const updatedUsers = [...currentUsers, { email: userEmail, name }]
-        await window.spark.kv.set('users', updatedUsers)
+      if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
+        const userList = Object.values(usersData).map(user => ({
+          email: user.email,
+          name: user.fullName
+        }))
+        setUsers(userList)
+      } else if (Array.isArray(usersData)) {
+        setUsers(usersData as Array<{ email: string; name: string }>)
       }
     }
     
-    ensureCurrentUserExists()
+    loadUsers()
   }, [userEmail])
 
   const getInitials = (email: string) => {

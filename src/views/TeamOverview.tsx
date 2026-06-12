@@ -44,7 +44,7 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
     setIsLoading(true)
     const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: UserRole }>>('users')
     
-    if (usersData) {
+    if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
       const userList: TeamEmployee[] = Object.values(usersData).map(user => ({
         id: user.email,
         name: user.fullName,
@@ -53,6 +53,10 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
         role: user.role || 'user'
       }))
       setEmployees(userList)
+    } else if (Array.isArray(usersData)) {
+      setEmployees(usersData as TeamEmployee[])
+    } else {
+      setEmployees([])
     }
     setIsLoading(false)
   }
