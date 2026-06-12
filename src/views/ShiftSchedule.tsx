@@ -290,9 +290,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               <h1 className="text-4xl sm:text-5xl font-bold mb-2 bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
                 Vagtplan
               </h1>
-              <p className="text-muted-foreground">
-                Administrer vagter og roller for teamet
-              </p>
             </div>
 
             {isAdmin && (
