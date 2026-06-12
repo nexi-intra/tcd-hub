@@ -382,15 +382,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     const employee = (employees || []).find(e => e.id === weekFillEmployee)
     if (!employee) return
 
-    const selectedDate = new Date(weekFillStartDate + 'T12:00:00')
+    const monday = new Date(weekFillStartDate + 'T12:00:00')
     
     const daysToAdd: string[] = []
     let skippedCount = 0
-    
-    const dayOfWeek = selectedDate.getDay()
-    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-    const monday = new Date(selectedDate)
-    monday.setDate(selectedDate.getDate() - daysFromMonday)
     
     for (let i = 0; i < 5; i++) {
       const currentDate = new Date(monday)
