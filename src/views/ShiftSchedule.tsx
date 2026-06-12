@@ -600,7 +600,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           todayDate && "bg-accent/20 ring-2 ring-accent/50"
         )}>
           <td className={cn(
-            "bg-card border-r-2 border-border px-3 py-4 font-semibold transition-all",
+            "sticky left-0 bg-card border-r-2 border-border px-3 py-4 font-semibold transition-all z-20",
             isWeekend(date) && "text-destructive",
             currentWeek && "bg-primary/10",
             todayDate && "bg-accent/20 ring-2 ring-accent/50"
@@ -921,11 +921,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 </div>
               </div>
 
-              <div className="overflow-x-auto max-h-[calc(100vh-300px)] overflow-y-auto relative">
+              <div className="overflow-x-auto max-h-[calc(100vh-300px)] overflow-y-auto relative shadow-inner">
                 <table className="w-full border-collapse table-fixed">
                   <thead>
                     <tr>
-                      <th className="sticky top-0 bg-card border-r-2 border-b-2 border-border px-3 py-4 text-left font-semibold w-[180px] z-20">
+                      <th className="sticky top-0 left-0 bg-card border-r-2 border-b-2 border-border px-3 py-4 text-left font-semibold w-[180px] z-30 shadow-[0_2px_4px_rgba(0,0,0,0.1)]">
                         Dato
                       </th>
                       {(employees || []).map((employee, index) => {
@@ -934,7 +934,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                         return (
                           <th
                             key={employee.id}
-                            className="sticky top-0 bg-card border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold z-10"
+                            className="sticky top-0 bg-card border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold z-10 shadow-[0_2px_4px_rgba(0,0,0,0.1)]"
                             style={{ 
                               width: `${100 / ((employees || []).length + 1)}%`
                             }}
