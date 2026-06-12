@@ -934,7 +934,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               <div className="shadow-inner rounded-lg border-2 border-border bg-card overflow-hidden">
                 <div className="flex">
                   <div className="flex-shrink-0 w-[200px]">
-                    <div className="border-r-2 border-b-2 border-border px-3 py-5 text-left font-semibold bg-card shadow-sm">
+                    <div className="border-r-2 border-b-2 border-border px-3 py-5 text-left font-semibold bg-card shadow-sm sticky top-0 z-50">
                       <span className="text-base">Dato</span>
                     </div>
                     <div 
@@ -1008,14 +1008,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   </div>
                   
                   <div className="flex-1 overflow-x-auto">
-                    <div className="flex border-b-2 border-border bg-card shadow-sm">
+                    <div className="flex border-b-2 border-border bg-card shadow-sm sticky top-0 z-50">
                       {(employees || []).map((employee) => {
                         const firstName = employee.name.split(' ')[0]
                         const employeeColor = getEmployeeColorByName(employee.name)
                         return (
                           <div
                             key={employee.id}
-                            className="flex-shrink-0 w-[160px] border-x-2 border-border px-4 py-5 text-center font-bold"
+                            className="flex-shrink-0 min-w-[160px] w-[160px] border-x-2 border-border px-4 py-5 text-center font-bold"
                           >
                             <div 
                               className="truncate text-base" 
@@ -1052,7 +1052,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                               <div 
                                 key={day} 
                                 className={cn(
-                                  "flex border-b-2 border-border",
+                                  "flex border-b-2 border-border min-w-max",
                                   isLocked && "bg-muted/30",
                                   currentWeek && "bg-primary/10",
                                   todayDate && "bg-accent/20 ring-2 ring-accent/50"
@@ -1071,7 +1071,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                                     <div
                                       key={employee.id}
                                       className={cn(
-                                        "flex-shrink-0 w-[160px] border-x-2 border-border p-3 text-center transition-all",
+                                        "flex-shrink-0 min-w-[160px] w-[160px] border-x-2 border-border p-3 text-center transition-all",
                                         isLocked && "bg-muted/20",
                                         sickLeave && "bg-red-50",
                                         vacation && "bg-blue-50",
