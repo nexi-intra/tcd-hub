@@ -141,7 +141,10 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
   const handleCopyEmail = async (email: string) => {
     try {
       await navigator.clipboard.writeText(email)
-      toast.success('Email kopieret til udklipsholder')
+      toast.success('Email kopieret!', {
+        description: email,
+        duration: 3000,
+      })
     } catch (err) {
       toast.error('Kunne ikke kopiere email')
     }
