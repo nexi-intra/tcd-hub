@@ -39,6 +39,18 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
     setNotifications(emailNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()))
   }
 
+  const handleSelectNotification = async (notification: EmailNotification) => {
+    setSelectedNotification(notification)
+    
+    if (!notification.read) {
+      const updatedNotifications = notifications.map(n => 
+        n.id === notification.id ? { ...n, read: true } : n
+      )
+      setNotifications(updatedNotifications)
+      await window.spark.kv.set('email-notifications', updatedNotifications)
+    }
+  }
+
   const handleCopyEmail = async (notification: EmailNotification) => {
     const emailText = `To: ${notification.to}\nSubject: ${notification.subject}\n\n${notification.body}`
     
@@ -47,12 +59,6 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
       setCopiedId(notification.id)
       toast.success('Email kopieret til udklipsholder')
       setTimeout(() => setCopiedId(null), 2000)
-      
-      const updatedNotifications = notifications.map(n => 
-        n.id === notification.id ? { ...n, read: true } : n
-      )
-      setNotifications(updatedNotifications)
-      await window.spark.kv.set('email-notifications', updatedNotifications)
     } catch (error) {
       toast.error('Kunne ikke kopiere email')
     }
@@ -132,7 +138,7 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
                         ? 'bg-muted/30 border-border'
                         : 'bg-card border-border'
                     }`}
-                    onClick={() => setSelectedNotification(notification)}
+                    onClick={() => handleSelectNotification(notification)}
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <Badge className={getTypeBadgeColor(notification.type)}>
