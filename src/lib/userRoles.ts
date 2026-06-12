@@ -1,6 +1,7 @@
 export type UserRole = 'admin' | 'manager' | 'user'
 
 export const ADMIN_EMAIL = 'jacob.remmer@nexigroup.com'
+export const MANAGER_EMAILS = ['jacob.remmer@nexigorup.com']
 
 interface UserData {
   email: string
@@ -14,6 +15,9 @@ export async function getUserRole(email: string): Promise<UserRole> {
   const usersData = await window.spark.kv.get<Record<string, UserData>>('users')
   
   if (!usersData || !usersData[email]) {
+    if (MANAGER_EMAILS.some(m => m.toLowerCase() === email.toLowerCase())) {
+      return 'manager'
+    }
     return 'user'
   }
 
@@ -21,6 +25,10 @@ export async function getUserRole(email: string): Promise<UserRole> {
   
   if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
     return 'admin'
+  }
+  
+  if (MANAGER_EMAILS.some(m => m.toLowerCase() === user.email.toLowerCase())) {
+    return 'manager'
   }
   
   if (user.role) {
