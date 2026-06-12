@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,9 @@ import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
@@ -56,6 +59,9 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [vacationEntries, setVacationEntries] = useState<VacationEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasAccess, setHasAccess] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [newName, setNewName] = useState('')
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   useEffect(() => {
     const checkAccessAndLoad = async () => {
@@ -158,6 +164,30 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       await window.spark.kv.set('users', usersData)
       await loadUsers()
       toast.success('Bruger slettet')
+    }
+  }
+
+  const openEditNameDialog = (user: User) => {
+    setEditingUser(user)
+    setNewName(user.fullName)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleSaveUserName = async () => {
+    if (!editingUser || !newName.trim()) {
+      toast.error('Navn kan ikke være tomt')
+      return
+    }
+
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
+    if (usersData && usersData[editingUser.email]) {
+      usersData[editingUser.email].fullName = newName.trim()
+      await window.spark.kv.set('users', usersData)
+      await loadUsers()
+      setIsEditDialogOpen(false)
+      setEditingUser(null)
+      setNewName('')
+      toast.success('Navn opdateret')
     }
   }
 
@@ -496,6 +526,14 @@ Return ONLY a JSON object with this exact structure:
                       <div className="ml-4 flex items-center gap-2">
                         {user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase() ? (
                           <>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => openEditNameDialog(user)}
+                              className="hover:bg-primary/10"
+                            >
+                              <PencilSimple size={20} />
+                            </Button>
                             <Select
                               value={user.role}
                               onValueChange={(value) => changeUserRole(user.email, value as UserRole)}
@@ -807,6 +845,36 @@ Return ONLY a JSON object with this exact structure:
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rediger brugernavn</DialogTitle>
+            <DialogDescription>
+              Ændre navnet på brugeren {editingUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="user-name">Fulde navn</Label>
+              <Input
+                id="user-name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Indtast fuldt navn"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Annuller
+            </Button>
+            <Button onClick={handleSaveUserName}>
+              Gem ændringer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
