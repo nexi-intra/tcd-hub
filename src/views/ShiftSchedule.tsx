@@ -932,11 +932,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               </div>
 
               <div className="shadow-inner rounded-lg border-2 border-border bg-card overflow-hidden">
-                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%' }}>
-                  <table className="w-full border-collapse" style={{ tableLayout: 'fixed', width: 'max-content' }}>
-                    <thead className="sticky top-0 z-50 bg-card shadow-md">
+                <div className="overflow-auto relative" style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%' }}>
+                  <table className="w-full border-collapse relative" style={{ tableLayout: 'fixed', width: 'max-content' }}>
+                    <thead className="sticky top-0 z-50 bg-card shadow-lg" style={{ position: 'sticky', top: 0 }}>
                       <tr>
-                        <th className="sticky left-0 z-[60] bg-card border-r-2 border-b-2 border-border px-3 py-4 text-left font-bold shadow-[2px_0_8px_rgba(0,0,0,0.15)]" style={{ width: '160px', minWidth: '160px', maxWidth: '160px' }}>
+                        <th className="sticky left-0 z-[60] bg-card border-r-2 border-b-2 border-border px-3 py-4 text-left font-bold shadow-[2px_0_8px_rgba(0,0,0,0.15)]" style={{ position: 'sticky', left: 0, width: '160px', minWidth: '160px', maxWidth: '160px' }}>
                           <span className="text-sm font-bold">Dato</span>
                         </th>
                         {(employees || []).map((employee) => {
@@ -946,7 +946,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                             <th
                               key={employee.id}
                               className="border-x-2 border-b-2 border-border px-2 py-4 text-center font-bold bg-card"
-                              style={{ width: '120px', minWidth: '120px', maxWidth: '120px' }}
+                              style={{ 
+                                width: '120px', 
+                                minWidth: '120px', 
+                                maxWidth: '120px',
+                                position: 'sticky',
+                                top: 0,
+                                backgroundColor: 'var(--card)'
+                              }}
                             >
                               <div 
                                 className="text-xs font-extrabold truncate" 
