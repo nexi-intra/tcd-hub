@@ -6,10 +6,11 @@ import { ShiftSchedule } from '@/views/ShiftSchedule'
 import { AdminPanel } from '@/views/AdminPanel'
 import { ManagerPanel } from '@/views/ManagerPanel'
 import { TeamOverview } from '@/views/TeamOverview'
+import { EmailSystem } from '@/views/EmailSystem'
 import { Auth } from '@/views/Auth'
 import { useKV } from '@github/spark/hooks'
 
-type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team'
+type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email'
 
 interface UserSession {
   userId: string
@@ -47,6 +48,8 @@ function App() {
       setCurrentView('manager')
     } else if (moduleId === 'team') {
       setCurrentView('team')
+    } else if (moduleId === 'email') {
+      setCurrentView('email')
     }
   }
 
@@ -71,6 +74,7 @@ function App() {
       {currentView === 'admin' && <AdminPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'manager' && <ManagerPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
+      {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
     </>
   )
 }

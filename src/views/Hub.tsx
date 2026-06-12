@@ -31,6 +31,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [showSickLeaveDialog, setShowSickLeaveDialog] = useState(false)
   const [showEmailNotifications, setShowEmailNotifications] = useState(false)
   const [unreadEmailCount, setUnreadEmailCount] = useState(0)
+  const [unreadInboxCount, setUnreadInboxCount] = useState(0)
   
   useEffect(() => {
     const checkUserRole = async () => {
@@ -45,12 +46,16 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       const emailNotifications = await window.spark.kv.get<Array<{ read: boolean }>>('email-notifications') || []
       const unread = emailNotifications.filter(n => !n.read).length
       setUnreadEmailCount(unread)
+
+      const emails = await window.spark.kv.get<Array<{ to: string; read: boolean }>>('emails') || []
+      const unreadInbox = emails.filter(e => e.to === userEmail && !e.read).length
+      setUnreadInboxCount(unreadInbox)
     }
     loadUnreadCount()
     
     const interval = setInterval(loadUnreadCount, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [userEmail])
 
   const handleModuleClick = (moduleId: string) => {
     if (moduleId === 'manager' && !isAdminOrManager) {
@@ -85,6 +90,15 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       icon: <Users size={48} weight="duotone" />,
       color: 'oklch(0.55 0.24 192)',
       gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
+      available: true,
+    },
+    {
+      id: 'email',
+      title: 'Email System',
+      description: 'Send og modtag beskeder internt',
+      icon: <Envelope size={48} weight="duotone" />,
+      color: 'oklch(0.68 0.14 340)',
+      gradient: 'from-[oklch(0.68_0.14_340)] via-[oklch(0.75_0.12_180)] to-[oklch(0.68_0.14_340)]',
       available: true,
     },
     {
@@ -273,6 +287,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                 className="relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[220px] flex flex-col cursor-pointer hover:shadow-2xl hover:scale-[1.02] hover:border-primary/40 active:scale-[0.98]"
                 onClick={() => handleModuleClick(module.id)}
               >
+                {module.id === 'email' && unreadInboxCount > 0 && (
+                  <Badge className="absolute top-4 right-4 z-10 bg-[oklch(0.58_0.25_25)] text-white px-3 py-1">
+                    {unreadInboxCount} ny{unreadInboxCount > 1 ? 'e' : ''}
+                  </Badge>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                   style={{
                     background: `radial-gradient(circle at top right, ${module.color}15, transparent)`
