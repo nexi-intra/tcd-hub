@@ -212,15 +212,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     const employee = (employees || []).find(e => e.id === selectedEmployee)
     if (!employee) return
 
-    const existing = (assignments || []).find(
-      a => a.employeeId === selectedEmployee && a.date === selectedDate
-    )
-
-    if (existing) {
-      toast.error('Medarbejderen har allerede en vagt denne dag')
-      return
-    }
-
     const newAssignment: ShiftAssignment = {
       id: Date.now().toString(),
       employeeId: selectedEmployee,
@@ -339,8 +330,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
            date.getFullYear() === today.getFullYear()
   }
 
-  const getAssignmentForEmployeeAndDate = (employeeId: string, dateString: string) => {
-    return (assignments || []).find(a => a.employeeId === employeeId && a.date === dateString)
+  const getAssignmentsForEmployeeAndDate = (employeeId: string, dateString: string) => {
+    return (assignments || []).filter(a => a.employeeId === employeeId && a.date === dateString)
   }
 
   const handleAddTaskToCell = (employeeId: string, dateString: string, roleId: string) => {
@@ -351,15 +342,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
 
     const employee = (employees || []).find(e => e.id === employeeId)
     if (!employee) return
-
-    const existing = (assignments || []).find(
-      a => a.employeeId === employeeId && a.date === dateString
-    )
-
-    if (existing) {
-      toast.error('Medarbejderen har allerede en vagt denne dag')
-      return
-    }
 
     const newAssignment: ShiftAssignment = {
       id: Date.now().toString(),
@@ -409,15 +391,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
 
     weekDates.forEach(dateString => {
       if (isDateLocked(dateString)) {
-        skippedCount++
-        return
-      }
-
-      const existing = (assignments || []).find(
-        a => a.employeeId === weekEmployee && a.date === dateString
-      )
-
-      if (existing) {
         skippedCount++
         return
       }
@@ -508,8 +481,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             {dateCell}
           </td>
           {(employees || []).map((employee, employeeIndex) => {
-            const assignment = getAssignmentForEmployeeAndDate(employee.id, dateString)
-            const role = assignment ? (roles || []).find(r => r.id === assignment.roleId) : null
+            const cellAssignments = getAssignmentsForEmployeeAndDate(employee.id, dateString)
             
             const isEvenEmployee = employeeIndex % 2 === 0
 
@@ -524,30 +496,66 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   todayDate && "bg-accent/25 ring-2 ring-accent/50"
                 )}
               >
-                {assignment && role ? (
-                  <div className="group relative">
-                    <div
-                      className="px-2 py-1.5 rounded-md text-xs font-semibold truncate"
-                      style={{ 
-                        backgroundColor: `${role.color}30`,
-                        color: role.color,
-                        border: `2px solid ${role.color}`
-                      }}
-                      title={role.name}
-                    >
-                      {role.name}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteAssignment(assignment.id)
-                      }}
-                    >
-                      <Trash size={12} />
-                    </Button>
+                {cellAssignments.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {cellAssignments.map((assignment) => {
+                      const role = (roles || []).find(r => r.id === assignment.roleId)
+                      if (!role) return null
+                      
+                      return (
+                        <div key={assignment.id} className="group relative">
+                          <div
+                            className="px-2 py-1.5 rounded-md text-xs font-semibold truncate"
+                            style={{ 
+                              backgroundColor: `${role.color}30`,
+                              color: role.color,
+                              border: `2px solid ${role.color}`
+                            }}
+                            title={role.name}
+                          >
+                            {role.name}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteAssignment(assignment.id)
+                            }}
+                          >
+                            <Trash size={12} />
+                          </Button>
+                        </div>
+                      )
+                    })}
+                    {!isLocked && (roles || []).length > 0 && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="w-full h-full min-h-[28px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center border-2 border-dashed border-muted-foreground/20">
+                            <Plus size={14} />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-2" align="center">
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold mb-2 px-2">Vælg Opgave</p>
+                            {(roles || []).map(r => (
+                              <button
+                                key={r.id}
+                                onClick={() => handleAddTaskToCell(employee.id, dateString, r.id)}
+                                className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-all flex items-center gap-3"
+                              >
+                                <div
+                                  className="w-4 h-4 rounded-full"
+                                  style={{ backgroundColor: r.color }}
+                                />
+                                <span className="text-sm font-medium">{r.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
                   </div>
                 ) : (
                   !isLocked && (roles || []).length > 0 ? (
@@ -1236,7 +1244,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             </div>
             <div className="p-3 bg-muted/50 rounded-lg border">
               <p className="text-xs text-muted-foreground">
-                Denne opgave vil blive tildelt til alle hverdage (mandag-fredag) i den valgte uge. Weekender og helligdage springes automatisk over.
+                Denne opgave vil blive tildelt til alle hverdage (mandag-fredag) i den valgte uge. Du kan tildele flere opgaver til samme dag. Weekender og helligdage springes automatisk over.
               </p>
             </div>
             <Button onClick={handleAssignWeek} className="w-full">
