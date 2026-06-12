@@ -32,7 +32,6 @@ interface ShiftAssignment {
 interface ShiftEmployee {
   id: string
   name: string
-  email: string
 }
 
 interface ShiftScheduleProps {
@@ -76,7 +75,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const [newRoleColor, setNewRoleColor] = useState('#8b5cf6')
   
   const [newEmployeeName, setNewEmployeeName] = useState('')
-  const [newEmployeeEmail, setNewEmployeeEmail] = useState('')
   
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [selectedRole, setSelectedRole] = useState('')
@@ -101,6 +99,19 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     }
     checkAdmin()
   }, [userEmail])
+
+  useEffect(() => {
+    if (employees && employees.length > 0) {
+      const needsMigration = employees.some((emp: any) => 'email' in emp)
+      if (needsMigration) {
+        const migratedEmployees = employees.map((emp: any) => ({
+          id: emp.id,
+          name: emp.name
+        }))
+        setEmployees(migratedEmployees)
+      }
+    }
+  }, [])
 
   const isWeekend = (date: Date) => {
     const day = date.getDay()
@@ -190,26 +201,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
       toast.error('Indtast et navn')
       return
     }
-    if (!newEmployeeEmail.trim()) {
-      toast.error('Indtast en email')
-      return
-    }
-
-    const existingEmployee = (employees || []).find(e => e.email === newEmployeeEmail.trim())
-    if (existingEmployee) {
-      toast.error('En medarbejder med denne email findes allerede')
-      return
-    }
 
     const newEmployee: ShiftEmployee = {
       id: Date.now().toString(),
-      name: newEmployeeName.trim(),
-      email: newEmployeeEmail.trim()
+      name: newEmployeeName.trim()
     }
 
     setEmployees((current) => [...(current || []), newEmployee])
     setNewEmployeeName('')
-    setNewEmployeeEmail('')
     setShowEmployeeDialog(false)
     toast.success('Medarbejder tilføjet')
   }
@@ -220,26 +219,15 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
       toast.error('Indtast et navn')
       return
     }
-    if (!newEmployeeEmail.trim()) {
-      toast.error('Indtast en email')
-      return
-    }
-
-    const existingEmployee = (employees || []).find(e => e.email === newEmployeeEmail.trim() && e.id !== editingEmployee.id)
-    if (existingEmployee) {
-      toast.error('En medarbejder med denne email findes allerede')
-      return
-    }
 
     setEmployees((current) => 
       (current || []).map(e => 
         e.id === editingEmployee.id 
-          ? { ...e, name: newEmployeeName.trim(), email: newEmployeeEmail.trim() }
+          ? { ...e, name: newEmployeeName.trim() }
           : e
       )
     )
     setNewEmployeeName('')
-    setNewEmployeeEmail('')
     setEditingEmployee(null)
     setShowEmployeeDialog(false)
     toast.success('Medarbejder opdateret')
@@ -254,14 +242,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const openEditEmployeeDialog = (employee: ShiftEmployee) => {
     setEditingEmployee(employee)
     setNewEmployeeName(employee.name)
-    setNewEmployeeEmail(employee.email)
     setShowEmployeeDialog(true)
   }
 
   const openAddEmployeeDialog = () => {
     setEditingEmployee(null)
     setNewEmployeeName('')
-    setNewEmployeeEmail('')
     setShowEmployeeDialog(true)
   }
 
@@ -546,7 +532,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-lg truncate mb-1">{employee.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">{employee.email}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mt-3">
@@ -815,7 +800,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
         if (!open) {
           setEditingEmployee(null)
           setNewEmployeeName('')
-          setNewEmployeeEmail('')
         }
       }}>
         <DialogContent>
@@ -830,16 +814,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 value={newEmployeeName}
                 onChange={(e) => setNewEmployeeName(e.target.value)}
                 placeholder="F.eks. Anders Hansen"
-              />
-            </div>
-            <div>
-              <Label htmlFor="employee-email">Email</Label>
-              <Input
-                id="employee-email"
-                type="email"
-                value={newEmployeeEmail}
-                onChange={(e) => setNewEmployeeEmail(e.target.value)}
-                placeholder="F.eks. anders@nexi.com"
               />
             </div>
             <Button 
