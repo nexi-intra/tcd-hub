@@ -739,13 +739,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                       style={{ backgroundColor: color.value }}
                     />
                     <span className="text-xs font-medium">{color.name}</span>
-                    {newRoleColor === color.value && (
-                      <div className="absolute top-1 right-1 w-5 h-5 bg-foreground text-background rounded-full flex items-center justify-center">
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                    )}
                   </button>
                 ))}
               </div>
