@@ -10,6 +10,7 @@ import { UserProfile } from '@/components/UserProfile'
 import { VacationRequestDialog } from '@/components/VacationRequestDialog'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 
 type VacationStatus = 'pending' | 'approved' | 'rejected'
 
@@ -302,13 +303,6 @@ Return ONLY a JSON object with this exact structure:
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear)
   const firstDay = getFirstDayOfMonth(selectedMonth, selectedYear)
 
-  const userColors = ['oklch(0.50 0.27 262)', 'oklch(0.55 0.24 192)', 'oklch(0.65 0.26 340)', 'oklch(0.60 0.22 220)', 'oklch(0.62 0.20 150)']
-  
-  const getUserColor = (email: string) => {
-    const hash = email.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    return userColors[hash % userColors.length]
-  }
-
   const getFirstName = (email: string) => {
     if (usersData[email]?.fullName) {
       return usersData[email].fullName.split(' ')[0]
@@ -370,8 +364,11 @@ Return ONLY a JSON object with this exact structure:
     >
       <div className="flex items-center gap-4 flex-1">
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0"
-          style={{ backgroundColor: getUserColor(vacation.userEmail) }}
+          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ 
+            backgroundColor: getEmployeeColorByEmail(vacation.userEmail).bg,
+            color: getEmployeeColorByEmail(vacation.userEmail).text
+          }}
         >
           <User size={20} weight="bold" />
         </div>
@@ -594,8 +591,11 @@ Return ONLY a JSON object with this exact structure:
                               {dayVacations.slice(0, 3).map((vacation) => (
                                 <div
                                   key={vacation.id}
-                                  className="text-[10px] px-1 py-0.5 rounded text-white truncate font-medium"
-                                  style={{ backgroundColor: getUserColor(vacation.userEmail) }}
+                                  className="text-[10px] px-1 py-0.5 rounded truncate font-medium"
+                                  style={{ 
+                                    backgroundColor: getEmployeeColorByEmail(vacation.userEmail).bg,
+                                    color: getEmployeeColorByEmail(vacation.userEmail).text
+                                  }}
                                   title={`${getFirstName(vacation.userEmail)}${vacation.notes ? ': ' + vacation.notes : ''}`}
                                 >
                                   {getFirstName(vacation.userEmail)}
@@ -695,8 +695,11 @@ Return ONLY a JSON object with this exact structure:
                     className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-card"
                   >
                     <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                      style={{ backgroundColor: getUserColor(email) }}
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                      style={{ 
+                        backgroundColor: getEmployeeColorByEmail(email).bg,
+                        color: getEmployeeColorByEmail(email).text
+                      }}
                     >
                       {getFirstName(email).charAt(0).toUpperCase()}
                     </div>

@@ -20,6 +20,7 @@ import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { Textarea } from '@/components/ui/textarea'
 import type { TeamEmployee } from '@/views/TeamOverview'
+import { getEmployeeColorByEmail, getEmployeeColorByName } from '@/lib/employeeColors'
 
 interface ShiftRole {
   id: string
@@ -532,7 +533,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             const cellComment = getCellComment(employee.id, dateString)
             const sickLeave = getEmployeeSickLeaveForDate(employee.email, dateString)
             
-            const isEvenEmployee = employeeIndex % 2 === 0
+            const employeeColor = getEmployeeColorByName(employee.name)
 
             return (
               <td
@@ -541,11 +542,21 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   "border-x-2 border-border p-2 text-center transition-all",
                   isLocked && "bg-muted/20",
                   sickLeave && "bg-red-50",
-                  !sickLeave && (isEvenEmployee ? "bg-primary/5" : "bg-secondary/5"),
-                  currentWeek && !sickLeave && "bg-primary/15",
-                  todayDate && !sickLeave && "bg-accent/25 ring-2 ring-accent/50",
+                  currentWeek && !sickLeave && "ring-1 ring-inset",
+                  todayDate && !sickLeave && "ring-2 ring-inset",
                   todayDate && sickLeave && "bg-red-100 ring-2 ring-red-300"
                 )}
+                style={{
+                  backgroundColor: sickLeave 
+                    ? undefined 
+                    : `color-mix(in oklch, ${employeeColor.bg} 15%, transparent)`,
+                  ...(currentWeek && !sickLeave && { 
+                    boxShadow: `inset 0 0 0 1px ${employeeColor.bg}` 
+                  }),
+                  ...(todayDate && !sickLeave && { 
+                    boxShadow: `inset 0 0 0 2px ${employeeColor.bg}` 
+                  })
+                }}
               >
                 <div className="space-y-1.5">
                   {sickLeave && (
@@ -823,14 +834,16 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                       </th>
                       {(employees || []).map((employee, index) => {
                         const firstName = employee.name.split(' ')[0]
+                        const employeeColor = getEmployeeColorByName(employee.name)
                         return (
                           <th
                             key={employee.id}
-                            className={cn(
-                              "border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold",
-                              index % 2 === 0 ? "bg-primary/10" : "bg-secondary/10"
-                            )}
-                            style={{ width: `${100 / ((employees || []).length + 1)}%` }}
+                            className="border-x-2 border-b-2 border-border px-2 py-4 text-center font-semibold"
+                            style={{ 
+                              width: `${100 / ((employees || []).length + 1)}%`,
+                              backgroundColor: employeeColor.bg,
+                              color: employeeColor.text
+                            }}
                           >
                             <div className="truncate" title={employee.name}>
                               {firstName}
