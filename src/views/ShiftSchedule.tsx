@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, UserPlus, Gear } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -23,10 +23,16 @@ interface ShiftRole {
 
 interface ShiftAssignment {
   id: string
-  employeeEmail: string
+  employeeId: string
   employeeName: string
   roleId: string
   date: string
+}
+
+interface ShiftEmployee {
+  id: string
+  name: string
+  email: string
 }
 
 interface ShiftScheduleProps {
@@ -58,14 +64,19 @@ const allDanishHolidays = [...danishHolidays2024, ...danishHolidays2025, ...dani
 export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftScheduleProps) {
   const [roles, setRoles] = useKV<ShiftRole[]>('shift-roles', [])
   const [assignments, setAssignments] = useKV<ShiftAssignment[]>('shift-assignments', [])
-  const [employees, setEmployees] = useState<Array<{ email: string; name: string; role?: string }>>([])
+  const [employees, setEmployees] = useKV<ShiftEmployee[]>('shift-employees', [])
   const [isAdmin, setIsAdmin] = useState(false)
   
   const [showRoleDialog, setShowRoleDialog] = useState(false)
   const [showAssignmentDialog, setShowAssignmentDialog] = useState(false)
+  const [showEmployeeDialog, setShowEmployeeDialog] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState<ShiftEmployee | null>(null)
   
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleColor, setNewRoleColor] = useState('#8b5cf6')
+  
+  const [newEmployeeName, setNewEmployeeName] = useState('')
+  const [newEmployeeEmail, setNewEmployeeEmail] = useState('')
   
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [selectedRole, setSelectedRole] = useState('')
@@ -82,34 +93,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   ]
 
   useEffect(() => {
-    const loadEmployeesAndCheckAdmin = async () => {
+    const checkAdmin = async () => {
       const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: string }>>('users')
-      if (usersData) {
-        const employeeList = Object.entries(usersData).map(([email, data]) => ({
-          email,
-          name: data.fullName,
-          role: data.role
-        }))
-        setEmployees(employeeList)
-        
-        if (usersData[userEmail]?.role === 'admin') {
-          setIsAdmin(true)
-        }
+      if (usersData && usersData[userEmail]?.role === 'admin') {
+        setIsAdmin(true)
       }
     }
-    loadEmployeesAndCheckAdmin()
+    checkAdmin()
   }, [userEmail])
-  
-  const getRoleBadge = (role?: string) => {
-    switch (role) {
-      case 'admin':
-        return <Badge className="bg-gradient-to-r from-accent via-primary to-secondary text-white text-xs">Admin</Badge>
-      case 'manager':
-        return <Badge className="bg-gradient-to-r from-primary to-secondary text-white text-xs">Manager</Badge>
-      default:
-        return <Badge variant="secondary" className="text-xs">Bruger</Badge>
-    }
-  }
 
   const isWeekend = (date: Date) => {
     const day = date.getDay()
@@ -161,11 +152,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
       return
     }
 
-    const employee = employees.find(e => e.email === selectedEmployee)
+    const employee = (employees || []).find(e => e.id === selectedEmployee)
     if (!employee) return
 
     const existing = (assignments || []).find(
-      a => a.employeeEmail === selectedEmployee && a.date === selectedDate
+      a => a.employeeId === selectedEmployee && a.date === selectedDate
     )
 
     if (existing) {
@@ -175,7 +166,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
 
     const newAssignment: ShiftAssignment = {
       id: Date.now().toString(),
-      employeeEmail: selectedEmployee,
+      employeeId: selectedEmployee,
       employeeName: employee.name,
       roleId: selectedRole,
       date: selectedDate
@@ -194,6 +185,86 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     toast.success('Vagt fjernet')
   }
 
+  const handleAddEmployee = () => {
+    if (!newEmployeeName.trim()) {
+      toast.error('Indtast et navn')
+      return
+    }
+    if (!newEmployeeEmail.trim()) {
+      toast.error('Indtast en email')
+      return
+    }
+
+    const existingEmployee = (employees || []).find(e => e.email === newEmployeeEmail.trim())
+    if (existingEmployee) {
+      toast.error('En medarbejder med denne email findes allerede')
+      return
+    }
+
+    const newEmployee: ShiftEmployee = {
+      id: Date.now().toString(),
+      name: newEmployeeName.trim(),
+      email: newEmployeeEmail.trim()
+    }
+
+    setEmployees((current) => [...(current || []), newEmployee])
+    setNewEmployeeName('')
+    setNewEmployeeEmail('')
+    setShowEmployeeDialog(false)
+    toast.success('Medarbejder tilføjet')
+  }
+
+  const handleUpdateEmployee = () => {
+    if (!editingEmployee) return
+    if (!newEmployeeName.trim()) {
+      toast.error('Indtast et navn')
+      return
+    }
+    if (!newEmployeeEmail.trim()) {
+      toast.error('Indtast en email')
+      return
+    }
+
+    const existingEmployee = (employees || []).find(e => e.email === newEmployeeEmail.trim() && e.id !== editingEmployee.id)
+    if (existingEmployee) {
+      toast.error('En medarbejder med denne email findes allerede')
+      return
+    }
+
+    setEmployees((current) => 
+      (current || []).map(e => 
+        e.id === editingEmployee.id 
+          ? { ...e, name: newEmployeeName.trim(), email: newEmployeeEmail.trim() }
+          : e
+      )
+    )
+    setNewEmployeeName('')
+    setNewEmployeeEmail('')
+    setEditingEmployee(null)
+    setShowEmployeeDialog(false)
+    toast.success('Medarbejder opdateret')
+  }
+
+  const handleDeleteEmployee = (employeeId: string) => {
+    setEmployees((current) => (current || []).filter(e => e.id !== employeeId))
+    setAssignments((current) => (current || []).filter(a => a.employeeId !== employeeId))
+    toast.success('Medarbejder slettet')
+  }
+
+  const openEditEmployeeDialog = (employee: ShiftEmployee) => {
+    setEditingEmployee(employee)
+    setNewEmployeeName(employee.name)
+    setNewEmployeeEmail(employee.email)
+    setShowEmployeeDialog(true)
+  }
+
+  const openAddEmployeeDialog = () => {
+    setEditingEmployee(null)
+    setNewEmployeeName('')
+    setNewEmployeeEmail('')
+    setShowEmployeeDialog(true)
+  }
+
   const getDaysInMonth = (month: number, year: number) => {
     return new Date(year, month + 1, 0).getDate()
   }
@@ -202,18 +273,18 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     return new Date(year, month, 1).getDay()
   }
 
-  const getAssignmentForEmployeeAndDate = (employeeEmail: string, dateString: string) => {
-    return (assignments || []).find(a => a.employeeEmail === employeeEmail && a.date === dateString)
+  const getAssignmentForEmployeeAndDate = (employeeId: string, dateString: string) => {
+    return (assignments || []).find(a => a.employeeId === employeeId && a.date === dateString)
   }
 
-  const handleCellClick = (employeeEmail: string, dateString: string) => {
+  const handleCellClick = (employeeId: string, dateString: string) => {
     if (!isAdmin) return
     if (isDateLocked(dateString)) {
       toast.error('Kan ikke tildele vagter på weekender eller helligdage')
       return
     }
     
-    setSelectedEmployee(employeeEmail)
+    setSelectedEmployee(employeeId)
     setSelectedDate(dateString)
     setShowAssignmentDialog(true)
   }
@@ -246,19 +317,19 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               )}
             </div>
           </td>
-          {employees.map(employee => {
-            const assignment = getAssignmentForEmployeeAndDate(employee.email, dateString)
+          {(employees || []).map(employee => {
+            const assignment = getAssignmentForEmployeeAndDate(employee.id, dateString)
             const role = assignment ? (roles || []).find(r => r.id === assignment.roleId) : null
 
             return (
               <td
-                key={employee.email}
+                key={employee.id}
                 className={cn(
                   "border border-border p-4 text-center transition-all",
                   !isLocked && isAdmin && "cursor-pointer hover:bg-muted/50",
                   isLocked && "bg-muted/20"
                 )}
-                onClick={() => !assignment && handleCellClick(employee.email, dateString)}
+                onClick={() => !assignment && handleCellClick(employee.id, dateString)}
               >
                 {assignment && role ? (
                   <div className="group relative">
@@ -408,9 +479,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                       <th className="sticky left-0 bg-card border-r-2 border-b-2 border-border px-4 py-3 text-left font-semibold z-20">
                         Dato
                       </th>
-                      {employees.map(employee => (
+                      {(employees || []).map(employee => (
                         <th
-                          key={employee.email}
+                          key={employee.id}
                           className="border border-border px-4 py-3 text-center font-semibold whitespace-nowrap min-w-[150px]"
                         >
                           {employee.name}
@@ -433,36 +504,44 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   <UserCircle size={28} className="text-primary" weight="duotone" />
                   <h2 className="text-2xl font-bold">Medarbejdere</h2>
                 </div>
-                <Badge variant="outline" className="text-sm">
-                  {employees.length} {employees.length === 1 ? 'Medarbejder' : 'Medarbejdere'}
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-sm">
+                    {(employees || []).length} {(employees || []).length === 1 ? 'Medarbejder' : 'Medarbejdere'}
+                  </Badge>
+                  <Button
+                    onClick={openAddEmployeeDialog}
+                    size="sm"
+                    className="gap-2 bg-gradient-to-r from-primary to-secondary"
+                  >
+                    <Plus size={16} />
+                    Tilføj Medarbejder
+                  </Button>
+                </div>
               </div>
 
-              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
-                <p className="text-sm text-muted-foreground">
-                  Medarbejderne nedenfor vises i vagtplanen. Alle brugere oprettes via Auth-systemet.
-                </p>
-              </div>
-
-              {employees.length === 0 ? (
-                <p className="text-muted-foreground text-center py-12">Ingen medarbejdere fundet</p>
+              {!(employees || []).length ? (
+                <div className="text-center py-12">
+                  <UserCircle size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
+                  <p className="text-muted-foreground mb-4">Ingen medarbejdere endnu</p>
+                  <Button
+                    onClick={openAddEmployeeDialog}
+                    className="gap-2"
+                  >
+                    <Plus size={20} />
+                    Tilføj Din Første Medarbejder
+                  </Button>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {employees.map((employee) => (
+                  {(employees || []).map((employee) => (
                     <motion.div
-                      key={employee.email}
+                      key={employee.id}
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all"
+                      className="p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all group"
                     >
                       <div className="flex items-start gap-3 mb-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md ${
-                          employee.role === 'admin' 
-                            ? 'bg-gradient-to-br from-accent via-primary to-secondary' 
-                            : employee.role === 'manager'
-                            ? 'bg-gradient-to-br from-primary to-secondary'
-                            : 'bg-gradient-to-br from-secondary to-accent'
-                        }`}>
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md bg-gradient-to-br from-primary to-secondary">
                           {employee.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -470,7 +549,45 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                           <div className="text-xs text-muted-foreground truncate">{employee.email}</div>
                         </div>
                       </div>
-                      {getRoleBadge(employee.role)}
+                      <div className="flex items-center gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditEmployeeDialog(employee)}
+                          className="flex-1 gap-2"
+                        >
+                          <PencilSimple size={16} />
+                          Rediger
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              size="sm"
+                              variant="outline" 
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash size={16} />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Slet medarbejder?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Er du sikker på at du vil slette <strong>{employee.name}</strong>? Alle vagter tildelt til denne medarbejder vil også blive fjernet. Denne handling kan ikke fortrydes.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuller</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteEmployee(employee.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Slet medarbejder
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -648,8 +765,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   <SelectValue placeholder="Vælg medarbejder" />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map(emp => (
-                    <SelectItem key={emp.email} value={emp.email}>
+                  {(employees || []).map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>
                       {emp.name}
                     </SelectItem>
                   ))}
@@ -688,6 +805,48 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             </div>
             <Button onClick={handleAddAssignment} className="w-full">
               Tildel Vagt
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEmployeeDialog} onOpenChange={(open) => {
+        setShowEmployeeDialog(open)
+        if (!open) {
+          setEditingEmployee(null)
+          setNewEmployeeName('')
+          setNewEmployeeEmail('')
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingEmployee ? 'Rediger Medarbejder' : 'Tilføj Medarbejder'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <Label htmlFor="employee-name">Navn</Label>
+              <Input
+                id="employee-name"
+                value={newEmployeeName}
+                onChange={(e) => setNewEmployeeName(e.target.value)}
+                placeholder="F.eks. Anders Hansen"
+              />
+            </div>
+            <div>
+              <Label htmlFor="employee-email">Email</Label>
+              <Input
+                id="employee-email"
+                type="email"
+                value={newEmployeeEmail}
+                onChange={(e) => setNewEmployeeEmail(e.target.value)}
+                placeholder="F.eks. anders@nexi.com"
+              />
+            </div>
+            <Button 
+              onClick={editingEmployee ? handleUpdateEmployee : handleAddEmployee} 
+              className="w-full"
+            >
+              {editingEmployee ? 'Gem Ændringer' : 'Tilføj Medarbejder'}
             </Button>
           </div>
         </DialogContent>
