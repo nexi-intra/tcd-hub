@@ -1265,35 +1265,44 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {(employees || []).map((employee) => (
-                    <motion.div
-                      key={employee.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all group"
-                    >
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md bg-gradient-to-br from-primary to-secondary">
-                          {employee.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-lg truncate mb-1">{employee.name}</div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone size={16} className="flex-shrink-0" />
-                          <a 
-                            href={`tel:${employee.phone}`}
-                            className="hover:text-primary transition-colors"
+                  {(employees || []).map((employee) => {
+                    const employeeColor = getEmployeeColorByEmail(employee.email)
+                    return (
+                      <motion.div
+                        key={employee.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all group"
+                      >
+                        <div className="flex items-start gap-3 mb-3">
+                          <div 
+                            className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-md"
+                            style={{
+                              backgroundColor: employeeColor.bg,
+                              color: employeeColor.text
+                            }}
                           >
-                            {employee.phone}
-                          </a>
+                            {employee.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-lg truncate mb-1">{employee.name}</div>
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Phone size={16} className="flex-shrink-0" />
+                            <a 
+                              href={`tel:${employee.phone}`}
+                              className="hover:text-primary transition-colors"
+                            >
+                              {employee.phone}
+                            </a>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
                 </div>
               )}
             </Card>
