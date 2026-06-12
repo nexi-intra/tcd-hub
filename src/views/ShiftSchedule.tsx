@@ -1110,7 +1110,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               </p>
             </div>
             <div>
-              <Label htmlFor="week-fill-date">Vælg en dato i ugen</Label>
+              <Label htmlFor="week-fill-date">Uge Nummer</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -1123,9 +1123,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   >
                     <CalendarIcon size={16} className="mr-2" />
                     {weekFillStartDate ? (
-                      format(new Date(weekFillStartDate), "PPP", { locale: da })
+                      `Uge ${getWeekNumber(new Date(weekFillStartDate))} - ${new Date(weekFillStartDate).getFullYear()}`
                     ) : (
-                      <span>Vælg dato</span>
+                      <span>Vælg uge</span>
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -1141,6 +1141,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                         setWeekFillStartDate(`${year}-${month}-${day}`)
                       }
                     }}
+                    showWeekNumber
                     initialFocus
                   />
                 </PopoverContent>
