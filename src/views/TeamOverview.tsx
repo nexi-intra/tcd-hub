@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, UserCircle, PencilSimple, Phone, Envelope as EnvelopeIcon, User } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, UserCircle, PencilSimple, Phone, Envelope as EnvelopeIcon, User, Copy } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -138,6 +138,15 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
     setShowEmployeeDialog(true)
   }
 
+  const handleCopyEmail = async (email: string) => {
+    try {
+      await navigator.clipboard.writeText(email)
+      toast.success('Email kopieret til udklipsholder')
+    } catch (err) {
+      toast.error('Kunne ikke kopiere email')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.55_0.22_265/0.15),transparent_50%),radial-gradient(ellipse_at_bottom_right,oklch(0.65_0.26_340/0.12),transparent_50%)] pointer-events-none" />
@@ -231,11 +240,18 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
                       <EnvelopeIcon size={16} className="flex-shrink-0" />
                       <a 
                         href={`mailto:${employee.email}`}
-                        className="truncate hover:text-primary transition-colors"
+                        className="truncate hover:text-primary transition-colors flex-1 min-w-0"
                         title={employee.email}
                       >
                         {employee.email}
                       </a>
+                      <button
+                        onClick={() => handleCopyEmail(employee.email)}
+                        className="flex-shrink-0 p-1 hover:bg-muted rounded transition-colors"
+                        title="Kopier email"
+                      >
+                        <Copy size={16} className="text-muted-foreground hover:text-primary transition-colors" />
+                      </button>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Phone size={16} className="flex-shrink-0" />
