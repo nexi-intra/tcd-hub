@@ -56,21 +56,21 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   }, [])
   const modules: HubModule[] = [
     {
-      id: 'calendar',
-      title: 'Feriekalender',
-      description: 'Planlæg og koordiner teamets ferieperioder',
-      icon: <Calendar size={48} weight="duotone" />,
-      color: 'oklch(0.65 0.26 340)',
-      gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
-      available: true,
-    },
-    {
       id: 'shifts',
       title: 'Vagtplan',
       description: 'Administrer vagter og roller for teamet',
       icon: <ClipboardText size={48} weight="duotone" />,
       color: 'oklch(0.60 0.22 220)',
       gradient: 'from-[oklch(0.60_0.22_220)] via-[oklch(0.65_0.26_340)] to-[oklch(0.60_0.22_220)]',
+      available: true,
+    },
+    {
+      id: 'calendar',
+      title: 'Feriekalender',
+      description: 'Planlæg og koordiner teamets ferieperioder',
+      icon: <Calendar size={48} weight="duotone" />,
+      color: 'oklch(0.65 0.26 340)',
+      gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
       available: true,
     },
     ...(isAdminOrManager ? [{
