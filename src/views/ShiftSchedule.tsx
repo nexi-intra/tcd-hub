@@ -70,6 +70,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const [showAssignmentDialog, setShowAssignmentDialog] = useState(false)
   const [showEmployeeDialog, setShowEmployeeDialog] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<ShiftEmployee | null>(null)
+  const [editingRole, setEditingRole] = useState<ShiftRole | null>(null)
   
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleColor, setNewRoleColor] = useState('#8b5cf6')
@@ -159,6 +160,27 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     setNewRoleColor('#8b5cf6')
     setShowRoleDialog(false)
     toast.success('Rolle tilføjet')
+  }
+
+  const handleUpdateRole = () => {
+    if (!editingRole) return
+    if (!newRoleName.trim()) {
+      toast.error('Indtast et rolle navn')
+      return
+    }
+
+    setRoles((current) => 
+      (current || []).map(r => 
+        r.id === editingRole.id 
+          ? { ...r, name: newRoleName.trim(), color: newRoleColor }
+          : r
+      )
+    )
+    setNewRoleName('')
+    setNewRoleColor('#8b5cf6')
+    setEditingRole(null)
+    setShowRoleDialog(false)
+    toast.success('Rolle opdateret')
   }
 
   const handleDeleteRole = (roleId: string) => {
@@ -264,6 +286,20 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     setEditingEmployee(null)
     setNewEmployeeName('')
     setShowEmployeeDialog(true)
+  }
+
+  const openEditRoleDialog = (role: ShiftRole) => {
+    setEditingRole(role)
+    setNewRoleName(role.name)
+    setNewRoleColor(role.color)
+    setShowRoleDialog(true)
+  }
+
+  const openAddRoleDialog = () => {
+    setEditingRole(null)
+    setNewRoleName('')
+    setNewRoleColor('#8b5cf6')
+    setShowRoleDialog(true)
   }
 
   const getDaysInMonth = (month: number, year: number) => {
@@ -607,7 +643,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                     {(roles || []).length} {(roles || []).length === 1 ? 'Opgave' : 'Opgaver'}
                   </Badge>
                   <Button
-                    onClick={() => setShowRoleDialog(true)}
+                    onClick={openAddRoleDialog}
                     size="sm"
                     className="gap-2 bg-gradient-to-r from-primary to-secondary"
                   >
@@ -628,7 +664,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   <Tag size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
                   <p className="text-muted-foreground mb-4">Ingen opgaver endnu</p>
                   <Button
-                    onClick={() => setShowRoleDialog(true)}
+                    onClick={openAddRoleDialog}
                     className="gap-2"
                   >
                     <Plus size={20} />
@@ -668,34 +704,45 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                           Eksempel
                         </div>
                       </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
-                          >
-                            <Trash size={20} />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Slet opgave?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Er du sikker på at du vil slette <strong>{role.name}</strong>? Alle vagter tildelt til denne opgave vil også blive fjernet. Denne handling kan ikke fortrydes.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Annuller</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteRole(role.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      <div className="flex items-center gap-2 ml-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditRoleDialog(role)}
+                          className="gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <PencilSimple size={16} />
+                          Rediger
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
-                              Slet opgave
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                              <Trash size={20} />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Slet opgave?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Er du sikker på at du vil slette <strong>{role.name}</strong>? Alle vagter tildelt til denne opgave vil også blive fjernet. Denne handling kan ikke fortrydes.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuller</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteRole(role.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Slet opgave
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -704,10 +751,17 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </TabsContent>
         </Tabs>
       </div>
-      <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
+      <Dialog open={showRoleDialog} onOpenChange={(open) => {
+        setShowRoleDialog(open)
+        if (!open) {
+          setEditingRole(null)
+          setNewRoleName('')
+          setNewRoleColor('#8b5cf6')
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tilføj Ny Rolle</DialogTitle>
+            <DialogTitle>{editingRole ? 'Rediger Rolle' : 'Tilføj Ny Rolle'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div>
@@ -743,8 +797,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 ))}
               </div>
             </div>
-            <Button onClick={handleAddRole} className="w-full">
-              Opret Rolle
+            <Button onClick={editingRole ? handleUpdateRole : handleAddRole} className="w-full">
+              {editingRole ? 'Gem Ændringer' : 'Opret Rolle'}
             </Button>
           </div>
         </DialogContent>
