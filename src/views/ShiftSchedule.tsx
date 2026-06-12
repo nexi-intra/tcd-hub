@@ -707,6 +707,16 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 </div>
                 
                 <div className="flex items-center gap-3">
+                  {isAdmin && (
+                    <Button
+                      onClick={() => setShowWeekAssignmentDialog(true)}
+                      variant="default"
+                      className="gap-2"
+                    >
+                      <Plus size={18} />
+                      Tilføj Opgaver til Hel Uge
+                    </Button>
+                  )}
                   <Button
                     onClick={() => {
                       const today = new Date()
@@ -786,6 +796,16 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 </div>
                 
                 <div className="flex items-center gap-3">
+                  {isAdmin && (
+                    <Button
+                      onClick={() => setShowWeekAssignmentDialog(true)}
+                      variant="default"
+                      className="gap-2"
+                    >
+                      <Plus size={18} />
+                      Tilføj Opgaver til Hel Uge
+                    </Button>
+                  )}
                   <Button
                     onClick={() => {
                       const today = new Date()
