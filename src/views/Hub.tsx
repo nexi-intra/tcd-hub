@@ -54,6 +54,27 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     const interval = setInterval(loadUnreadCount, 5000)
     return () => clearInterval(interval)
   }, [])
+  const adminModules: HubModule[] = isAdminOrManager ? [
+    {
+      id: 'manager',
+      title: 'Manager Panel',
+      description: 'Administrer rettigheder og håndter sygemeldinger',
+      icon: <ShieldCheck size={48} weight="duotone" />,
+      color: 'oklch(0.55 0.24 192)',
+      gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
+      available: true,
+    },
+    {
+      id: 'admin',
+      title: 'Admin Panel',
+      description: 'Administrer brugere, medarbejdere og opgaver',
+      icon: <Gear size={48} weight="duotone" />,
+      color: 'oklch(0.58 0.25 25)',
+      gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
+      available: true,
+    }
+  ] : []
+
   const modules: HubModule[] = [
     {
       id: 'shifts',
@@ -73,24 +94,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
       available: true,
     },
-    ...(isAdminOrManager ? [{
-      id: 'manager',
-      title: 'Manager Panel',
-      description: 'Administrer rettigheder og håndter sygemeldinger',
-      icon: <ShieldCheck size={48} weight="duotone" />,
-      color: 'oklch(0.55 0.24 192)',
-      gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
-      available: true,
-    }] : []),
-    ...(isAdminOrManager ? [{
-      id: 'admin',
-      title: 'Admin Panel',
-      description: 'Administrer brugere, medarbejdere og opgaver',
-      icon: <Gear size={48} weight="duotone" />,
-      color: 'oklch(0.58 0.25 25)',
-      gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
-      available: true,
-    }] : []),
+    ...adminModules,
     {
       id: 'team',
       title: 'Team Oversigt',
