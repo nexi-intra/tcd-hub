@@ -1,22 +1,18 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, UserCircle, PencilSimple, Phone, EnvelopeSimple } from '@phosphor-icons/react'
+import { ArrowLeft, UserCircle, EnvelopeSimple, Crown, ShieldCheck } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { useKV } from '@github/spark/hooks'
 import { UserProfile } from '@/components/UserProfile'
-import { toast } from 'sonner'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { UserRole, getRoleDisplayName } from '@/lib/userRoles'
 
 export interface TeamEmployee {
   id: string
   name: string
   email: string
   phone: string
+  role?: UserRole
 }
 
 interface TeamOverviewProps {
@@ -26,13 +22,12 @@ interface TeamOverviewProps {
 }
 
 export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOverviewProps) {
-  const [employees, setEmployees] = useKV<TeamEmployee[]>('team-employees', [])
-  const [showEmployeeDialog, setShowEmployeeDialog] = useState(false)
-  const [editingEmployee, setEditingEmployee] = useState<TeamEmployee | null>(null)
-  
-  const [newEmployeeName, setNewEmployeeName] = useState('')
-  const [newEmployeeEmail, setNewEmployeeEmail] = useState('')
-  const [newEmployeePhone, setNewEmployeePhone] = useState('')
+  const [employees, setEmployees] = useState<TeamEmployee[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    loadRegisteredUsers()
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,84 +40,47 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onNavigateBack])
 
-  const handleAddEmployee = () => {
-    if (!newEmployeeName.trim()) {
-      toast.error('Indtast et navn')
-      return
+  const loadRegisteredUsers = async () => {
+    setIsLoading(true)
+    const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: UserRole }>>('users')
+    
+    if (usersData) {
+      const userList: TeamEmployee[] = Object.values(usersData).map(user => ({
+        id: user.email,
+        name: user.fullName,
+        email: user.email,
+        phone: '',
+        role: user.role || 'user'
+      }))
+      setEmployees(userList)
     }
-    if (!newEmployeeEmail.trim()) {
-      toast.error('Indtast en email')
-      return
-    }
-    if (!newEmployeePhone.trim()) {
-      toast.error('Indtast et telefonnummer')
-      return
-    }
-
-    const newEmployee: TeamEmployee = {
-      id: Date.now().toString(),
-      name: newEmployeeName.trim(),
-      email: newEmployeeEmail.trim(),
-      phone: newEmployeePhone.trim()
-    }
-
-    setEmployees((current) => [...(current || []), newEmployee])
-    setNewEmployeeName('')
-    setNewEmployeeEmail('')
-    setNewEmployeePhone('')
-    setShowEmployeeDialog(false)
-    toast.success('Medarbejder tilføjet')
+    setIsLoading(false)
   }
 
-  const handleUpdateEmployee = () => {
-    if (!editingEmployee) return
-    if (!newEmployeeName.trim()) {
-      toast.error('Indtast et navn')
-      return
+  const getRoleBadge = (role?: UserRole) => {
+    switch (role) {
+      case 'admin':
+        return (
+          <Badge className="bg-gradient-to-r from-accent via-primary to-secondary text-white">
+            <Crown size={14} className="mr-1" weight="fill" />
+            Administrator
+          </Badge>
+        )
+      case 'manager':
+        return (
+          <Badge className="bg-gradient-to-r from-primary to-secondary text-white">
+            <ShieldCheck size={14} className="mr-1" weight="fill" />
+            Manager
+          </Badge>
+        )
+      default:
+        return (
+          <Badge variant="secondary">
+            <UserCircle size={14} className="mr-1" />
+            Bruger
+          </Badge>
+        )
     }
-    if (!newEmployeeEmail.trim()) {
-      toast.error('Indtast en email')
-      return
-    }
-    if (!newEmployeePhone.trim()) {
-      toast.error('Indtast et telefonnummer')
-      return
-    }
-
-    setEmployees((current) => 
-      (current || []).map(emp => 
-        emp.id === editingEmployee.id 
-          ? { ...emp, name: newEmployeeName.trim(), email: newEmployeeEmail.trim(), phone: newEmployeePhone.trim() }
-          : emp
-      )
-    )
-    setNewEmployeeName('')
-    setNewEmployeeEmail('')
-    setNewEmployeePhone('')
-    setEditingEmployee(null)
-    setShowEmployeeDialog(false)
-    toast.success('Medarbejder opdateret')
-  }
-
-  const handleDeleteEmployee = (employeeId: string) => {
-    setEmployees((current) => (current || []).filter(emp => emp.id !== employeeId))
-    toast.success('Medarbejder slettet')
-  }
-
-  const openEditEmployeeDialog = (employee: TeamEmployee) => {
-    setEditingEmployee(employee)
-    setNewEmployeeName(employee.name)
-    setNewEmployeeEmail(employee.email || '')
-    setNewEmployeePhone(employee.phone)
-    setShowEmployeeDialog(true)
-  }
-
-  const openAddEmployeeDialog = () => {
-    setEditingEmployee(null)
-    setNewEmployeeName('')
-    setNewEmployeeEmail('')
-    setNewEmployeePhone('')
-    setShowEmployeeDialog(true)
   }
 
   return (
@@ -164,38 +122,35 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <UserCircle size={28} className="text-primary" weight="duotone" />
-              <h2 className="text-2xl font-bold">Medarbejdere</h2>
+              <h2 className="text-2xl font-bold">Registrerede Brugere</h2>
             </div>
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="text-sm">
-                {(employees || []).length} {(employees || []).length === 1 ? 'Medarbejder' : 'Medarbejdere'}
+                {employees.length} {employees.length === 1 ? 'Bruger' : 'Brugere'}
               </Badge>
-              <Button
-                onClick={openAddEmployeeDialog}
-                size="sm"
-                className="gap-2 bg-gradient-to-r from-primary to-secondary"
-              >
-                <Plus size={16} />
-                Tilføj Medarbejder
-              </Button>
             </div>
           </div>
 
-          {!(employees || []).length ? (
+          <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+            <p className="text-sm text-muted-foreground">
+              Dette er en oversigt over alle brugere der har oprettet en konto og logget ind på hjemmesiden. Brugere oprettes via login-systemet.
+            </p>
+          </div>
+
+          {isLoading ? (
+            <div className="text-center py-12">
+              <UserCircle size={48} className="text-muted-foreground mx-auto mb-4 animate-pulse" weight="duotone" />
+              <p className="text-muted-foreground">Indlæser brugere...</p>
+            </div>
+          ) : !employees.length ? (
             <div className="text-center py-12">
               <UserCircle size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
-              <p className="text-muted-foreground mb-4">Ingen medarbejdere endnu</p>
-              <Button
-                onClick={openAddEmployeeDialog}
-                className="gap-2"
-              >
-                <Plus size={20} />
-                Tilføj Din Første Medarbejder
-              </Button>
+              <p className="text-muted-foreground">Ingen registrerede brugere endnu</p>
+              <p className="text-sm text-muted-foreground mt-2">Brugere vil blive vist her når de opretter en konto</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {(employees || []).map((employee) => (
+              {employees.map((employee) => (
                 <motion.div
                   key={employee.id}
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -208,70 +163,20 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-lg truncate mb-1">{employee.name}</div>
+                      {getRoleBadge(employee.role)}
                     </div>
                   </div>
                   
-                  <div className="space-y-2 mb-4">
-                    {employee.email && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <EnvelopeSimple size={16} className="flex-shrink-0" />
-                        <a 
-                          href={`mailto:${employee.email}`}
-                          className="hover:text-primary transition-colors truncate"
-                        >
-                          {employee.email}
-                        </a>
-                      </div>
-                    )}
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Phone size={16} className="flex-shrink-0" />
+                      <EnvelopeSimple size={16} className="flex-shrink-0" />
                       <a 
-                        href={`tel:${employee.phone}`}
-                        className="hover:text-primary transition-colors"
+                        href={`mailto:${employee.email}`}
+                        className="hover:text-primary transition-colors truncate"
                       >
-                        {employee.phone}
+                        {employee.email}
                       </a>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openEditEmployeeDialog(employee)}
-                      className="gap-2 flex-1"
-                    >
-                      <PencilSimple size={16} />
-                      Rediger
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash size={20} />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Slet medarbejder?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Er du sikker på at du vil slette <strong>{employee.name}</strong>? Denne handling kan ikke fortrydes.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuller</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteEmployee(employee.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Slet medarbejder
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
                   </div>
                 </motion.div>
               ))}
@@ -279,58 +184,6 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
           )}
         </Card>
       </div>
-
-      <Dialog open={showEmployeeDialog} onOpenChange={(open) => {
-        setShowEmployeeDialog(open)
-        if (!open) {
-          setEditingEmployee(null)
-          setNewEmployeeName('')
-          setNewEmployeeEmail('')
-          setNewEmployeePhone('')
-        }
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingEmployee ? 'Rediger Medarbejder' : 'Tilføj Ny Medarbejder'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div>
-              <Label htmlFor="employee-name">Navn *</Label>
-              <Input
-                id="employee-name"
-                value={newEmployeeName}
-                onChange={(e) => setNewEmployeeName(e.target.value)}
-                placeholder="F.eks. Anders Hansen"
-              />
-            </div>
-            <div>
-              <Label htmlFor="employee-email">Email *</Label>
-              <Input
-                id="employee-email"
-                type="email"
-                value={newEmployeeEmail}
-                onChange={(e) => setNewEmployeeEmail(e.target.value)}
-                placeholder="F.eks. anders@firma.dk"
-              />
-            </div>
-            <div>
-              <Label htmlFor="employee-phone">Telefon *</Label>
-              <Input
-                id="employee-phone"
-                value={newEmployeePhone}
-                onChange={(e) => setNewEmployeePhone(e.target.value)}
-                placeholder="F.eks. +45 12 34 56 78"
-              />
-            </div>
-            <Button 
-              onClick={editingEmployee ? handleUpdateEmployee : handleAddEmployee} 
-              className="w-full"
-            >
-              {editingEmployee ? 'Gem Ændringer' : 'Tilføj Medarbejder'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
