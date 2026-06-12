@@ -43,11 +43,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
   useEffect(() => {
     const loadUnreadCount = async () => {
-      const emailNotifications = await window.spark.kv.get<Array<{ read: boolean }>>('email-notifications') || []
+      const emailNotifications = (await window.spark.kv.get<Array<{ read: boolean }>>('email-notifications')) || []
       const unread = emailNotifications.filter(n => !n.read).length
       setUnreadEmailCount(unread)
 
-      const emails = await window.spark.kv.get<Array<{ to: string; read: boolean }>>('emails') || []
+      const emails = (await window.spark.kv.get<Array<{ to: string; read: boolean }>>('emails')) || []
       const unreadInbox = emails.filter(e => e.to === userEmail && !e.read).length
       setUnreadInboxCount(unreadInbox)
     }
@@ -209,20 +209,18 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           />
         </motion.div>
       </div>
-      
       <SickLeaveDialog
         open={showSickLeaveDialog}
         onOpenChange={setShowSickLeaveDialog}
         userEmail={userEmail}
       />
-      
       <EmailNotifications
         open={showEmailNotifications}
         onOpenChange={(open) => {
           setShowEmailNotifications(open)
           if (!open) {
             const loadUnreadCount = async () => {
-              const emailNotifications = await window.spark.kv.get<Array<{ read: boolean }>>('email-notifications') || []
+              const emailNotifications = (await window.spark.kv.get<Array<{ read: boolean }>>('email-notifications')) || []
               const unread = emailNotifications.filter(n => !n.read).length
               setUnreadEmailCount(unread)
             }
@@ -271,12 +269,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             transition={{ delay: 0.3, duration: 0.6 }}
           >Terminal Configuration & Dispatch Hub</motion.h1>
           
-          <motion.p 
-            className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-          >Samlet platform for guides, ressourcer og teamværktøjer</motion.p>
+
         </motion.header>
 
         <motion.div 
