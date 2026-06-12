@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, UserGear, Check, Crown, ShieldCheck, User as UserIcon, Trash, FirstAidKit } from '@phosphor-icons/react'
+import { ArrowLeft, UserGear, Check, Crown, ShieldCheck, User as UserIcon, Trash, FirstAidKit, Plus, Tag, UserCircle } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,9 @@ import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 
@@ -31,6 +34,12 @@ interface SickLeaveEntry {
   submittedAt: string
 }
 
+interface ShiftRole {
+  id: string
+  name: string
+  color: string
+}
+
 interface AdminPanelProps {
   onNavigateBack: () => void
   onLogout: () => void
@@ -45,9 +54,15 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
   const [isLoading, setIsLoading] = useState(true)
   const isAdmin = userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase()
 
+  const [shiftRoles, setShiftRoles] = useState<ShiftRole[]>([])
+  const [showRoleDialog, setShowRoleDialog] = useState(false)
+  const [newRoleName, setNewRoleName] = useState('')
+  const [newRoleColor, setNewRoleColor] = useState('#8b5cf6')
+
   useEffect(() => {
     loadUsers()
     loadSickLeaveEntries()
+    loadShiftRoles()
   }, [])
 
   const loadUsers = async () => {
@@ -83,6 +98,44 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
     setSickLeaveEntries(entries.sort((a, b) => 
       new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
     ))
+  }
+
+  const loadShiftRoles = async () => {
+    const roles = await window.spark.kv.get<ShiftRole[]>('shift-roles') || []
+    setShiftRoles(roles)
+  }
+
+  const handleAddRole = async () => {
+    if (!newRoleName.trim()) {
+      toast.error('Indtast et rolle navn')
+      return
+    }
+
+    const newRole: ShiftRole = {
+      id: Date.now().toString(),
+      name: newRoleName.trim(),
+      color: newRoleColor
+    }
+
+    const updatedRoles = [...shiftRoles, newRole]
+    await window.spark.kv.set('shift-roles', updatedRoles)
+    setShiftRoles(updatedRoles)
+    setNewRoleName('')
+    setNewRoleColor('#8b5cf6')
+    setShowRoleDialog(false)
+    toast.success('Opgave tilføjet')
+  }
+
+  const handleDeleteRole = async (roleId: string) => {
+    const updatedRoles = shiftRoles.filter(r => r.id !== roleId)
+    await window.spark.kv.set('shift-roles', updatedRoles)
+    setShiftRoles(updatedRoles)
+    
+    const assignments = await window.spark.kv.get<any[]>('shift-assignments') || []
+    const updatedAssignments = assignments.filter(a => a.roleId !== roleId)
+    await window.spark.kv.set('shift-assignments', updatedAssignments)
+    
+    toast.success('Opgave slettet')
   }
 
   const changeUserRole = async (email: string, newRole: UserRole) => {
@@ -214,10 +267,14 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
         </motion.div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
             <TabsTrigger value="users" className="gap-2">
               <UserGear size={18} />
               Brugere
+            </TabsTrigger>
+            <TabsTrigger value="shift-management" className="gap-2">
+              <UserIcon size={18} />
+              Medarbejdere & Opgaver
             </TabsTrigger>
             <TabsTrigger value="sick-leave" className="gap-2">
               <FirstAidKit size={18} />
@@ -430,7 +487,211 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
               )}
             </Card>
           </TabsContent>
+
+          <TabsContent value="shift-management" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <UserCircle size={28} className="text-primary" weight="duotone" />
+                  <h2 className="text-2xl font-bold">Medarbejdere</h2>
+                </div>
+                <Badge variant="outline" className="text-sm">
+                  {users.filter(u => u.role !== 'admin' || u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()).length} Medarbejdere
+                </Badge>
+              </div>
+
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Medarbejderne nedenfor vises i vagtplanen. Kun admin kan tildele vagter.
+                </p>
+              </div>
+
+              {isLoading ? (
+                <p className="text-muted-foreground text-center py-12">Indlæser medarbejdere...</p>
+              ) : users.length === 0 ? (
+                <p className="text-muted-foreground text-center py-12">Ingen medarbejdere fundet</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {users.map((user) => (
+                    <motion.div
+                      key={user.email}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-4 rounded-xl border-2 bg-card hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold shadow-md ${
+                          user.role === 'admin' 
+                            ? 'bg-gradient-to-br from-accent via-primary to-secondary' 
+                            : user.role === 'manager'
+                            ? 'bg-gradient-to-br from-primary to-secondary'
+                            : 'bg-gradient-to-br from-secondary to-accent'
+                        }`}>
+                          {user.fullName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold truncate">{user.fullName}</div>
+                          <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                        </div>
+                      </div>
+                      {getRoleBadge(user.role)}
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-6 border-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Tag size={28} className="text-secondary" weight="duotone" />
+                  <h2 className="text-2xl font-bold">Opgaver / Roller</h2>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-sm">
+                    {shiftRoles.length} {shiftRoles.length === 1 ? 'Opgave' : 'Opgaver'}
+                  </Badge>
+                  <Button
+                    onClick={() => setShowRoleDialog(true)}
+                    size="sm"
+                    className="gap-2 bg-gradient-to-r from-primary to-secondary"
+                  >
+                    <Plus size={16} />
+                    Tilføj Opgave
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Disse opgaver/roller kan tildeles medarbejdere i vagtplanen.
+                </p>
+              </div>
+
+              {shiftRoles.length === 0 ? (
+                <div className="text-center py-12">
+                  <Tag size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
+                  <p className="text-muted-foreground mb-4">Ingen opgaver endnu</p>
+                  <Button
+                    onClick={() => setShowRoleDialog(true)}
+                    className="gap-2"
+                  >
+                    <Plus size={20} />
+                    Tilføj Din Første Opgave
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {shiftRoles.map((role) => (
+                    <motion.div
+                      key={role.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex items-center justify-between p-4 rounded-xl border-2 bg-card hover:shadow-md transition-all group"
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md"
+                          style={{ 
+                            backgroundColor: `${role.color}30`,
+                            border: `2px solid ${role.color}`
+                          }}
+                        >
+                          <Tag size={24} style={{ color: role.color }} weight="duotone" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold text-lg">{role.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Farve: <span className="font-mono">{role.color}</span>
+                          </div>
+                        </div>
+                        <div
+                          className="px-4 py-2 rounded-lg font-semibold"
+                          style={{ 
+                            backgroundColor: `${role.color}20`,
+                            color: role.color,
+                            border: `2px solid ${role.color}`
+                          }}
+                        >
+                          Eksempel
+                        </div>
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash size={20} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Slet opgave?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Er du sikker på at du vil slette <strong>{role.name}</strong>? Alle vagter tildelt til denne opgave vil også blive fjernet. Denne handling kan ikke fortrydes.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuller</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteRole(role.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Slet opgave
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
         </Tabs>
+
+        <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Tilføj Ny Opgave / Rolle</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div>
+                <Label htmlFor="role-name">Opgave Navn</Label>
+                <Input
+                  id="role-name"
+                  value={newRoleName}
+                  onChange={(e) => setNewRoleName(e.target.value)}
+                  placeholder="F.eks. Supervisor, Tekniker, Support"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddRole()}
+                />
+              </div>
+              <div>
+                <Label htmlFor="role-color">Farve</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="role-color"
+                    type="color"
+                    value={newRoleColor}
+                    onChange={(e) => setNewRoleColor(e.target.value)}
+                    className="w-20 h-10"
+                  />
+                  <Input
+                    value={newRoleColor}
+                    onChange={(e) => setNewRoleColor(e.target.value)}
+                    className="flex-1 font-mono"
+                  />
+                </div>
+              </div>
+              <Button onClick={handleAddRole} className="w-full gap-2">
+                <Plus size={20} />
+                Opret Opgave
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
