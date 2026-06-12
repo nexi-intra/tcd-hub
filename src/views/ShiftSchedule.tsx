@@ -382,9 +382,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     const employee = (employees || []).find(e => e.id === weekFillEmployee)
     if (!employee) return
 
-    const selectedDate = new Date(weekFillStartDate + 'T00:00:00')
-    const targetWeekNumber = getWeekNumber(selectedDate)
-    const targetYear = selectedDate.getFullYear()
+    const selectedDate = new Date(weekFillStartDate + 'T12:00:00')
     
     const daysToAdd: string[] = []
     let skippedCount = 0
