@@ -217,7 +217,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
       rows.push(
         <tr key={day} className={cn(isLocked && "bg-muted/30")}>
           <td className={cn(
-            "sticky left-0 bg-card border-r-2 border-border px-4 py-3 font-semibold whitespace-nowrap z-10",
+            "sticky left-0 bg-card border-r-2 border-border px-4 py-6 font-semibold whitespace-nowrap z-10",
             isWeekend(date) && "text-destructive"
           )}>
             <div className="flex items-center gap-3">
@@ -238,7 +238,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               <td
                 key={employee.email}
                 className={cn(
-                  "border border-border p-2 text-center transition-all",
+                  "border border-border p-4 text-center transition-all",
                   !isLocked && isAdmin && "cursor-pointer hover:bg-muted/50",
                   isLocked && "bg-muted/20"
                 )}
