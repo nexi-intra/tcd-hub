@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, User, Check, X, ClockCounterClockwise, CalendarDot } from '@phosphor-icons/react'
+import { ArrowLeft, Trash, User, Check, X, ClockCounterClockwise, CalendarDot } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useKV } from '@github/spark/hooks'
@@ -35,12 +32,8 @@ interface VacationCalendarProps {
 
 export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: VacationCalendarProps) {
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [notes, setNotes] = useState('')
   const [isManager, setIsManager] = useState(false)
 
   const months = [
@@ -72,131 +65,6 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
   const isWeekend = (date: Date) => {
     const day = date.getDay()
     return day === 0 || day === 6
-  }
-
-  const handleAddVacation = async () => {
-    console.log('handleAddVacation called')
-    console.log('Start date:', startDate)
-    console.log('End date:', endDate)
-    
-    if (!startDate || !endDate) {
-      toast.error('Vælg både start- og slutdato')
-      return
-    }
-
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      toast.error('Ugyldig dato valgt')
-      return
-    }
-
-    if (end < start) {
-      toast.error('Slutdato skal være efter startdato')
-      return
-    }
-
-    const current = new Date(start)
-    while (current <= end) {
-      if (isWeekend(current)) {
-        toast.error('Ferier kan ikke registreres på weekender. Vi arbejder ikke lørdag eller søndag.')
-        return
-      }
-      current.setDate(current.getDate() + 1)
-    }
-
-    const newVacation: VacationEntry = {
-      id: Date.now().toString(),
-      userId: userEmail,
-      userEmail: userEmail,
-      startDate,
-      endDate,
-      notes: notes.trim() || undefined,
-      status: 'pending',
-    }
-
-    console.log('Creating new vacation:', newVacation)
-    
-    setVacations((current) => {
-      const updated = [...(current || []), newVacation]
-      console.log('Updated vacations:', updated)
-      return updated
-    })
-    
-    const startDateFormatted = new Date(startDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-    const endDateFormatted = new Date(endDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-    const notesText = notes.trim() ? `Noter: ${notes.trim()}` : 'Ingen noter'
-
-    toast.success('Ferie anmodning sendt til godkendelse')
-    
-    console.log('Sending email notification...')
-    
-    try {
-      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
-
-Employee: ${userEmail}
-Start Date: ${startDateFormatted}
-End Date: ${endDateFormatted}
-${notesText}
-
-The email should be in Danish, professional, and include:
-- A clear subject line
-- Employee email
-- The vacation period
-- Any notes if provided
-- A note that this request is pending approval
-- A brief note that this is an automatic notification
-
-Return ONLY a JSON object with this exact structure:
-{
-  "subject": "subject line here",
-  "body": "email body here with proper line breaks"
-}`
-
-      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
-      const emailContent = JSON.parse(emailContentJson)
-      
-      const emails = await window.spark.kv.get<Array<{
-        id: string
-        from: string
-        to: string
-        subject: string
-        message: string
-        timestamp: number
-        read: boolean
-      }>>('emails') || []
-
-      const newEmail = {
-        id: Date.now().toString() + '-vacation-request',
-        from: userEmail,
-        to: 'Jacob.remmer@nexigroup.com',
-        subject: emailContent.subject,
-        message: emailContent.body,
-        timestamp: Date.now(),
-        read: false
-      }
-
-      await window.spark.kv.set('emails', [...emails, newEmail])
-      console.log('Email sent successfully')
-      toast.success('Email notifikation sendt til manager')
-    } catch (emailError) {
-      console.error('Error generating vacation request email:', emailError)
-      toast.error('Email kunne ikke sendes, men anmodningen er gemt')
-    }
-    
-    setStartDate('')
-    setEndDate('')
-    setNotes('')
-    setIsDialogOpen(false)
   }
 
   const handleDeleteVacation = (id: string) => {
@@ -640,77 +508,6 @@ Return ONLY a JSON object with this exact structure:
                   I dag
                 </Button>
               </div>
-
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-primary via-secondary to-accent text-white">
-                    <Plus size={20} className="mr-2" />
-                    Anmod om Ferie
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Anmod om Ferie</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={(e) => {
-                    e.preventDefault()
-                    handleAddVacation()
-                  }} className="space-y-4">
-                    <div>
-                      <Label htmlFor="start-date">Startdato</Label>
-                      <Input
-                        id="start-date"
-                        type="date"
-                        value={startDate}
-                        min={new Date().toISOString().split('T')[0]}
-                        onChange={(e) => {
-                          const selectedDate = new Date(e.target.value)
-                          const dayOfWeek = selectedDate.getDay()
-                          if (dayOfWeek === 0 || dayOfWeek === 6) {
-                            toast.error('Du kan ikke vælge weekenddage (lørdag eller søndag)')
-                            return
-                          }
-                          setStartDate(e.target.value)
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="end-date">Slutdato</Label>
-                      <Input
-                        id="end-date"
-                        type="date"
-                        value={endDate}
-                        min={startDate || new Date().toISOString().split('T')[0]}
-                        onChange={(e) => {
-                          const selectedDate = new Date(e.target.value)
-                          const dayOfWeek = selectedDate.getDay()
-                          if (dayOfWeek === 0 || dayOfWeek === 6) {
-                            toast.error('Du kan ikke vælge weekenddage (lørdag eller søndag)')
-                            return
-                          }
-                          setEndDate(e.target.value)
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="notes">Noter (valgfrit)</Label>
-                      <Input
-                        id="notes"
-                        type="text"
-                        placeholder="F.eks. sommerferie, juleferie..."
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      className="w-full bg-gradient-to-r from-primary via-secondary to-accent text-white hover:opacity-90"
-                    >
-                      Send Anmodning
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
             </div>
 
             <div className="grid grid-cols-7 gap-2">
