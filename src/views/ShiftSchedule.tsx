@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple, ChatText } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
+import { Textarea } from '@/components/ui/textarea'
 
 interface ShiftRole {
   id: string
@@ -31,6 +32,7 @@ interface ShiftAssignment {
   employeeName: string
   roleId: string
   date: string
+  comment?: string
 }
 
 interface ShiftEmployee {
@@ -74,8 +76,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const [showAssignmentDialog, setShowAssignmentDialog] = useState(false)
   const [showEmployeeDialog, setShowEmployeeDialog] = useState(false)
   const [showWeekAssignmentDialog, setShowWeekAssignmentDialog] = useState(false)
+  const [showCommentDialog, setShowCommentDialog] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<ShiftEmployee | null>(null)
   const [editingRole, setEditingRole] = useState<ShiftRole | null>(null)
+  const [editingComment, setEditingComment] = useState<{ employeeId: string; date: string } | null>(null)
+  const [commentText, setCommentText] = useState('')
   
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleColor, setNewRoleColor] = useState('#8b5cf6')
@@ -421,6 +426,68 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     }
   }
 
+  const openCommentDialog = (employeeId: string, dateString: string) => {
+    const cellAssignments = getAssignmentsForEmployeeAndDate(employeeId, dateString)
+    const existingComment = cellAssignments.find(a => a.comment)?.comment || ''
+    
+    setEditingComment({ employeeId, date: dateString })
+    setCommentText(existingComment)
+    setShowCommentDialog(true)
+  }
+
+  const handleSaveComment = () => {
+    if (!editingComment) return
+
+    const { employeeId, date } = editingComment
+    const cellAssignments = getAssignmentsForEmployeeAndDate(employeeId, date)
+
+    if (commentText.trim()) {
+      if (cellAssignments.length > 0) {
+        setAssignments((current) => 
+          (current || []).map(a => 
+            a.employeeId === employeeId && a.date === date
+              ? { ...a, comment: commentText.trim() }
+              : a
+          )
+        )
+        toast.success('Kommentar gemt')
+      } else {
+        const employee = (employees || []).find(e => e.id === employeeId)
+        if (employee) {
+          const newAssignment: ShiftAssignment = {
+            id: Date.now().toString(),
+            employeeId: employeeId,
+            employeeName: employee.name,
+            roleId: '',
+            date: date,
+            comment: commentText.trim()
+          }
+          setAssignments((current) => [...(current || []), newAssignment])
+          toast.success('Kommentar tilføjet')
+        }
+      }
+    } else {
+      setAssignments((current) => 
+        (current || []).map(a => 
+          a.employeeId === employeeId && a.date === date
+            ? { ...a, comment: undefined }
+            : a
+        )
+      )
+      toast.success('Kommentar fjernet')
+    }
+
+    setShowCommentDialog(false)
+    setEditingComment(null)
+    setCommentText('')
+  }
+
+  const getCellComment = (employeeId: string, dateString: string) => {
+    const cellAssignments = getAssignmentsForEmployeeAndDate(employeeId, dateString)
+    const commentAssignment = cellAssignments.find(a => a.comment)
+    return commentAssignment?.comment || ''
+  }
+
 
 
   const renderScheduleTable = () => {
@@ -482,6 +549,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </td>
           {(employees || []).map((employee, employeeIndex) => {
             const cellAssignments = getAssignmentsForEmployeeAndDate(employee.id, dateString)
+            const cellComment = getCellComment(employee.id, dateString)
             
             const isEvenEmployee = employeeIndex % 2 === 0
 
@@ -496,44 +564,86 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   todayDate && "bg-accent/25 ring-2 ring-accent/50"
                 )}
               >
-                {cellAssignments.length > 0 ? (
-                  <div className="space-y-1.5">
-                    {cellAssignments.map((assignment) => {
-                      const role = (roles || []).find(r => r.id === assignment.roleId)
-                      if (!role) return null
-                      
-                      return (
-                        <div key={assignment.id} className="group relative">
-                          <div
-                            className="px-2 py-1.5 rounded-md text-xs font-semibold truncate"
-                            style={{ 
-                              backgroundColor: `${role.color}30`,
-                              color: role.color,
-                              border: `2px solid ${role.color}`
-                            }}
-                            title={role.name}
-                          >
-                            {role.name}
+                <div className="space-y-1.5">
+                  {cellComment && (
+                    <div className="relative group">
+                      <div
+                        className="px-2 py-1.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800 border-2 border-amber-400 flex items-center gap-1.5 cursor-pointer hover:bg-amber-200 transition-all"
+                        onClick={() => openCommentDialog(employee.id, dateString)}
+                        title={cellComment}
+                      >
+                        <ChatText size={14} weight="fill" />
+                        <span className="truncate flex-1 text-left">{cellComment}</span>
+                      </div>
+                    </div>
+                  )}
+                  {cellAssignments.length > 0 ? (
+                    <>
+                      {cellAssignments.map((assignment) => {
+                        const role = (roles || []).find(r => r.id === assignment.roleId)
+                        if (!role) return null
+                        
+                        return (
+                          <div key={assignment.id} className="group relative">
+                            <div
+                              className="px-2 py-1.5 rounded-md text-xs font-semibold truncate"
+                              style={{ 
+                                backgroundColor: `${role.color}30`,
+                                color: role.color,
+                                border: `2px solid ${role.color}`
+                              }}
+                              title={role.name}
+                            >
+                              {role.name}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteAssignment(assignment.id)
+                              }}
+                            >
+                              <Trash size={12} />
+                            </Button>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteAssignment(assignment.id)
-                            }}
-                          >
-                            <Trash size={12} />
-                          </Button>
-                        </div>
-                      )
-                    })}
-                    {!isLocked && (roles || []).length > 0 && (
+                        )
+                      })}
+                      {!isLocked && (roles || []).length > 0 && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="w-full h-full min-h-[28px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center border-2 border-dashed border-muted-foreground/20">
+                              <Plus size={14} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-2" align="center">
+                            <div className="space-y-1">
+                              <p className="text-sm font-semibold mb-2 px-2">Vælg Opgave</p>
+                              {(roles || []).map(r => (
+                                <button
+                                  key={r.id}
+                                  onClick={() => handleAddTaskToCell(employee.id, dateString, r.id)}
+                                  className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-all flex items-center gap-3"
+                                >
+                                  <div
+                                    className="w-4 h-4 rounded-full"
+                                    style={{ backgroundColor: r.color }}
+                                  />
+                                  <span className="text-sm font-medium">{r.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </>
+                  ) : (
+                    !isLocked && (roles || []).length > 0 ? (
                       <Popover>
                         <PopoverTrigger asChild>
-                          <button className="w-full h-full min-h-[28px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center border-2 border-dashed border-muted-foreground/20">
-                            <Plus size={14} />
+                          <button className="w-full h-full min-h-[32px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center">
+                            <Plus size={16} />
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-64 p-2" align="center">
@@ -555,41 +665,28 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                           </div>
                         </PopoverContent>
                       </Popover>
-                    )}
-                  </div>
-                ) : (
-                  !isLocked && (roles || []).length > 0 ? (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="w-full h-full min-h-[32px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center">
-                          <Plus size={16} />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 p-2" align="center">
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold mb-2 px-2">Vælg Opgave</p>
-                          {(roles || []).map(r => (
-                            <button
-                              key={r.id}
-                              onClick={() => handleAddTaskToCell(employee.id, dateString, r.id)}
-                              className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-all flex items-center gap-3"
-                            >
-                              <div
-                                className="w-4 h-4 rounded-full"
-                                style={{ backgroundColor: r.color }}
-                              />
-                              <span className="text-sm font-medium">{r.name}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    <div className="text-muted-foreground/40 text-xs">
-                      {!isLocked ? '−' : ''}
-                    </div>
-                  )
-                )}
+                    ) : (
+                      <div className="text-muted-foreground/40 text-xs">
+                        {!isLocked ? '−' : ''}
+                      </div>
+                    )
+                  )}
+                  {!isLocked && (
+                    <button
+                      onClick={() => openCommentDialog(employee.id, dateString)}
+                      className={cn(
+                        "w-full h-full min-h-[28px] rounded-md transition-all flex items-center justify-center gap-1.5 text-xs font-medium",
+                        cellComment 
+                          ? "text-amber-700 hover:text-amber-800 hover:bg-amber-50" 
+                          : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/30"
+                      )}
+                      title={cellComment ? "Rediger kommentar" : "Tilføj kommentar"}
+                    >
+                      <ChatText size={14} weight={cellComment ? "fill" : "regular"} />
+                      {!cellComment && <span className="text-[10px]">Kommentar</span>}
+                    </button>
+                  )}
+                </div>
               </td>
             )
           })}
@@ -1250,6 +1347,56 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             <Button onClick={handleAssignWeek} className="w-full">
               Tildel Hel Uge
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCommentDialog} onOpenChange={(open) => {
+        setShowCommentDialog(open)
+        if (!open) {
+          setEditingComment(null)
+          setCommentText('')
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ChatText size={24} weight="duotone" className="text-amber-600" />
+              Kommentar
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-900">
+                Tilføj en kommentar til denne celle, f.eks. hvis medarbejderen skal gå tidligere, til tandlæge, eller andre noter.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="comment-text">Kommentar</Label>
+              <Textarea
+                id="comment-text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="F.eks. Går kl. 14:00 til tandlæge"
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleSaveComment} className="flex-1">
+                Gem Kommentar
+              </Button>
+              <Button 
+                onClick={() => {
+                  setCommentText('')
+                  handleSaveComment()
+                }} 
+                variant="outline"
+                className="flex-1"
+              >
+                Fjern Kommentar
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
