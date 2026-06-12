@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -81,6 +81,15 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       icon: <Calendar size={48} weight="duotone" />,
       color: 'oklch(0.65 0.26 340)',
       gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
+      available: true,
+    },
+    {
+      id: 'meals',
+      title: 'Madplan',
+      description: 'Planlæg ugens menuer for mandag til fredag',
+      icon: <ForkKnife size={48} weight="duotone" />,
+      color: 'oklch(0.70 0.18 90)',
+      gradient: 'from-[oklch(0.70_0.18_90)] via-[oklch(0.75_0.15_60)] to-[oklch(0.70_0.18_90)]',
       available: true,
     },
     {

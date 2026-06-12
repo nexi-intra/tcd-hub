@@ -7,10 +7,11 @@ import { AdminPanel } from '@/views/AdminPanel'
 import { ManagerPanel } from '@/views/ManagerPanel'
 import { TeamOverview } from '@/views/TeamOverview'
 import { EmailSystem } from '@/views/EmailSystem'
+import { MealPlan } from '@/views/MealPlan'
 import { Auth } from '@/views/Auth'
 import { useKV } from '@github/spark/hooks'
 
-type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email'
+type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals'
 
 interface UserSession {
   userId: string
@@ -50,6 +51,8 @@ function App() {
       setCurrentView('team')
     } else if (moduleId === 'email') {
       setCurrentView('email')
+    } else if (moduleId === 'meals') {
+      setCurrentView('meals')
     }
   }
 
@@ -75,6 +78,7 @@ function App() {
       {currentView === 'manager' && <ManagerPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
+      {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
     </>
   )
 }
