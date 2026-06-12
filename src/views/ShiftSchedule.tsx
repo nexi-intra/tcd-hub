@@ -1385,7 +1385,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-              <p className="text-sm text-amber-900">Tilføj en kommentar til denne celle, f.eks. hvis medarbejderen skal gå tidligere, til tandlæge, eller andre noter.</p>
+              <p className="text-sm text-amber-900">Tilføj en kommentar</p>
             </div>
             <div>
               <Label htmlFor="comment-text">Kommentar</Label>
