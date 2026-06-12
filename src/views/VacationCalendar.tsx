@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useKV } from '@github/spark/hooks'
 import { UserProfile } from '@/components/UserProfile'
+import { VacationRequestDialog } from '@/components/VacationRequestDialog'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -508,6 +509,7 @@ Return ONLY a JSON object with this exact structure:
                   I dag
                 </Button>
               </div>
+              <VacationRequestDialog userEmail={userEmail} />
             </div>
 
             <div className="grid grid-cols-7 gap-2">
