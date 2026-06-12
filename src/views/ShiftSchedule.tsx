@@ -73,6 +73,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const [showRoleDialog, setShowRoleDialog] = useState(false)
   const [showAssignmentDialog, setShowAssignmentDialog] = useState(false)
   const [showEmployeeDialog, setShowEmployeeDialog] = useState(false)
+  const [showWeekAssignmentDialog, setShowWeekAssignmentDialog] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<ShiftEmployee | null>(null)
   const [editingRole, setEditingRole] = useState<ShiftRole | null>(null)
   
@@ -99,6 +100,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [selectedRole, setSelectedRole] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
+  
+  const [weekEmployee, setWeekEmployee] = useState('')
+  const [weekRole, setWeekRole] = useState('')
+  const [weekNumber, setWeekNumber] = useState<number | null>(null)
   
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
@@ -368,6 +373,81 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     toast.success('Opgave tilføjet')
   }
 
+  const getWeekDates = (weekNum: number, year: number) => {
+    const firstDayOfYear = new Date(year, 0, 1)
+    const daysOffset = (weekNum - 1) * 7
+    const firstDayOfWeek = new Date(firstDayOfYear.getTime() + daysOffset * 24 * 60 * 60 * 1000)
+    
+    while (firstDayOfWeek.getDay() !== 1) {
+      firstDayOfWeek.setDate(firstDayOfWeek.getDate() - 1)
+    }
+    
+    const dates = []
+    for (let i = 0; i < 5; i++) {
+      const date = new Date(firstDayOfWeek)
+      date.setDate(firstDayOfWeek.getDate() + i)
+      const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      dates.push(dateString)
+    }
+    
+    return dates
+  }
+
+  const handleAssignWeek = () => {
+    if (!weekEmployee || !weekRole || weekNumber === null) {
+      toast.error('Udfyld alle felter')
+      return
+    }
+
+    const employee = (employees || []).find(e => e.id === weekEmployee)
+    if (!employee) return
+
+    const weekDates = getWeekDates(weekNumber, selectedYear)
+    const newAssignments: ShiftAssignment[] = []
+    let skippedCount = 0
+    let addedCount = 0
+
+    weekDates.forEach(dateString => {
+      if (isDateLocked(dateString)) {
+        skippedCount++
+        return
+      }
+
+      const existing = (assignments || []).find(
+        a => a.employeeId === weekEmployee && a.date === dateString
+      )
+
+      if (existing) {
+        skippedCount++
+        return
+      }
+
+      newAssignments.push({
+        id: `${Date.now()}-${dateString}`,
+        employeeId: weekEmployee,
+        employeeName: employee.name,
+        roleId: weekRole,
+        date: dateString
+      })
+      addedCount++
+    })
+
+    if (newAssignments.length > 0) {
+      setAssignments((current) => [...(current || []), ...newAssignments])
+    }
+
+    setWeekEmployee('')
+    setWeekRole('')
+    setWeekNumber(null)
+    setShowWeekAssignmentDialog(false)
+
+    if (addedCount > 0) {
+      toast.success(`${addedCount} vagt${addedCount > 1 ? 'er' : ''} tildelt${skippedCount > 0 ? ` (${skippedCount} sprunget over)` : ''}`)
+    } else {
+      toast.error('Ingen vagter kunne tildeles')
+    }
+  }
+
 
 
   const renderScheduleTable = () => {
@@ -574,6 +654,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           <TabsContent value="schedule" className="space-y-6">
             {isAdmin && (
               <div className="flex justify-end gap-3">
+                <Button
+                  onClick={() => setShowWeekAssignmentDialog(true)}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <CalendarIcon size={20} />
+                  Tildel Hel Uge
+                </Button>
                 <Button
                   onClick={() => setShowAssignmentDialog(true)}
                   className="gap-2 bg-gradient-to-r from-primary to-secondary"
@@ -1077,6 +1165,92 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               className="w-full"
             >
               {editingEmployee ? 'Gem Ændringer' : 'Tilføj Medarbejder'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showWeekAssignmentDialog} onOpenChange={(open) => {
+        setShowWeekAssignmentDialog(open)
+        if (!open) {
+          setWeekEmployee('')
+          setWeekRole('')
+          setWeekNumber(null)
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tildel Opgave for Hel Uge</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <Label htmlFor="week-employee">Medarbejder</Label>
+              <Select value={weekEmployee} onValueChange={setWeekEmployee}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Vælg medarbejder" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(employees || []).map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="week-role">Opgave</Label>
+              <Select value={weekRole} onValueChange={setWeekRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Vælg opgave" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(roles || []).map(role => (
+                    <SelectItem key={role.id} value={role.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: role.color }}
+                        />
+                        {role.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="week-number">Uge Nummer</Label>
+              <Select 
+                value={weekNumber?.toString() || ''} 
+                onValueChange={(value) => setWeekNumber(parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vælg uge" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(() => {
+                    const currentWeek = getWeekNumber(new Date())
+                    const weeks = []
+                    for (let i = currentWeek; i <= 52; i++) {
+                      weeks.push(
+                        <SelectItem key={i} value={i.toString()}>
+                          Uge {i}
+                        </SelectItem>
+                      )
+                    }
+                    return weeks
+                  })()}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-muted/50 rounded-lg border">
+              <p className="text-xs text-muted-foreground">
+                Denne opgave vil blive tildelt til alle hverdage (mandag-fredag) i den valgte uge. Weekender og helligdage springes automatisk over.
+              </p>
+            </div>
+            <Button onClick={handleAssignWeek} className="w-full">
+              Tildel Hel Uge
             </Button>
           </div>
         </DialogContent>
