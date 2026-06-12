@@ -14,8 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
-
-type UserRole = 'admin' | 'manager' | 'user'
+import { UserRole, ADMIN_EMAIL, hasAdminAccess, getRoleDisplayName, getRoleDescription } from '@/lib/userRoles'
 
 interface User {
   email: string
@@ -46,13 +45,11 @@ interface AdminPanelProps {
   userEmail: string
 }
 
-const ADMIN_EMAIL = 'jacob.remmer@nexigroup.com'
-
 export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelProps) {
   const [users, setUsers] = useState<User[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const isAdmin = userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const [shiftRoles, setShiftRoles] = useState<ShiftRole[]>([])
   const [showRoleDialog, setShowRoleDialog] = useState(false)
@@ -60,10 +57,17 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
   const [newRoleColor, setNewRoleColor] = useState('#8b5cf6')
 
   useEffect(() => {
-    loadUsers()
-    loadSickLeaveEntries()
-    loadShiftRoles()
-  }, [])
+    const checkAdminAndLoad = async () => {
+      const hasAccess = await hasAdminAccess(userEmail)
+      setIsAdmin(hasAccess)
+      if (hasAccess) {
+        loadUsers()
+        loadSickLeaveEntries()
+        loadShiftRoles()
+      }
+    }
+    checkAdminAndLoad()
+  }, [userEmail])
 
   const loadUsers = async () => {
     setIsLoading(true)
@@ -151,8 +155,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
       await window.spark.kv.set('users', usersData)
       await loadUsers()
       
-      const roleNames = { admin: 'Administrator', manager: 'Manager', user: 'Bruger' }
-      toast.success(`Bruger ændret til ${roleNames[newRole]}`)
+      toast.success(`Bruger ændret til ${getRoleDisplayName(newRole)}`)
     }
   }
 
@@ -197,17 +200,6 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
     }
   }
 
-  const getRoleDescription = (role: UserRole) => {
-    switch (role) {
-      case 'admin':
-        return 'Fuld adgang til alle funktioner, kan administrere brugere og rettigheder'
-      case 'manager':
-        return 'Kan godkende/afvise ferieansøgninger og redigere guides'
-      case 'user':
-        return 'Standard brugeradgang, kan se guides og anmode om ferie'
-    }
-  }
-
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center">
@@ -240,7 +232,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
                          repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px)`
       }} />
 
-      <div className="absolute top-4 right-4 z-20">
+      <div className="absolute top-6 right-6 z-20">
         <UserProfile userEmail={userEmail} onLogout={onLogout} />
       </div>
 
@@ -249,19 +241,19 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mb-8"
+          className="mb-10"
         >
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-6 mb-8">
             <Button
               variant="ghost"
               size="icon"
               onClick={onNavigateBack}
-              className="hover:bg-primary/10"
+              className="hover:bg-primary/10 h-12 w-12"
             >
-              <ArrowLeft size={24} />
+              <ArrowLeft size={28} />
             </Button>
             <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
-              Bruger Administration
+              Admin Panel
             </h1>
           </div>
         </motion.div>

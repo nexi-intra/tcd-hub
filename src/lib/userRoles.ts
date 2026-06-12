@@ -1,0 +1,65 @@
+export type UserRole = 'admin' | 'manager' | 'user'
+
+export const ADMIN_EMAIL = 'jacob.remmer@nexigroup.com'
+
+interface UserData {
+  email: string
+  password: string
+  fullName: string
+  role?: UserRole
+  isManager?: boolean
+}
+
+export async function getUserRole(email: string): Promise<UserRole> {
+  const usersData = await window.spark.kv.get<Record<string, UserData>>('users')
+  
+  if (!usersData || !usersData[email]) {
+    return 'user'
+  }
+
+  const user = usersData[email]
+  
+  if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    return 'admin'
+  }
+  
+  if (user.role) {
+    return user.role
+  }
+  
+  if (user.isManager) {
+    return 'manager'
+  }
+  
+  return 'user'
+}
+
+export async function hasAdminAccess(email: string): Promise<boolean> {
+  const role = await getUserRole(email)
+  return role === 'admin'
+}
+
+export async function hasManagerAccess(email: string): Promise<boolean> {
+  const role = await getUserRole(email)
+  return role === 'admin' || role === 'manager'
+}
+
+export function getRoleDisplayName(role: UserRole): string {
+  const roleNames = {
+    admin: 'Administrator',
+    manager: 'Manager',
+    user: 'Bruger'
+  }
+  return roleNames[role]
+}
+
+export function getRoleDescription(role: UserRole): string {
+  switch (role) {
+    case 'admin':
+      return 'Fuld adgang til alle funktioner, kan administrere brugere og rettigheder'
+    case 'manager':
+      return 'Kan godkende/afvise ferieansøgninger og redigere guides'
+    case 'user':
+      return 'Standard brugeradgang, kan se guides og anmode om ferie'
+  }
+}

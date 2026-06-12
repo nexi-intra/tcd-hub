@@ -65,13 +65,13 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       available: true,
     },
     {
-      id: 'team',
-      title: 'Team Oversigt',
-      description: 'Kontaktoplysninger og teammedlemmer',
-      icon: <Users size={48} weight="duotone" />,
-      color: 'oklch(0.55 0.24 192)',
-      gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
-      available: false,
+      id: 'calendar',
+      title: 'Feriekalender',
+      description: 'Planlæg og koordiner teamets ferieperioder',
+      icon: <Calendar size={48} weight="duotone" />,
+      color: 'oklch(0.65 0.26 340)',
+      gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
+      available: true,
     },
     {
       id: 'shifts',
@@ -82,14 +82,23 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       gradient: 'from-[oklch(0.60_0.22_220)] via-[oklch(0.65_0.26_340)] to-[oklch(0.60_0.22_220)]',
       available: true,
     },
-    {
-      id: 'calendar',
-      title: 'Feriekalender',
-      description: 'Planlæg og koordiner teamets ferieperioder',
-      icon: <Calendar size={48} weight="duotone" />,
-      color: 'oklch(0.65 0.26 340)',
-      gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
+    ...(isAdminOrManager ? [{
+      id: 'admin',
+      title: 'Admin Panel',
+      description: 'Administrer brugere, medarbejdere og opgaver',
+      icon: <Gear size={48} weight="duotone" />,
+      color: 'oklch(0.58 0.25 25)',
+      gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
       available: true,
+    }] : []),
+    {
+      id: 'team',
+      title: 'Team Oversigt',
+      description: 'Kontaktoplysninger og teammedlemmer',
+      icon: <Users size={48} weight="duotone" />,
+      color: 'oklch(0.55 0.24 192)',
+      gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
+      available: false,
     },
     {
       id: 'analytics',
@@ -127,15 +136,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
       available: false,
     },
-    {
-      id: 'settings',
-      title: 'Indstillinger',
-      description: 'Systemindstillinger og præferencer',
-      icon: <Gear size={48} weight="duotone" />,
-      color: 'oklch(0.48 0.02 270)',
-      gradient: 'from-[oklch(0.48_0.02_270)] via-[oklch(0.55_0.05_270)] to-[oklch(0.48_0.02_270)]',
-      available: false,
-    },
   ]
 
   return (
@@ -145,7 +145,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         backgroundImage: `repeating-linear-gradient(90deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px),
                          repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px)`
       }} />
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-3">
+      <div className="absolute top-6 right-6 z-20 flex items-center gap-4">
         {isAdminOrManager && (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -182,12 +182,18 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             Sygemelding
           </Button>
         </motion.div>
-        <UserProfile 
-          userEmail={userEmail} 
-          onLogout={onLogout}
-          showAdmin={isAdminOrManager}
-          onAdminClick={() => onNavigate('admin')}
-        />
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <UserProfile 
+            userEmail={userEmail} 
+            onLogout={onLogout}
+            showAdmin={isAdminOrManager}
+            onAdminClick={() => onNavigate('admin')}
+          />
+        </motion.div>
       </div>
       
       <SickLeaveDialog
