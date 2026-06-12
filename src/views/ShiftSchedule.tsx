@@ -261,7 +261,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.55_0.22_265/0.15),transparent_50%),radial-gradient(ellipse_at_bottom_right,oklch(0.65_0.26_340/0.12),transparent_50%)] pointer-events-none" />
-      
       <div className="absolute top-4 right-4 z-20">
         <UserProfile 
           userEmail={userEmail} 
@@ -270,7 +269,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           onAdminClick={() => {}}
         />
       </div>
-
       <div className="container mx-auto px-4 sm:px-6 py-8 max-w-7xl relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -377,10 +375,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="text-sm text-muted-foreground">
-              Weekender og helligdage er låst
-            </div>
           </div>
 
           <div className="grid grid-cols-7 gap-2 mb-2">
@@ -396,7 +390,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </div>
         </Card>
       </div>
-
       <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
         <DialogContent>
           <DialogHeader>
@@ -435,7 +428,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
           </div>
         </DialogContent>
       </Dialog>
-
       <Dialog open={showAssignmentDialog} onOpenChange={setShowAssignmentDialog}>
         <DialogContent>
           <DialogHeader>
@@ -494,5 +486,5 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
