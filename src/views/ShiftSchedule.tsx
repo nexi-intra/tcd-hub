@@ -488,6 +488,17 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
     return commentAssignment?.comment || ''
   }
 
+  const handleDeleteComment = (employeeId: string, dateString: string) => {
+    setAssignments((current) => 
+      (current || []).map(a => 
+        a.employeeId === employeeId && a.date === dateString && a.comment
+          ? { ...a, comment: undefined }
+          : a
+      ).filter(a => !(a.employeeId === employeeId && a.date === dateString && !a.roleId && !a.comment))
+    )
+    toast.success('Kommentar slettet')
+  }
+
 
 
   const renderScheduleTable = () => {
@@ -575,6 +586,17 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                         <ChatText size={14} weight="fill" />
                         <span className="truncate flex-1 text-left">{cellComment}</span>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteComment(employee.id, dateString)
+                        }}
+                      >
+                        <Trash size={12} />
+                      </Button>
                     </div>
                   )}
                   {cellAssignments.length > 0 ? (
