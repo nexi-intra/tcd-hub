@@ -74,7 +74,9 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
     return day === 0 || day === 6
   }
 
-  const handleAddVacation = async () => {
+  const handleAddVacation = async (e?: React.MouseEvent) => {
+    e?.preventDefault()
+    
     try {
       if (!startDate || !endDate) {
         toast.error('Vælg både start- og slutdato')
@@ -127,6 +129,13 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
       })
       const notesText = notes.trim() ? `Noter: ${notes.trim()}` : 'Ingen noter'
 
+      toast.success('Ferie anmodning sendt til godkendelse')
+      
+      setStartDate('')
+      setEndDate('')
+      setNotes('')
+      setIsDialogOpen(false)
+
       try {
         const promptText = window.spark.llmPrompt`Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
 
@@ -176,13 +185,6 @@ Return ONLY a JSON object with this exact structure:
       } catch (emailError) {
         console.error('Error generating vacation request email:', emailError)
       }
-      
-      setStartDate('')
-      setEndDate('')
-      setNotes('')
-      setIsDialogOpen(false)
-      
-      toast.success('Ferie anmodning sendt til godkendelse')
     } catch (error) {
       console.error('Error adding vacation:', error)
       toast.error('Der opstod en fejl. Prøv igen.')
@@ -690,6 +692,7 @@ Return ONLY a JSON object with this exact structure:
                       />
                     </div>
                     <Button
+                      type="button"
                       onClick={handleAddVacation}
                       className="w-full bg-gradient-to-r from-primary via-secondary to-accent text-white"
                     >
