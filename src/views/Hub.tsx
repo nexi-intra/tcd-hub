@@ -86,7 +86,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     {
       id: 'meals',
       title: 'Madplan',
-      description: 'Planlæg ugens menuer for mandag til fredag',
+      description: 'Madplan for kantinen på Energivej',
       icon: <ForkKnife size={48} weight="duotone" />,
       color: 'oklch(0.70 0.18 90)',
       gradient: 'from-[oklch(0.70_0.18_90)] via-[oklch(0.75_0.15_60)] to-[oklch(0.70_0.18_90)]',
