@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -73,6 +73,15 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
       available: true,
     },
+    ...(isAdminOrManager ? [{
+      id: 'manager',
+      title: 'Manager Panel',
+      description: 'Administrer rettigheder og håndter sygemeldinger',
+      icon: <ShieldCheck size={48} weight="duotone" />,
+      color: 'oklch(0.55 0.24 192)',
+      gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
+      available: true,
+    }] : []),
     ...(isAdminOrManager ? [{
       id: 'admin',
       title: 'Admin Panel',

@@ -58,7 +58,7 @@ export function getRoleDescription(role: UserRole): string {
     case 'admin':
       return 'Fuld adgang til alle funktioner, kan administrere brugere og rettigheder'
     case 'manager':
-      return 'Kan godkende/afvise ferieansøgninger og redigere guides'
+      return 'Kan tildele rettigheder, håndtere sygemeldinger, godkende/afvise ferieansøgninger og redigere guides'
     case 'user':
       return 'Standard brugeradgang, kan se guides og anmode om ferie'
   }
