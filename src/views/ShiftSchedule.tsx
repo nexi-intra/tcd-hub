@@ -1110,42 +1110,45 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
               </p>
             </div>
             <div>
-              <Label htmlFor="week-fill-date">Uge Nummer</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="week-fill-date"
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !weekFillStartDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon size={16} className="mr-2" />
-                    {weekFillStartDate ? (
-                      `Uge ${getWeekNumber(new Date(weekFillStartDate))} - ${new Date(weekFillStartDate).getFullYear()}`
-                    ) : (
-                      <span>Vælg uge</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={weekFillStartDate ? new Date(weekFillStartDate) : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        const year = date.getFullYear()
-                        const month = String(date.getMonth() + 1).padStart(2, '0')
-                        const day = String(date.getDate()).padStart(2, '0')
-                        setWeekFillStartDate(`${year}-${month}-${day}`)
+              <Label htmlFor="week-fill-week">Uge Nummer</Label>
+              <Select 
+                value={weekFillStartDate} 
+                onValueChange={(value) => setWeekFillStartDate(value)}
+              >
+                <SelectTrigger id="week-fill-week" className="w-full">
+                  <SelectValue placeholder="Vælg uge nummer" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {(() => {
+                    const currentYear = new Date().getFullYear()
+                    const years = [currentYear - 1, currentYear, currentYear + 1]
+                    const weeks: { label: string; value: string }[] = []
+                    
+                    years.forEach(year => {
+                      for (let week = 1; week <= 52; week++) {
+                        const jan1 = new Date(year, 0, 1)
+                        const daysToFirstMonday = (8 - jan1.getDay()) % 7
+                        const firstMonday = new Date(year, 0, 1 + daysToFirstMonday)
+                        const weekDate = new Date(firstMonday.getTime() + (week - 1) * 7 * 24 * 60 * 60 * 1000)
+                        
+                        if (weekDate.getFullYear() === year) {
+                          const dateString = `${weekDate.getFullYear()}-${String(weekDate.getMonth() + 1).padStart(2, '0')}-${String(weekDate.getDate()).padStart(2, '0')}`
+                          weeks.push({
+                            label: `Uge ${week} - ${year}`,
+                            value: dateString
+                          })
+                        }
                       }
-                    }}
-                    showWeekNumber
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+                    })
+                    
+                    return weeks.map((week) => (
+                      <SelectItem key={week.value} value={week.value}>
+                        {week.label}
+                      </SelectItem>
+                    ))
+                  })()}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="week-fill-employee">Medarbejder</Label>
