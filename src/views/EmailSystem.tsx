@@ -10,7 +10,9 @@ import {
   X,
   User,
   Clock,
-  Paperclip
+  Paperclip,
+  Funnel,
+  CalendarBlank
 } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -20,6 +22,8 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -47,6 +51,9 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
   const [view, setView] = useState<'inbox' | 'sent' | 'compose'>('inbox')
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [dateFilter, setDateFilter] = useState<string>('all')
+  const [senderFilter, setSenderFilter] = useState<string>('all')
+  const [showFilters, setShowFilters] = useState(false)
   const [composeData, setComposeData] = useState({
     to: '',
     subject: '',
@@ -96,6 +103,38 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
     return date.toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
+  const filterByDate = (email: Email) => {
+    if (dateFilter === 'all') return true
+    
+    const now = Date.now()
+    const emailDate = email.timestamp
+    const dayInMs = 86400000
+    
+    switch (dateFilter) {
+      case 'today':
+        return now - emailDate < dayInMs
+      case 'week':
+        return now - emailDate < dayInMs * 7
+      case 'month':
+        return now - emailDate < dayInMs * 30
+      default:
+        return true
+    }
+  }
+
+  const filterBySender = (email: Email) => {
+    if (senderFilter === 'all') return true
+    return view === 'inbox' ? email.from === senderFilter : email.to === senderFilter
+  }
+
+  const uniqueSenders = Array.from(
+    new Set(
+      (emails || [])
+        .filter(email => view === 'inbox' ? email.to === userEmail : email.from === userEmail)
+        .map(email => view === 'inbox' ? email.from : email.to)
+    )
+  )
+
   const inboxEmails = (emails || [])
     .filter(email => email.to === userEmail)
     .filter(email => 
@@ -104,6 +143,8 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
       email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       email.message.toLowerCase().includes(searchQuery.toLowerCase())
     )
+    .filter(filterByDate)
+    .filter(filterBySender)
     .sort((a, b) => b.timestamp - a.timestamp)
 
   const sentEmails = (emails || [])
@@ -114,6 +155,8 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
       email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       email.message.toLowerCase().includes(searchQuery.toLowerCase())
     )
+    .filter(filterByDate)
+    .filter(filterBySender)
     .sort((a, b) => b.timestamp - a.timestamp)
 
   const unreadCount = inboxEmails.filter(email => !email.read).length
@@ -362,27 +405,192 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                   >
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-2xl font-bold">
-                        {view === 'inbox' ? 'Indbakke' : 'Sendt'}
-                      </h2>
-                      <div className="relative">
-                        <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                        <Input
-                          placeholder="Søg emails..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-10 w-[300px]"
-                        />
+                    <div className="space-y-4 mb-6">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-bold">
+                          {view === 'inbox' ? 'Indbakke' : 'Sendt'}
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          <Popover open={showFilters} onOpenChange={setShowFilters}>
+                            <PopoverTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className={cn(
+                                  "gap-2",
+                                  (dateFilter !== 'all' || senderFilter !== 'all') && "border-primary bg-primary/5"
+                                )}
+                              >
+                                <Funnel size={18} weight={dateFilter !== 'all' || senderFilter !== 'all' ? 'fill' : 'regular'} />
+                                Filtre
+                                {(dateFilter !== 'all' || senderFilter !== 'all') && (
+                                  <Badge className="ml-1 h-5 px-1.5 bg-primary text-primary-foreground">
+                                    {(dateFilter !== 'all' ? 1 : 0) + (senderFilter !== 'all' ? 1 : 0)}
+                                  </Badge>
+                                )}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80" align="end">
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-sm font-medium flex items-center gap-2">
+                                      <CalendarBlank size={16} />
+                                      Dato
+                                    </label>
+                                    {dateFilter !== 'all' && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2 text-xs"
+                                        onClick={() => setDateFilter('all')}
+                                      >
+                                        Ryd
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <Select value={dateFilter} onValueChange={setDateFilter}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Vælg periode" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="all">Alle</SelectItem>
+                                      <SelectItem value="today">I dag</SelectItem>
+                                      <SelectItem value="week">Seneste uge</SelectItem>
+                                      <SelectItem value="month">Seneste måned</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                
+                                <Separator />
+                                
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-sm font-medium flex items-center gap-2">
+                                      <User size={16} />
+                                      {view === 'inbox' ? 'Afsender' : 'Modtager'}
+                                    </label>
+                                    {senderFilter !== 'all' && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2 text-xs"
+                                        onClick={() => setSenderFilter('all')}
+                                      >
+                                        Ryd
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <Select value={senderFilter} onValueChange={setSenderFilter}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder={view === 'inbox' ? 'Vælg afsender' : 'Vælg modtager'} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="all">Alle</SelectItem>
+                                      {uniqueSenders.map(sender => {
+                                        const user = users.find(u => u.email === sender)
+                                        return (
+                                          <SelectItem key={sender} value={sender}>
+                                            {user ? user.name : sender}
+                                          </SelectItem>
+                                        )
+                                      })}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                {(dateFilter !== 'all' || senderFilter !== 'all') && (
+                                  <>
+                                    <Separator />
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full"
+                                      onClick={() => {
+                                        setDateFilter('all')
+                                        setSenderFilter('all')
+                                      }}
+                                    >
+                                      <X size={16} />
+                                      Ryd alle filtre
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                          
+                          <div className="relative">
+                            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                            <Input
+                              placeholder="Søg emails..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="pl-10 w-[300px]"
+                            />
+                          </div>
+                        </div>
                       </div>
+
+                      {(dateFilter !== 'all' || senderFilter !== 'all') && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm text-muted-foreground">Aktive filtre:</span>
+                          {dateFilter !== 'all' && (
+                            <Badge variant="secondary" className="gap-2">
+                              <CalendarBlank size={14} />
+                              {dateFilter === 'today' && 'I dag'}
+                              {dateFilter === 'week' && 'Seneste uge'}
+                              {dateFilter === 'month' && 'Seneste måned'}
+                              <button
+                                onClick={() => setDateFilter('all')}
+                                className="ml-1 hover:text-foreground transition-colors"
+                              >
+                                <X size={14} />
+                              </button>
+                            </Badge>
+                          )}
+                          {senderFilter !== 'all' && (
+                            <Badge variant="secondary" className="gap-2">
+                              <User size={14} />
+                              {users.find(u => u.email === senderFilter)?.name || senderFilter}
+                              <button
+                                onClick={() => setSenderFilter('all')}
+                                className="ml-1 hover:text-foreground transition-colors"
+                              >
+                                <X size={14} />
+                              </button>
+                            </Badge>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    <ScrollArea className="h-[500px]">
+                    <ScrollArea className={cn(
+                      "transition-all duration-200",
+                      dateFilter !== 'all' || senderFilter !== 'all' ? "h-[430px]" : "h-[480px]"
+                    )}>
                       <div className="space-y-2">
                         {(view === 'inbox' ? inboxEmails : sentEmails).length === 0 ? (
                           <div className="text-center py-16 text-muted-foreground">
                             <Envelope size={64} className="mx-auto mb-4 opacity-50" />
-                            <p className="text-lg">Ingen emails at vise</p>
+                            <p className="text-lg">
+                              {searchQuery || dateFilter !== 'all' || senderFilter !== 'all' 
+                                ? 'Ingen emails matcher dine filtre' 
+                                : 'Ingen emails at vise'}
+                            </p>
+                            {(searchQuery || dateFilter !== 'all' || senderFilter !== 'all') && (
+                              <Button
+                                variant="link"
+                                className="mt-2"
+                                onClick={() => {
+                                  setSearchQuery('')
+                                  setDateFilter('all')
+                                  setSenderFilter('all')
+                                }}
+                              >
+                                Ryd alle filtre
+                              </Button>
+                            )}
                           </div>
                         ) : (
                           (view === 'inbox' ? inboxEmails : sentEmails).map((email) => (
