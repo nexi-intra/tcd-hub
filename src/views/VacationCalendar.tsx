@@ -75,67 +75,73 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
   }
 
   const handleAddVacation = async () => {
+    console.log('handleAddVacation called')
+    console.log('Start date:', startDate)
+    console.log('End date:', endDate)
+    
+    if (!startDate || !endDate) {
+      toast.error('Vælg både start- og slutdato')
+      return
+    }
+
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      toast.error('Ugyldig dato valgt')
+      return
+    }
+
+    if (end < start) {
+      toast.error('Slutdato skal være efter startdato')
+      return
+    }
+
+    const current = new Date(start)
+    while (current <= end) {
+      if (isWeekend(current)) {
+        toast.error('Ferier kan ikke registreres på weekender. Vi arbejder ikke lørdag eller søndag.')
+        return
+      }
+      current.setDate(current.getDate() + 1)
+    }
+
+    const newVacation: VacationEntry = {
+      id: Date.now().toString(),
+      userId: userEmail,
+      userEmail: userEmail,
+      startDate,
+      endDate,
+      notes: notes.trim() || undefined,
+      status: 'pending',
+    }
+
+    console.log('Creating new vacation:', newVacation)
+    
+    setVacations((current) => {
+      const updated = [...(current || []), newVacation]
+      console.log('Updated vacations:', updated)
+      return updated
+    })
+    
+    const startDateFormatted = new Date(startDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const endDateFormatted = new Date(endDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const notesText = notes.trim() ? `Noter: ${notes.trim()}` : 'Ingen noter'
+
+    toast.success('Ferie anmodning sendt til godkendelse')
+    
+    console.log('Sending email notification...')
+    
     try {
-      if (!startDate || !endDate) {
-        toast.error('Vælg både start- og slutdato')
-        return
-      }
-
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        toast.error('Ugyldig dato valgt')
-        return
-      }
-
-      if (end < start) {
-        toast.error('Slutdato skal være efter startdato')
-        return
-      }
-
-      const current = new Date(start)
-      while (current <= end) {
-        if (isWeekend(current)) {
-          toast.error('Ferier kan ikke registreres på weekender. Vi arbejder ikke lørdag eller søndag.')
-          return
-        }
-        current.setDate(current.getDate() + 1)
-      }
-
-      const newVacation: VacationEntry = {
-        id: Date.now().toString(),
-        userId: userEmail,
-        userEmail: userEmail,
-        startDate,
-        endDate,
-        notes: notes.trim() || undefined,
-        status: 'pending',
-      }
-
-      setVacations((current) => [...(current || []), newVacation])
-      
-      const startDateFormatted = new Date(startDate).toLocaleDateString('da-DK', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      })
-      const endDateFormatted = new Date(endDate).toLocaleDateString('da-DK', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      })
-      const notesText = notes.trim() ? `Noter: ${notes.trim()}` : 'Ingen noter'
-
-      toast.success('Ferie anmodning sendt til godkendelse')
-      
-      setStartDate('')
-      setEndDate('')
-      setNotes('')
-      setIsDialogOpen(false)
-
-      try {
-        const prompt = window.spark.llmPrompt`Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
+      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to Jacob Remmer (Jacob.remmer@nexigroup.com) about a vacation request.
 
 Employee: ${userEmail}
 Start Date: ${startDateFormatted}
@@ -156,38 +162,41 @@ Return ONLY a JSON object with this exact structure:
   "body": "email body here with proper line breaks"
 }`
 
-        const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
-        const emailContent = JSON.parse(emailContentJson)
-        
-        const emails = await window.spark.kv.get<Array<{
-          id: string
-          from: string
-          to: string
-          subject: string
-          message: string
-          timestamp: number
-          read: boolean
-        }>>('emails') || []
+      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
+      const emailContent = JSON.parse(emailContentJson)
+      
+      const emails = await window.spark.kv.get<Array<{
+        id: string
+        from: string
+        to: string
+        subject: string
+        message: string
+        timestamp: number
+        read: boolean
+      }>>('emails') || []
 
-        const newEmail = {
-          id: Date.now().toString() + '-vacation-request',
-          from: userEmail,
-          to: 'Jacob.remmer@nexigroup.com',
-          subject: emailContent.subject,
-          message: emailContent.body,
-          timestamp: Date.now(),
-          read: false
-        }
-
-        await window.spark.kv.set('emails', [...emails, newEmail])
-      } catch (emailError) {
-        console.error('Error generating vacation request email:', emailError)
-        toast.error('Email kunne ikke sendes, men anmodningen er gemt')
+      const newEmail = {
+        id: Date.now().toString() + '-vacation-request',
+        from: userEmail,
+        to: 'Jacob.remmer@nexigroup.com',
+        subject: emailContent.subject,
+        message: emailContent.body,
+        timestamp: Date.now(),
+        read: false
       }
-    } catch (error) {
-      console.error('Error adding vacation:', error)
-      toast.error('Der opstod en fejl. Prøv igen.')
+
+      await window.spark.kv.set('emails', [...emails, newEmail])
+      console.log('Email sent successfully')
+      toast.success('Email notifikation sendt til manager')
+    } catch (emailError) {
+      console.error('Error generating vacation request email:', emailError)
+      toast.error('Email kunne ikke sendes, men anmodningen er gemt')
     }
+    
+    setStartDate('')
+    setEndDate('')
+    setNotes('')
+    setIsDialogOpen(false)
   }
 
   const handleDeleteVacation = (id: string) => {
@@ -643,7 +652,10 @@ Return ONLY a JSON object with this exact structure:
                   <DialogHeader>
                     <DialogTitle>Anmod om Ferie</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4">
+                  <form onSubmit={(e) => {
+                    e.preventDefault()
+                    handleAddVacation()
+                  }} className="space-y-4">
                     <div>
                       <Label htmlFor="start-date">Startdato</Label>
                       <Input
@@ -691,17 +703,12 @@ Return ONLY a JSON object with this exact structure:
                       />
                     </div>
                     <Button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        handleAddVacation()
-                      }}
-                      className="w-full bg-gradient-to-r from-primary via-secondary to-accent text-white"
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-primary via-secondary to-accent text-white hover:opacity-90"
                     >
                       Send Anmodning
                     </Button>
-                  </div>
+                  </form>
                 </DialogContent>
               </Dialog>
             </div>
