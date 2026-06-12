@@ -56,15 +56,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   }, [])
   const modules: HubModule[] = [
     {
-      id: 'guides',
-      title: 'Guide Bibliotek',
-      description: 'Søg og administrer afdelingens guides og procedurer',
-      icon: <Books size={48} weight="duotone" />,
-      color: 'oklch(0.50 0.27 262)',
-      gradient: 'from-[oklch(0.50_0.27_262)] via-[oklch(0.55_0.24_192)] to-[oklch(0.50_0.27_262)]',
-      available: true,
-    },
-    {
       id: 'calendar',
       title: 'Feriekalender',
       description: 'Planlæg og koordiner teamets ferieperioder',
@@ -98,6 +89,15 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       icon: <Users size={48} weight="duotone" />,
       color: 'oklch(0.55 0.24 192)',
       gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
+      available: true,
+    },
+    {
+      id: 'guides',
+      title: 'Guide Bibliotek',
+      description: 'Søg og administrer afdelingens guides og procedurer',
+      icon: <Books size={48} weight="duotone" />,
+      color: 'oklch(0.50 0.27 262)',
+      gradient: 'from-[oklch(0.50_0.27_262)] via-[oklch(0.55_0.24_192)] to-[oklch(0.50_0.27_262)]',
       available: true,
     },
     {
