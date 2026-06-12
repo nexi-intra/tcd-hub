@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +30,20 @@ interface SickLeaveEntry {
   submittedAt: string
 }
 
+type VacationStatus = 'pending' | 'approved' | 'rejected'
+
+interface VacationEntry {
+  id: string
+  userId: string
+  userEmail: string
+  startDate: string
+  endDate: string
+  notes?: string
+  status: VacationStatus
+  reviewedBy?: string
+  reviewedAt?: string
+}
+
 interface ManagerPanelProps {
   onNavigateBack: () => void
   onLogout: () => void
@@ -39,6 +53,7 @@ interface ManagerPanelProps {
 export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPanelProps) {
   const [users, setUsers] = useState<User[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
+  const [vacationEntries, setVacationEntries] = useState<VacationEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasAccess, setHasAccess] = useState(false)
 
@@ -49,6 +64,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       if (access) {
         loadUsers()
         loadSickLeaveEntries()
+        loadVacationEntries()
       }
     }
     checkAccessAndLoad()
@@ -103,6 +119,16 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     }))
   }
 
+  const loadVacationEntries = async () => {
+    const entries = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
+    setVacationEntries(entries.filter(e => e.status === 'pending').sort((a, b) => {
+      const dateA = new Date(a.startDate)
+      const dateB = new Date(b.startDate)
+      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0
+      return dateA.getTime() - dateB.getTime()
+    }))
+  }
+
   const changeUserRole = async (email: string, newRole: UserRole) => {
     if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
       toast.error('Kan ikke ændre admin brugerens rettigheder')
@@ -141,6 +167,181 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     await window.spark.kv.set('sick-leave-entries', updatedEntries)
     await loadSickLeaveEntries()
     toast.success('Sygemelding slettet')
+  }
+
+  const handleApproveVacation = async (vacation: VacationEntry) => {
+    const allVacations = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
+    const updatedVacations = allVacations.map((v) =>
+      v.id === vacation.id
+        ? { ...v, status: 'approved' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString() }
+        : v
+    )
+    await window.spark.kv.set('vacation-entries', updatedVacations)
+    await loadVacationEntries()
+    toast.success('Ferie godkendt')
+
+    const startDateFormatted = new Date(vacation.startDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const endDateFormatted = new Date(vacation.endDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+
+    try {
+      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
+
+Vacation Request Details:
+Start Date: ${startDateFormatted}
+End Date: ${endDateFormatted}
+${vacation.notes ? `Notes: ${vacation.notes}` : 'No notes'}
+Approved by: ${userEmail}
+
+The email should be in Danish, friendly yet professional, and include:
+- A clear subject line that indicates approval
+- Confirmation that the vacation request has been approved
+- The vacation period details
+- The name/email of who approved it
+- A congratulatory or positive tone
+- A brief note that this is an automatic notification
+
+Return ONLY a JSON object with this exact structure:
+{
+  "subject": "subject line here",
+  "body": "email body here with proper line breaks"
+}`
+
+      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
+      const emailContent = JSON.parse(emailContentJson)
+
+      const emails = await window.spark.kv.get<Array<{
+        id: string
+        from: string
+        to: string
+        subject: string
+        message: string
+        timestamp: number
+        read: boolean
+      }>>('emails') || []
+
+      const newEmail = {
+        id: Date.now().toString() + '-approval',
+        from: userEmail,
+        to: vacation.userEmail,
+        subject: emailContent.subject,
+        message: emailContent.body,
+        timestamp: Date.now(),
+        read: false
+      }
+
+      await window.spark.kv.set('emails', [...emails, newEmail])
+
+      const notification = {
+        id: Date.now().toString(),
+        type: 'email' as const,
+        message: `Din ferieansøgning blev godkendt!`,
+        timestamp: Date.now(),
+        read: false,
+        from: userEmail,
+        emailId: newEmail.id
+      }
+
+      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
+      await window.spark.kv.set('email-notifications', [...notifications, notification])
+    } catch (emailError) {
+      console.error('Error sending vacation approval email:', emailError)
+    }
+  }
+
+  const handleRejectVacation = async (vacation: VacationEntry) => {
+    const allVacations = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
+    const updatedVacations = allVacations.map((v) =>
+      v.id === vacation.id
+        ? { ...v, status: 'rejected' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString() }
+        : v
+    )
+    await window.spark.kv.set('vacation-entries', updatedVacations)
+    await loadVacationEntries()
+    toast.error('Ferie afvist')
+
+    const startDateFormatted = new Date(vacation.startDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const endDateFormatted = new Date(vacation.endDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+
+    try {
+      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
+
+Vacation Request Details:
+Start Date: ${startDateFormatted}
+End Date: ${endDateFormatted}
+${vacation.notes ? `Notes: ${vacation.notes}` : 'No notes'}
+Rejected by: ${userEmail}
+
+The email should be in Danish, professional and respectful, and include:
+- A clear subject line that indicates rejection
+- Polite notification that the vacation request has been rejected
+- The vacation period details
+- The name/email of who rejected it
+- A professional and understanding tone
+- Suggestion that they can contact the manager for more information or to discuss alternative dates
+- A brief note that this is an automatic notification
+
+Return ONLY a JSON object with this exact structure:
+{
+  "subject": "subject line here",
+  "body": "email body here with proper line breaks"
+}`
+
+      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
+      const emailContent = JSON.parse(emailContentJson)
+
+      const emails = await window.spark.kv.get<Array<{
+        id: string
+        from: string
+        to: string
+        subject: string
+        message: string
+        timestamp: number
+        read: boolean
+      }>>('emails') || []
+
+      const newEmail = {
+        id: Date.now().toString() + '-rejection',
+        from: userEmail,
+        to: vacation.userEmail,
+        subject: emailContent.subject,
+        message: emailContent.body,
+        timestamp: Date.now(),
+        read: false
+      }
+
+      await window.spark.kv.set('emails', [...emails, newEmail])
+
+      const notification = {
+        id: Date.now().toString(),
+        type: 'email' as const,
+        message: `Din ferieansøgning blev afvist`,
+        timestamp: Date.now(),
+        read: false,
+        from: userEmail,
+        emailId: newEmail.id
+      }
+
+      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
+      await window.spark.kv.set('email-notifications', [...notifications, notification])
+    } catch (emailError) {
+      console.error('Error sending vacation rejection email:', emailError)
+    }
   }
 
   const getRoleBadge = (role: UserRole) => {
@@ -223,7 +424,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         </motion.div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-xl">
+          <TabsList className="grid w-full grid-cols-3 max-w-3xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
@@ -231,6 +432,15 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             <TabsTrigger value="sick-leave" className="gap-2">
               <FirstAidKit size={18} />
               Sygemeldinger
+            </TabsTrigger>
+            <TabsTrigger value="vacation-requests" className="gap-2">
+              <Umbrella size={18} />
+              Ferie Anmodninger
+              {vacationEntries.length > 0 && (
+                <Badge className="ml-1 h-5 px-1.5 bg-accent text-accent-foreground">
+                  {vacationEntries.length}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -480,6 +690,115 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="vacation-requests" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Umbrella size={28} className="text-accent" weight="duotone" />
+                  <h2 className="text-2xl font-bold">Ferie Anmodninger</h2>
+                </div>
+                <Badge variant="outline" className="text-sm">
+                  {vacationEntries.length} {vacationEntries.length === 1 ? 'anmodning' : 'anmodninger'}
+                </Badge>
+              </div>
+
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Her kan du se og håndtere alle afventende ferie anmodninger. Du kan godkende eller afvise hver anmodning, og medarbejderne vil automatisk få besked via email.
+                </p>
+              </div>
+
+              {vacationEntries.length === 0 ? (
+                <div className="text-center py-12">
+                  <Umbrella size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
+                  <p className="text-muted-foreground">Ingen afventende ferie anmodninger</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {vacationEntries.map((vacation) => (
+                    <motion.div
+                      key={vacation.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col gap-4 p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                            {vacation.userEmail.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-bold text-lg mb-1">{vacation.userEmail}</div>
+                            <div className="flex flex-col gap-1 text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-muted-foreground">Fra:</span>
+                                <span className="font-semibold">
+                                  {(() => {
+                                    try {
+                                      const date = new Date(vacation.startDate)
+                                      if (isNaN(date.getTime())) return 'Ugyldig dato'
+                                      return format(date, 'd. MMM yyyy', { locale: da })
+                                    } catch {
+                                      return 'Ugyldig dato'
+                                    }
+                                  })()}
+                                </span>
+                                <span className="text-muted-foreground">→</span>
+                                <span className="font-medium text-muted-foreground">Til:</span>
+                                <span className="font-semibold">
+                                  {(() => {
+                                    try {
+                                      const date = new Date(vacation.endDate)
+                                      if (isNaN(date.getTime())) return 'Ugyldig dato'
+                                      return format(date, 'd. MMM yyyy', { locale: da })
+                                    } catch {
+                                      return 'Ugyldig dato'
+                                    }
+                                  })()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
+                          <ClockCounterClockwise size={14} className="mr-1" />
+                          Afventer
+                        </Badge>
+                      </div>
+
+                      {vacation.notes && (
+                        <div className="pl-16">
+                          <div className="text-sm bg-muted p-3 rounded-lg">
+                            <span className="font-semibold text-muted-foreground">Bemærkninger: </span>
+                            {vacation.notes}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pl-16">
+                        <Button
+                          onClick={() => handleApproveVacation(vacation)}
+                          className="flex-1 gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
+                        >
+                          <Check size={18} weight="bold" />
+                          Godkend
+                        </Button>
+                        <Button
+                          onClick={() => handleRejectVacation(vacation)}
+                          variant="destructive"
+                          className="flex-1 gap-2"
+                        >
+                          <X size={18} weight="bold" />
+                          Afvis
+                        </Button>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
