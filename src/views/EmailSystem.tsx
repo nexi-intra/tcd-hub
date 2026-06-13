@@ -14,7 +14,11 @@ import {
   Funnel,
   CalendarBlank,
   Check,
-  Umbrella
+  Umbrella,
+  Folder,
+  FolderOpen,
+  Plus,
+  Pencil
 } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -40,6 +44,14 @@ interface Email {
   timestamp: number
   read: boolean
   starred?: boolean
+  folderId?: string
+}
+
+interface EmailFolder {
+  id: string
+  name: string
+  userId: string
+  createdAt: number
 }
 
 type VacationStatus = 'pending' | 'approved' | 'rejected'
@@ -64,10 +76,12 @@ interface EmailSystemProps {
 
 export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
   const [emails, setEmails] = useKV<Email[]>('emails', [])
+  const [folders, setFolders] = useKV<EmailFolder[]>('email-folders', [])
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
   const [users, setUsers] = useState<Array<{ email: string; name: string }>>([])
   const [isManager, setIsManager] = useState(false)
-  const [view, setView] = useState<'inbox' | 'sent' | 'compose' | 'vacation-requests'>('inbox')
+  const [view, setView] = useState<'inbox' | 'sent' | 'compose' | 'vacation-requests' | 'folder'>('inbox')
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [selectedVacation, setSelectedVacation] = useState<VacationEntry | null>(null)
   const [showCalendarPreview, setShowCalendarPreview] = useState(false)
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
@@ -75,6 +89,11 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
   const [dateFilter, setDateFilter] = useState<string>('all')
   const [senderFilter, setSenderFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [showFolderDialog, setShowFolderDialog] = useState(false)
+  const [editingFolder, setEditingFolder] = useState<EmailFolder | null>(null)
+  const [folderName, setFolderName] = useState('')
+  const [showMoveToFolderDialog, setShowMoveToFolderDialog] = useState(false)
+  const [emailToMove, setEmailToMove] = useState<Email | null>(null)
   const [composeData, setComposeData] = useState({
     to: '',
     subject: '',
@@ -171,8 +190,10 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
     )
   )
 
+  const userFolders = (folders || []).filter(folder => folder.userId === userEmail)
+
   const inboxEmails = (emails || [])
-    .filter(email => email.to === userEmail)
+    .filter(email => email.to === userEmail && !email.folderId)
     .filter(email => 
       searchQuery === '' || 
       email.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -184,9 +205,22 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
     .sort((a, b) => b.timestamp - a.timestamp)
 
   const sentEmails = (emails || [])
-    .filter(email => email.from === userEmail)
+    .filter(email => email.from === userEmail && !email.folderId)
     .filter(email => 
       searchQuery === '' || 
+      email.to.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      email.message.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .filter(filterByDate)
+    .filter(filterBySender)
+    .sort((a, b) => b.timestamp - a.timestamp)
+
+  const folderEmails = (emails || [])
+    .filter(email => email.folderId === selectedFolderId && (email.to === userEmail || email.from === userEmail))
+    .filter(email => 
+      searchQuery === '' || 
+      email.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
       email.to.toLowerCase().includes(searchQuery.toLowerCase()) ||
       email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       email.message.toLowerCase().includes(searchQuery.toLowerCase())
@@ -423,6 +457,86 @@ Return ONLY a JSON object with this exact structure:
     setShowCalendarPreview(false)
   }
 
+  const handleCreateFolder = () => {
+    if (!folderName.trim()) {
+      toast.error('Indtast et mappenavn')
+      return
+    }
+
+    const newFolder: EmailFolder = {
+      id: Date.now().toString(),
+      name: folderName.trim(),
+      userId: userEmail,
+      createdAt: Date.now()
+    }
+
+    setFolders(current => [...(current || []), newFolder])
+    toast.success('Mappe oprettet')
+    setFolderName('')
+    setShowFolderDialog(false)
+  }
+
+  const handleUpdateFolder = () => {
+    if (!editingFolder || !folderName.trim()) {
+      toast.error('Indtast et mappenavn')
+      return
+    }
+
+    setFolders(current =>
+      (current || []).map(folder =>
+        folder.id === editingFolder.id
+          ? { ...folder, name: folderName.trim() }
+          : folder
+      )
+    )
+
+    toast.success('Mappe opdateret')
+    setFolderName('')
+    setEditingFolder(null)
+    setShowFolderDialog(false)
+  }
+
+  const handleDeleteFolder = (folderId: string) => {
+    setEmails(current =>
+      (current || []).map(email =>
+        email.folderId === folderId
+          ? { ...email, folderId: undefined }
+          : email
+      )
+    )
+
+    setFolders(current => (current || []).filter(folder => folder.id !== folderId))
+    
+    if (selectedFolderId === folderId) {
+      setView('inbox')
+      setSelectedFolderId(null)
+    }
+
+    toast.success('Mappe slettet')
+  }
+
+  const handleMoveToFolder = (folderId: string | null) => {
+    if (!emailToMove) return
+
+    setEmails(current =>
+      (current || []).map(email =>
+        email.id === emailToMove.id
+          ? { ...email, folderId: folderId || undefined }
+          : email
+      )
+    )
+
+    if (folderId) {
+      const folder = userFolders.find(f => f.id === folderId)
+      toast.success(`Email flyttet til ${folder?.name}`)
+    } else {
+      toast.success('Email flyttet til indbakke')
+    }
+
+    setShowMoveToFolderDialog(false)
+    setEmailToMove(null)
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('da-DK', {
       day: 'numeric',
@@ -624,6 +738,87 @@ Return ONLY a JSON object with this exact structure:
                   </Button>
                 </>
               )}
+
+              <Separator className="my-2" />
+
+              <div className="flex items-center justify-between px-2 mb-2">
+                <span className="text-sm font-semibold text-muted-foreground">Mapper</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => {
+                    setEditingFolder(null)
+                    setFolderName('')
+                    setShowFolderDialog(true)
+                  }}
+                >
+                  <Plus size={16} weight="bold" />
+                </Button>
+              </div>
+
+              {userFolders.length === 0 ? (
+                <div className="text-xs text-muted-foreground text-center py-4 px-2">
+                  Ingen mapper endnu. Opret din første mappe!
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {userFolders.map(folder => {
+                    const folderEmailCount = (emails || []).filter(e => e.folderId === folder.id).length
+                    return (
+                      <div key={folder.id} className="group relative">
+                        <Button
+                          variant={view === 'folder' && selectedFolderId === folder.id ? 'secondary' : 'ghost'}
+                          className="w-full justify-start gap-2 pr-16"
+                          onClick={() => {
+                            setView('folder')
+                            setSelectedFolderId(folder.id)
+                            setSelectedEmail(null)
+                          }}
+                        >
+                          {view === 'folder' && selectedFolderId === folder.id ? (
+                            <FolderOpen size={20} weight="fill" />
+                          ) : (
+                            <Folder size={20} weight="regular" />
+                          )}
+                          <span className="truncate flex-1 text-left">{folder.name}</span>
+                          {folderEmailCount > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                              {folderEmailCount}
+                            </Badge>
+                          )}
+                        </Button>
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingFolder(folder)
+                              setFolderName(folder.name)
+                              setShowFolderDialog(true)
+                            }}
+                          >
+                            <Pencil size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteFolder(folder.id)
+                            }}
+                          >
+                            <Trash size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </Card>
 
             <Card className="p-4 mt-4">
@@ -724,7 +919,7 @@ Return ONLY a JSON object with this exact structure:
                   </motion.div>
                 )}
 
-                {(view === 'inbox' || view === 'sent') && !selectedEmail && (
+                {(view === 'inbox' || view === 'sent' || view === 'folder') && !selectedEmail && (
                   <motion.div
                     key="list"
                     initial={{ opacity: 0, y: 20 }}
@@ -734,7 +929,9 @@ Return ONLY a JSON object with this exact structure:
                     <div className="space-y-4 mb-6">
                       <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold">
-                          {view === 'inbox' ? 'Indbakke' : 'Sendt'}
+                          {view === 'inbox' && 'Indbakke'}
+                          {view === 'sent' && 'Sendt'}
+                          {view === 'folder' && (userFolders.find(f => f.id === selectedFolderId)?.name || 'Mappe')}
                         </h2>
                         <div className="flex items-center gap-2">
                           <Popover open={showFilters} onOpenChange={setShowFilters}>
@@ -896,7 +1093,7 @@ Return ONLY a JSON object with this exact structure:
                       dateFilter !== 'all' || senderFilter !== 'all' ? "h-[430px]" : "h-[480px]"
                     )}>
                       <div className="space-y-2">
-                        {(view === 'inbox' ? inboxEmails : sentEmails).length === 0 ? (
+                        {(view === 'inbox' ? inboxEmails : view === 'sent' ? sentEmails : folderEmails).length === 0 ? (
                           <div className="text-center py-16 text-muted-foreground">
                             <Envelope size={64} className="mx-auto mb-4 opacity-50" />
                             <p className="text-lg">
@@ -919,7 +1116,7 @@ Return ONLY a JSON object with this exact structure:
                             )}
                           </div>
                         ) : (
-                          (view === 'inbox' ? inboxEmails : sentEmails).map((email) => (
+                          (view === 'inbox' ? inboxEmails : view === 'sent' ? sentEmails : folderEmails).map((email) => (
                             <motion.button
                               key={email.id}
                               onClick={() => handleEmailClick(email)}
@@ -993,6 +1190,18 @@ Return ONLY a JSON object with this exact structure:
                         Tilbage
                       </Button>
                       <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            setEmailToMove(selectedEmail)
+                            setShowMoveToFolderDialog(true)
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                        >
+                          <Folder size={18} />
+                          Flyt til mappe
+                        </Button>
                         <Button
                           onClick={() => {
                             setView('compose')
@@ -1221,6 +1430,101 @@ Return ONLY a JSON object with this exact structure:
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showFolderDialog} onOpenChange={setShowFolderDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingFolder ? 'Rediger Mappe' : 'Opret Ny Mappe'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Mappenavn</label>
+                <Input
+                  placeholder="Indtast mappenavn"
+                  value={folderName}
+                  onChange={(e) => setFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      editingFolder ? handleUpdateFolder() : handleCreateFolder()
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  onClick={() => {
+                    setShowFolderDialog(false)
+                    setEditingFolder(null)
+                    setFolderName('')
+                  }}
+                  variant="outline"
+                >
+                  Annuller
+                </Button>
+                <Button
+                  onClick={editingFolder ? handleUpdateFolder : handleCreateFolder}
+                  className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white"
+                >
+                  {editingFolder ? 'Gem' : 'Opret'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showMoveToFolderDialog} onOpenChange={setShowMoveToFolderDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Flyt Email til Mappe</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {userFolders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Folder size={48} className="mx-auto mb-3 opacity-50" />
+                  <p>Du har ingen mapper endnu.</p>
+                  <Button
+                    onClick={() => {
+                      setShowMoveToFolderDialog(false)
+                      setShowFolderDialog(true)
+                    }}
+                    variant="link"
+                    className="mt-2"
+                  >
+                    Opret din første mappe
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">Vælg en mappe at flytte emailen til:</p>
+                  <div className="space-y-2">
+                    {emailToMove?.folderId && (
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start gap-2"
+                        onClick={() => handleMoveToFolder(null)}
+                      >
+                        <Envelope size={18} />
+                        Flyt til indbakke
+                      </Button>
+                    )}
+                    {userFolders.map(folder => (
+                      <Button
+                        key={folder.id}
+                        variant={emailToMove?.folderId === folder.id ? 'secondary' : 'outline'}
+                        className="w-full justify-start gap-2"
+                        onClick={() => handleMoveToFolder(folder.id)}
+                        disabled={emailToMove?.folderId === folder.id}
+                      >
+                        <Folder size={18} />
+                        {folder.name}
+                      </Button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </DialogContent>
         </Dialog>
       </div>
