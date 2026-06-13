@@ -8,6 +8,7 @@ import { FirstAidKit, X } from '@phosphor-icons/react'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface SickLeaveDialogProps {
   open: boolean
@@ -31,6 +32,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
   const [selectedDate, setSelectedDate] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [userName, setUserName] = useState('')
+  const { t } = useLanguage()
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -64,7 +66,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
 
   const handleSubmit = async () => {
     if (!selectedDate) {
-      toast.error('Vælg en dato')
+      toast.error(t.sickLeaveDialog.selectDateError)
       return
     }
 
@@ -82,8 +84,8 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
         )
         await window.spark.kv.set('sick-leave-entries', updatedEntries)
 
-        toast.success('Sygemelding opdateret', {
-          description: `Din sygemelding til ${format(dateToUse, 'd. MMMM yyyy', { locale: da })} er opdateret.`,
+        toast.success(t.sickLeaveDialog.updated, {
+          description: t.sickLeaveDialog.updatedDescription.replace('{date}', format(dateToUse, 'd. MMMM yyyy', { locale: da })),
           duration: 5000
         })
 
@@ -141,14 +143,14 @@ Terminal Configuration & Dispatch Hub`
           read: false
         }])
 
-        toast.success('✅ Sygemelding registreret', {
-          description: `Din sygemelding fra ${format(dateToUse, 'd. MMMM yyyy', { locale: da })} er registreret.\n\n📧 Notifikation til Jacob Remmer (Jacob.remmer@nexigroup.com) er gemt og kan ses under "Email Notifikationer" i hubben.`,
+        toast.success(`✅ ${t.sickLeaveDialog.registered}`, {
+          description: t.sickLeaveDialog.notificationSent.replace('{date}', format(dateToUse, 'd. MMMM yyyy', { locale: da })),
           duration: 8000
         })
       } catch (emailError) {
         console.error('Error saving email notification:', emailError)
-        toast.warning('Sygemelding registreret', {
-          description: `Din sygemelding fra ${format(dateToUse, 'd. MMMM yyyy', { locale: da })} er registreret, men email notifikationen kunne ikke gemmes.`,
+        toast.warning(t.sickLeaveDialog.registered, {
+          description: t.sickLeaveDialog.registeredDescription.replace('{date}', format(dateToUse, 'd. MMMM yyyy', { locale: da })),
           duration: 5000
         })
       }
@@ -158,8 +160,8 @@ Terminal Configuration & Dispatch Hub`
       onOpenChange(false)
     } catch (error) {
       console.error('Error submitting sick leave:', error)
-      toast.error('Kunne ikke indsende sygemelding', {
-        description: 'Prøv venligst igen'
+      toast.error(t.sickLeaveDialog.error, {
+        description: t.sickLeaveDialog.errorDescription
       })
     } finally {
       setIsSubmitting(false)
@@ -180,9 +182,9 @@ Terminal Configuration & Dispatch Hub`
               <FirstAidKit size={24} weight="duotone" className="text-white" />
             </div>
             <div>
-              <DialogTitle className="text-2xl">{editEntry ? 'Rediger Sygemelding' : 'Sygemelding'}</DialogTitle>
+              <DialogTitle className="text-2xl">{editEntry ? t.sickLeaveDialog.editTitle : t.sickLeaveDialog.title}</DialogTitle>
               <DialogDescription>
-                {editEntry ? 'Rediger din sygemelding' : 'Indsend din sygemelding med dato og eventuel begrundelse'}
+                {editEntry ? t.sickLeaveDialog.editDescription : t.sickLeaveDialog.description}
               </DialogDescription>
             </div>
           </div>
@@ -191,7 +193,7 @@ Terminal Configuration & Dispatch Hub`
         <div className="grid gap-6 py-4">
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="userName">Medarbejder</Label>
+              <Label htmlFor="userName">{t.sickLeaveDialog.employee}</Label>
               <Input
                 id="userName"
                 value={userName}
@@ -201,7 +203,7 @@ Terminal Configuration & Dispatch Hub`
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="sickDate">Dato</Label>
+              <Label htmlFor="sickDate">{t.sickLeaveDialog.date}</Label>
               <Input
                 id="sickDate"
                 type="date"
@@ -210,15 +212,15 @@ Terminal Configuration & Dispatch Hub`
                 className="w-full"
               />
               <p className="text-sm text-muted-foreground">
-                {editEntry ? 'Rediger sygemeldingsdatoen' : 'Vælg datoen for din sygemelding'}
+                {editEntry ? t.sickLeaveDialog.editDate : t.sickLeaveDialog.selectDate}
               </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="reason">Bemærkninger (valgfrit)</Label>
+              <Label htmlFor="reason">{t.sickLeaveDialog.notes}</Label>
               <Textarea
                 id="reason"
-                placeholder="Eventuelle bemærkninger til din sygemelding..."
+                placeholder={t.sickLeaveDialog.notesPlaceholder}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={4}
@@ -236,7 +238,7 @@ Terminal Configuration & Dispatch Hub`
             className="gap-2"
           >
             <X size={18} />
-            Annuller
+            {t.sickLeaveDialog.cancel}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -244,7 +246,7 @@ Terminal Configuration & Dispatch Hub`
             className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white gap-2"
           >
             <FirstAidKit size={18} weight="duotone" />
-            {isSubmitting ? (editEntry ? 'Opdaterer...' : 'Indsender...') : (editEntry ? 'Gem ændringer' : 'Indsend sygemelding')}
+            {isSubmitting ? (editEntry ? t.sickLeaveDialog.updating : t.sickLeaveDialog.submitting) : (editEntry ? t.sickLeaveDialog.update : t.sickLeaveDialog.submit)}
           </Button>
         </DialogFooter>
       </DialogContent>

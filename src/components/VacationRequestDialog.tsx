@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { PaperPlaneTilt, Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface VacationEntry {
   id: string
@@ -31,12 +32,13 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
+  const { t } = useLanguage()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!startDate || !endDate) {
-      toast.error('Vælg venligst start- og slutdato')
+      toast.error(t.vacationRequestDialog.selectStartEndDate)
       return
     }
 
@@ -44,7 +46,7 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
     const end = new Date(endDate)
 
     if (end < start) {
-      toast.error('Slutdato skal være efter startdato')
+      toast.error(t.vacationRequestDialog.endDateAfterStart)
       return
     }
 
@@ -210,7 +212,7 @@ Return ONLY a JSON object with this exact structure:
         console.error('Error sending confirmation email:', error)
       }
 
-      toast.success('Ferieansøgning sendt! Du vil modtage en bekræftelse i din email.')
+      toast.success(t.vacationRequestDialog.requestSent)
       setStartDate('')
       setEndDate('')
       setNotes('')
@@ -228,16 +230,16 @@ Return ONLY a JSON object with this exact structure:
       <DialogTrigger asChild>
         <Button className="gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90">
           <Plus size={20} weight="bold" />
-          Anmod om Ferie
+          {t.vacationRequestDialog.requestVacation}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Anmod om Ferie</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">{t.vacationRequestDialog.title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="start-date">Startdato</Label>
+            <Label htmlFor="start-date">{t.vacationRequestDialog.startDate}</Label>
             <Input
               id="start-date"
               type="date"
@@ -248,7 +250,7 @@ Return ONLY a JSON object with this exact structure:
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="end-date">Slutdato</Label>
+            <Label htmlFor="end-date">{t.vacationRequestDialog.endDate}</Label>
             <Input
               id="end-date"
               type="date"
@@ -259,12 +261,12 @@ Return ONLY a JSON object with this exact structure:
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Kommentar (valgfri)</Label>
+            <Label htmlFor="notes">{t.vacationRequestDialog.comment}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Tilføj en kommentar til din ferieansøgning..."
+              placeholder={t.vacationRequestDialog.commentPlaceholder}
               rows={4}
             />
           </div>
@@ -276,7 +278,7 @@ Return ONLY a JSON object with this exact structure:
               onClick={() => setOpen(false)}
               disabled={isSubmitting}
             >
-              Annuller
+              {t.vacationRequestDialog.cancel}
             </Button>
             <Button
               type="submit"
@@ -284,7 +286,7 @@ Return ONLY a JSON object with this exact structure:
               className="gap-2"
             >
               <PaperPlaneTilt size={18} weight="bold" />
-              {isSubmitting ? 'Sender...' : 'Send Ansøgning'}
+              {isSubmitting ? t.vacationRequestDialog.submitting : t.vacationRequestDialog.submit}
             </Button>
           </div>
         </form>

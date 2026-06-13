@@ -23,6 +23,7 @@ import { Upload, FileDoc, X } from '@phosphor-icons/react'
 import { fileStorage } from '@/lib/fileStorage'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface GuideDialogProps {
   open: boolean
