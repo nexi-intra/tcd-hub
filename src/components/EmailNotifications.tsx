@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Envelope, Copy, Check, Trash } from '@phosphor-icons/react'
+import { Textarea } from '@/components/ui/textarea'
+import { Envelope, Copy, Check, Trash, ArrowBendUpLeft, PaperPlaneTilt } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
@@ -32,11 +33,21 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [users, setUsers] = useState<Record<string, { fullName: string; email: string }>>({})
+  const [isReplying, setIsReplying] = useState(false)
+  const [replyMessage, setReplyMessage] = useState('')
+  const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
     if (open) {
       loadEmails()
       loadUsers()
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) {
+      setIsReplying(false)
+      setReplyMessage('')
     }
   }, [open])
 
@@ -96,6 +107,40 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
       setSelectedEmail(null)
     }
     toast.success(t.emailNotifications.deleted)
+  }
+
+  const handleSendReply = async () => {
+    if (!selectedEmail || !replyMessage.trim()) {
+      toast.error(language === 'da' ? 'Skriv en besked' : 'Write a message')
+      return
+    }
+
+    setIsSending(true)
+    
+    try {
+      const allEmails = await window.spark.kv.get<Email[]>('emails') || []
+      const newEmail: Email = {
+        id: `${Date.now()}-${Math.random()}`,
+        from: userEmail,
+        to: selectedEmail.from,
+        subject: `Re: ${selectedEmail.subject}`,
+        message: replyMessage,
+        timestamp: Date.now(),
+        read: false
+      }
+      
+      await window.spark.kv.set('emails', [...allEmails, newEmail])
+      
+      toast.success(language === 'da' ? 'Svar sendt' : 'Reply sent')
+      setReplyMessage('')
+      setIsReplying(false)
+      
+      await loadEmails()
+    } catch (error) {
+      toast.error(language === 'da' ? 'Kunne ikke sende svar' : 'Failed to send reply')
+    } finally {
+      setIsSending(false)
+    }
   }
 
   const getSenderName = (email: string) => {
@@ -206,37 +251,83 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
 
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">{t.emailNotifications.message}</p>
-                    <ScrollArea className="h-[200px] w-full rounded-md border p-4 bg-muted/30">
+                    <ScrollArea className="h-[150px] w-full rounded-md border p-4 bg-muted/30">
                       <div className="whitespace-pre-wrap text-sm leading-relaxed">{selectedEmail.message}</div>
                     </ScrollArea>
                   </div>
 
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      onClick={() => handleCopyEmail(selectedEmail)}
-                      className="flex-1 gap-2"
-                      variant={copiedId === selectedEmail.id ? "secondary" : "default"}
-                    >
-                      {copiedId === selectedEmail.id ? (
-                        <>
-                          <Check size={18} />
-                          {t.emailNotifications.copied}
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={18} />
-                          {t.emailNotifications.copyEmail}
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(selectedEmail.id)}
-                      variant="destructive"
-                      size="icon"
-                    >
-                      <Trash size={18} />
-                    </Button>
-                  </div>
+                  {isReplying ? (
+                    <div className="space-y-3 pt-2">
+                      <Separator />
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <ArrowBendUpLeft size={16} className="text-muted-foreground" />
+                          <p className="text-sm font-medium">{language === 'da' ? 'Svar til' : 'Reply to'} {getSenderName(selectedEmail.from)}</p>
+                        </div>
+                        <Textarea
+                          placeholder={language === 'da' ? 'Skriv dit svar her...' : 'Write your reply here...'}
+                          value={replyMessage}
+                          onChange={(e) => setReplyMessage(e.target.value)}
+                          className="min-h-[120px] resize-none"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleSendReply}
+                          disabled={isSending || !replyMessage.trim()}
+                          className="flex-1 gap-2"
+                        >
+                          <PaperPlaneTilt size={18} />
+                          {isSending ? (language === 'da' ? 'Sender...' : 'Sending...') : (language === 'da' ? 'Send svar' : 'Send reply')}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setIsReplying(false)
+                            setReplyMessage('')
+                          }}
+                          variant="outline"
+                        >
+                          {language === 'da' ? 'Annuller' : 'Cancel'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        onClick={() => setIsReplying(true)}
+                        className="flex-1 gap-2"
+                        variant="default"
+                      >
+                        <ArrowBendUpLeft size={18} />
+                        {language === 'da' ? 'Svar' : 'Reply'}
+                      </Button>
+                      <Button
+                        onClick={() => handleCopyEmail(selectedEmail)}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        {copiedId === selectedEmail.id ? (
+                          <>
+                            <Check size={18} />
+                            {t.emailNotifications.copied}
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={18} />
+                            {t.emailNotifications.copyEmail}
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(selectedEmail.id)}
+                        variant="destructive"
+                        size="icon"
+                      >
+                        <Trash size={18} />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
