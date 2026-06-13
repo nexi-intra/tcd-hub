@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
-import { Envelope, Copy, Check, Trash, ArrowBendUpLeft, PaperPlaneTilt } from '@phosphor-icons/react'
+import { Envelope, Trash, ArrowBendUpLeft, PaperPlaneTilt } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
@@ -31,7 +31,6 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
   const { t, language } = useLanguage()
   const [emails, setEmails] = useState<Email[]>([])
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [users, setUsers] = useState<Record<string, { fullName: string; email: string }>>({})
   const [isReplying, setIsReplying] = useState(false)
   const [replyMessage, setReplyMessage] = useState('')
@@ -79,20 +78,6 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
           e.id === email.id ? { ...e, read: true } : e
         )
       )
-    }
-  }
-
-  const handleCopyEmail = async (email: Email) => {
-    const senderName = users[email.from]?.fullName || email.from
-    const emailText = `Fra: ${senderName} (${email.from})\nEmne: ${email.subject}\n\n${email.message}`
-    
-    try {
-      await navigator.clipboard.writeText(emailText)
-      setCopiedId(email.id)
-      toast.success(t.emailNotifications.copied)
-      setTimeout(() => setCopiedId(null), 2000)
-    } catch (error) {
-      toast.error(t.emailNotifications.copyError)
     }
   }
 
@@ -301,23 +286,6 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
                       >
                         <ArrowBendUpLeft size={18} />
                         {language === 'da' ? 'Svar' : 'Reply'}
-                      </Button>
-                      <Button
-                        onClick={() => handleCopyEmail(selectedEmail)}
-                        variant="outline"
-                        className="gap-2"
-                      >
-                        {copiedId === selectedEmail.id ? (
-                          <>
-                            <Check size={18} />
-                            {t.emailNotifications.copied}
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={18} />
-                            {t.emailNotifications.copyEmail}
-                          </>
-                        )}
                       </Button>
                       <Button
                         onClick={() => handleDelete(selectedEmail.id)}
