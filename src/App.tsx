@@ -10,6 +10,7 @@ import { EmailSystem } from '@/views/EmailSystem'
 import { MealPlan } from '@/views/MealPlan'
 import { Auth } from '@/views/Auth'
 import { useKV } from '@github/spark/hooks'
+import { LanguageProvider } from '@/contexts/LanguageContext'
 
 type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals'
 
@@ -65,11 +66,15 @@ function App() {
   }
 
   if (!userSession) {
-    return <Auth onAuthenticated={handleAuthenticated} />
+    return (
+      <LanguageProvider>
+        <Auth onAuthenticated={handleAuthenticated} />
+      </LanguageProvider>
+    )
   }
 
   return (
-    <>
+    <LanguageProvider>
       {currentView === 'hub' && <Hub onNavigate={handleNavigate} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'calendar' && <VacationCalendar onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
@@ -79,7 +84,7 @@ function App() {
       {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
-    </>
+    </LanguageProvider>
   )
 }
 

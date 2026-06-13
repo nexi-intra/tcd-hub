@@ -7,8 +7,10 @@ import { Badge } from '@/components/ui/badge'
 import { UserProfile } from '@/components/UserProfile'
 import { SickLeaveDialog } from '@/components/SickLeaveDialog'
 import { EmailNotifications } from '@/components/EmailNotifications'
+import { LanguageToggle } from '@/components/LanguageToggle'
 import { cn } from '@/lib/utils'
 import { hasManagerAccess } from '@/lib/userRoles'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface HubModule {
   id: string
@@ -27,6 +29,7 @@ interface HubProps {
 }
 
 export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
+  const { t } = useLanguage()
   const [isAdminOrManager, setIsAdminOrManager] = useState(false)
   const [showSickLeaveDialog, setShowSickLeaveDialog] = useState(false)
   const [showEmailNotifications, setShowEmailNotifications] = useState(false)
@@ -67,7 +70,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const modules: HubModule[] = [
     {
       id: 'shifts',
-      title: 'Vagtplan',
+      title: t.hub.modules.shifts,
       description: 'Administrer vagter og roller for teamet',
       icon: <ClipboardText size={48} weight="duotone" />,
       color: 'oklch(0.60 0.22 220)',
@@ -76,7 +79,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     },
     {
       id: 'calendar',
-      title: 'Feriekalender',
+      title: t.hub.modules.calendar,
       description: 'Planlæg og koordiner teamets ferieperioder',
       icon: <Calendar size={48} weight="duotone" />,
       color: 'oklch(0.65 0.26 340)',
@@ -85,7 +88,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     },
     {
       id: 'meals',
-      title: 'Madplan',
+      title: t.hub.modules.meals,
       description: 'Madplan for kantinen på Energivej',
       icon: <ForkKnife size={48} weight="duotone" />,
       color: 'oklch(0.70 0.18 90)',
@@ -94,7 +97,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     },
     {
       id: 'team',
-      title: 'Team Oversigt',
+      title: t.hub.modules.team,
       description: 'Kontaktoplysninger og teammedlemmer',
       icon: <Users size={48} weight="duotone" />,
       color: 'oklch(0.55 0.24 192)',
@@ -103,7 +106,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     },
     {
       id: 'email',
-      title: 'Email System',
+      title: t.hub.modules.email,
       description: 'Send og modtag beskeder internt',
       icon: <Envelope size={48} weight="duotone" />,
       color: 'oklch(0.68 0.14 340)',
@@ -112,7 +115,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     },
     {
       id: 'guides',
-      title: 'Guide Bibliotek',
+      title: t.hub.modules.guides,
       description: 'Søg og administrer afdelingens guides og procedurer',
       icon: <Books size={48} weight="duotone" />,
       color: 'oklch(0.50 0.27 262)',
@@ -148,7 +151,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     },
     {
       id: 'manager',
-      title: 'Manager Panel',
+      title: t.hub.modules.manager,
       description: isAdminOrManager ? 'Administrer rettigheder og håndter sygemeldinger' : 'Kun tilgængelig for managere og administratorer',
       icon: <ShieldCheck size={48} weight="duotone" />,
       color: 'oklch(0.58 0.25 25)',
@@ -160,6 +163,13 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="absolute top-6 right-6 z-20 flex items-center gap-4">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <LanguageToggle />
+        </motion.div>
         {isAdminOrManager && (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -173,7 +183,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold relative"
             >
               <Envelope size={24} weight="duotone" />
-              Email Notifikationer
+              {t.email.notifications}
               {unreadEmailCount > 0 && (
                 <Badge className="absolute -top-2 -right-2 bg-[oklch(0.58_0.25_25)] text-white px-2 py-0.5 text-xs">
                   {unreadEmailCount}
@@ -193,7 +203,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold"
           >
             <FirstAidKit size={24} weight="duotone" />
-            Sygemelding
+            {t.shifts.sickLeave}
           </Button>
         </motion.div>
         <motion.div
