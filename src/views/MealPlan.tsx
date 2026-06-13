@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, UserCircle, SignOut, CaretLeft, CaretRight, ForkKnife, FloppyDisk, Trash, CalendarBlank } from '@phosphor-icons/react'
+import { ArrowLeft, CaretLeft, CaretRight, ForkKnife, FloppyDisk, Trash, CalendarBlank } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
@@ -13,8 +12,6 @@ import { getWeekNumber, getStartOfWeek, formatDate } from '@/lib/dateUtils'
 
 interface MealPlanProps {
   onNavigateBack: () => void
-  onLogout: () => void
-  userEmail: string
 }
 
 interface WeekMenu {
@@ -38,7 +35,7 @@ const weekDays = [
   { key: 'friday', label: 'Fredag' }
 ] as const
 
-export function MealPlan({ onNavigateBack, onLogout, userEmail }: MealPlanProps) {
+export function MealPlan({ onNavigateBack }: MealPlanProps) {
   const [weekMenus, setWeekMenus] = useKV<WeekMenu[]>('meal-plan-weeks', [])
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0)
   const [currentMenu, setCurrentMenu] = useState<WeekMenu | null>(null)
@@ -181,20 +178,11 @@ export function MealPlan({ onNavigateBack, onLogout, userEmail }: MealPlanProps)
     setEditMode(false)
   }
 
-  const getInitials = (email: string) => {
-    const name = email.split('@')[0]
-    const parts = name.split('.')
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase()
-    }
-    return name.substring(0, 2).toUpperCase()
-  }
-
   return (
     <div className="min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl">
         <motion.header
-          className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+          className="mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-4"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -220,22 +208,6 @@ export function MealPlan({ onNavigateBack, onLogout, userEmail }: MealPlanProps)
                 Planlæg ugens menuer for mandag til fredag
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              onClick={onLogout}
-            >
-              <SignOut size={20} />
-            </Button>
-            <Avatar className="h-10 w-10 border-2 border-primary/20">
-              <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground font-bold">
-                {getInitials(userEmail)}
-              </AvatarFallback>
-            </Avatar>
           </div>
         </motion.header>
 

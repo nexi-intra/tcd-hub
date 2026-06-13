@@ -83,7 +83,7 @@ function App() {
       {currentView === 'manager' && <ManagerPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
-      {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
+      {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} />}
     </LanguageProvider>
   )
 }
