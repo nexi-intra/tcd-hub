@@ -294,6 +294,27 @@ export const translations = {
       filterByDate: "Filtrer efter dato",
       filterBySender: "Filtrer efter afsender"
     },
+    emailNotifications: {
+      title: "Email Notifikationer",
+      noUnread: "Ingen ulæste notifikationer",
+      unreadCount: "{count} ulæste notifikationer",
+      noNotifications: "Ingen email notifikationer endnu",
+      selectNotification: "Vælg en notifikation for at se detaljer",
+      to: "Til",
+      subject: "Emne",
+      message: "Besked",
+      copyEmail: "Kopier email",
+      copied: "Kopieret",
+      copyError: "Kunne ikke kopiere email",
+      deleted: "Email notifikation slettet",
+      new: "Ny",
+      types: {
+        sickLeave: "Sygemelding",
+        vacationRequest: "Ferie anmodning",
+        vacationApproved: "Ferie godkendt",
+        vacationRejected: "Ferie afvist"
+      }
+    },
     meals: {
       title: "Madplan for kantinen på Energivej",
       week: "Uge",
@@ -716,6 +737,27 @@ export const translations = {
       vacationRequests: "Vacation Requests",
       filterByDate: "Filter by date",
       filterBySender: "Filter by sender"
+    },
+    emailNotifications: {
+      title: "Email Notifications",
+      noUnread: "No unread notifications",
+      unreadCount: "{count} unread notifications",
+      noNotifications: "No email notifications yet",
+      selectNotification: "Select a notification to see details",
+      to: "To",
+      subject: "Subject",
+      message: "Message",
+      copyEmail: "Copy email",
+      copied: "Copied",
+      copyError: "Could not copy email",
+      deleted: "Email notification deleted",
+      new: "New",
+      types: {
+        sickLeave: "Sick Leave",
+        vacationRequest: "Vacation Request",
+        vacationApproved: "Vacation Approved",
+        vacationRejected: "Vacation Rejected"
+      }
     },
     meals: {
       title: "Meal Plan for Energivej Canteen",

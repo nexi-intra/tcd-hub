@@ -6,7 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Envelope, Copy, Check, Trash } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { da } from 'date-fns/locale'
+import { da, enUS } from 'date-fns/locale'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface EmailNotification {
   id: string
@@ -24,6 +25,7 @@ interface EmailNotificationsProps {
 }
 
 export function EmailNotifications({ open, onOpenChange }: EmailNotificationsProps) {
+  const { t, language } = useLanguage()
   const [notifications, setNotifications] = useState<EmailNotification[]>([])
   const [selectedNotification, setSelectedNotification] = useState<EmailNotification | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -57,10 +59,10 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
     try {
       await navigator.clipboard.writeText(emailText)
       setCopiedId(notification.id)
-      toast.success('Email kopieret til udklipsholder')
+      toast.success(t.emailNotifications.copied)
       setTimeout(() => setCopiedId(null), 2000)
     } catch (error) {
-      toast.error('Kunne ikke kopiere email')
+      toast.error(t.emailNotifications.copyError)
     }
   }
 
@@ -71,19 +73,19 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
     if (selectedNotification?.id === id) {
       setSelectedNotification(null)
     }
-    toast.success('Email notifikation slettet')
+    toast.success(t.emailNotifications.deleted)
   }
 
   const getTypeLabel = (type: EmailNotification['type']) => {
     switch (type) {
       case 'sick-leave':
-        return 'Sygemelding'
+        return t.emailNotifications.types.sickLeave
       case 'vacation-request':
-        return 'Ferie anmodning'
+        return t.emailNotifications.types.vacationRequest
       case 'vacation-approved':
-        return 'Ferie godkendt'
+        return t.emailNotifications.types.vacationApproved
       case 'vacation-rejected':
-        return 'Ferie afvist'
+        return t.emailNotifications.types.vacationRejected
     }
   }
 
@@ -102,6 +104,8 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
 
   const unreadCount = notifications.filter(n => !n.read).length
 
+  const dateLocale = language === 'da' ? da : enUS
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
@@ -111,9 +115,9 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
               <Envelope size={24} weight="duotone" className="text-white" />
             </div>
             <div>
-              <DialogTitle className="text-2xl">Email Notifikationer</DialogTitle>
+              <DialogTitle className="text-2xl">{t.emailNotifications.title}</DialogTitle>
               <p className="text-sm text-muted-foreground">
-                {unreadCount > 0 ? `${unreadCount} ulæste notifikationer` : 'Ingen ulæste notifikationer'}
+                {unreadCount > 0 ? t.emailNotifications.unreadCount.replace('{count}', unreadCount.toString()) : t.emailNotifications.noUnread}
               </p>
             </div>
           </div>
@@ -122,7 +126,7 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
         {notifications.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">
             <Envelope size={64} weight="duotone" className="mx-auto mb-4 opacity-20" />
-            <p>Ingen email notifikationer endnu</p>
+            <p>{t.emailNotifications.noNotifications}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
@@ -146,13 +150,13 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
                       </Badge>
                       {!notification.read && (
                         <Badge variant="secondary" className="bg-[oklch(0.50_0.27_262)] text-white">
-                          Ny
+                          {t.emailNotifications.new}
                         </Badge>
                       )}
                     </div>
                     <h4 className="font-semibold text-sm mb-1 line-clamp-1">{notification.subject}</h4>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(notification.timestamp), 'd. MMM yyyy HH:mm', { locale: da })}
+                      {format(new Date(notification.timestamp), 'd. MMM yyyy HH:mm', { locale: dateLocale })}
                     </p>
                   </div>
                 ))}
@@ -169,20 +173,20 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
                   </div>
                   
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Til</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t.emailNotifications.to}</p>
                     <p className="font-semibold">{selectedNotification.to}</p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Emne</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t.emailNotifications.subject}</p>
                     <p className="font-semibold">{selectedNotification.subject}</p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Besked</p>
-                    <ScrollArea className="h-[250px] w-full rounded-md border p-4 bg-muted/30">
-                      <pre className="whitespace-pre-wrap text-sm font-mono">{selectedNotification.body}</pre>
-                    </ScrollArea>
+                    <p className="text-sm text-muted-foreground mb-1">{t.emailNotifications.message}</p>
+                    <div className="h-[250px] w-full rounded-md border p-4 bg-muted/30 overflow-y-auto">
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">{selectedNotification.body}</div>
+                    </div>
                   </div>
 
                   <div className="flex gap-2">
@@ -194,12 +198,12 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
                       {copiedId === selectedNotification.id ? (
                         <>
                           <Check size={18} />
-                          Kopieret
+                          {t.emailNotifications.copied}
                         </>
                       ) : (
                         <>
                           <Copy size={18} />
-                          Kopier email
+                          {t.emailNotifications.copyEmail}
                         </>
                       )}
                     </Button>
@@ -216,7 +220,7 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
                 <div className="flex items-center justify-center h-full text-muted-foreground">
                   <div className="text-center">
                     <Envelope size={64} weight="duotone" className="mx-auto mb-4 opacity-20" />
-                    <p>Vælg en notifikation for at se detaljer</p>
+                    <p>{t.emailNotifications.selectNotification}</p>
                   </div>
                 </div>
               )}
