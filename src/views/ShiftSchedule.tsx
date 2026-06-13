@@ -96,6 +96,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const [showRoleDialog, setShowRoleDialog] = useState(false)
   const [showAssignmentDialog, setShowAssignmentDialog] = useState(false)
   const [showWeekAssignmentDialog, setShowWeekAssignmentDialog] = useState(false)
+  const [showWeekClearDialog, setShowWeekClearDialog] = useState(false)
   const [showCommentDialog, setShowCommentDialog] = useState(false)
   const [editingRole, setEditingRole] = useState<ShiftRole | null>(null)
   const [editingComment, setEditingComment] = useState<{ employeeId: string; date: string } | null>(null)
@@ -126,6 +127,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   const [weekEmployee, setWeekEmployee] = useState('')
   const [weekRole, setWeekRole] = useState('')
   const [weekNumber, setWeekNumber] = useState<number | null>(null)
+  
+  const [clearWeekNumber, setClearWeekNumber] = useState<number | null>(null)
   
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
@@ -427,6 +430,33 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
       toast.success(`${addedCount} vagt${addedCount > 1 ? 'er' : ''} tildelt${skippedCount > 0 ? ` (${skippedCount} sprunget over)` : ''}`)
     } else {
       toast.error('Ingen vagter kunne tildeles')
+    }
+  }
+
+  const handleClearWeek = () => {
+    if (clearWeekNumber === null) {
+      toast.error('Vælg en uge')
+      return
+    }
+
+    const weekDates = getWeekDates(clearWeekNumber, selectedYear)
+    
+    setAssignments((current) => {
+      const filteredAssignments = (current || []).filter(assignment => {
+        return !weekDates.includes(assignment.date)
+      })
+      return filteredAssignments
+    })
+
+    const removedCount = (assignments || []).filter(assignment => weekDates.includes(assignment.date)).length
+
+    setClearWeekNumber(null)
+    setShowWeekClearDialog(false)
+
+    if (removedCount > 0) {
+      toast.success(`${removedCount} opgave${removedCount > 1 ? 'r' : ''} fjernet fra uge ${clearWeekNumber}`)
+    } else {
+      toast.info('Ingen opgaver fundet i den valgte uge')
     }
   }
 
@@ -914,6 +944,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
                   >
                     <Plus size={18} />
                     Tilføj Opgaver til Hel Uge
+                  </Button>
+                  <Button
+                    onClick={() => setShowWeekClearDialog(true)}
+                    variant="destructive"
+                    className="gap-2"
+                  >
+                    <Trash size={18} />
+                    Ryd Hel Uge
                   </Button>
                   <Button
                     onClick={() => {
@@ -1625,6 +1663,57 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             </div>
             <Button onClick={handleAssignWeek} className="w-full">
               Tildel Hel Uge
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showWeekClearDialog} onOpenChange={(open) => {
+        setShowWeekClearDialog(open)
+        if (!open) {
+          setClearWeekNumber(null)
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash size={24} weight="duotone" className="text-destructive" />
+              Ryd Opgaver for Hel Uge
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <Label htmlFor="clear-week-number">Uge Nummer</Label>
+              <Select 
+                value={clearWeekNumber?.toString() || ''} 
+                onValueChange={(value) => setClearWeekNumber(parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Vælg uge" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(() => {
+                    const currentWeek = getWeekNumber(new Date())
+                    const weeks = []
+                    for (let i = 1; i <= 52; i++) {
+                      weeks.push(
+                        <SelectItem key={i} value={i.toString()}>
+                          Uge {i}
+                        </SelectItem>
+                      )
+                    }
+                    return weeks
+                  })()}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+              <p className="text-xs text-destructive font-medium">
+                ⚠️ Advarsel: Alle opgaver for alle medarbejdere i den valgte uge vil blive fjernet. Denne handling kan ikke fortrydes.
+              </p>
+            </div>
+            <Button onClick={handleClearWeek} variant="destructive" className="w-full gap-2">
+              <Trash size={18} />
+              Ryd Hele Ugen
             </Button>
           </div>
         </DialogContent>
