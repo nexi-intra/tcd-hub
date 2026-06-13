@@ -151,13 +151,13 @@ Return ONLY a JSON object with this exact structure:
       await window.spark.kv.set('emails', [...emails, newEmail])
 
       const notification = {
-        id: Date.now().toString(),
-        type: 'email' as const,
-        message: `Din ferieansøgning blev godkendt!`,
-        timestamp: Date.now(),
-        read: false,
-        from: userEmail,
-        emailId: newEmail.id
+        id: Date.now().toString() + '-notif',
+        to: vacation.userEmail,
+        subject: emailContent.subject,
+        body: emailContent.body,
+        timestamp: new Date().toISOString(),
+        type: 'vacation-approved' as const,
+        read: false
       }
 
       const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
@@ -242,13 +242,13 @@ Return ONLY a JSON object with this exact structure:
       await window.spark.kv.set('emails', [...emails, newEmail])
 
       const notification = {
-        id: Date.now().toString(),
-        type: 'email' as const,
-        message: `Din ferieansøgning blev afvist`,
-        timestamp: Date.now(),
-        read: false,
-        from: userEmail,
-        emailId: newEmail.id
+        id: Date.now().toString() + '-notif-reject',
+        to: vacation.userEmail,
+        subject: emailContent.subject,
+        body: emailContent.body,
+        timestamp: new Date().toISOString(),
+        type: 'vacation-rejected' as const,
+        read: false
       }
 
       const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
