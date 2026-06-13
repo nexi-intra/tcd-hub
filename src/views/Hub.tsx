@@ -230,13 +230,14 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           setShowEmailNotifications(open)
           if (!open) {
             const loadUnreadCount = async () => {
-              const emailNotifications = (await window.spark.kv.get<Array<{ read: boolean }>>('email-notifications')) || []
-              const unread = emailNotifications.filter(n => !n.read).length
-              setUnreadEmailCount(unread)
+              const emails = (await window.spark.kv.get<Array<{ to: string; read: boolean }>>('emails')) || []
+              const unreadInbox = emails.filter(e => e.to === userEmail && !e.read).length
+              setUnreadInboxCount(unreadInbox)
             }
             loadUnreadCount()
           }
         }}
+        userEmail={userEmail}
       />
       <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 max-w-7xl relative z-10">
         <motion.header 

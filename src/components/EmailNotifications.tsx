@@ -3,62 +3,81 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import { Envelope, Copy, Check, Trash } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-interface EmailNotification {
+interface Email {
   id: string
+  from: string
   to: string
   subject: string
-  body: string
-  timestamp: string
-  type: 'sick-leave' | 'vacation-request' | 'vacation-approved' | 'vacation-rejected'
+  message: string
+  timestamp: number
   read: boolean
 }
 
 interface EmailNotificationsProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  userEmail: string
 }
 
-export function EmailNotifications({ open, onOpenChange }: EmailNotificationsProps) {
+export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotificationsProps) {
   const { t, language } = useLanguage()
-  const [notifications, setNotifications] = useState<EmailNotification[]>([])
-  const [selectedNotification, setSelectedNotification] = useState<EmailNotification | null>(null)
+  const [emails, setEmails] = useState<Email[]>([])
+  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [users, setUsers] = useState<Record<string, { fullName: string; email: string }>>({})
 
   useEffect(() => {
     if (open) {
-      loadNotifications()
+      loadEmails()
+      loadUsers()
     }
   }, [open])
 
-  const loadNotifications = async () => {
-    const emailNotifications = await window.spark.kv.get<EmailNotification[]>('email-notifications') || []
-    setNotifications(emailNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()))
+  const loadUsers = async () => {
+    const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string }>>('users') || {}
+    setUsers(usersData)
   }
 
-  const handleSelectNotification = async (notification: EmailNotification) => {
-    setSelectedNotification(notification)
+  const loadEmails = async () => {
+    const allEmails = await window.spark.kv.get<Email[]>('emails') || []
+    const userEmails = allEmails
+      .filter(email => email.to === userEmail)
+      .sort((a, b) => b.timestamp - a.timestamp)
+    setEmails(userEmails)
+  }
+
+  const handleSelectEmail = async (email: Email) => {
+    setSelectedEmail(email)
     
-    if (!notification.read) {
-      const updatedNotifications = notifications.map(n => 
-        n.id === notification.id ? { ...n, read: true } : n
+    if (!email.read) {
+      const allEmails = await window.spark.kv.get<Email[]>('emails') || []
+      const updatedEmails = allEmails.map(e => 
+        e.id === email.id ? { ...e, read: true } : e
       )
-      setNotifications(updatedNotifications)
-      await window.spark.kv.set('email-notifications', updatedNotifications)
+      await window.spark.kv.set('emails', updatedEmails)
+      
+      setEmails(prevEmails =>
+        prevEmails.map(e => 
+          e.id === email.id ? { ...e, read: true } : e
+        )
+      )
     }
   }
 
-  const handleCopyEmail = async (notification: EmailNotification) => {
-    const emailText = `To: ${notification.to}\nSubject: ${notification.subject}\n\n${notification.body}`
+  const handleCopyEmail = async (email: Email) => {
+    const senderName = users[email.from]?.fullName || email.from
+    const emailText = `Fra: ${senderName} (${email.from})\nEmne: ${email.subject}\n\n${email.message}`
     
     try {
       await navigator.clipboard.writeText(emailText)
-      setCopiedId(notification.id)
+      setCopiedId(email.id)
       toast.success(t.emailNotifications.copied)
       setTimeout(() => setCopiedId(null), 2000)
     } catch (error) {
@@ -67,42 +86,39 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
   }
 
   const handleDelete = async (id: string) => {
-    const updatedNotifications = notifications.filter(n => n.id !== id)
-    setNotifications(updatedNotifications)
-    await window.spark.kv.set('email-notifications', updatedNotifications)
-    if (selectedNotification?.id === id) {
-      setSelectedNotification(null)
+    const allEmails = await window.spark.kv.get<Email[]>('emails') || []
+    const updatedEmails = allEmails.filter(e => e.id !== id)
+    await window.spark.kv.set('emails', updatedEmails)
+    
+    setEmails(prevEmails => prevEmails.filter(e => e.id !== id))
+    
+    if (selectedEmail?.id === id) {
+      setSelectedEmail(null)
     }
     toast.success(t.emailNotifications.deleted)
   }
 
-  const getTypeLabel = (type: EmailNotification['type']) => {
-    switch (type) {
-      case 'sick-leave':
-        return t.emailNotifications.types.sickLeave
-      case 'vacation-request':
-        return t.emailNotifications.types.vacationRequest
-      case 'vacation-approved':
-        return t.emailNotifications.types.vacationApproved
-      case 'vacation-rejected':
-        return t.emailNotifications.types.vacationRejected
-    }
+  const getSenderName = (email: string) => {
+    return users[email]?.fullName || email.split('@')[0]
   }
 
-  const getTypeBadgeColor = (type: EmailNotification['type']) => {
-    switch (type) {
-      case 'sick-leave':
-        return 'bg-[oklch(0.58_0.25_25)] text-white'
-      case 'vacation-request':
-        return 'bg-[oklch(0.50_0.27_262)] text-white'
-      case 'vacation-approved':
-        return 'bg-[oklch(0.55_0.24_192)] text-white'
-      case 'vacation-rejected':
-        return 'bg-[oklch(0.65_0.26_340)] text-white'
-    }
+  const formatTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return language === 'da' ? 'Lige nu' : 'Just now'
+    if (diffMins < 60) return language === 'da' ? `${diffMins} min siden` : `${diffMins} min ago`
+    if (diffHours < 24) return language === 'da' ? `${diffHours} time${diffHours > 1 ? 'r' : ''} siden` : `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    if (diffDays < 7) return language === 'da' ? `${diffDays} dag${diffDays > 1 ? 'e' : ''} siden` : `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+    
+    return format(date, 'd. MMM yyyy', { locale: language === 'da' ? da : enUS })
   }
 
-  const unreadCount = notifications.filter(n => !n.read).length
+  const unreadCount = emails.filter(e => !e.read).length
 
   const dateLocale = language === 'da' ? da : enUS
 
@@ -123,7 +139,7 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
           </div>
         </DialogHeader>
 
-        {notifications.length === 0 ? (
+        {emails.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">
             <Envelope size={64} weight="duotone" className="mx-auto mb-4 opacity-20" />
             <p>{t.emailNotifications.noNotifications}</p>
@@ -132,31 +148,33 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
           <div className="grid grid-cols-2 gap-4">
             <ScrollArea className="h-[500px] pr-4">
               <div className="space-y-2">
-                {notifications.map((notification) => (
+                {emails.map((email) => (
                   <div
-                    key={notification.id}
+                    key={email.id}
                     className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                      selectedNotification?.id === notification.id
+                      selectedEmail?.id === email.id
                         ? 'bg-primary/5 border-primary'
-                        : notification.read
+                        : email.read
                         ? 'bg-muted/30 border-border'
                         : 'bg-card border-border'
                     }`}
-                    onClick={() => handleSelectNotification(notification)}
+                    onClick={() => handleSelectEmail(email)}
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <Badge className={getTypeBadgeColor(notification.type)}>
-                        {getTypeLabel(notification.type)}
-                      </Badge>
-                      {!notification.read && (
-                        <Badge variant="secondary" className="bg-[oklch(0.50_0.27_262)] text-white">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{getSenderName(email.from)}</p>
+                        <p className="text-xs text-muted-foreground truncate">{email.from}</p>
+                      </div>
+                      {!email.read && (
+                        <Badge variant="secondary" className="bg-[oklch(0.50_0.27_262)] text-white shrink-0">
                           {t.emailNotifications.new}
                         </Badge>
                       )}
                     </div>
-                    <h4 className="font-semibold text-sm mb-1 line-clamp-1">{notification.subject}</h4>
+                    <h4 className="font-semibold text-sm mb-1 line-clamp-1">{email.subject}</h4>
+                    <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{email.message}</p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(notification.timestamp), 'd. MMM yyyy HH:mm', { locale: dateLocale })}
+                      {formatTimestamp(email.timestamp)}
                     </p>
                   </div>
                 ))}
@@ -164,38 +182,42 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
             </ScrollArea>
 
             <div className="border rounded-lg p-6 bg-card">
-              {selectedNotification ? (
+              {selectedEmail ? (
                 <div className="space-y-4">
                   <div>
-                    <Badge className={getTypeBadgeColor(selectedNotification.type)}>
-                      {getTypeLabel(selectedNotification.type)}
-                    </Badge>
+                    <p className="text-sm text-muted-foreground mb-1">{t.emailNotifications.from || 'Fra'}</p>
+                    <p className="font-semibold">{getSenderName(selectedEmail.from)}</p>
+                    <p className="text-xs text-muted-foreground">{selectedEmail.from}</p>
                   </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t.emailNotifications.to}</p>
-                    <p className="font-semibold">{selectedNotification.to}</p>
-                  </div>
+
+                  <Separator />
 
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">{t.emailNotifications.subject}</p>
-                    <p className="font-semibold">{selectedNotification.subject}</p>
+                    <p className="font-semibold">{selectedEmail.subject}</p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t.emailNotifications.message}</p>
-                    <div className="h-[250px] w-full rounded-md border p-4 bg-muted/30 overflow-y-auto">
-                      <div className="whitespace-pre-wrap text-sm leading-relaxed">{selectedNotification.body}</div>
-                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{t.emailNotifications.sent || 'Sendt'}</p>
+                    <p className="text-sm">{format(new Date(selectedEmail.timestamp), 'd. MMMM yyyy \'kl.\' HH:mm', { locale: dateLocale })}</p>
                   </div>
 
-                  <div className="flex gap-2">
+                  <Separator />
+
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">{t.emailNotifications.message}</p>
+                    <ScrollArea className="h-[200px] w-full rounded-md border p-4 bg-muted/30">
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">{selectedEmail.message}</div>
+                    </ScrollArea>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
                     <Button
-                      onClick={() => handleCopyEmail(selectedNotification)}
+                      onClick={() => handleCopyEmail(selectedEmail)}
                       className="flex-1 gap-2"
-                      variant={copiedId === selectedNotification.id ? "secondary" : "default"}
+                      variant={copiedId === selectedEmail.id ? "secondary" : "default"}
                     >
-                      {copiedId === selectedNotification.id ? (
+                      {copiedId === selectedEmail.id ? (
                         <>
                           <Check size={18} />
                           {t.emailNotifications.copied}
@@ -208,7 +230,7 @@ export function EmailNotifications({ open, onOpenChange }: EmailNotificationsPro
                       )}
                     </Button>
                     <Button
-                      onClick={() => handleDelete(selectedNotification.id)}
+                      onClick={() => handleDelete(selectedEmail.id)}
                       variant="destructive"
                       size="icon"
                     >
