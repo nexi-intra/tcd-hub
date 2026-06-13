@@ -71,7 +71,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     {
       id: 'shifts',
       title: t.hub.modules.shifts,
-      description: 'Administrer vagter og roller for teamet',
+      description: t.hub.descriptions.shifts,
       icon: <ClipboardText size={48} weight="duotone" />,
       color: 'oklch(0.60 0.22 220)',
       gradient: 'from-[oklch(0.60_0.22_220)] via-[oklch(0.65_0.26_340)] to-[oklch(0.60_0.22_220)]',
@@ -80,7 +80,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     {
       id: 'calendar',
       title: t.hub.modules.calendar,
-      description: 'Planlæg og koordiner teamets ferieperioder',
+      description: t.hub.descriptions.calendar,
       icon: <Calendar size={48} weight="duotone" />,
       color: 'oklch(0.65 0.26 340)',
       gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
@@ -89,7 +89,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     {
       id: 'meals',
       title: t.hub.modules.meals,
-      description: 'Madplan for kantinen på Energivej',
+      description: t.hub.descriptions.meals,
       icon: <ForkKnife size={48} weight="duotone" />,
       color: 'oklch(0.70 0.18 90)',
       gradient: 'from-[oklch(0.70_0.18_90)] via-[oklch(0.75_0.15_60)] to-[oklch(0.70_0.18_90)]',
@@ -98,7 +98,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     {
       id: 'team',
       title: t.hub.modules.team,
-      description: 'Kontaktoplysninger og teammedlemmer',
+      description: t.hub.descriptions.team,
       icon: <Users size={48} weight="duotone" />,
       color: 'oklch(0.55 0.24 192)',
       gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
@@ -107,7 +107,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     {
       id: 'email',
       title: t.hub.modules.email,
-      description: 'Send og modtag beskeder internt',
+      description: t.hub.descriptions.email,
       icon: <Envelope size={48} weight="duotone" />,
       color: 'oklch(0.68 0.14 340)',
       gradient: 'from-[oklch(0.68_0.14_340)] via-[oklch(0.75_0.12_180)] to-[oklch(0.68_0.14_340)]',
@@ -116,7 +116,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     {
       id: 'guides',
       title: t.hub.modules.guides,
-      description: 'Søg og administrer afdelingens guides og procedurer',
+      description: t.hub.descriptions.guides,
       icon: <Books size={48} weight="duotone" />,
       color: 'oklch(0.50 0.27 262)',
       gradient: 'from-[oklch(0.50_0.27_262)] via-[oklch(0.55_0.24_192)] to-[oklch(0.50_0.27_262)]',
@@ -124,8 +124,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     },
     {
       id: 'documents',
-      title: 'Dokumenter',
-      description: 'Fælles dokumenter og filer',
+      title: t.hub.modules.documents,
+      description: t.hub.descriptions.documents,
       icon: <FileText size={48} weight="duotone" />,
       color: 'oklch(0.62 0.20 150)',
       gradient: 'from-[oklch(0.62_0.20_150)] via-[oklch(0.55_0.24_192)] to-[oklch(0.62_0.20_150)]',
@@ -133,8 +133,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     },
     {
       id: 'projects',
-      title: 'Projekter',
-      description: 'Projektadministration og opgaver',
+      title: t.hub.modules.projects,
+      description: t.hub.descriptions.projects,
       icon: <Folder size={48} weight="duotone" />,
       color: 'oklch(0.75 0.15 60)',
       gradient: 'from-[oklch(0.75_0.15_60)] via-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]',
@@ -142,8 +142,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     },
     {
       id: 'chat',
-      title: 'Team Chat',
-      description: 'Intern kommunikation og beskeder',
+      title: t.hub.modules.chat,
+      description: t.hub.descriptions.chat,
       icon: <ChatCircle size={48} weight="duotone" />,
       color: 'oklch(0.58 0.25 25)',
       gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
@@ -152,7 +152,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     {
       id: 'manager',
       title: t.hub.modules.manager,
-      description: isAdminOrManager ? 'Administrer rettigheder og håndter sygemeldinger' : 'Kun tilgængelig for managere og administratorer',
+      description: isAdminOrManager ? t.hub.descriptions.manager : t.hub.descriptions.managerLocked,
       icon: <ShieldCheck size={48} weight="duotone" />,
       color: 'oklch(0.58 0.25 25)',
       gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
@@ -301,7 +301,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               >
                 {module.id === 'email' && unreadInboxCount > 0 && (
                   <Badge className="absolute top-4 right-4 z-10 bg-[oklch(0.58_0.25_25)] text-white px-3 py-1">
-                    {unreadInboxCount} ny{unreadInboxCount > 1 ? 'e' : ''}
+                    {unreadInboxCount} {unreadInboxCount > 1 ? t.hub.newMessagesPlural : t.hub.newMessages}
                   </Badge>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -333,7 +333,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold text-white transition-all duration-300 opacity-0 group-hover:opacity-100",
                     `bg-gradient-to-r ${module.gradient}`
                   )}>
-                    Åbn modul →
+                    {t.hub.openModule} →
                   </div>
                 </div>
               </Card>

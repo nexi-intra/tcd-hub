@@ -17,10 +17,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
 import { format } from 'date-fns'
-import { da } from 'date-fns/locale'
+import { da, enUS } from 'date-fns/locale'
 import { Textarea } from '@/components/ui/textarea'
 import type { TeamEmployee } from '@/views/TeamOverview'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface ShiftRole {
   id: string

@@ -9,9 +9,28 @@ export const translations = {
         team: "Team Oversigt",
         manager: "Manager Panel",
         email: "Email System",
-        meals: "Madplan"
+        meals: "Madplan",
+        documents: "Dokumenter",
+        projects: "Projekter",
+        chat: "Team Chat"
       },
-      logout: "Log ud"
+      descriptions: {
+        shifts: "Administrer vagter og roller for teamet",
+        calendar: "Planlæg og koordiner teamets ferieperioder",
+        meals: "Madplan for kantinen på Energivej",
+        team: "Kontaktoplysninger og teammedlemmer",
+        email: "Send og modtag beskeder internt",
+        guides: "Søg og administrer afdelingens guides og procedurer",
+        documents: "Fælles dokumenter og filer",
+        projects: "Projektadministration og opgaver",
+        chat: "Intern kommunikation og beskeder",
+        manager: "Administrer rettigheder og håndter sygemeldinger",
+        managerLocked: "Kun tilgængelig for managere og administratorer"
+      },
+      logout: "Log ud",
+      openModule: "Åbn modul",
+      newMessages: "ny",
+      newMessagesPlural: "nye"
     },
     shifts: {
       title: "Vagtplan",
@@ -330,9 +349,28 @@ export const translations = {
         team: "Team Overview",
         manager: "Manager Panel",
         email: "Email System",
-        meals: "Meal Plan"
+        meals: "Meal Plan",
+        documents: "Documents",
+        projects: "Projects",
+        chat: "Team Chat"
       },
-      logout: "Logout"
+      descriptions: {
+        shifts: "Manage shifts and roles for the team",
+        calendar: "Plan and coordinate team vacation periods",
+        meals: "Meal plan for Energivej canteen",
+        team: "Contact information and team members",
+        email: "Send and receive messages internally",
+        guides: "Search and manage department guides and procedures",
+        documents: "Shared documents and files",
+        projects: "Project management and tasks",
+        chat: "Internal communication and messages",
+        manager: "Manage permissions and handle sick leave reports",
+        managerLocked: "Only available for managers and administrators"
+      },
+      logout: "Logout",
+      openModule: "Open module",
+      newMessages: "new",
+      newMessagesPlural: "new"
     },
     shifts: {
       title: "Shift Schedule",
