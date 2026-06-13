@@ -180,9 +180,9 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               onClick={() => setShowEmailNotifications(true)}
               size="lg"
               variant="outline"
-              className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold relative"
+              className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold relative px-4"
             >
-              <Envelope size={24} weight="duotone" />
+              <Envelope size={20} weight="duotone" />
               {t.email.notifications}
               {unreadEmailCount > 0 && (
                 <Badge className="absolute -top-2 -right-2 bg-[oklch(0.58_0.25_25)] text-white px-2 py-0.5 text-xs">
