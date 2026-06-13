@@ -870,13 +870,13 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
             onClick={onNavigateBack}
             variant="outline"
             size="lg"
-            className="mb-4 gap-2"
+            className="mb-8 gap-2"
           >
             <ArrowLeft size={20} />
             Tilbage til Hub
           </Button>
 
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-4xl sm:text-5xl font-bold mb-2 bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
                 Vagtplan
