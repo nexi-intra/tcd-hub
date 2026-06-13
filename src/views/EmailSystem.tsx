@@ -103,6 +103,17 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
     loadUsers()
   }, [userEmail])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onNavigateBack()
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onNavigateBack])
+
   const getInitials = (email: string) => {
     const name = email.split('@')[0]
     const parts = name.split('.')

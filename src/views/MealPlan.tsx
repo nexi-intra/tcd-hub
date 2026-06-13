@@ -63,6 +63,17 @@ export function MealPlan({ onNavigateBack, onLogout, userEmail }: MealPlanProps)
     loadCurrentWeek()
   }, [currentWeekOffset, weekMenus])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onNavigateBack()
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onNavigateBack])
+
   const loadCurrentWeek = () => {
     const existing = weekMenus?.find(
       (w) => w.weekNumber === currentWeek && w.year === currentYear
