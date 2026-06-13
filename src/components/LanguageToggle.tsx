@@ -1,23 +1,41 @@
-import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { Globe } from '@phosphor-icons/react'
+import { Globe, Check } from '@phosphor-icons/react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
 
 export function LanguageToggle() {
   const { language, setLanguage } = useLanguage()
 
-  const toggleLanguage = () => {
-    setLanguage(language === 'da' ? 'en' : 'da')
+  const languageLabels = {
+    da: 'Dansk',
+    en: 'English',
   }
 
   return (
-    <Button
-      onClick={toggleLanguage}
-      variant="outline"
-      size="sm"
-      className="gap-2"
-    >
-      <Globe />
-      {language === 'da' ? 'English' : 'Dansk'}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2">
+          <Globe />
+          {languageLabels[language]}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setLanguage('da')} className="gap-2 cursor-pointer">
+          {language === 'da' && <Check weight="bold" />}
+          {language !== 'da' && <span className="w-4" />}
+          Dansk
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setLanguage('en')} className="gap-2 cursor-pointer">
+          {language === 'en' && <Check weight="bold" />}
+          {language !== 'en' && <span className="w-4" />}
+          English
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
