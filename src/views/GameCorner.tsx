@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, useRef } from 'react'
-import { X, Trophy, Target, Lightning, Crown, Medal, Star } from '@phosphor-icons/react'
+import { X, Trophy, Target, Lightning, Crown, Medal, Star, Fire, Sparkle, ShieldCheck, Flame, Rocket, Crosshair } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useKV } from '@github/spark/hooks'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { toast } from 'sonner'
 
 interface GameCornerProps {
   onNavigateBack: () => void
@@ -22,6 +24,44 @@ interface HighScore {
   timestamp: number
   playerEmail: string
   difficulty: Difficulty
+}
+
+interface Achievement {
+  id: string
+  name: { da: string; en: string }
+  description: { da: string; en: string }
+  condition: (stats: PlayerStats) => boolean
+  border: AvatarBorder
+  icon: typeof Trophy
+}
+
+interface AvatarBorder {
+  id: string
+  name: { da: string; en: string }
+  gradient: string
+  glow?: string
+  pattern?: 'solid' | 'dashed' | 'dotted' | 'double'
+  animation?: 'pulse' | 'spin' | 'rainbow' | 'glow'
+  thickness?: number
+}
+
+interface PlayerStats {
+  totalGames: number
+  totalScore: number
+  highestScore: number
+  highestCombo: number
+  averageScore: number
+  gamesWonEasy: number
+  gamesWonMedium: number
+  gamesWonHard: number
+}
+
+interface PlayerAchievements {
+  [email: string]: {
+    unlockedAchievements: string[]
+    selectedBorder: string
+    stats: PlayerStats
+  }
 }
 
 interface Target {
@@ -72,6 +112,121 @@ const DIFFICULTY_SETTINGS: Record<Difficulty, DifficultySettings> = {
   },
 }
 
+const AVATAR_BORDERS: AvatarBorder[] = [
+  {
+    id: 'default',
+    name: { da: 'Standard', en: 'Default' },
+    gradient: 'linear-gradient(135deg, oklch(0.70 0.08 250), oklch(0.60 0.08 250))',
+    thickness: 2,
+  },
+  {
+    id: 'bronze',
+    name: { da: 'Bronze Begynder', en: 'Bronze Beginner' },
+    gradient: 'linear-gradient(135deg, oklch(0.60 0.15 50), oklch(0.50 0.12 40))',
+    glow: 'oklch(0.60 0.15 50 / 0.5)',
+    thickness: 3,
+  },
+  {
+    id: 'silver',
+    name: { da: 'Sølv Skytte', en: 'Silver Shooter' },
+    gradient: 'linear-gradient(135deg, oklch(0.85 0.02 250), oklch(0.70 0.03 250))',
+    glow: 'oklch(0.85 0.02 250 / 0.5)',
+    thickness: 3,
+  },
+  {
+    id: 'gold',
+    name: { da: 'Guld Mester', en: 'Gold Master' },
+    gradient: 'linear-gradient(135deg, oklch(0.85 0.18 90), oklch(0.75 0.20 70))',
+    glow: 'oklch(0.85 0.18 90 / 0.6)',
+    animation: 'pulse',
+    thickness: 4,
+  },
+  {
+    id: 'combo-king',
+    name: { da: 'Combo Konge', en: 'Combo King' },
+    gradient: 'linear-gradient(135deg, oklch(0.70 0.26 340), oklch(0.60 0.20 320))',
+    glow: 'oklch(0.70 0.26 340 / 0.6)',
+    animation: 'pulse',
+    thickness: 4,
+  },
+  {
+    id: 'speed-demon',
+    name: { da: 'Hastighedsdæmon', en: 'Speed Demon' },
+    gradient: 'linear-gradient(90deg, oklch(0.65 0.26 340), oklch(0.70 0.18 20), oklch(0.75 0.20 60))',
+    glow: 'oklch(0.70 0.18 20 / 0.6)',
+    animation: 'rainbow',
+    thickness: 4,
+  },
+  {
+    id: 'legendary',
+    name: { da: 'Legendarisk', en: 'Legendary' },
+    gradient: 'linear-gradient(135deg, oklch(0.75 0.28 320), oklch(0.70 0.25 280), oklch(0.75 0.22 240))',
+    glow: 'oklch(0.75 0.28 320 / 0.7)',
+    animation: 'rainbow',
+    pattern: 'double',
+    thickness: 5,
+  },
+]
+
+const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: 'first-game',
+    name: { da: 'Første Forsøg', en: 'First Try' },
+    description: { da: 'Spil dit første spil', en: 'Play your first game' },
+    condition: (stats) => stats.totalGames >= 1,
+    border: AVATAR_BORDERS[1],
+    icon: Target,
+  },
+  {
+    id: 'score-100',
+    name: { da: 'Hundrede Klub', en: 'Century Club' },
+    description: { da: 'Få 100+ point i ét spil', en: 'Score 100+ points in a single game' },
+    condition: (stats) => stats.highestScore >= 100,
+    border: AVATAR_BORDERS[2],
+    icon: Trophy,
+  },
+  {
+    id: 'score-300',
+    name: { da: 'Høj Skyder', en: 'High Scorer' },
+    description: { da: 'Få 300+ point i ét spil', en: 'Score 300+ points in a single game' },
+    condition: (stats) => stats.highestScore >= 300,
+    border: AVATAR_BORDERS[3],
+    icon: Star,
+  },
+  {
+    id: 'combo-master',
+    name: { da: 'Combo Mester', en: 'Combo Master' },
+    description: { da: 'Få en 15x combo', en: 'Achieve a 15x combo' },
+    condition: (stats) => stats.highestCombo >= 15,
+    border: AVATAR_BORDERS[4],
+    icon: Lightning,
+  },
+  {
+    id: 'hard-mode',
+    name: { da: 'Svær Modus Mester', en: 'Hard Mode Master' },
+    description: { da: 'Vind 5 spil på svær', en: 'Win 5 games on hard difficulty' },
+    condition: (stats) => stats.gamesWonHard >= 5,
+    border: AVATAR_BORDERS[5],
+    icon: Fire,
+  },
+  {
+    id: 'dedication',
+    name: { da: 'Dedikation', en: 'Dedication' },
+    description: { da: 'Spil 50 spil', en: 'Play 50 games' },
+    condition: (stats) => stats.totalGames >= 50,
+    border: AVATAR_BORDERS[5],
+    icon: ShieldCheck,
+  },
+  {
+    id: 'legendary-player',
+    name: { da: 'Legendarisk Spiller', en: 'Legendary Player' },
+    description: { da: 'Få 500+ point i ét spil', en: 'Score 500+ points in a single game' },
+    condition: (stats) => stats.highestScore >= 500,
+    border: AVATAR_BORDERS[6],
+    icon: Crown,
+  },
+]
+
 const getAvatarUrl = (email: string) => {
   const hash = email.toLowerCase().split('').reduce((acc, char) => {
     return char.charCodeAt(0) + ((acc << 5) - acc)
@@ -88,6 +243,29 @@ const getInitials = (name: string) => {
   return name.slice(0, 2).toUpperCase()
 }
 
+const getPlayerBorder = (email: string, playerAchievements: PlayerAchievements | undefined): AvatarBorder => {
+  const playerData = playerAchievements?.[email]
+  if (!playerData) return AVATAR_BORDERS[0]
+  
+  const selectedBorderId = playerData.selectedBorder || 'default'
+  return AVATAR_BORDERS.find(b => b.id === selectedBorderId) || AVATAR_BORDERS[0]
+}
+
+const getAnimationStyle = (animation?: string) => {
+  switch (animation) {
+    case 'pulse':
+      return 'animate-pulse'
+    case 'spin':
+      return 'animate-spin'
+    case 'rainbow':
+      return 'animate-rainbow'
+    case 'glow':
+      return 'animate-glow'
+    default:
+      return ''
+  }
+}
+
 export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const { t, language } = useLanguage()
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameover'>('menu')
@@ -99,6 +277,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const [combo, setCombo] = useState(0)
   const [highestCombo, setHighestCombo] = useState(0)
   const [highScores, setHighScores] = useKV<HighScore[]>('game-corner-highscores', [])
+  const [playerAchievements, setPlayerAchievements] = useKV<PlayerAchievements>('game-corner-achievements', {})
+  const [newlyUnlockedAchievements, setNewlyUnlockedAchievements] = useState<Achievement[]>([])
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<number | null>(null)
   const targetSpawnRef = useRef<number | null>(null)
@@ -210,6 +390,75 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     }
   }
 
+  const calculatePlayerStats = (email: string): PlayerStats => {
+    const playerScores = (highScores || []).filter(hs => hs.playerEmail === email)
+    const totalScore = playerScores.reduce((sum, hs) => sum + hs.score, 0)
+    const highestScore = playerScores.length > 0 ? Math.max(...playerScores.map(hs => hs.score)) : 0
+    
+    return {
+      totalGames: playerScores.length,
+      totalScore,
+      highestScore,
+      highestCombo: highestCombo,
+      averageScore: playerScores.length > 0 ? Math.round(totalScore / playerScores.length) : 0,
+      gamesWonEasy: playerScores.filter(hs => hs.difficulty === 'easy').length,
+      gamesWonMedium: playerScores.filter(hs => hs.difficulty === 'medium').length,
+      gamesWonHard: playerScores.filter(hs => hs.difficulty === 'hard').length,
+    }
+  }
+
+  const checkAndUnlockAchievements = (stats: PlayerStats) => {
+    const currentAchievements = playerAchievements?.[userEmail] || {
+      unlockedAchievements: [],
+      selectedBorder: 'default',
+      stats: stats,
+    }
+
+    const newlyUnlocked: Achievement[] = []
+
+    ACHIEVEMENTS.forEach(achievement => {
+      const isUnlocked = currentAchievements.unlockedAchievements.includes(achievement.id)
+      const meetsCondition = achievement.condition(stats)
+
+      if (!isUnlocked && meetsCondition) {
+        newlyUnlocked.push(achievement)
+      }
+    })
+
+    if (newlyUnlocked.length > 0) {
+      setPlayerAchievements(current => ({
+        ...current,
+        [userEmail]: {
+          ...currentAchievements,
+          unlockedAchievements: [
+            ...currentAchievements.unlockedAchievements,
+            ...newlyUnlocked.map(a => a.id),
+          ],
+          stats,
+        },
+      }))
+
+      setNewlyUnlockedAchievements(newlyUnlocked)
+      
+      newlyUnlocked.forEach(achievement => {
+        const Icon = achievement.icon
+        toast.success(
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <Icon size={20} weight="fill" className="text-primary" />
+            </div>
+            <div>
+              <div className="font-bold">{language === 'da' ? 'Præstation Låst Op!' : 'Achievement Unlocked!'}</div>
+              <div className="text-sm">{achievement.name[language]}</div>
+              <div className="text-xs text-muted-foreground">{language === 'da' ? '🎁 Ny avatar ramme!' : '🎁 New avatar frame!'}</div>
+            </div>
+          </div>,
+          { duration: 5000 }
+        )
+      })
+    }
+  }
+
   const endGame = () => {
     isPlayingRef.current = false
     
@@ -236,6 +485,13 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
         const updated = [...(currentScores || []), newHighScore]
         return updated.sort((a, b) => b.score - a.score).slice(0, 150)
       })
+      
+      setTimeout(() => {
+        const updatedStats = calculatePlayerStats(userEmail)
+        updatedStats.highestCombo = Math.max(updatedStats.highestCombo || 0, highestCombo)
+        updatedStats.highestScore = Math.max(updatedStats.highestScore || 0, finalScore)
+        checkAndUnlockAchievements(updatedStats)
+      }, 100)
       
       return finalScore
     })
@@ -266,6 +522,29 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const currentPlayerBestScore = (highScores || [])
     .filter(hs => hs.playerEmail === userEmail && hs.difficulty === difficulty)
     .sort((a, b) => b.score - a.score)[0]
+
+  const currentPlayerStats = calculatePlayerStats(userEmail)
+  const currentPlayerAchievements = playerAchievements?.[userEmail] || {
+    unlockedAchievements: [],
+    selectedBorder: 'default',
+    stats: currentPlayerStats,
+  }
+
+  const unlockedBorders = ACHIEVEMENTS
+    .filter(achievement => currentPlayerAchievements.unlockedAchievements.includes(achievement.id))
+    .map(achievement => achievement.border)
+
+  const availableBorders = [AVATAR_BORDERS[0], ...unlockedBorders]
+
+  const selectBorder = (borderId: string) => {
+    setPlayerAchievements(current => ({
+      ...current,
+      [userEmail]: {
+        ...currentPlayerAchievements,
+        selectedBorder: borderId,
+      },
+    }))
+  }
 
   useEffect(() => {
     return () => {
@@ -302,6 +581,163 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
               </p>
             </div>
           </div>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Medal size={20} weight="fill" />
+                {language === 'da' ? 'Præstationer' : 'Achievements'}
+                {currentPlayerAchievements.unlockedAchievements.length > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {currentPlayerAchievements.unlockedAchievements.length}
+                  </Badge>
+                )}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3 text-2xl">
+                  <Medal size={28} weight="duotone" className="text-[oklch(0.70_0.18_90)]" />
+                  {language === 'da' ? 'Præstationer & Avatar Rammer' : 'Achievements & Avatar Frames'}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6 mt-4">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Sparkle size={20} weight="fill" className="text-[oklch(0.70_0.18_90)]" />
+                    {language === 'da' ? 'Vælg Din Avatar Ramme' : 'Select Your Avatar Frame'}
+                  </h3>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                    {availableBorders.map(border => {
+                      const isSelected = currentPlayerAchievements.selectedBorder === border.id
+                      return (
+                        <motion.button
+                          key={border.id}
+                          onClick={() => selectBorder(border.id)}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className={cn(
+                            "p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2",
+                            isSelected 
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-muted-foreground"
+                          )}
+                        >
+                          <div className="relative">
+                            <Avatar 
+                              className={cn(
+                                "w-16 h-16",
+                                getAnimationStyle(border.animation)
+                              )}
+                              style={{
+                                borderWidth: `${border.thickness}px`,
+                                borderStyle: border.pattern || 'solid',
+                                borderImage: border.gradient,
+                                borderImageSlice: 1,
+                                boxShadow: border.glow 
+                                  ? `0 0 20px ${border.glow}`
+                                  : undefined
+                              }}
+                            >
+                              <AvatarImage src={getAvatarUrl(userEmail)} alt={playerName} />
+                              <AvatarFallback className="text-sm font-bold">
+                                {getInitials(playerName)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </div>
+                          <div className="text-xs font-medium text-center">{border.name[language]}</div>
+                          {isSelected && (
+                            <Badge variant="default" className="text-xs">
+                              {language === 'da' ? 'Valgt' : 'Selected'}
+                            </Badge>
+                          )}
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Trophy size={20} weight="fill" className="text-[oklch(0.70_0.18_90)]" />
+                    {language === 'da' ? 'Dine Præstationer' : 'Your Achievements'}
+                  </h3>
+                  <div className="space-y-2">
+                    {ACHIEVEMENTS.map(achievement => {
+                      const isUnlocked = currentPlayerAchievements.unlockedAchievements.includes(achievement.id)
+                      const Icon = achievement.icon
+                      return (
+                        <div
+                          key={achievement.id}
+                          className={cn(
+                            "p-4 rounded-lg border transition-all",
+                            isUnlocked 
+                              ? "border-primary/30 bg-gradient-to-r from-primary/5 to-transparent" 
+                              : "border-border bg-muted/30 opacity-60"
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div 
+                              className={cn(
+                                "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                                isUnlocked ? "bg-primary/20" : "bg-muted"
+                              )}
+                            >
+                              <Icon 
+                                size={20} 
+                                weight={isUnlocked ? "fill" : "regular"}
+                                className={isUnlocked ? "text-primary" : "text-muted-foreground"}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-semibold">{achievement.name[language]}</h4>
+                                {isUnlocked && (
+                                  <Badge variant="outline" className="text-xs">
+                                    ✓ {language === 'da' ? 'Låst op' : 'Unlocked'}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {achievement.description[language]}
+                              </p>
+                              {isUnlocked && (
+                                <div className="mt-2 text-xs text-primary font-medium">
+                                  {language === 'da' ? '🎁 Ramme låst op: ' : '🎁 Frame unlocked: '}
+                                  {achievement.border.name[language]}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="bg-muted/30 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-2">{language === 'da' ? 'Din Statistik' : 'Your Stats'}</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">{language === 'da' ? 'Spil Spillet:' : 'Games Played:'}</span>
+                      <div className="font-bold">{currentPlayerStats.totalGames}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">{language === 'da' ? 'Højeste Score:' : 'Highest Score:'}</span>
+                      <div className="font-bold">{currentPlayerStats.highestScore}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">{language === 'da' ? 'Højeste Combo:' : 'Highest Combo:'}</span>
+                      <div className="font-bold">{currentPlayerStats.highestCombo}x</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">{language === 'da' ? 'Gennemsnit:' : 'Average:'}</span>
+                      <div className="font-bold">{currentPlayerStats.averageScore}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -664,12 +1100,28 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background text-sm font-bold shrink-0">
                                   {getRankIcon() || `#${index + 1}`}
                                 </div>
-                                <Avatar className="w-10 h-10 shrink-0 border-2" style={isCurrentPlayer ? { borderColor: settings.color } : {}}>
-                                  <AvatarImage src={getAvatarUrl(score.playerEmail)} alt={score.playerName} />
-                                  <AvatarFallback className="text-xs font-bold">
-                                    {getInitials(score.playerName)}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <div className="relative shrink-0">
+                                  <Avatar 
+                                    className={cn(
+                                      "w-10 h-10 ring-offset-background",
+                                      getAnimationStyle(getPlayerBorder(score.playerEmail, playerAchievements).animation)
+                                    )}
+                                    style={{
+                                      borderWidth: `${getPlayerBorder(score.playerEmail, playerAchievements).thickness}px`,
+                                      borderStyle: getPlayerBorder(score.playerEmail, playerAchievements).pattern || 'solid',
+                                      borderImage: getPlayerBorder(score.playerEmail, playerAchievements).gradient,
+                                      borderImageSlice: 1,
+                                      boxShadow: getPlayerBorder(score.playerEmail, playerAchievements).glow 
+                                        ? `0 0 20px ${getPlayerBorder(score.playerEmail, playerAchievements).glow}`
+                                        : undefined
+                                    }}
+                                  >
+                                    <AvatarImage src={getAvatarUrl(score.playerEmail)} alt={score.playerName} />
+                                    <AvatarFallback className="text-xs font-bold">
+                                      {getInitials(score.playerName)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                </div>
                                 <div className="flex-1 min-w-0">
                                   <div className={cn(
                                     "font-medium truncate",

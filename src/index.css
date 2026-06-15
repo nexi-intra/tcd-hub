@@ -38,6 +38,15 @@
   }
 }
 
+@keyframes rainbow-border {
+  0%, 100% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(360deg); }
+}
+
+.animate-rainbow {
+  animation: rainbow-border 3s linear infinite;
+}
+
 :root {
   --background: oklch(0.97 0.01 220);
   --foreground: oklch(0.25 0.02 250);
