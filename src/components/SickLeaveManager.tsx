@@ -19,6 +19,7 @@ interface SickLeaveEntry {
   reason?: string
   status: 'pending' | 'approved' | 'rejected'
   submittedAt: string
+  reportedBy?: string
 }
 
 interface SickLeaveManagerProps {
@@ -29,6 +30,21 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
   const [sickLeaveEntries, setSickLeaveEntries] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
   const [editingEntry, setEditingEntry] = useState<SickLeaveEntry | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [reporterNames, setReporterNames] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    const fetchReporterNames = async () => {
+      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
+      if (usersData) {
+        const names: Record<string, string> = {}
+        Object.keys(usersData).forEach(email => {
+          names[email] = usersData[email].fullName || email
+        })
+        setReporterNames(names)
+      }
+    }
+    fetchReporterNames()
+  }, [])
 
   const userEntries = (sickLeaveEntries || []).filter(entry => entry.userEmail === userEmail)
   const sortedEntries = [...userEntries].sort((a, b) => {
@@ -127,6 +143,11 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
                         return 'Ugyldig dato'
                       }
                     })()}
+                    {entry.reportedBy && reporterNames[entry.reportedBy] && (
+                      <span className="ml-2 text-amber-600 dark:text-amber-400">
+                        • Anmeldt af {reporterNames[entry.reportedBy]}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FirstAidKit, X } from '@phosphor-icons/react'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
@@ -25,26 +26,41 @@ interface SickLeaveEntry {
   reason?: string
   status: 'pending' | 'approved' | 'rejected'
   submittedAt: string
+  reportedBy?: string
+}
+
+interface User {
+  email: string
+  fullName: string
 }
 
 export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = null }: SickLeaveDialogProps) {
   const [reason, setReason] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedUserEmail, setSelectedUserEmail] = useState('')
   const [userName, setUserName] = useState('')
+  const [allUsers, setAllUsers] = useState<User[]>([])
   const { t } = useLanguage()
 
   useEffect(() => {
-    const fetchUserName = async () => {
+    const fetchUsers = async () => {
       const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
-      if (usersData && usersData[userEmail]) {
-        setUserName(usersData[userEmail].fullName || userEmail)
+      if (usersData) {
+        const usersList = Object.keys(usersData).map(email => ({
+          email,
+          fullName: usersData[email].fullName || email
+        }))
+        setAllUsers(usersList)
       }
     }
+    
     if (open) {
-      fetchUserName()
+      fetchUsers()
       
       if (editEntry) {
+        setSelectedUserEmail(editEntry.userEmail)
+        setUserName(editEntry.userName)
         setReason(editEntry.reason || '')
         try {
           const date = new Date(editEntry.startDate)
@@ -58,15 +74,33 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
           setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
         }
       } else {
+        setSelectedUserEmail(userEmail)
         setReason('')
         setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
       }
     }
   }, [open, userEmail, editEntry])
 
+  useEffect(() => {
+    const fetchSelectedUserName = async () => {
+      if (selectedUserEmail) {
+        const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
+        if (usersData && usersData[selectedUserEmail]) {
+          setUserName(usersData[selectedUserEmail].fullName || selectedUserEmail)
+        }
+      }
+    }
+    fetchSelectedUserName()
+  }, [selectedUserEmail])
+
   const handleSubmit = async () => {
     if (!selectedDate) {
       toast.error(t.sickLeaveDialog.selectDateError)
+      return
+    }
+
+    if (!selectedUserEmail) {
+      toast.error('Vælg venligst en medarbejder')
       return
     }
 
@@ -79,7 +113,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
       if (editEntry) {
         const updatedEntries = sickLeaveEntries.map(entry => 
           entry.id === editEntry.id
-            ? { ...entry, startDate: dateToUse.toISOString(), reason }
+            ? { ...entry, startDate: dateToUse.toISOString(), reason, userEmail: selectedUserEmail, userName }
             : entry
         )
         await window.spark.kv.set('sick-leave-entries', updatedEntries)
@@ -96,31 +130,42 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
         return
       }
 
+      const reporterIsSelf = selectedUserEmail === userEmail
+
       const newEntry: SickLeaveEntry = {
         id: `sick-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        userEmail,
+        userEmail: selectedUserEmail,
         userName,
         startDate: dateToUse.toISOString(),
         reason,
         status: 'approved',
         submittedAt: new Date().toISOString(),
+        reportedBy: reporterIsSelf ? undefined : userEmail,
       }
 
       await window.spark.kv.set('sick-leave-entries', [...sickLeaveEntries, newEntry])
 
       const dateFormatted = format(dateToUse, 'd. MMMM yyyy', { locale: da })
       
+      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
+      const reporterName = usersData && usersData[userEmail] ? usersData[userEmail].fullName : userEmail
+      
       const emailSubject = `Sygemelding - ${userName}`
-      const emailBody = `Hej Jacob,
+      const emailBody = reporterIsSelf 
+        ? `Hej Jacob,
 
-${userName} (${userEmail}) har meldt sig syg.
+${userName} (${selectedUserEmail}) har meldt sig syg.
 
 Dato: ${dateFormatted}
 
-${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk genereret fra Terminal Configuration & Dispatch Hub.
+${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk genereret fra Terminal Configuration & Dispatch Hub.`
+        : `Hej Jacob,
 
-Med venlig hilsen,
-Terminal Configuration & Dispatch Hub`
+${userName} (${selectedUserEmail}) er blevet sygemeldt af ${reporterName} (${userEmail}).
+
+Dato: ${dateFormatted}
+
+${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk genereret fra Terminal Configuration & Dispatch Hub.`
 
       try {
         const emailNotifications = await window.spark.kv.get<Array<{
@@ -193,13 +238,30 @@ Terminal Configuration & Dispatch Hub`
         <div className="grid gap-6 py-4">
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="userName">{t.sickLeaveDialog.employee}</Label>
-              <Input
-                id="userName"
-                value={userName}
-                disabled
-                className="bg-muted"
-              />
+              <Label htmlFor="employee">{t.sickLeaveDialog.employee}</Label>
+              <Select
+                value={selectedUserEmail}
+                onValueChange={(value) => {
+                  setSelectedUserEmail(value)
+                }}
+                disabled={!!editEntry}
+              >
+                <SelectTrigger id="employee" className="w-full">
+                  <SelectValue placeholder="Vælg medarbejder..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {allUsers.map((user) => (
+                    <SelectItem key={user.email} value={user.email}>
+                      {user.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedUserEmail !== userEmail && !editEntry && (
+                <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 rounded-md border border-amber-200 dark:border-amber-800">
+                  Du anmelder sygemelding på vegne af {userName}
+                </p>
+              )}
             </div>
 
             <div className="grid gap-2">
