@@ -145,21 +145,79 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
       
       <Toaster position="top-center" richColors />
       
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl relative z-10">
+      <div className="absolute top-6 right-6 left-6 z-20">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-12">
+          <div className="flex items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 }}
+            >
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={onNavigateBack}
+                className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
+              >
+                <ArrowLeft size={20} weight="bold" />
+                Tilbage
+              </Button>
+            </motion.div>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                onClick={() => setCategoryManagerOpen(true)}
+                variant="outline"
+                size="lg"
+                className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4 w-full sm:w-auto"
+              >
+                <Gear size={20} weight="duotone" />
+                Kategorier
+              </Button>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                onClick={() => setChatOpen(true)}
+                size="lg"
+                className="bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold w-full sm:w-auto px-4"
+              >
+                <ChatsCircle size={20} weight="duotone" />
+                AI Assistent
+              </Button>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <UserProfile 
+                userEmail={""} 
+                onLogout={onLogout}
+                showAdmin={false}
+                onAdminClick={() => {}}
+              />
+            </motion.div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="container mx-auto px-4 sm:px-6 pt-56 sm:pt-60 pb-12 sm:pb-20 max-w-7xl relative z-10">
         <header className="mb-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-4 min-w-0 flex-1">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  onClick={onNavigateBack}
-                  variant="outline"
-                  size="icon"
-                  className="h-12 w-12 rounded-2xl backdrop-blur-sm border-2 hover:bg-muted hover:border-primary/30 transition-all flex-shrink-0"
-                >
-                  <ArrowLeft size={20} weight="bold" />
-                </Button>
-              </motion.div>
-
               <motion.div 
                 className="h-16 w-16 flex-shrink-0 rounded-3xl bg-gradient-to-br from-primary via-secondary to-accent shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden"
                 whileHover={{ scale: 1.08, rotate: 5 }}
@@ -181,26 +239,6 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
               </div>
             </div>
             <div className="flex gap-2 flex-shrink-0 items-center">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  onClick={() => setCategoryManagerOpen(true)}
-                  variant="outline"
-                  size="icon"
-                  className="h-11 w-11 backdrop-blur-sm border-2 hover:bg-muted hover:border-primary/30 transition-all"
-                >
-                  <Gear size={20} weight="duotone" />
-                </Button>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  onClick={() => setChatOpen(true)}
-                  variant="outline"
-                  size="icon"
-                  className="h-11 w-11 bg-gradient-to-br from-accent/20 to-accent/10 hover:from-accent/30 hover:to-accent/20 border-2 border-accent/40 hover:border-accent/60 shadow-lg shadow-accent/20 backdrop-blur-sm transition-all"
-                >
-                  <ChatsCircle size={20} weight="duotone" className="text-accent" />
-                </Button>
-              </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button onClick={handleAddNew} className="h-11 px-5 bg-gradient-to-r from-primary via-secondary to-primary hover:from-primary/90 hover:via-secondary/90 hover:to-primary/90 shadow-xl shadow-primary/30 font-semibold transition-all">
                   <Plus size={20} weight="bold" className="sm:mr-2" />

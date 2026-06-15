@@ -738,11 +738,38 @@ Return ONLY a JSON object with this exact structure:
   return (
     <div className="min-h-screen relative overflow-hidden">
 
-      <div className="absolute top-6 right-6 z-20">
-        <UserProfile userEmail={userEmail} onLogout={onLogout} />
+      <div className="absolute top-6 right-6 left-6 z-20">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-12">
+          <div className="flex items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 }}
+            >
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={onNavigateBack}
+                className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
+              >
+                <ArrowLeft size={20} />
+                Tilbage
+              </Button>
+            </motion.div>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <UserProfile userEmail={userEmail} onLogout={onLogout} />
+            </motion.div>
+          </div>
+        </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-5xl relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-56 sm:pt-60 pb-12 sm:pb-20 max-w-5xl relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -750,14 +777,6 @@ Return ONLY a JSON object with this exact structure:
           className="mb-10"
         >
           <div className="flex items-center gap-6 mb-8">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onNavigateBack}
-              className="hover:bg-primary/10 h-12 w-12"
-            >
-              <ArrowLeft size={28} />
-            </Button>
             <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
               Manager Panel
             </h1>

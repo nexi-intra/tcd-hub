@@ -179,22 +179,36 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl">
+    <div className="min-h-screen relative overflow-hidden">
+      <div className="absolute top-6 right-6 left-6 z-20">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-12">
+          <div className="flex items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 }}
+            >
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={onNavigateBack}
+                className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
+              >
+                <ArrowLeft size={20} />
+                Tilbage
+              </Button>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="container mx-auto px-4 sm:px-6 pt-56 sm:pt-60 pb-12 sm:pb-20 max-w-7xl">
         <motion.header
           className="mb-8 flex items-center gap-6"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onNavigateBack}
-            className="hover:bg-primary/10 h-12 w-12"
-          >
-            <ArrowLeft size={28} />
-          </Button>
           <div>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent flex items-center gap-3">
               <ForkKnife size={40} weight="duotone" className="text-primary" />

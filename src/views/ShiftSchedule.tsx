@@ -897,30 +897,50 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden">
-      <div className="absolute top-4 right-4 z-20">
-        <UserProfile 
-          userEmail={userEmail} 
-          onLogout={onLogout}
-          showAdmin={isAdmin}
-          onAdminClick={() => {}}
-          hideEmail={true}
-        />
+      <div className="absolute top-6 right-6 left-6 z-20">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-12">
+          <div className="flex items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 }}
+            >
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={onNavigateBack}
+                className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
+              >
+                <ArrowLeft size={20} />
+                Tilbage
+              </Button>
+            </motion.div>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <UserProfile 
+                userEmail={userEmail} 
+                onLogout={onLogout}
+                showAdmin={isAdmin}
+                onAdminClick={() => {}}
+                hideEmail={true}
+              />
+            </motion.div>
+          </div>
+        </div>
       </div>
-      <div className="w-full px-4 sm:px-6 py-8 relative z-10">
+      
+      <div className="w-full px-4 sm:px-6 pt-56 sm:pt-60 pb-12 sm:pb-20 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
           <div className="flex items-center gap-6 mb-8">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onNavigateBack}
-              className="hover:bg-primary/10 h-12 w-12"
-            >
-              <ArrowLeft size={28} />
-            </Button>
             <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
               Vagtplan
             </h1>
