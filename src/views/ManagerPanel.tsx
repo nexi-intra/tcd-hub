@@ -320,6 +320,7 @@ The email should be in Danish, friendly yet professional, and include:
 - The name/email of who approved it
 - A congratulatory or positive tone
 - A brief note that this is an automatic notification
+- DO NOT include any closing signature like "Med venlig hilsen" or similar - just provide the information without a closing
 
 Return ONLY a JSON object with this exact structure:
 {
@@ -408,6 +409,7 @@ The email should be in Danish, professional and respectful, and include:
 - A professional and understanding tone
 - Suggestion that they can contact the manager for more information or to discuss alternative dates
 - A brief note that this is an automatic notification
+- DO NOT include any closing signature like "Med venlig hilsen" or similar - just provide the information without a closing
 
 Return ONLY a JSON object with this exact structure:
 {
@@ -534,6 +536,7 @@ The email should be in Danish, professional and informative, and include:
 - A professional tone
 - Suggestion that they can contact the manager if they have questions
 - A brief note that this is an automatic notification
+- DO NOT include any closing signature like "Med venlig hilsen" or similar - just provide the information without a closing
 
 Return ONLY a JSON object with this exact structure:
 {
@@ -633,6 +636,7 @@ The email should be in Danish, professional and clear, and include:
 - A professional and understanding tone
 - Suggestion that they can contact the manager if they have questions or if this was done in error
 - A brief note that this is an automatic notification
+- DO NOT include any closing signature like "Med venlig hilsen" or similar - just provide the information without a closing
 
 Return ONLY a JSON object with this exact structure:
 {
