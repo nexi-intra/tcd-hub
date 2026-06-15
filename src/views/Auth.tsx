@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import nexiLogo from '@/assets/images/nexi-logo.svg'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { LanguageToggle } from '@/components/LanguageToggle'
 
 interface AuthProps {
   onAuthenticated: (userId: string, email: string) => void
@@ -89,6 +91,10 @@ export function Auth({ onAuthenticated }: AuthProps) {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center">
+      <div className="absolute top-4 right-4 flex flex-col sm:flex-row gap-2 z-20">
+        <ThemeToggle />
+        <LanguageToggle />
+      </div>
       <div className="container mx-auto px-4 sm:px-6 max-w-md relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
