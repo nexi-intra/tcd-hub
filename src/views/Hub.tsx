@@ -318,6 +318,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     switch (category) {
       case 'work':
         return {
+          initial: {
+            scale: 1,
+            rotate: 0,
+            y: 0,
+          },
           hover: {
             scale: 1.15,
             rotate: [0, -5, 5, -5, 0],
@@ -325,30 +330,46 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           },
           transition: {
             duration: 0.5,
+            ease: "easeInOut"
           }
         }
       case 'social':
         return {
+          initial: {
+            scale: 1,
+            rotate: 0,
+          },
           hover: {
             scale: [1, 1.2, 1.1],
             rotate: [0, 360],
           },
           transition: {
             duration: 0.6,
+            ease: "easeInOut"
           }
         }
       case 'admin':
         return {
+          initial: {
+            scale: 1,
+            rotateY: 0,
+          },
           hover: {
             scale: 1.1,
             rotateY: [0, 180, 360],
           },
           transition: {
             duration: 0.7,
+            ease: "easeInOut"
           }
         }
       case 'leisure':
         return {
+          initial: {
+            scale: 1,
+            rotate: 0,
+            y: 0,
+          },
           hover: {
             scale: [1, 1.3, 1.15],
             rotate: [0, -15, 15, -10, 10, 0],
@@ -356,6 +377,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           },
           transition: {
             duration: 0.8,
+            ease: "easeInOut"
           }
         }
     }
@@ -365,39 +387,75 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     switch (category) {
       case 'work':
         return {
+          initial: {
+            y: 0,
+            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
+          },
           hover: {
             y: -8,
             boxShadow: "0 20px 40px -12px rgba(0, 0, 0, 0.25)",
           },
-          tap: { scale: 0.98 }
+          tap: { scale: 0.98 },
+          transition: {
+            duration: 0.3,
+            ease: "easeInOut"
+          }
         }
       case 'social':
         return {
+          initial: {
+            scale: 1,
+            rotate: 0,
+            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
+          },
           hover: {
             scale: 1.05,
             rotate: [0, -2, 2, 0],
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.3)",
           },
-          tap: { scale: 0.95 }
+          tap: { scale: 0.95 },
+          transition: {
+            duration: 0.3,
+            ease: "easeInOut"
+          }
         }
       case 'admin':
         return {
+          initial: {
+            y: 0,
+            x: 0,
+            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
+          },
           hover: {
             y: -6,
             x: [0, -3, 3, 0],
             boxShadow: "0 20px 40px -12px rgba(0, 0, 0, 0.25)",
           },
-          tap: { scale: 0.97 }
+          tap: { scale: 0.97 },
+          transition: {
+            duration: 0.3,
+            ease: "easeInOut"
+          }
         }
       case 'leisure':
         return {
+          initial: {
+            scale: 1,
+            y: 0,
+            rotate: 0,
+            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
+          },
           hover: {
             scale: 1.08,
             y: -10,
             rotate: [0, 3, -3, 0],
             boxShadow: "0 30px 60px -15px rgba(0, 0, 0, 0.35)",
           },
-          tap: { scale: 0.92 }
+          tap: { scale: 0.92 },
+          transition: {
+            duration: 0.3,
+            ease: "easeInOut"
+          }
         }
     }
   }
@@ -682,9 +740,10 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                 transition={{ delay: 0.5 + index * 0.05, duration: 0.4 }}
               >
                 <motion.div
+                  initial={cardAnimation.initial}
                   whileHover={cardAnimation.hover}
                   whileTap={cardAnimation.tap}
-                  transition={{ duration: 0.3 }}
+                  transition={cardAnimation.transition}
                 >
                   <Card
                     className="relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[180px] sm:min-h-[220px] flex flex-col cursor-pointer hover:border-primary/40"
@@ -712,6 +771,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                           `bg-gradient-to-br ${module.gradient}`
                         )}
                         style={{ color: 'white' }}
+                        initial={iconAnimation.initial}
                         whileHover={iconAnimation.hover}
                         transition={iconAnimation.transition}
                       >
