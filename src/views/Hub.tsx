@@ -204,9 +204,9 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             <Button
               onClick={() => setShowSickLeaveDialog(true)}
               size="lg"
-              className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold w-full sm:w-auto"
+              className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold w-full sm:w-auto px-4"
             >
-              <FirstAidKit size={24} weight="duotone" />
+              <FirstAidKit size={20} weight="duotone" />
               {t.shifts.sickLeave}
             </Button>
           </motion.div>

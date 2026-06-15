@@ -19,7 +19,7 @@ export function LanguageToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="lg" className="gap-2 font-semibold bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto">
+        <Button variant="outline" size="lg" className="gap-2 font-semibold bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto px-4">
           <Globe size={20} weight="duotone" />
           {languageLabels[language]}
         </Button>
