@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
-import { Envelope, Trash, ArrowBendUpLeft, PaperPlaneTilt } from '@phosphor-icons/react'
+import { Envelope, Trash, ArrowBendUpLeft, PaperPlaneTilt, CheckCircle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
@@ -63,22 +63,24 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
     setEmails(userEmails)
   }
 
-  const handleSelectEmail = async (email: Email) => {
+  const handleSelectEmail = (email: Email) => {
     setSelectedEmail(email)
+  }
+
+  const handleMarkAsRead = async (id: string) => {
+    const allEmails = await window.spark.kv.get<Email[]>('emails') || []
+    const updatedEmails = allEmails.map(e => 
+      e.id === id ? { ...e, read: true } : e
+    )
+    await window.spark.kv.set('emails', updatedEmails)
     
-    if (!email.read) {
-      const allEmails = await window.spark.kv.get<Email[]>('emails') || []
-      const updatedEmails = allEmails.map(e => 
-        e.id === email.id ? { ...e, read: true } : e
-      )
-      await window.spark.kv.set('emails', updatedEmails)
-      
-      setEmails(prevEmails =>
-        prevEmails.map(e => 
-          e.id === email.id ? { ...e, read: true } : e
-        )
-      )
+    setEmails(prevEmails => prevEmails.filter(e => e.id !== id))
+    
+    if (selectedEmail?.id === id) {
+      setSelectedEmail(null)
     }
+    
+    toast.success(language === 'da' ? 'Markeret som læst' : 'Marked as read')
   }
 
   const handleDelete = async (id: string) => {
@@ -237,6 +239,15 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
                       <div className="whitespace-pre-wrap text-sm leading-relaxed">{selectedEmail.message}</div>
                     </ScrollArea>
                   </div>
+
+                  <Button
+                    onClick={() => handleMarkAsRead(selectedEmail.id)}
+                    className="w-full gap-2 bg-[oklch(0.50_0.27_262)] hover:bg-[oklch(0.45_0.27_262)]"
+                    size="lg"
+                  >
+                    <CheckCircle size={20} weight="duotone" />
+                    {language === 'da' ? 'Marker som læst' : 'Mark as read'}
+                  </Button>
 
                   {isReplying ? (
                     <div className="space-y-3 pt-2">
