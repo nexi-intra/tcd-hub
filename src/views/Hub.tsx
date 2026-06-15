@@ -590,14 +590,32 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                 <div className="relative p-4 md:p-6 flex flex-col flex-1">
                   <motion.div 
                     className={cn(
-                      "mb-3 md:mb-4 inline-flex items-center justify-center rounded-2xl p-2 md:p-3 shadow-lg transition-all duration-300",
-                      `bg-gradient-to-br ${module.gradient} group-hover:scale-110 group-hover:shadow-xl`
+                      "mb-3 md:mb-4 inline-flex items-center justify-center rounded-2xl p-2 md:p-3 shadow-lg",
+                      `bg-gradient-to-br ${module.gradient}`
                     )}
                     style={{ color: 'white' }}
+                    whileHover={{ 
+                      scale: 1.1,
+                      rotate: [0, -10, 10, -10, 0],
+                      transition: { 
+                        scale: { duration: 0.3 },
+                        rotate: { duration: 0.5, ease: "easeInOut" }
+                      }
+                    }}
                   >
-                    <div className="[&>svg]:w-8 [&>svg]:h-8 md:[&>svg]:w-12 md:[&>svg]:h-12">
+                    <motion.div 
+                      className="[&>svg]:w-8 [&>svg]:h-8 md:[&>svg]:w-12 md:[&>svg]:h-12"
+                      whileHover={{ 
+                        y: [-2, 2, -2],
+                        transition: { 
+                          duration: 0.4,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }
+                      }}
+                    >
                       {module.icon}
-                    </div>
+                    </motion.div>
                   </motion.div>
 
                   <h3 className="text-sm sm:text-base md:text-lg font-bold mb-1.5 md:mb-2 text-foreground text-center">
