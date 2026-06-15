@@ -12,6 +12,7 @@ import { SingleDayOffDialog } from '@/components/SingleDayOffDialog'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 type VacationStatus = 'pending' | 'approved' | 'rejected'
 
@@ -39,10 +40,12 @@ export function VacationCalendar({ onNavigateBack, onLogout }: VacationCalendarP
   const [isManager, setIsManager] = useState(false)
   const [usersData, setUsersData] = useState<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>({})
   const [userEmail, setUserEmail] = useState<string>('')
+  const { t, language } = useLanguage()
 
   const months = [
-    'Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni',
-    'Juli', 'August', 'September', 'Oktober', 'November', 'December'
+    t.shifts.months.january, t.shifts.months.february, t.shifts.months.march, t.shifts.months.april,
+    t.shifts.months.may, t.shifts.months.june, t.shifts.months.july, t.shifts.months.august,
+    t.shifts.months.september, t.shifts.months.october, t.shifts.months.november, t.shifts.months.december
   ]
 
   useEffect(() => {

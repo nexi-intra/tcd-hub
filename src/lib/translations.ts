@@ -447,6 +447,22 @@ export const translations = {
       onlyWordFiles: "Kun Word-dokumenter (.doc, .docx) understøttes",
       filesSkipped: "{count} fil(er) sprunget over (kun Word-filer)",
       titleRequired: "Titel og enten indhold eller Word-dokument er påkrævet"
+    },
+    singleDayOffDialog: {
+      title: "Anmod om en fridag",
+      requestDayOff: "Anmod om en fridag",
+      date: "Dato",
+      selectDate: "Vælg dato",
+      weekdayOnly: "Du kan kun anmode om fridage på hverdage (mandag-fredag)",
+      comment: "Kommentar (valgfrit)",
+      commentPlaceholder: "Tilføj en kommentar til din anmodning...",
+      cancel: "Annuller",
+      submit: "Send anmodning",
+      submitting: "Sender...",
+      selectDateError: "Vælg venligst en dato",
+      weekendError: "Du kan ikke anmode om fridag i weekenden",
+      requestSent: "Fridag anmodning sendt",
+      requestError: "Kunne ikke oprette fridag anmodning"
     }
   },
   en: {
@@ -897,6 +913,22 @@ export const translations = {
       onlyWordFiles: "Only Word documents (.doc, .docx) are supported",
       filesSkipped: "{count} file(s) skipped (only Word files)",
       titleRequired: "Title and either content or Word document are required"
+    },
+    singleDayOffDialog: {
+      title: "Request a day off",
+      requestDayOff: "Request a day off",
+      date: "Date",
+      selectDate: "Select date",
+      weekdayOnly: "You can only request days off on weekdays (Monday-Friday)",
+      comment: "Comment (optional)",
+      commentPlaceholder: "Add a comment to your request...",
+      cancel: "Cancel",
+      submit: "Submit request",
+      submitting: "Submitting...",
+      selectDateError: "Please select a date",
+      weekendError: "You cannot request a day off on weekends",
+      requestSent: "Day off request sent",
+      requestError: "Could not create day off request"
     }
   }
 }

@@ -38,7 +38,7 @@ export function SingleDayOffDialog({ userEmail }: SingleDayOffDialogProps) {
     e.preventDefault()
 
     if (!selectedDate) {
-      toast.error('Vælg venligst en dato')
+      toast.error(t.singleDayOffDialog.selectDateError)
       return
     }
 
@@ -46,7 +46,7 @@ export function SingleDayOffDialog({ userEmail }: SingleDayOffDialogProps) {
     const dayOfWeek = dateObj.getDay()
     
     if (dayOfWeek === 0 || dayOfWeek === 6) {
-      toast.error('Du kan ikke anmode om fridag i weekenden')
+      toast.error(t.singleDayOffDialog.weekendError)
       return
     }
 
@@ -207,13 +207,13 @@ Return ONLY a JSON object with this exact structure:
         console.error('Error sending confirmation email:', error)
       }
 
-      toast.success('Fridag anmodning sendt')
+      toast.success(t.singleDayOffDialog.requestSent)
       setSelectedDate('')
       setNotes('')
       setOpen(false)
     } catch (error) {
       console.error('Error creating day off request:', error)
-      toast.error('Kunne ikke oprette fridag anmodning')
+      toast.error(t.singleDayOffDialog.requestError)
     } finally {
       setIsSubmitting(false)
     }
@@ -224,16 +224,16 @@ Return ONLY a JSON object with this exact structure:
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
           <CalendarX size={20} weight="bold" />
-          Anmod om en fridag
+          {t.singleDayOffDialog.requestDayOff}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Anmod om en fridag</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">{t.singleDayOffDialog.title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="single-date">Dato</Label>
+            <Label htmlFor="single-date">{t.singleDayOffDialog.date}</Label>
             <Input
               id="single-date"
               type="date"
@@ -242,17 +242,17 @@ Return ONLY a JSON object with this exact structure:
               required
             />
             <p className="text-xs text-muted-foreground">
-              Du kan kun anmode om fridage på hverdage (mandag-fredag)
+              {t.singleDayOffDialog.weekdayOnly}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Kommentar (valgfrit)</Label>
+            <Label htmlFor="notes">{t.singleDayOffDialog.comment}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Tilføj en kommentar til din anmodning..."
+              placeholder={t.singleDayOffDialog.commentPlaceholder}
               rows={4}
             />
           </div>
@@ -264,7 +264,7 @@ Return ONLY a JSON object with this exact structure:
               onClick={() => setOpen(false)}
               disabled={isSubmitting}
             >
-              Annuller
+              {t.singleDayOffDialog.cancel}
             </Button>
             <Button
               type="submit"
@@ -272,7 +272,7 @@ Return ONLY a JSON object with this exact structure:
               className="gap-2"
             >
               <PaperPlaneTilt size={18} weight="bold" />
-              {isSubmitting ? 'Sender...' : 'Send anmodning'}
+              {isSubmitting ? t.singleDayOffDialog.submitting : t.singleDayOffDialog.submit}
             </Button>
           </div>
         </form>
