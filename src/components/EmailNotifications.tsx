@@ -149,6 +149,7 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
   }
 
   const unreadCount = emails.filter(e => !e.read).length
+  const unreadEmails = emails.filter(e => !e.read)
 
   const dateLocale = language === 'da' ? da : enUS
 
@@ -169,23 +170,21 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
           </div>
         </DialogHeader>
 
-        {emails.length === 0 ? (
+        {unreadCount === 0 ? (
           <div className="py-12 text-center text-muted-foreground">
             <Envelope size={64} weight="duotone" className="mx-auto mb-4 opacity-20" />
-            <p>{t.emailNotifications.noNotifications}</p>
+            <p className="text-lg font-medium">{language === 'da' ? 'Ingen nye beskeder' : 'No new messages'}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
             <ScrollArea className="h-[500px] pr-4">
               <div className="space-y-2">
-                {emails.map((email) => (
+                {unreadEmails.map((email) => (
                   <div
                     key={email.id}
                     className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
                       selectedEmail?.id === email.id
                         ? 'bg-primary/5 border-primary'
-                        : email.read
-                        ? 'bg-muted/30 border-border'
                         : 'bg-card border-border'
                     }`}
                     onClick={() => handleSelectEmail(email)}
@@ -195,11 +194,9 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
                         <p className="font-semibold text-sm truncate">{getSenderName(email.from)}</p>
                         <p className="text-xs text-muted-foreground truncate">{email.from}</p>
                       </div>
-                      {!email.read && (
-                        <Badge variant="secondary" className="bg-[oklch(0.50_0.27_262)] text-white shrink-0">
-                          {t.emailNotifications.new}
-                        </Badge>
-                      )}
+                      <Badge variant="secondary" className="bg-[oklch(0.50_0.27_262)] text-white shrink-0">
+                        {t.emailNotifications.new}
+                      </Badge>
                     </div>
                     <h4 className="font-semibold text-sm mb-1 line-clamp-1">{email.subject}</h4>
                     <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{email.message}</p>
