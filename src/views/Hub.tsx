@@ -34,7 +34,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [isAdminOrManager, setIsAdminOrManager] = useState(false)
   const [showSickLeaveDialog, setShowSickLeaveDialog] = useState(false)
   const [showEmailNotifications, setShowEmailNotifications] = useState(false)
-  const [unreadEmailCount, setUnreadEmailCount] = useState(0)
   const [unreadInboxCount, setUnreadInboxCount] = useState(0)
   
   useEffect(() => {
@@ -47,10 +46,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
   useEffect(() => {
     const loadUnreadCount = async () => {
-      const emailNotifications = (await window.spark.kv.get<Array<{ read: boolean }>>('email-notifications')) || []
-      const unread = emailNotifications.filter(n => !n.read).length
-      setUnreadEmailCount(unread)
-
       const emails = (await window.spark.kv.get<Array<{ to: string; read: boolean }>>('emails')) || []
       const unreadInbox = emails.filter(e => e.to === userEmail && !e.read).length
       setUnreadInboxCount(unreadInbox)
@@ -192,9 +187,9 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             >
               <Envelope size={20} weight="duotone" />
               {t.email.notifications}
-              {unreadEmailCount > 0 && (
+              {unreadInboxCount > 0 && (
                 <Badge className="absolute -top-2 -right-2 bg-[oklch(0.58_0.25_25)] text-white px-2 py-0.5 text-xs">
-                  {unreadEmailCount}
+                  {unreadInboxCount}
                 </Badge>
               )}
             </Button>
