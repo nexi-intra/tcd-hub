@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, useRef } from 'react'
-import { X, Trophy, Target, Lightning, Crown, Medal, Star, Fire, Sparkle, ShieldCheck, Flame, Rocket, Crosshair } from '@phosphor-icons/react'
+import { X, Trophy, Target, Lightning, Crown, Medal, Star, Fire, Sparkle, ShieldCheck, Flame, Rocket, Crosshair, Cube } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
+import { EndlessRunner } from '@/components/EndlessRunner'
 
 interface GameCornerProps {
   onNavigateBack: () => void
@@ -314,6 +315,7 @@ const formatProgressText = (achievement: Achievement, stats: PlayerStats, langua
 
 export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const { t, language } = useLanguage()
+  const [activeGame, setActiveGame] = useState<'clicker' | 'runner'>('clicker')
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameover'>('menu')
   const [playerName, setPlayerName] = useState('')
   const [currentScore, setCurrentScore] = useState(0)
@@ -701,26 +703,46 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
           </motion.p>
         </motion.header>
 
-        <div className="flex items-center justify-center mb-8">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2 flex-col h-auto py-2">
-                <div className="flex items-center gap-2">
-                  <Medal size={20} weight="fill" />
-                  {language === 'da' ? 'Præstationer' : 'Achievements'}
-                  {currentPlayerAchievements.unlockedAchievements.length > 0 && (
-                    <Badge variant="secondary" className="ml-1">
-                      {currentPlayerAchievements.unlockedAchievements.length}
-                    </Badge>
-                  )}
-                </div>
-                {nextAchievementProgress && nextAchievementProgress.progress > 0 && nextAchievementProgress.progress < 100 && (
-                  <div className="w-full mt-1">
-                    <Progress value={nextAchievementProgress.progress} className="h-1" />
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setActiveGame('clicker')}
+              variant={activeGame === 'clicker' ? 'default' : 'outline'}
+              className="gap-2"
+            >
+              <Target size={20} weight={activeGame === 'clicker' ? 'fill' : 'regular'} />
+              {language === 'da' ? 'Hurtig Kliks' : 'Fast Clicks'}
+            </Button>
+            <Button
+              onClick={() => setActiveGame('runner')}
+              variant={activeGame === 'runner' ? 'default' : 'outline'}
+              className="gap-2"
+            >
+              <Cube size={20} weight={activeGame === 'runner' ? 'fill' : 'regular'} />
+              {language === 'da' ? '3D Løber' : '3D Runner'}
+            </Button>
+          </div>
+
+          {activeGame === 'clicker' && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2 flex-col h-auto py-2">
+                  <div className="flex items-center gap-2">
+                    <Medal size={20} weight="fill" />
+                    {language === 'da' ? 'Præstationer' : 'Achievements'}
+                    {currentPlayerAchievements.unlockedAchievements.length > 0 && (
+                      <Badge variant="secondary" className="ml-1">
+                        {currentPlayerAchievements.unlockedAchievements.length}
+                      </Badge>
+                    )}
                   </div>
-                )}
-              </Button>
-            </DialogTrigger>
+                  {nextAchievementProgress && nextAchievementProgress.progress > 0 && nextAchievementProgress.progress < 100 && (
+                    <div className="w-full mt-1">
+                      <Progress value={nextAchievementProgress.progress} className="h-1" />
+                    </div>
+                  )}
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-3 text-2xl">
@@ -917,9 +939,11 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
               </div>
             </DialogContent>
           </Dialog>
+          )}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        {activeGame === 'clicker' ? (
+          <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <Card className="p-8">
               {gameState === 'menu' && (
@@ -1312,6 +1336,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
             </Card>
           </div>
         </div>
+        ) : (
+          <EndlessRunner userEmail={userEmail} playerName={playerName} />
+        )}
       </div>
     </div>
   )
