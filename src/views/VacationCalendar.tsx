@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useKV } from '@github/spark/hooks'
 import { UserProfile } from '@/components/UserProfile'
 import { VacationRequestDialog } from '@/components/VacationRequestDialog'
+import { SingleDayOffDialog } from '@/components/SingleDayOffDialog'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
@@ -523,7 +524,10 @@ Return ONLY a JSON object with this exact structure:
                   I dag
                 </Button>
               </div>
-              <VacationRequestDialog userEmail={userEmail} />
+              <div className="flex items-center gap-3 flex-wrap">
+                <VacationRequestDialog userEmail={userEmail} />
+                <SingleDayOffDialog userEmail={userEmail} />
+              </div>
             </div>
 
             <div className="grid grid-cols-8 gap-2">
