@@ -39,6 +39,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<number | null>(null)
   const targetSpawnRef = useRef<number | null>(null)
+  const isPlayingRef = useRef(false)
   
   const [usersData] = useKV<Record<string, { fullName: string }>>('users', {})
   
@@ -51,15 +52,42 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     }
   }, [usersData, userEmail])
 
+  const spawnTarget = () => {
+    if (!isPlayingRef.current || !gameAreaRef.current) return
+    
+    const rect = gameAreaRef.current.getBoundingClientRect()
+    const padding = 60
+    
+    const newTarget: Target = {
+      id: Date.now().toString() + Math.random(),
+      x: Math.random() * (rect.width - padding * 2) + padding,
+      y: Math.random() * (rect.height - padding * 2) + padding,
+    }
+    
+    setTargets([newTarget])
+    
+    targetSpawnRef.current = window.setTimeout(() => {
+      if (isPlayingRef.current) {
+        setTargets([])
+        targetSpawnRef.current = window.setTimeout(() => {
+          if (isPlayingRef.current) {
+            spawnTarget()
+          }
+        }, 200)
+      }
+    }, 1500)
+  }
+
   const startGame = () => {
     if (!playerName.trim()) return
     
+    isPlayingRef.current = true
     setGameState('playing')
     setCurrentScore(0)
     setTimeLeft(30)
     setTargets([])
     
-    timerRef.current = setInterval(() => {
+    timerRef.current = window.setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
           endGame()
@@ -69,27 +97,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
       })
     }, 1000)
     
-    spawnTarget()
-  }
-
-  const spawnTarget = () => {
-    if (gameAreaRef.current) {
-      const rect = gameAreaRef.current.getBoundingClientRect()
-      const padding = 60
-      
-      const newTarget: Target = {
-        id: Date.now().toString() + Math.random(),
-        x: Math.random() * (rect.width - padding * 2) + padding,
-        y: Math.random() * (rect.height - padding * 2) + padding,
-      }
-      
-      setTargets([newTarget])
-      
-      targetSpawnRef.current = setTimeout(() => {
-        setTargets([])
-        setTimeout(spawnTarget, 200)
-      }, 1500)
-    }
+    setTimeout(() => spawnTarget(), 500)
   }
 
   const hitTarget = (targetId: string) => {
@@ -100,10 +108,15 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
       clearTimeout(targetSpawnRef.current)
     }
     
-    setTimeout(spawnTarget, 100)
+    setTimeout(() => {
+      if (isPlayingRef.current) {
+        spawnTarget()
+      }
+    }, 100)
   }
 
   const endGame = () => {
+    isPlayingRef.current = false
     setGameState('gameover')
     
     if (timerRef.current) {
@@ -130,6 +143,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   }
 
   const resetGame = () => {
+    isPlayingRef.current = false
     setGameState('menu')
     setCurrentScore(0)
     setTimeLeft(30)
