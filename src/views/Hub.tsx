@@ -483,7 +483,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               {!todaysMeal ? (
                 <p className="text-muted-foreground text-sm">{t.hub.overview.noMeal}</p>
               ) : (
-                <p className="text-sm text-foreground leading-relaxed">{todaysMeal}</p>
+                <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere">{todaysMeal}</p>
               )}
             </Card>
           </div>
