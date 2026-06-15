@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import nexiLogo from '@/assets/images/nexi-logo.svg'
@@ -11,7 +12,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageToggle } from '@/components/LanguageToggle'
 
 interface AuthProps {
-  onAuthenticated: (userId: string, email: string) => void
+  onAuthenticated: (userId: string, email: string, rememberMe: boolean) => void
 }
 
 export function Auth({ onAuthenticated }: AuthProps) {
@@ -21,6 +22,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,7 +63,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
       
       toast.success('Konto oprettet!')
       setTimeout(() => {
-        onAuthenticated(userId, email)
+        onAuthenticated(userId, email, rememberMe)
       }, 300)
     } else {
       const usersData = (await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
@@ -76,7 +78,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
       toast.success('Velkommen tilbage!')
       setTimeout(() => {
         const userId = `user_${email}`
-        onAuthenticated(userId, email)
+        onAuthenticated(userId, email, rememberMe)
       }, 300)
     }
   }
@@ -87,6 +89,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
     setPassword('')
     setConfirmPassword('')
     setFullName('')
+    setRememberMe(false)
   }
 
   return (
@@ -190,6 +193,20 @@ export function Auth({ onAuthenticated }: AuthProps) {
                   />
                 </div>
               )}
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
+                <Label
+                  htmlFor="remember-me"
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  Husk mig (sessionen udløber efter 24 timer)
+                </Label>
+              </div>
 
               <Button
                 type="submit"
