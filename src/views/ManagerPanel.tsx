@@ -1361,12 +1361,13 @@ Return ONLY a JSON object with this exact structure:
                     {editVacationStartDate ? format(editVacationStartDate, 'd. MMMM yyyy', { locale: da }) : 'Vælg startdato'}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 bg-card border-2" align="center" sideOffset={8}>
                   <Calendar
                     mode="single"
                     selected={editVacationStartDate}
                     onSelect={setEditVacationStartDate}
                     locale={da}
+                    initialFocus
                   />
                 </PopoverContent>
               </Popover>
@@ -1380,13 +1381,14 @@ Return ONLY a JSON object with this exact structure:
                     {editVacationEndDate ? format(editVacationEndDate, 'd. MMMM yyyy', { locale: da }) : 'Vælg slutdato'}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 bg-card border-2" align="center" sideOffset={8}>
                   <Calendar
                     mode="single"
                     selected={editVacationEndDate}
                     onSelect={setEditVacationEndDate}
                     locale={da}
                     disabled={(date) => editVacationStartDate ? date < editVacationStartDate : false}
+                    initialFocus
                   />
                 </PopoverContent>
               </Popover>
