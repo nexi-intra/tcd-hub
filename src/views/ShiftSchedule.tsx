@@ -137,6 +137,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
   const [activeTab, setActiveTab] = useState('schedule')
   const dateScrollRef = useRef<HTMLDivElement>(null)
   const contentScrollRef = useRef<HTMLDivElement>(null)
+  const scheduleScrollRef = useRef<HTMLDivElement>(null)
+  const hasScrolledToToday = useRef(false)
 
   const syncScroll = (source: 'date' | 'content') => {
     if (source === 'date' && dateScrollRef.current && contentScrollRef.current) {
@@ -205,6 +207,27 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onNavigateBack])
+
+  useEffect(() => {
+    if (activeTab === 'schedule' && scheduleScrollRef.current && !hasScrolledToToday.current) {
+      const scrollToCurrentWeek = () => {
+        const today = new Date()
+        const currentDay = today.getDate()
+        const rowHeight = 80
+        const headerHeight = 50
+        const scrollPosition = Math.max(0, (currentDay - 1) * rowHeight - headerHeight)
+        
+        scheduleScrollRef.current?.scrollTo({
+          top: scrollPosition,
+          behavior: 'smooth'
+        })
+        
+        hasScrolledToToday.current = true
+      }
+
+      setTimeout(scrollToCurrentWeek, 300)
+    }
+  }, [activeTab, selectedMonth, selectedYear])
 
   const isWeekend = (date: Date) => {
     const day = date.getDay()
@@ -976,7 +999,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
               </div>
 
               <div className="shadow-inner rounded-lg border-2 border-border bg-card overflow-hidden">
-                <div className="overflow-auto relative" style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%' }}>
+                <div ref={scheduleScrollRef} className="overflow-auto relative" style={{ maxHeight: 'calc(100vh - 200px)', maxWidth: '100%' }}>
                   <table className="w-full border-collapse relative" style={{ tableLayout: 'fixed', width: 'max-content' }}>
                     <thead className="sticky top-0 z-50 bg-card shadow-lg" style={{ position: 'sticky', top: 0 }}>
                       <tr>
