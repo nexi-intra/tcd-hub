@@ -52,6 +52,7 @@ interface EmailFolder {
   name: string
   userId: string
   createdAt: number
+  color?: string
 }
 
 type VacationStatus = 'pending' | 'approved' | 'rejected'
@@ -92,6 +93,7 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
   const [showFolderDialog, setShowFolderDialog] = useState(false)
   const [editingFolder, setEditingFolder] = useState<EmailFolder | null>(null)
   const [folderName, setFolderName] = useState('')
+  const [folderColor, setFolderColor] = useState('#8B5CF6')
   const [showMoveToFolderDialog, setShowMoveToFolderDialog] = useState(false)
   const [emailToMove, setEmailToMove] = useState<Email | null>(null)
   const [draggedEmail, setDraggedEmail] = useState<Email | null>(null)
@@ -469,12 +471,14 @@ Return ONLY a JSON object with this exact structure:
       id: Date.now().toString(),
       name: folderName.trim(),
       userId: userEmail,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      color: folderColor
     }
 
     setFolders(current => [...(current || []), newFolder])
     toast.success('Mappe oprettet')
     setFolderName('')
+    setFolderColor('#8B5CF6')
     setShowFolderDialog(false)
   }
 
@@ -487,13 +491,14 @@ Return ONLY a JSON object with this exact structure:
     setFolders(current =>
       (current || []).map(folder =>
         folder.id === editingFolder.id
-          ? { ...folder, name: folderName.trim() }
+          ? { ...folder, name: folderName.trim(), color: folderColor }
           : folder
       )
     )
 
     toast.success('Mappe opdateret')
     setFolderName('')
+    setFolderColor('#8B5CF6')
     setEditingFolder(null)
     setShowFolderDialog(false)
   }
@@ -812,6 +817,7 @@ Return ONLY a JSON object with this exact structure:
                   onClick={() => {
                     setEditingFolder(null)
                     setFolderName('')
+                    setFolderColor('#8B5CF6')
                     setShowFolderDialog(true)
                   }}
                 >
@@ -848,11 +854,13 @@ Return ONLY a JSON object with this exact structure:
                             setSelectedEmail(null)
                           }}
                         >
-                          {view === 'folder' && selectedFolderId === folder.id ? (
-                            <FolderOpen size={20} weight="fill" />
-                          ) : (
-                            <Folder size={20} weight="regular" />
-                          )}
+                          <div className="relative">
+                            {view === 'folder' && selectedFolderId === folder.id ? (
+                              <FolderOpen size={20} weight="fill" style={{ color: folder.color || '#8B5CF6' }} />
+                            ) : (
+                              <Folder size={20} weight="regular" style={{ color: folder.color || '#8B5CF6' }} />
+                            )}
+                          </div>
                           <span className="truncate flex-1 text-left">{folder.name}</span>
                           {folderEmailCount > 0 && (
                             <Badge variant="secondary" className="text-xs">
@@ -869,6 +877,7 @@ Return ONLY a JSON object with this exact structure:
                               e.stopPropagation()
                               setEditingFolder(folder)
                               setFolderName(folder.name)
+                              setFolderColor(folder.color || '#8B5CF6')
                               setShowFolderDialog(true)
                             }}
                           >
@@ -1528,12 +1537,40 @@ Return ONLY a JSON object with this exact structure:
                   }}
                 />
               </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Mappens farve</label>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={folderColor}
+                      onChange={(e) => setFolderColor(e.target.value)}
+                      className="h-10 w-20 rounded-md border border-input cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex-1 grid grid-cols-6 gap-2">
+                    {['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#6366F1', '#14B8A6', '#F97316', '#84CC16', '#A855F7', '#06B6D4'].map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setFolderColor(color)}
+                        className={cn(
+                          "h-8 w-8 rounded-md border-2 transition-all",
+                          folderColor === color ? "border-foreground scale-110" : "border-transparent hover:border-muted-foreground/50"
+                        )}
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
               <div className="flex gap-2 justify-end">
                 <Button
                   onClick={() => {
                     setShowFolderDialog(false)
                     setEditingFolder(null)
                     setFolderName('')
+                    setFolderColor('#8B5CF6')
                   }}
                   variant="outline"
                 >
@@ -1593,7 +1630,7 @@ Return ONLY a JSON object with this exact structure:
                         onClick={() => handleMoveToFolder(folder.id)}
                         disabled={emailToMove?.folderId === folder.id}
                       >
-                        <Folder size={18} />
+                        <Folder size={18} style={{ color: folder.color || '#8B5CF6' }} />
                         {folder.name}
                       </Button>
                     ))}
