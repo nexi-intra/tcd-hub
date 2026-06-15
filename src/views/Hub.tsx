@@ -645,7 +645,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               {myTasks.length === 0 ? (
                 <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noTasks}</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 justify-center">
                   {myTasks.map((task, idx) => (
                     <Badge
                       key={idx}
