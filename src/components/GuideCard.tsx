@@ -56,7 +56,7 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-3 mb-4">
-                  <CardTitle className="text-base sm:text-lg leading-tight break-words flex-1 font-bold text-foreground group-hover:bg-gradient-to-r group-hover:from-primary group-hover:via-secondary group-hover:to-primary group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
+                  <CardTitle className="text-sm sm:text-base md:text-lg leading-tight break-words flex-1 font-bold text-foreground group-hover:bg-gradient-to-r group-hover:from-primary group-hover:via-secondary group-hover:to-primary group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
                     {guide.title}
                   </CardTitle>
                   {guide.wordFileData && (

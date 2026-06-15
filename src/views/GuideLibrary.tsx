@@ -227,14 +227,14 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
                 <Books size={32} weight="duotone" className="text-primary-foreground relative z-10" />
               </motion.div>
               <div className="min-w-0">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
                   Guide Bibliotek
                 </h1>
-                <p className="text-sm sm:text-base text-muted-foreground mt-1.5 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary/15 to-secondary/15 text-primary font-semibold border border-primary/20">
+                <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1.5 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-gradient-to-r from-primary/15 to-secondary/15 text-primary font-semibold border border-primary/20 text-xs sm:text-sm">
                     {guides?.length || 0}
                   </span>
-                  {(guides?.length || 0) === 1 ? 'guide' : 'guides'} tilgængelig
+                  <span className="text-xs sm:text-sm">{(guides?.length || 0) === 1 ? 'guide' : 'guides'} tilgængelig</span>
                 </p>
               </div>
             </div>

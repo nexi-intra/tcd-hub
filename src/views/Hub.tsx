@@ -261,7 +261,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             <img src={nexiLogo} alt="Nexi Logo" className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24" />
           </motion.div>
           <motion.h1 
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-4"
+            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
@@ -307,11 +307,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     {module.icon}
                   </motion.div>
 
-                  <h3 className="text-xl font-bold mb-2 text-foreground">
+                  <h3 className="text-base sm:text-lg md:text-xl font-bold mb-2 text-foreground">
                     {module.title}
                   </h3>
                   
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+                  <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed mb-4">
                     {module.description}
                   </p>
 

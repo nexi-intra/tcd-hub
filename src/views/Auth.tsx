@@ -106,8 +106,8 @@ export function Auth({ onAuthenticated }: AuthProps) {
             >
               <img src={nexiLogo} alt="Nexi Logo" className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24" />
             </motion.div>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">Terminal Configuration & Dispatch Hub</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">Terminal Configuration & Dispatch Hub</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
               {mode === 'login' ? 'Log ind for at fortsætte' : 'Opret en ny konto'}
             </p>
           </div>

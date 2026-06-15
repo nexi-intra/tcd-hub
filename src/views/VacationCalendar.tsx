@@ -494,11 +494,11 @@ Return ONLY a JSON object with this exact structure:
           className="mb-8"
         >
           <div className="flex items-center gap-4 mb-6">
-            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
               Feriekalender
             </h1>
             {isManager && (
-              <Badge className="bg-gradient-to-r from-primary to-secondary text-white">
+              <Badge className="bg-gradient-to-r from-primary to-secondary text-white text-xs sm:text-sm">
                 Manager
               </Badge>
             )}
@@ -528,7 +528,7 @@ Return ONLY a JSON object with this exact structure:
                   >
                     ←
                   </Button>
-                  <h2 className="text-2xl font-bold">
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold">
                     {months[selectedMonth]} {selectedYear}
                   </h2>
                   <Button

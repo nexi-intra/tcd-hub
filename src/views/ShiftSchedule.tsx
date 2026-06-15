@@ -941,7 +941,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
           className="mb-6"
         >
           <div className="flex items-center gap-6 mb-8">
-            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
               Vagtplan
             </h1>
           </div>
