@@ -195,7 +195,13 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     onNavigate(moduleId)
   }
 
-  const modules: HubModule[] = [
+  type AnimationCategory = 'work' | 'social' | 'admin' | 'leisure'
+
+  interface ModuleWithCategory extends HubModule {
+    category: AnimationCategory
+  }
+
+  const modules: ModuleWithCategory[] = [
     {
       id: 'shifts',
       title: t.hub.modules.shifts,
@@ -204,6 +210,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.60 0.22 220)',
       gradient: 'from-[oklch(0.60_0.22_220)] via-[oklch(0.65_0.26_340)] to-[oklch(0.60_0.22_220)]',
       available: true,
+      category: 'work',
     },
     {
       id: 'calendar',
@@ -213,6 +220,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.65 0.26 340)',
       gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
       available: true,
+      category: 'work',
     },
     {
       id: 'meals',
@@ -222,6 +230,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.70 0.18 90)',
       gradient: 'from-[oklch(0.70_0.18_90)] via-[oklch(0.75_0.15_60)] to-[oklch(0.70_0.18_90)]',
       available: true,
+      category: 'leisure',
     },
     {
       id: 'team',
@@ -231,6 +240,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.55 0.24 192)',
       gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
       available: true,
+      category: 'social',
     },
     {
       id: 'email',
@@ -240,6 +250,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.68 0.14 340)',
       gradient: 'from-[oklch(0.68_0.14_340)] via-[oklch(0.75_0.12_180)] to-[oklch(0.68_0.14_340)]',
       available: true,
+      category: 'social',
     },
     {
       id: 'guides',
@@ -249,6 +260,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.50 0.27 262)',
       gradient: 'from-[oklch(0.50_0.27_262)] via-[oklch(0.55_0.24_192)] to-[oklch(0.50_0.27_262)]',
       available: true,
+      category: 'work',
     },
     {
       id: 'game',
@@ -258,6 +270,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.70 0.18 90)',
       gradient: 'from-[oklch(0.70_0.18_90)] via-[oklch(0.75_0.15_60)] to-[oklch(0.70_0.18_90)]',
       available: true,
+      category: 'leisure',
     },
     {
       id: 'documents',
@@ -267,6 +280,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.62 0.20 150)',
       gradient: 'from-[oklch(0.62_0.20_150)] via-[oklch(0.55_0.24_192)] to-[oklch(0.62_0.20_150)]',
       available: false,
+      category: 'work',
     },
     {
       id: 'projects',
@@ -276,6 +290,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.75 0.15 60)',
       gradient: 'from-[oklch(0.75_0.15_60)] via-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]',
       available: false,
+      category: 'work',
     },
     {
       id: 'chat',
@@ -285,6 +300,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.58 0.25 25)',
       gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
       available: false,
+      category: 'social',
     },
     {
       id: 'manager',
@@ -294,8 +310,97 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       color: 'oklch(0.58 0.25 25)',
       gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
       available: isAdminOrManager,
+      category: 'admin',
     },
   ]
+
+  const getIconAnimation = (category: AnimationCategory) => {
+    switch (category) {
+      case 'work':
+        return {
+          hover: {
+            scale: 1.15,
+            rotate: [0, -5, 5, -5, 0],
+            y: [-3, 0, -3],
+          },
+          transition: {
+            duration: 0.5,
+          }
+        }
+      case 'social':
+        return {
+          hover: {
+            scale: [1, 1.2, 1.1],
+            rotate: [0, 360],
+          },
+          transition: {
+            duration: 0.6,
+          }
+        }
+      case 'admin':
+        return {
+          hover: {
+            scale: 1.1,
+            rotateY: [0, 180, 360],
+          },
+          transition: {
+            duration: 0.7,
+          }
+        }
+      case 'leisure':
+        return {
+          hover: {
+            scale: [1, 1.3, 1.15],
+            rotate: [0, -15, 15, -10, 10, 0],
+            y: [0, -8, 0],
+          },
+          transition: {
+            duration: 0.8,
+          }
+        }
+    }
+  }
+
+  const getCardAnimation = (category: AnimationCategory) => {
+    switch (category) {
+      case 'work':
+        return {
+          hover: {
+            y: -8,
+            boxShadow: "0 20px 40px -12px rgba(0, 0, 0, 0.25)",
+          },
+          tap: { scale: 0.98 }
+        }
+      case 'social':
+        return {
+          hover: {
+            scale: 1.05,
+            rotate: [0, -2, 2, 0],
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.3)",
+          },
+          tap: { scale: 0.95 }
+        }
+      case 'admin':
+        return {
+          hover: {
+            y: -6,
+            x: [0, -3, 3, 0],
+            boxShadow: "0 20px 40px -12px rgba(0, 0, 0, 0.25)",
+          },
+          tap: { scale: 0.97 }
+        }
+      case 'leisure':
+        return {
+          hover: {
+            scale: 1.08,
+            y: -10,
+            rotate: [0, 3, -3, 0],
+            boxShadow: "0 30px 60px -15px rgba(0, 0, 0, 0.35)",
+          },
+          tap: { scale: 0.92 }
+        }
+    }
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -565,70 +670,69 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.6 }}
         >
-          {modules.filter(module => module.available).map((module, index) => (
-            <motion.div
-              key={module.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + index * 0.05, duration: 0.4 }}
-            >
-              <Card
-                className="relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[180px] sm:min-h-[220px] flex flex-col cursor-pointer hover:shadow-2xl hover:scale-[1.02] hover:border-primary/40 active:scale-[0.98]"
-                onClick={() => handleModuleClick(module.id)}
+          {modules.filter(module => module.available).map((module, index) => {
+            const cardAnimation = getCardAnimation(module.category)
+            const iconAnimation = getIconAnimation(module.category)
+            
+            return (
+              <motion.div
+                key={module.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 + index * 0.05, duration: 0.4 }}
               >
-                {module.id === 'email' && unreadInboxCount > 0 && (
-                  <Badge className="absolute top-4 right-4 md:top-5 md:right-5 z-10 bg-[oklch(0.58_0.25_25)] text-white px-3 py-1.5 md:px-4 md:py-2 text-xs max-w-[calc(100%-2rem)] text-center whitespace-nowrap">
-                    {unreadInboxCount} {unreadInboxCount > 1 ? t.hub.newMessagesPlural : t.hub.newMessages}
-                  </Badge>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  style={{
-                    background: `radial-gradient(circle at top right, ${module.color}15, transparent)`
-                  }}
-                />
-                
-                <div className="relative p-4 md:p-6 flex flex-col flex-1">
-                  <motion.div 
-                    className={cn(
-                      "mb-3 md:mb-4 inline-flex items-center justify-center rounded-2xl p-2 md:p-3 shadow-lg",
-                      `bg-gradient-to-br ${module.gradient}`
-                    )}
-                    style={{ color: 'white' }}
-                    whileHover={{ 
-                      scale: 1.1,
-                      rotate: [0, -10, 10, -10, 0],
-                      transition: { 
-                        scale: { duration: 0.3 },
-                        rotate: { duration: 0.5, ease: "easeInOut" }
-                      }
-                    }}
+                <motion.div
+                  whileHover={cardAnimation.hover}
+                  whileTap={cardAnimation.tap}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card
+                    className="relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[180px] sm:min-h-[220px] flex flex-col cursor-pointer hover:border-primary/40"
+                    onClick={() => handleModuleClick(module.id)}
                   >
+                    {module.id === 'email' && unreadInboxCount > 0 && (
+                      <Badge className="absolute top-4 right-4 md:top-5 md:right-5 z-10 bg-[oklch(0.58_0.25_25)] text-white px-3 py-1.5 md:px-4 md:py-2 text-xs max-w-[calc(100%-2rem)] text-center whitespace-nowrap">
+                        {unreadInboxCount} {unreadInboxCount > 1 ? t.hub.newMessagesPlural : t.hub.newMessages}
+                      </Badge>
+                    )}
                     <motion.div 
-                      className="[&>svg]:w-8 [&>svg]:h-8 md:[&>svg]:w-12 md:[&>svg]:h-12"
-                      whileHover={{ 
-                        y: [-2, 2, -2],
-                        transition: { 
-                          duration: 0.4,
-                          repeat: Infinity,
-                          ease: "easeInOut"
-                        }
+                      className="absolute inset-0 bg-gradient-to-br"
+                      style={{
+                        background: `radial-gradient(circle at top right, ${module.color}15, transparent)`
                       }}
-                    >
-                      {module.icon}
-                    </motion.div>
-                  </motion.div>
+                      initial={{ opacity: 0 }}
+                      whileHover={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                    
+                    <div className="relative p-4 md:p-6 flex flex-col flex-1">
+                      <motion.div 
+                        className={cn(
+                          "mb-3 md:mb-4 inline-flex items-center justify-center rounded-2xl p-2 md:p-3 shadow-lg",
+                          `bg-gradient-to-br ${module.gradient}`
+                        )}
+                        style={{ color: 'white' }}
+                        whileHover={iconAnimation.hover}
+                        transition={iconAnimation.transition}
+                      >
+                        <div className="[&>svg]:w-8 [&>svg]:h-8 md:[&>svg]:w-12 md:[&>svg]:h-12">
+                          {module.icon}
+                        </div>
+                      </motion.div>
 
-                  <h3 className="text-sm sm:text-base md:text-lg font-bold mb-1.5 md:mb-2 text-foreground text-center">
-                    {module.title}
-                  </h3>
-                  
-                  <p className="text-muted-foreground text-xs leading-relaxed mb-3 md:mb-4 flex-1">
-                    {module.description}
-                  </p>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+                      <h3 className="text-sm sm:text-base md:text-lg font-bold mb-1.5 md:mb-2 text-foreground text-center">
+                        {module.title}
+                      </h3>
+                      
+                      <p className="text-muted-foreground text-xs leading-relaxed mb-3 md:mb-4 flex-1">
+                        {module.description}
+                      </p>
+                    </div>
+                  </Card>
+                </motion.div>
+              </motion.div>
+            )
+          })}
         </motion.div>
       </div>
     </div>
