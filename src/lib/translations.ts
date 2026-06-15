@@ -30,7 +30,16 @@ export const translations = {
       logout: "Log ud",
       openModule: "Åbn modul",
       newMessages: "ny",
-      newMessagesPlural: "nye"
+      newMessagesPlural: "nye",
+      overview: {
+        title: "Overblik",
+        myTasks: "Mine Opgaver I Dag",
+        offToday: "Fri I Dag",
+        sickToday: "Syge I Dag",
+        noTasks: "Ingen opgaver i dag",
+        noOneOff: "Ingen har fri i dag",
+        noOneSick: "Ingen syge i dag"
+      }
     },
     shifts: {
       title: "Vagtplan",
@@ -569,7 +578,16 @@ export const translations = {
       logout: "Logout",
       openModule: "Open module",
       newMessages: "new",
-      newMessagesPlural: "new"
+      newMessagesPlural: "new",
+      overview: {
+        title: "Overview",
+        myTasks: "My Tasks Today",
+        offToday: "Off Today",
+        sickToday: "Sick Today",
+        noTasks: "No tasks today",
+        noOneOff: "No one off today",
+        noOneSick: "No one sick today"
+      }
     },
     shifts: {
       title: "Shift Schedule",

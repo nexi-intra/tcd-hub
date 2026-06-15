@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils'
 import { hasManagerAccess } from '@/lib/userRoles'
 import { useLanguage } from '@/contexts/LanguageContext'
 import nexiLogo from '@/assets/images/nexi-logo.svg'
+import { format, isSameDay, parseISO } from 'date-fns'
+import { da, enUS } from 'date-fns/locale'
 
 interface HubModule {
   id: string
@@ -30,12 +32,53 @@ interface HubProps {
   userEmail: string
 }
 
+interface ShiftRole {
+  id: string
+  name: string
+  color: string
+}
+
+interface ShiftAssignment {
+  id: string
+  employeeId: string
+  employeeName: string
+  roleId: string
+  date: string
+  comment?: string
+}
+
+interface SickLeaveEntry {
+  id: string
+  userEmail: string
+  userName: string
+  startDate: string
+  reason?: string
+  status: 'pending' | 'approved' | 'rejected'
+  submittedAt: string
+}
+
+interface VacationEntry {
+  id: string
+  userId: string
+  userEmail: string
+  startDate: string
+  endDate: string
+  notes?: string
+  status: 'pending' | 'approved' | 'rejected'
+  reviewedBy?: string
+  reviewedAt?: string
+}
+
 export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [isAdminOrManager, setIsAdminOrManager] = useState(false)
   const [showSickLeaveDialog, setShowSickLeaveDialog] = useState(false)
   const [showEmailNotifications, setShowEmailNotifications] = useState(false)
   const [unreadInboxCount, setUnreadInboxCount] = useState(0)
+  
+  const [myTasks, setMyTasks] = useState<Array<{ roleName: string; roleColor: string }>>([])
+  const [peopleOff, setPeopleOff] = useState<Array<{ name: string; type: 'vacation' | 'single' }>>([])
+  const [peopleSick, setPeopleSick] = useState<string[]>([])
   
   useEffect(() => {
     const checkUserRole = async () => {
@@ -54,6 +97,52 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     loadUnreadCount()
     
     const interval = setInterval(loadUnreadCount, 5000)
+    return () => clearInterval(interval)
+  }, [userEmail])
+
+  useEffect(() => {
+    const loadOverviewData = async () => {
+      const today = format(new Date(), 'yyyy-MM-dd')
+      
+      const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+      const roles = (await window.spark.kv.get<ShiftRole[]>('shift-roles')) || []
+      const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+      const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
+      const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
+      
+      const myTasksToday = assignments
+        .filter(a => a.date === today && a.employeeName === (usersData[userEmail]?.fullName || userEmail))
+        .map(a => {
+          const role = roles.find(r => r.id === a.roleId)
+          return { roleName: role?.name || 'Unknown', roleColor: role?.color || 'gray' }
+        })
+      setMyTasks(myTasksToday)
+      
+      const todaySick = sickLeave
+        .filter(s => s.status === 'approved' && isSameDay(parseISO(s.startDate), new Date()))
+        .map(s => s.userName)
+      setPeopleSick(todaySick)
+      
+      const todayOff: Array<{ name: string; type: 'vacation' | 'single' }> = []
+      
+      vacations.forEach(v => {
+        if (v.status === 'approved') {
+          const start = parseISO(v.startDate)
+          const end = parseISO(v.endDate)
+          const now = new Date()
+          
+          if (isSameDay(start, now) || isSameDay(end, now) || (start < now && end > now)) {
+            const userName = usersData[v.userEmail]?.fullName || v.userEmail
+            todayOff.push({ name: userName, type: 'vacation' })
+          }
+        }
+      })
+      
+      setPeopleOff(todayOff)
+    }
+    
+    loadOverviewData()
+    const interval = setInterval(loadOverviewData, 30000)
     return () => clearInterval(interval)
   }, [userEmail])
 
@@ -267,6 +356,82 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             transition={{ delay: 0.3, duration: 0.6 }}
           >Terminal Configuration & Dispatch Hub</motion.h1>
         </motion.header>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+          className="mb-10"
+        >
+          <h2 className="text-xl sm:text-2xl font-bold mb-6 text-foreground">{t.hub.overview.title}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]">
+                  <CheckCircle size={24} weight="duotone" className="text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">{t.hub.overview.myTasks}</h3>
+              </div>
+              {myTasks.length === 0 ? (
+                <p className="text-muted-foreground text-sm">{t.hub.overview.noTasks}</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {myTasks.map((task, idx) => (
+                    <Badge
+                      key={idx}
+                      className="text-white"
+                      style={{ backgroundColor: task.roleColor }}
+                    >
+                      {task.roleName}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.26_340)] to-[oklch(0.70_0.20_20)]">
+                  <Calendar size={24} weight="duotone" className="text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">{t.hub.overview.offToday}</h3>
+              </div>
+              {peopleOff.length === 0 ? (
+                <p className="text-muted-foreground text-sm">{t.hub.overview.noOneOff}</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {peopleOff.map((person, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <User size={16} className="text-muted-foreground" />
+                      <span className="text-sm text-foreground">{person.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)]">
+                  <FirstAidKit size={24} weight="duotone" className="text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">{t.hub.overview.sickToday}</h3>
+              </div>
+              {peopleSick.length === 0 ? (
+                <p className="text-muted-foreground text-sm">{t.hub.overview.noOneSick}</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {peopleSick.map((person, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <User size={16} className="text-muted-foreground" />
+                      <span className="text-sm text-foreground">{person}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        </motion.div>
 
         <motion.div 
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
