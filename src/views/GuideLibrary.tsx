@@ -3,12 +3,11 @@ import { useKV } from '@github/spark/hooks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Plus, MagnifyingGlass, ChatsCircle, Books, Gear, ArrowLeft } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, Books, Gear, ArrowLeft } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
 import { GuideCard } from '@/components/GuideCard'
 import { GuideDialog } from '@/components/GuideDialog'
 import { GuideViewer } from '@/components/GuideViewer'
-import { ChatAssistant } from '@/components/ChatAssistant'
 import { CategoryManager } from '@/components/CategoryManager'
 import { UserProfile } from '@/components/UserProfile'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -26,7 +25,6 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
   const [guides, setGuides] = useKV<Guide[]>('guides', [])
   const [categories, setCategories] = useKV<string[]>('categories', defaultCategories)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [chatOpen, setChatOpen] = useState(false)
   const [viewerOpen, setViewerOpen] = useState(false)
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false)
   const [editGuide, setEditGuide] = useState<Guide | undefined>()
@@ -186,22 +184,6 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                onClick={() => setChatOpen(true)}
-                size="lg"
-                className="bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold w-full sm:w-auto px-4"
-              >
-                <ChatsCircle size={20} weight="duotone" />
-                AI Assistent
-              </Button>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
             >
               <UserProfile 
                 userEmail={""} 
@@ -380,8 +362,6 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
           if (!open) setViewGuide(null)
         }}
       />
-
-      <ChatAssistant open={chatOpen} onOpenChange={setChatOpen} guides={guides || []} />
 
       <CategoryManager
         open={categoryManagerOpen}
