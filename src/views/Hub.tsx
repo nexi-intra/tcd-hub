@@ -577,7 +577,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                 onClick={() => handleModuleClick(module.id)}
               >
                 {module.id === 'email' && unreadInboxCount > 0 && (
-                  <Badge className="absolute top-3 right-3 md:top-4 md:right-4 z-10 bg-[oklch(0.58_0.25_25)] text-white px-2 py-0.5 md:px-3 md:py-1 text-xs">
+                  <Badge className="absolute top-4 right-4 md:top-5 md:right-5 z-10 bg-[oklch(0.58_0.25_25)] text-white px-2.5 py-1 md:px-3 md:py-1 text-xs max-w-[calc(100%-2rem)] text-center">
                     {unreadInboxCount} {unreadInboxCount > 1 ? t.hub.newMessagesPlural : t.hub.newMessages}
                   </Badge>
                 )}
