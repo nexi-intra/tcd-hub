@@ -26,6 +26,7 @@ interface UserProfileProps {
   onLogout: () => void
   onAdminClick?: () => void
   showAdmin?: boolean
+  hideEmail?: boolean
 }
 
 interface UserSettings {
@@ -33,7 +34,7 @@ interface UserSettings {
   password?: string
 }
 
-export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin }: UserProfileProps) {
+export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hideEmail = false }: UserProfileProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [userSettings, setUserSettings] = useKV<Record<string, UserSettings>>('user-settings', {})
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -94,7 +95,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin }: Us
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center">
               <User size={18} weight="bold" className="text-primary-foreground" />
             </div>
-            <span className="text-sm font-medium hidden sm:inline">{userEmail}</span>
+            {!hideEmail && <span className="text-sm font-medium hidden sm:inline">{userEmail}</span>}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">

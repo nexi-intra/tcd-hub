@@ -886,6 +886,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
           onLogout={onLogout}
           showAdmin={isAdmin}
           onAdminClick={() => {}}
+          hideEmail={true}
         />
       </div>
       <div className="w-full px-4 sm:px-6 py-8 relative z-10">
