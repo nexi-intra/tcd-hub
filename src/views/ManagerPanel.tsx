@@ -63,16 +63,16 @@ interface HighScore {
 interface ManagerPanelProps {
   onNavigateBack: () => void
   onLogout: () => void
+  userEmail: string
 }
 
-export function ManagerPanel({ onNavigateBack, onLogout }: ManagerPanelProps) {
+export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPanelProps) {
   const [users, setUsers] = useState<User[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
   const [vacationEntries, setVacationEntries] = useState<VacationEntry[]>([])
   const [allVacations, setAllVacations] = useState<VacationEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasAccess, setHasAccess] = useState(false)
-  const [userEmail, setUserEmail] = useState<string>('')
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [newName, setNewName] = useState('')
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -97,23 +97,18 @@ export function ManagerPanel({ onNavigateBack, onLogout }: ManagerPanelProps) {
   const [editScoreValue, setEditScoreValue] = useState('')
 
   useEffect(() => {
-    const loadUserAndCheckAccess = async () => {
-      const session = await window.spark.kv.get<{ userId: string; email: string }>('user-session')
-      if (session) {
-        setUserEmail(session.email)
-        
-        const access = await hasManagerAccess(session.email)
-        setHasAccess(access)
-        if (access) {
-          loadUsers()
-          loadSickLeaveEntries()
-          loadVacationEntries()
-          loadGameScores()
-        }
+    const checkAccess = async () => {
+      const access = await hasManagerAccess(userEmail)
+      setHasAccess(access)
+      if (access) {
+        loadUsers()
+        loadSickLeaveEntries()
+        loadVacationEntries()
+        loadGameScores()
       }
     }
-    loadUserAndCheckAccess()
-  }, [])
+    checkAccess()
+  }, [userEmail])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
