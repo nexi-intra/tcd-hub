@@ -257,21 +257,9 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
           >
             <div className="relative">
-              <div className="h-32 w-32 rounded-3xl bg-white shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden p-4">
+              <div className="h-16 w-16 rounded-full flex items-center justify-center relative overflow-hidden">
                 <img src={nexiLogo} alt="Nexi Logo" className="w-full h-full object-contain relative z-10" />
               </div>
-              <motion.div
-                className="absolute -inset-2 rounded-3xl bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 blur-xl -z-10"
-                animate={{
-                  scale: [1, 1.1, 1],
-                  opacity: [0.5, 0.7, 0.5],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
             </div>
           </motion.div>
 
