@@ -470,22 +470,23 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="mb-10"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]">
-                  <CheckCircle size={24} weight="duotone" className="text-white" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]">
+                  <CheckCircle size={20} weight="duotone" className="text-white md:hidden" />
+                  <CheckCircle size={24} weight="duotone" className="text-white hidden md:block" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">{t.hub.overview.myTasks}</h3>
+                <h3 className="text-base md:text-lg font-semibold text-foreground">{t.hub.overview.myTasks}</h3>
               </div>
               {myTasks.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center">{t.hub.overview.noTasks}</p>
+                <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noTasks}</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {myTasks.map((task, idx) => (
                     <Badge
                       key={idx}
-                      className="text-white"
+                      className="text-white text-xs"
                       style={{ backgroundColor: task.roleColor }}
                     >
                       {task.roleName}
@@ -495,66 +496,71 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               )}
             </Card>
 
-            <Card className="p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.26_340)] to-[oklch(0.70_0.20_20)]">
-                  <Calendar size={24} weight="duotone" className="text-white" />
+            <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.26_340)] to-[oklch(0.70_0.20_20)]">
+                  <Calendar size={20} weight="duotone" className="text-white md:hidden" />
+                  <Calendar size={24} weight="duotone" className="text-white hidden md:block" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">{t.hub.overview.offToday}</h3>
+                <h3 className="text-base md:text-lg font-semibold text-foreground">{t.hub.overview.offToday}</h3>
               </div>
               {peopleOff.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center">{t.hub.overview.noOneOff}</p>
+                <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noOneOff}</p>
               ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1.5 md:gap-2">
                   {peopleOff.map((person, idx) => (
                     <div key={idx} className="flex items-center gap-2 justify-center">
-                      <User size={16} className="text-muted-foreground" />
-                      <span className="text-sm text-foreground">{person.name}</span>
+                      <User size={14} className="text-muted-foreground md:hidden" />
+                      <User size={16} className="text-muted-foreground hidden md:block" />
+                      <span className="text-xs md:text-sm text-foreground">{person.name}</span>
                     </div>
                   ))}
                 </div>
               )}
             </Card>
 
-            <Card className="p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)]">
-                  <FirstAidKit size={24} weight="duotone" className="text-white" />
+            <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)]">
+                  <FirstAidKit size={20} weight="duotone" className="text-white md:hidden" />
+                  <FirstAidKit size={24} weight="duotone" className="text-white hidden md:block" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">{t.hub.overview.sickToday}</h3>
+                <h3 className="text-base md:text-lg font-semibold text-foreground">{t.hub.overview.sickToday}</h3>
               </div>
               {peopleSick.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center">{t.hub.overview.noOneSick}</p>
+                <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noOneSick}</p>
               ) : (
-                <div className="flex flex-col gap-2 items-center">
+                <div className="flex flex-col gap-1.5 md:gap-2 items-center">
                   {peopleSick.map((person, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <User size={16} className="text-muted-foreground" />
-                      <span className="text-sm text-foreground">{person}</span>
+                      <User size={14} className="text-muted-foreground md:hidden" />
+                      <User size={16} className="text-muted-foreground hidden md:block" />
+                      <span className="text-xs md:text-sm text-foreground">{person}</span>
                     </div>
                   ))}
                 </div>
               )}
             </Card>
 
-            <Card className="p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]">
-                  <ForkKnife size={24} weight="duotone" className="text-white" />
+            <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]">
+                  <ForkKnife size={20} weight="duotone" className="text-white md:hidden" />
+                  <ForkKnife size={24} weight="duotone" className="text-white hidden md:block" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">{t.hub.overview.todaysMeal}</h3>
+                <h3 className="text-base md:text-lg font-semibold text-foreground">{t.hub.overview.todaysMeal}</h3>
               </div>
               {!todaysMeal ? (
-                <p className="text-muted-foreground text-sm text-center">{t.hub.overview.noMeal}</p>
+                <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noMeal}</p>
               ) : (
-                <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere text-center">{todaysMeal}</p>
+                <p className="text-xs md:text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere text-center">{todaysMeal}</p>
               )}
             </Card>
           </div>
         </motion.div>
 
         <motion.div 
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.6 }}
@@ -567,11 +573,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               transition={{ delay: 0.5 + index * 0.05, duration: 0.4 }}
             >
               <Card
-                className="relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[220px] flex flex-col cursor-pointer hover:shadow-2xl hover:scale-[1.02] hover:border-primary/40 active:scale-[0.98]"
+                className="relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[180px] sm:min-h-[220px] flex flex-col cursor-pointer hover:shadow-2xl hover:scale-[1.02] hover:border-primary/40 active:scale-[0.98]"
                 onClick={() => handleModuleClick(module.id)}
               >
                 {module.id === 'email' && unreadInboxCount > 0 && (
-                  <Badge className="absolute top-4 right-4 z-10 bg-[oklch(0.58_0.25_25)] text-white px-3 py-1">
+                  <Badge className="absolute top-3 right-3 md:top-4 md:right-4 z-10 bg-[oklch(0.58_0.25_25)] text-white px-2 py-0.5 md:px-3 md:py-1 text-xs">
                     {unreadInboxCount} {unreadInboxCount > 1 ? t.hub.newMessagesPlural : t.hub.newMessages}
                   </Badge>
                 )}
@@ -581,27 +587,29 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                   }}
                 />
                 
-                <div className="relative p-6 flex flex-col flex-1">
+                <div className="relative p-4 md:p-6 flex flex-col flex-1">
                   <motion.div 
                     className={cn(
-                      "mb-4 inline-flex items-center justify-center rounded-2xl p-3 shadow-lg transition-all duration-300",
+                      "mb-3 md:mb-4 inline-flex items-center justify-center rounded-2xl p-2 md:p-3 shadow-lg transition-all duration-300",
                       `bg-gradient-to-br ${module.gradient} group-hover:scale-110 group-hover:shadow-xl`
                     )}
                     style={{ color: 'white' }}
                   >
-                    {module.icon}
+                    <div className="[&>svg]:w-8 [&>svg]:h-8 md:[&>svg]:w-12 md:[&>svg]:h-12">
+                      {module.icon}
+                    </div>
                   </motion.div>
 
-                  <h3 className="text-base sm:text-lg md:text-xl font-bold mb-2 text-foreground text-center">
+                  <h3 className="text-sm sm:text-base md:text-lg font-bold mb-1.5 md:mb-2 text-foreground text-center">
                     {module.title}
                   </h3>
                   
-                  <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed mb-4">
+                  <p className="text-muted-foreground text-xs leading-relaxed mb-3 md:mb-4 flex-1">
                     {module.description}
                   </p>
 
                   <div className={cn(
-                    "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold text-white transition-all duration-300 opacity-0 group-hover:opacity-100",
+                    "inline-flex items-center gap-2 px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-xs font-semibold text-white transition-all duration-300 opacity-0 group-hover:opacity-100",
                     `bg-gradient-to-r ${module.gradient}`
                   )}>
                     {t.hub.openModule} →
