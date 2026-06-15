@@ -257,7 +257,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
           >
             <div className="relative">
-              <div className="h-2.5 w-2.5 rounded-full flex items-center justify-center relative overflow-hidden">
+              <div className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 rounded-full flex items-center justify-center relative overflow-hidden">
                 <img src={nexiLogo} alt="Nexi Logo" className="w-full h-full object-cover relative z-10" style={{ clipPath: 'circle(50% at center)' }} />
               </div>
             </div>
