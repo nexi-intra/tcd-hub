@@ -489,9 +489,9 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                 <h3 className="text-lg font-semibold text-foreground">{t.hub.overview.todaysMeal}</h3>
               </div>
               {!todaysMeal ? (
-                <p className="text-muted-foreground text-sm">{t.hub.overview.noMeal}</p>
+                <p className="text-muted-foreground text-sm text-center">{t.hub.overview.noMeal}</p>
               ) : (
-                <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere">{todaysMeal}</p>
+                <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere text-center">{todaysMeal}</p>
               )}
             </Card>
           </div>
