@@ -12,7 +12,6 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { cn } from '@/lib/utils'
 import { hasManagerAccess } from '@/lib/userRoles'
 import { useLanguage } from '@/contexts/LanguageContext'
-import nexiLogo from '@/assets/images/Designer_(3).png'
 
 interface HubModule {
   id: string
@@ -250,27 +249,12 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <motion.div 
-            className="inline-flex items-center justify-center mb-6"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
-          >
-            <div className="relative">
-              <div className="h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center relative overflow-hidden">
-                <img src={nexiLogo} alt="Nexi Logo" className="w-full h-full object-cover relative z-10" style={{ clipPath: 'circle(50% at center)' }} />
-              </div>
-            </div>
-          </motion.div>
-
           <motion.h1 
             className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
           >Terminal Configuration & Dispatch Hub</motion.h1>
-          
-
         </motion.header>
 
         <motion.div 
