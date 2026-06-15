@@ -12,6 +12,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { cn } from '@/lib/utils'
 import { hasManagerAccess } from '@/lib/userRoles'
 import { useLanguage } from '@/contexts/LanguageContext'
+import nexiLogo from '@/assets/images/Designer_(3).png'
 
 interface HubModule {
   id: string
@@ -256,10 +257,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
           >
             <div className="relative">
-              <div className="h-24 w-24 rounded-3xl bg-gradient-to-br from-primary via-secondary to-accent shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-transparent to-accent/40 animate-pulse" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,white,transparent)] opacity-20" />
-                <Books size={48} weight="duotone" className="text-primary-foreground relative z-10" />
+              <div className="h-32 w-32 rounded-3xl bg-white shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden p-4">
+                <img src={nexiLogo} alt="Nexi Logo" className="w-full h-full object-contain relative z-10" />
               </div>
               <motion.div
                 className="absolute -inset-2 rounded-3xl bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 blur-xl -z-10"
