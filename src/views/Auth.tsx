@@ -142,7 +142,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="F.eks. Anders Andersen"
-                    className="h-11"
+                    className="h-12"
                     required
                   />
                 </div>
@@ -159,7 +159,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="din@email.dk"
-                  className="h-11"
+                  className="h-12"
                   required
                 />
               </div>
@@ -176,7 +176,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="h-11 pr-10"
+                    className="h-12 pr-10"
                     required
                   />
                   <button
@@ -201,7 +201,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="h-11"
+                    className="h-12"
                     required
                   />
                 </div>
@@ -209,7 +209,8 @@ export function Auth({ onAuthenticated }: AuthProps) {
 
               <Button
                 type="submit"
-                className="w-full h-11 bg-gradient-to-r from-primary via-secondary to-accent text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                size="lg"
+                className="w-full bg-gradient-to-r from-primary via-secondary to-accent text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 disabled={isLoading}
               >
                 {isLoading ? 'Behandler...' : mode === 'login' ? 'Log ind' : 'Opret konto'}
