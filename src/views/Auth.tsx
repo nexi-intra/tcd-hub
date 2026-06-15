@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Books, User, Lock, EnvelopeSimple, Eye, EyeSlash } from '@phosphor-icons/react'
+import { User, Lock, EnvelopeSimple, Eye, EyeSlash } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -95,33 +95,6 @@ export function Auth({ onAuthenticated }: AuthProps) {
           transition={{ duration: 0.6 }}
         >
           <div className="text-center mb-8">
-            <motion.div
-              className="inline-flex items-center justify-center mb-6"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
-            >
-              <div className="relative">
-                <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-primary via-secondary to-accent shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-transparent to-accent/40 animate-pulse" />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,white,transparent)] opacity-20" />
-                  <Books size={40} weight="duotone" className="text-primary-foreground relative z-10" />
-                </div>
-                <motion.div
-                  className="absolute -inset-2 rounded-3xl bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 blur-xl -z-10"
-                  animate={{
-                    scale: [1, 1.1, 1],
-                    opacity: [0.5, 0.7, 0.5],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                />
-              </div>
-            </motion.div>
-
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">Terminal Configuration & Dispatch Hub</h1>
             <p className="text-muted-foreground">
               {mode === 'login' ? 'Log ind for at fortsætte' : 'Opret en ny konto'}
