@@ -158,69 +158,71 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      <div className="absolute top-8 right-6 left-6 z-20 flex flex-wrap items-center justify-end gap-4 pb-12">
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.05 }}
-        >
-          <ThemeToggle />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <LanguageToggle />
-        </motion.div>
-        {isAdminOrManager && (
+      <div className="absolute top-6 right-6 left-6 z-20">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pb-12">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.05 }}
+          >
+            <ThemeToggle />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <LanguageToggle />
+          </motion.div>
+          {isAdminOrManager && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Button
+                onClick={() => setShowEmailNotifications(true)}
+                size="lg"
+                variant="outline"
+                className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold relative px-4 w-full sm:w-auto"
+              >
+                <Envelope size={20} weight="duotone" />
+                {t.email.notifications}
+                {unreadInboxCount > 0 && (
+                  <Badge className="absolute -top-2 -right-2 bg-[oklch(0.58_0.25_25)] text-white px-2 py-0.5 text-xs">
+                    {unreadInboxCount}
+                  </Badge>
+                )}
+              </Button>
+            </motion.div>
+          )}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
           >
             <Button
-              onClick={() => setShowEmailNotifications(true)}
+              onClick={() => setShowSickLeaveDialog(true)}
               size="lg"
-              variant="outline"
-              className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold relative px-4"
+              className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold w-full sm:w-auto"
             >
-              <Envelope size={20} weight="duotone" />
-              {t.email.notifications}
-              {unreadInboxCount > 0 && (
-                <Badge className="absolute -top-2 -right-2 bg-[oklch(0.58_0.25_25)] text-white px-2 py-0.5 text-xs">
-                  {unreadInboxCount}
-                </Badge>
-              )}
+              <FirstAidKit size={24} weight="duotone" />
+              {t.shifts.sickLeave}
             </Button>
           </motion.div>
-        )}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Button
-            onClick={() => setShowSickLeaveDialog(true)}
-            size="lg"
-            className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold"
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
           >
-            <FirstAidKit size={24} weight="duotone" />
-            {t.shifts.sickLeave}
-          </Button>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <UserProfile 
-            userEmail={userEmail} 
-            onLogout={onLogout}
-            showAdmin={isAdminOrManager}
-            onAdminClick={() => onNavigate('admin')}
-          />
-        </motion.div>
+            <UserProfile 
+              userEmail={userEmail} 
+              onLogout={onLogout}
+              showAdmin={isAdminOrManager}
+              onAdminClick={() => onNavigate('admin')}
+            />
+          </motion.div>
+        </div>
       </div>
       <SickLeaveDialog
         open={showSickLeaveDialog}
