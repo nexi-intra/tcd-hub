@@ -114,20 +114,6 @@ export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
               </Button>
             </motion.div>
           </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <UserProfile 
-                userEmail={""} 
-                onLogout={onLogout}
-                showAdmin={false}
-                onAdminClick={() => {}}
-              />
-            </motion.div>
-          </div>
         </div>
       </div>
       

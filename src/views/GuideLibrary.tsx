@@ -162,37 +162,6 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
               </Button>
             </motion.div>
           </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.05 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                onClick={() => setCategoryManagerOpen(true)}
-                variant="outline"
-                size="lg"
-                className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4 w-full sm:w-auto"
-              >
-                <Gear size={20} weight="duotone" />
-                Kategorier
-              </Button>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <UserProfile 
-                userEmail={""} 
-                onLogout={onLogout}
-                showAdmin={false}
-                onAdminClick={() => {}}
-              />
-            </motion.div>
-          </div>
         </div>
       </div>
       
