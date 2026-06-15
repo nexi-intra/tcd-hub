@@ -216,38 +216,52 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
 
           <Separator className="my-8" />
 
-          <div className="flex flex-wrap gap-3">
-            {allCategories.map((category) => (
-              <motion.div 
-                key={category}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button
-                  variant={activeCategory === category ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveCategory(category)}
-                  className={cn(
-                    'transition-all backdrop-blur-md font-semibold border-2 rounded-xl px-4 h-10',
-                    activeCategory === category 
-                      ? 'shadow-xl shadow-primary/30 bg-gradient-to-r from-primary via-secondary to-primary border-primary' 
-                      : 'hover:bg-muted hover:border-primary/40 border-border'
-                  )}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-3 flex-1">
+              {allCategories.map((category) => (
+                <motion.div 
+                  key={category}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  {category}
-                  {category !== 'All' && (
-                    <span className={cn(
-                      "ml-2 px-2 py-0.5 rounded-lg text-xs font-bold",
+                  <Button
+                    variant={activeCategory === category ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveCategory(category)}
+                    className={cn(
+                      'transition-all backdrop-blur-md font-semibold border-2 rounded-xl px-4 h-10',
                       activeCategory === category 
-                        ? "bg-primary-foreground/20 text-primary-foreground" 
-                        : "bg-primary/10 text-primary"
-                    )}>
-                      {(guides || []).filter((g) => g.category === category).length}
-                    </span>
-                  )}
-                </Button>
-              </motion.div>
-            ))}
+                        ? 'shadow-xl shadow-primary/30 bg-gradient-to-r from-primary via-secondary to-primary border-primary' 
+                        : 'hover:bg-muted hover:border-primary/40 border-border'
+                    )}
+                  >
+                    {category}
+                    {category !== 'All' && (
+                      <span className={cn(
+                        "ml-2 px-2 py-0.5 rounded-lg text-xs font-bold",
+                        activeCategory === category 
+                          ? "bg-primary-foreground/20 text-primary-foreground" 
+                          : "bg-primary/10 text-primary"
+                      )}>
+                        {(guides || []).filter((g) => g.category === category).length}
+                      </span>
+                    )}
+                  </Button>
+                </motion.div>
+              ))}
+            </div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCategoryManagerOpen(true)}
+                className="h-10 px-4 font-semibold border-2 rounded-xl backdrop-blur-md hover:bg-muted hover:border-primary/40"
+              >
+                <Gear size={18} weight="bold" className="sm:mr-2" />
+                <span className="hidden sm:inline">Administrer kategorier</span>
+                <span className="sm:hidden">Kategorier</span>
+              </Button>
+            </motion.div>
           </div>
         </header>
 
