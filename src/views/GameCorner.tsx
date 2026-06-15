@@ -28,12 +28,51 @@ interface Target {
   y: number
 }
 
+type Difficulty = 'easy' | 'medium' | 'hard'
+
+interface DifficultySettings {
+  timeLimit: number
+  targetLifetime: number
+  pointsPerTarget: number
+  label: { da: string; en: string }
+  description: { da: string; en: string }
+  color: string
+}
+
+const DIFFICULTY_SETTINGS: Record<Difficulty, DifficultySettings> = {
+  easy: {
+    timeLimit: 45,
+    targetLifetime: 2000,
+    pointsPerTarget: 10,
+    label: { da: 'Let', en: 'Easy' },
+    description: { da: '45 sekunder, langsomme mål', en: '45 seconds, slow targets' },
+    color: 'oklch(0.65 0.15 140)',
+  },
+  medium: {
+    timeLimit: 30,
+    targetLifetime: 1500,
+    pointsPerTarget: 15,
+    label: { da: 'Medium', en: 'Medium' },
+    description: { da: '30 sekunder, normale mål', en: '30 seconds, normal targets' },
+    color: 'oklch(0.70 0.18 90)',
+  },
+  hard: {
+    timeLimit: 20,
+    targetLifetime: 1000,
+    pointsPerTarget: 25,
+    label: { da: 'Svær', en: 'Hard' },
+    description: { da: '20 sekunder, hurtige mål', en: '20 seconds, fast targets' },
+    color: 'oklch(0.65 0.26 340)',
+  },
+}
+
 export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const { t, language } = useLanguage()
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameover'>('menu')
   const [playerName, setPlayerName] = useState('')
   const [currentScore, setCurrentScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(30)
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [targets, setTargets] = useState<Target[]>([])
   const [highScores, setHighScores] = useKV<HighScore[]>('game-corner-highscores', [])
   const gameAreaRef = useRef<HTMLDivElement>(null)
@@ -57,6 +96,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     
     const rect = gameAreaRef.current.getBoundingClientRect()
     const padding = 60
+    const settings = DIFFICULTY_SETTINGS[difficulty]
     
     const newTarget: Target = {
       id: Date.now().toString() + Math.random(),
@@ -75,16 +115,18 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
           }
         }, 200)
       }
-    }, 1500)
+    }, settings.targetLifetime)
   }
 
   const startGame = () => {
     if (!playerName.trim()) return
     
+    const settings = DIFFICULTY_SETTINGS[difficulty]
+    
     isPlayingRef.current = true
     setGameState('playing')
     setCurrentScore(0)
-    setTimeLeft(30)
+    setTimeLeft(settings.timeLimit)
     setTargets([])
     
     timerRef.current = window.setInterval(() => {
@@ -101,8 +143,10 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   }
 
   const hitTarget = (targetId: string) => {
+    const settings = DIFFICULTY_SETTINGS[difficulty]
+    
     setTargets(prev => prev.filter(t => t.id !== targetId))
-    setCurrentScore(prev => prev + 10)
+    setCurrentScore(prev => prev + settings.pointsPerTarget)
     
     if (targetSpawnRef.current) {
       clearTimeout(targetSpawnRef.current)
@@ -151,7 +195,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     isPlayingRef.current = false
     setGameState('menu')
     setCurrentScore(0)
-    setTimeLeft(30)
+    setTimeLeft(DIFFICULTY_SETTINGS[difficulty].timeLimit)
     setTargets([])
   }
 
@@ -211,7 +255,12 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                   className="text-center space-y-6"
                 >
                   <div className="flex justify-center">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[oklch(0.70_0.18_90)] to-[oklch(0.65_0.26_340)] flex items-center justify-center">
+                    <div 
+                      className="w-24 h-24 rounded-full flex items-center justify-center"
+                      style={{ 
+                        background: `linear-gradient(135deg, ${DIFFICULTY_SETTINGS[difficulty].color}, oklch(0.65 0.26 340))` 
+                      }}
+                    >
                       <Target size={48} weight="duotone" className="text-white" />
                     </div>
                   </div>
@@ -222,12 +271,44 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                     </h2>
                     <p className="text-muted-foreground">
                       {language === 'da' 
-                        ? 'Klik på målene så hurtigt som muligt! Du har 30 sekunder.' 
-                        : 'Click the targets as fast as you can! You have 30 seconds.'}
+                        ? 'Klik på målene så hurtigt som muligt!' 
+                        : 'Click the targets as fast as you can!'}
                     </p>
                   </div>
 
                   <div className="max-w-sm mx-auto space-y-4">
+                    <div>
+                      <label className="text-sm font-medium mb-3 block">
+                        {language === 'da' ? 'Vælg sværhedsgrad' : 'Select difficulty'}
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(['easy', 'medium', 'hard'] as Difficulty[]).map((level) => {
+                          const settings = DIFFICULTY_SETTINGS[level]
+                          return (
+                            <motion.button
+                              key={level}
+                              onClick={() => setDifficulty(level)}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className={cn(
+                                "p-3 rounded-lg border-2 transition-all",
+                                difficulty === level
+                                  ? "border-current shadow-lg"
+                                  : "border-border hover:border-muted-foreground"
+                              )}
+                              style={difficulty === level ? { 
+                                borderColor: settings.color,
+                                backgroundColor: `color-mix(in oklch, ${settings.color} 10%, transparent)`
+                              } : {}}
+                            >
+                              <div className="font-bold text-sm mb-1">{settings.label[language]}</div>
+                              <div className="text-xs text-muted-foreground">{settings.description[language]}</div>
+                            </motion.button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
                     <div>
                       <label className="text-sm font-medium mb-2 block">
                         {language === 'da' ? 'Dit navn' : 'Your name'}
@@ -242,7 +323,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
 
                     {currentPlayerBestScore && (
                       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                        <Star size={16} weight="fill" className="text-[oklch(0.70_0.18_90)]" />
+                        <Star size={16} weight="fill" style={{ color: DIFFICULTY_SETTINGS[difficulty].color }} />
                         {language === 'da' ? 'Din bedste: ' : 'Your best: '}
                         <span className="font-bold text-foreground">{currentPlayerBestScore.score}</span>
                       </div>
@@ -252,7 +333,10 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                       onClick={startGame}
                       disabled={!playerName.trim()}
                       size="lg"
-                      className="w-full bg-gradient-to-r from-[oklch(0.70_0.18_90)] to-[oklch(0.65_0.26_340)] hover:opacity-90"
+                      className="w-full hover:opacity-90"
+                      style={{ 
+                        background: `linear-gradient(90deg, ${DIFFICULTY_SETTINGS[difficulty].color}, oklch(0.65 0.26 340))` 
+                      }}
                     >
                       <Lightning size={20} weight="fill" className="mr-2" />
                       {language === 'da' ? 'Start Spil' : 'Start Game'}
@@ -264,10 +348,16 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                       {language === 'da' ? 'Sådan spiller du:' : 'How to play:'}
                     </p>
                     <ul className="text-left max-w-md mx-auto space-y-1">
-                      <li>• {language === 'da' ? 'Klik på de orange mål så hurtigt du kan' : 'Click the orange targets as fast as you can'}</li>
-                      <li>• {language === 'da' ? 'Hvert mål giver 10 point' : 'Each target gives 10 points'}</li>
-                      <li>• {language === 'da' ? 'Mål forsvinder efter 1,5 sekunder' : 'Targets disappear after 1.5 seconds'}</li>
-                      <li>• {language === 'da' ? 'Du har 30 sekunder total' : 'You have 30 seconds total'}</li>
+                      <li>• {language === 'da' ? 'Klik på de farvede mål så hurtigt du kan' : 'Click the colored targets as fast as you can'}</li>
+                      <li>• {language === 'da' 
+                        ? `Hvert mål giver ${DIFFICULTY_SETTINGS[difficulty].pointsPerTarget} point` 
+                        : `Each target gives ${DIFFICULTY_SETTINGS[difficulty].pointsPerTarget} points`}</li>
+                      <li>• {language === 'da' 
+                        ? `Mål forsvinder efter ${DIFFICULTY_SETTINGS[difficulty].targetLifetime / 1000} sekunder` 
+                        : `Targets disappear after ${DIFFICULTY_SETTINGS[difficulty].targetLifetime / 1000} seconds`}</li>
+                      <li>• {language === 'da' 
+                        ? `Du har ${DIFFICULTY_SETTINGS[difficulty].timeLimit} sekunder total` 
+                        : `You have ${DIFFICULTY_SETTINGS[difficulty].timeLimit} seconds total`}</li>
                     </ul>
                   </div>
                 </motion.div>
@@ -317,10 +407,11 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => hitTarget(target.id)}
-                          className="absolute w-16 h-16 rounded-full bg-gradient-to-br from-[oklch(0.70_0.18_90)] to-[oklch(0.65_0.26_340)] shadow-lg flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 hover:shadow-xl transition-shadow"
+                          className="absolute w-16 h-16 rounded-full shadow-lg flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 hover:shadow-xl transition-shadow"
                           style={{
                             left: `${target.x}px`,
                             top: `${target.y}px`,
+                            background: `linear-gradient(135deg, ${DIFFICULTY_SETTINGS[difficulty].color}, oklch(0.65 0.26 340))`,
                           }}
                         >
                           <Target size={32} weight="fill" className="text-white" />
@@ -348,7 +439,10 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                       initial={{ rotate: -180, scale: 0 }}
                       animate={{ rotate: 0, scale: 1 }}
                       transition={{ type: 'spring', duration: 0.6 }}
-                      className="w-32 h-32 rounded-full bg-gradient-to-br from-[oklch(0.70_0.18_90)] to-[oklch(0.65_0.26_340)] flex items-center justify-center"
+                      className="w-32 h-32 rounded-full flex items-center justify-center"
+                      style={{ 
+                        background: `linear-gradient(135deg, ${DIFFICULTY_SETTINGS[difficulty].color}, oklch(0.65 0.26 340))` 
+                      }}
                     >
                       <Trophy size={64} weight="duotone" className="text-white" />
                     </motion.div>
@@ -361,11 +455,11 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                     <p className="text-muted-foreground mb-4">
                       {language === 'da' ? 'Godt gået, ' : 'Well done, '}{playerName}!
                     </p>
-                    <div className="text-6xl font-bold text-[oklch(0.70_0.18_90)] mb-2">
+                    <div className="text-6xl font-bold mb-2" style={{ color: DIFFICULTY_SETTINGS[difficulty].color }}>
                       {currentScore}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {language === 'da' ? 'point' : 'points'}
+                      {language === 'da' ? 'point' : 'points'} • {DIFFICULTY_SETTINGS[difficulty].label[language]}
                     </div>
                   </div>
 
@@ -373,7 +467,11 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[oklch(0.70_0.18_90)]/10 text-[oklch(0.70_0.18_90)] font-medium"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium"
+                      style={{ 
+                        backgroundColor: `color-mix(in oklch, ${DIFFICULTY_SETTINGS[difficulty].color} 10%, transparent)`,
+                        color: DIFFICULTY_SETTINGS[difficulty].color 
+                      }}
                     >
                       <Crown size={20} weight="fill" />
                       {language === 'da' ? 'Ny personlig rekord!' : 'New personal record!'}
@@ -384,7 +482,10 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                     <Button
                       onClick={resetGame}
                       size="lg"
-                      className="bg-gradient-to-r from-[oklch(0.70_0.18_90)] to-[oklch(0.65_0.26_340)] hover:opacity-90"
+                      className="hover:opacity-90"
+                      style={{ 
+                        background: `linear-gradient(90deg, ${DIFFICULTY_SETTINGS[difficulty].color}, oklch(0.65 0.26 340))` 
+                      }}
                     >
                       <Lightning size={20} weight="fill" className="mr-2" />
                       {language === 'da' ? 'Spil Igen' : 'Play Again'}
