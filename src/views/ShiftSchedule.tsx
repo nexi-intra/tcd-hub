@@ -212,15 +212,32 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
     if (activeTab === 'schedule' && scheduleScrollRef.current && !hasScrolledToToday.current) {
       const scrollToCurrentWeek = () => {
         const today = new Date()
-        const currentDay = today.getDate()
-        const rowHeight = 80
-        const headerHeight = 50
-        const scrollPosition = Math.max(0, (currentDay - 1) * rowHeight - headerHeight)
+        const currentWeekNumber = getWeekNumber(today)
         
-        scheduleScrollRef.current?.scrollTo({
-          top: scrollPosition,
-          behavior: 'smooth'
-        })
+        const daysInMonth = getDaysInMonth(selectedMonth, selectedYear)
+        let targetDay = 1
+        let foundCurrentWeek = false
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+          const date = new Date(selectedYear, selectedMonth, day)
+          if (getWeekNumber(date) === currentWeekNumber && date.getFullYear() === today.getFullYear()) {
+            targetDay = day
+            foundCurrentWeek = true
+            break
+          }
+        }
+        
+        if (foundCurrentWeek) {
+          const rowHeight = 80
+          const headerHeight = 60
+          const offsetRows = 2
+          const scrollPosition = Math.max(0, (targetDay - 1 - offsetRows) * rowHeight)
+          
+          scheduleScrollRef.current?.scrollTo({
+            top: scrollPosition,
+            behavior: 'smooth'
+          })
+        }
         
         hasScrolledToToday.current = true
       }
