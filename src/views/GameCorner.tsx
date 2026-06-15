@@ -114,12 +114,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     
     targetSpawnRef.current = window.setTimeout(() => {
       if (isPlayingRef.current) {
-        setTargets(prev => {
-          if (prev.length > 0) {
-            setCurrentScore(score => Math.max(0, score - settings.penaltyPoints))
-          }
-          return []
-        })
+        setTargets([])
         targetSpawnRef.current = window.setTimeout(() => {
           if (isPlayingRef.current) {
             spawnTarget()
@@ -153,7 +148,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     setTimeout(() => spawnTarget(), 500)
   }
 
-  const hitTarget = (targetId: string) => {
+  const hitTarget = (targetId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
     const settings = DIFFICULTY_SETTINGS[difficulty]
     
     setTargets(prev => prev.filter(t => t.id !== targetId))
@@ -168,6 +164,13 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
         spawnTarget()
       }
     }, 100)
+  }
+
+  const handleGameAreaClick = () => {
+    if (targets.length > 0) {
+      const settings = DIFFICULTY_SETTINGS[difficulty]
+      setCurrentScore(score => Math.max(0, score - settings.penaltyPoints))
+    }
   }
 
   const endGame = () => {
@@ -372,11 +375,11 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                         ? `Hvert mål giver ${DIFFICULTY_SETTINGS[difficulty].pointsPerTarget} point` 
                         : `Each target gives ${DIFFICULTY_SETTINGS[difficulty].pointsPerTarget} points`}</li>
                       <li>• {language === 'da' 
-                        ? `Mål forsvinder efter ${DIFFICULTY_SETTINGS[difficulty].targetLifetime / 1000} sekunder` 
-                        : `Targets disappear after ${DIFFICULTY_SETTINGS[difficulty].targetLifetime / 1000} seconds`}</li>
+                        ? `Mål forsvinder efter ${DIFFICULTY_SETTINGS[difficulty].targetLifetime / 1000} sekunder (ingen straf)` 
+                        : `Targets disappear after ${DIFFICULTY_SETTINGS[difficulty].targetLifetime / 1000} seconds (no penalty)`}</li>
                       <li className="text-destructive font-medium">• {language === 'da' 
-                        ? `Misser du et mål, mister du ${DIFFICULTY_SETTINGS[difficulty].penaltyPoints} point!` 
-                        : `Miss a target and lose ${DIFFICULTY_SETTINGS[difficulty].penaltyPoints} points!`}</li>
+                        ? `Klik ved siden af et mål: ${DIFFICULTY_SETTINGS[difficulty].penaltyPoints} point i straf!` 
+                        : `Click outside a target: ${DIFFICULTY_SETTINGS[difficulty].penaltyPoints} point penalty!`}</li>
                       <li>• {language === 'da' 
                         ? `Du har ${DIFFICULTY_SETTINGS[difficulty].timeLimit} sekunder total` 
                         : `You have ${DIFFICULTY_SETTINGS[difficulty].timeLimit} seconds total`}</li>
@@ -416,6 +419,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
 
                   <div
                     ref={gameAreaRef}
+                    onClick={handleGameAreaClick}
                     className="relative w-full h-[500px] bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border-2 border-dashed border-border overflow-hidden"
                     style={{ cursor: 'crosshair' }}
                   >
@@ -428,7 +432,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                           exit={{ scale: 0, rotate: 180 }}
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          onClick={() => hitTarget(target.id)}
+                          onClick={(e) => hitTarget(target.id, e)}
                           className="absolute w-16 h-16 rounded-full shadow-lg flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 hover:shadow-xl transition-shadow"
                           style={{
                             left: `${target.x}px`,
