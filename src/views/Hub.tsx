@@ -12,6 +12,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { cn } from '@/lib/utils'
 import { hasManagerAccess } from '@/lib/userRoles'
 import { useLanguage } from '@/contexts/LanguageContext'
+import nexiLogo from '@/assets/images/nexi-logo.svg'
 
 interface HubModule {
   id: string
@@ -251,6 +252,14 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="flex justify-center mb-6"
+          >
+            <img src={nexiLogo} alt="Nexi Logo" className="w-20 h-20 sm:w-24 sm:h-24" />
+          </motion.div>
           <motion.h1 
             className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-4"
             initial={{ opacity: 0, y: 20 }}
