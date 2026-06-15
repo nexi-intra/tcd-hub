@@ -29,15 +29,15 @@ interface VacationEntry {
 interface VacationCalendarProps {
   onNavigateBack: () => void
   onLogout: () => void
-  userEmail: string
 }
 
-export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: VacationCalendarProps) {
+export function VacationCalendar({ onNavigateBack, onLogout }: VacationCalendarProps) {
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [isManager, setIsManager] = useState(false)
   const [usersData, setUsersData] = useState<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>({})
+  const [userEmail, setUserEmail] = useState<string>('')
 
   const months = [
     'Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni',
@@ -45,17 +45,22 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail }: Vacati
   ]
 
   useEffect(() => {
-    const checkManagerStatus = async () => {
-      const users = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
-      if (users) {
-        setUsersData(users)
-        if (users[userEmail]) {
-          setIsManager(users[userEmail].isManager || false)
+    const loadUser = async () => {
+      const session = await window.spark.kv.get<{ userId: string; email: string }>('user-session')
+      if (session) {
+        setUserEmail(session.email)
+        
+        const users = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
+        if (users) {
+          setUsersData(users)
+          if (users[session.email]) {
+            setIsManager(users[session.email].isManager || false)
+          }
         }
       }
     }
-    checkManagerStatus()
-  }, [userEmail])
+    loadUser()
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -441,10 +446,6 @@ Return ONLY a JSON object with this exact structure:
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-
-      <div className="absolute top-4 right-4 z-20">
-        <UserProfile userEmail={userEmail} onLogout={onLogout} />
-      </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl relative z-10">
         <motion.div

@@ -63,7 +63,6 @@ interface VacationEntry {
 interface ShiftScheduleProps {
   onNavigateBack: () => void
   onLogout: () => void
-  userEmail: string
 }
 
 const danishHolidays2024 = [
@@ -86,13 +85,14 @@ const danishHolidays2026 = [
 
 const allDanishHolidays = [...danishHolidays2024, ...danishHolidays2025, ...danishHolidays2026]
 
-export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftScheduleProps) {
+export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) {
   const [roles, setRoles] = useKV<ShiftRole[]>('shift-roles', [])
   const [assignments, setAssignments] = useKV<ShiftAssignment[]>('shift-assignments', [])
   const [employees, setEmployees] = useState<TeamEmployee[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
   const [vacationEntries, setVacationEntries] = useKV<VacationEntry[]>('vacation-entries', [])
   const [isAdmin, setIsAdmin] = useState(false)
+  const [userEmail, setUserEmail] = useState<string>('')
   
   const [showRoleDialog, setShowRoleDialog] = useState(false)
   const [showAssignmentDialog, setShowAssignmentDialog] = useState(false)
@@ -152,14 +152,19 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail }: ShiftSche
   ]
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: string }>>('users')
-      if (usersData && usersData[userEmail]?.role === 'admin') {
-        setIsAdmin(true)
+    const loadUserAndCheckAdmin = async () => {
+      const session = await window.spark.kv.get<{ userId: string; email: string }>('user-session')
+      if (session) {
+        setUserEmail(session.email)
+        
+        const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: string }>>('users')
+        if (usersData && usersData[session.email]?.role === 'admin') {
+          setIsAdmin(true)
+        }
       }
     }
-    checkAdmin()
-  }, [userEmail])
+    loadUserAndCheckAdmin()
+  }, [])
 
   useEffect(() => {
     loadEmployees()

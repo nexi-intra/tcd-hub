@@ -42,14 +42,14 @@ interface ShiftRole {
 interface AdminPanelProps {
   onNavigateBack: () => void
   onLogout: () => void
-  userEmail: string
 }
 
-export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelProps) {
+export function AdminPanel({ onNavigateBack, onLogout }: AdminPanelProps) {
   const [users, setUsers] = useState<User[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [userEmail, setUserEmail] = useState<string>('')
 
   const [shiftRoles, setShiftRoles] = useState<ShiftRole[]>([])
   const [showRoleDialog, setShowRoleDialog] = useState(false)
@@ -66,17 +66,22 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail }: AdminPanelPr
   })
 
   useEffect(() => {
-    const checkAdminAndLoad = async () => {
-      const hasAccess = await hasAdminAccess(userEmail)
-      setIsAdmin(hasAccess)
-      if (hasAccess) {
-        loadUsers()
-        loadSickLeaveEntries()
-        loadShiftRoles()
+    const loadUserAndCheckAdmin = async () => {
+      const session = await window.spark.kv.get<{ userId: string; email: string }>('user-session')
+      if (session) {
+        setUserEmail(session.email)
+        
+        const hasAccess = await hasAdminAccess(session.email)
+        setIsAdmin(hasAccess)
+        if (hasAccess) {
+          loadUsers()
+          loadSickLeaveEntries()
+          loadShiftRoles()
+        }
       }
     }
-    checkAdminAndLoad()
-  }, [userEmail])
+    loadUserAndCheckAdmin()
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

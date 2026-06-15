@@ -72,15 +72,15 @@ interface VacationEntry {
 interface EmailSystemProps {
   onNavigateBack: () => void
   onLogout: () => void
-  userEmail: string
 }
 
-export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
+export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
   const [emails, setEmails] = useKV<Email[]>('emails', [])
   const [folders, setFolders] = useKV<EmailFolder[]>('email-folders', [])
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
   const [users, setUsers] = useState<Array<{ email: string; name: string }>>([])
   const [isManager, setIsManager] = useState(false)
+  const [userEmail, setUserEmail] = useState<string>('')
   const [view, setView] = useState<'inbox' | 'sent' | 'compose' | 'vacation-requests' | 'folder'>('inbox')
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [selectedVacation, setSelectedVacation] = useState<VacationEntry | null>(null)
@@ -105,26 +105,31 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
   })
 
   useEffect(() => {
-    const loadUsers = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; isManager: boolean }>>('users')
-      
-      if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
-        const userList = Object.values(usersData).map(user => ({
-          email: user.email,
-          name: user.fullName
-        }))
-        setUsers(userList)
+    const loadUserAndData = async () => {
+      const session = await window.spark.kv.get<{ userId: string; email: string }>('user-session')
+      if (session) {
+        setUserEmail(session.email)
         
-        if (usersData[userEmail]) {
-          setIsManager(usersData[userEmail].isManager || false)
+        const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; isManager: boolean }>>('users')
+      
+        if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
+          const userList = Object.values(usersData).map(user => ({
+            email: user.email,
+            name: user.fullName
+          }))
+          setUsers(userList)
+          
+          if (usersData[session.email]) {
+            setIsManager(usersData[session.email].isManager || false)
+          }
+        } else if (Array.isArray(usersData)) {
+          setUsers(usersData as Array<{ email: string; name: string }>)
         }
-      } else if (Array.isArray(usersData)) {
-        setUsers(usersData as Array<{ email: string; name: string }>)
       }
     }
     
-    loadUsers()
-  }, [userEmail])
+    loadUserAndData()
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

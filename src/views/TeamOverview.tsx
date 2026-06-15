@@ -19,10 +19,9 @@ export interface TeamEmployee {
 interface TeamOverviewProps {
   onNavigateBack: () => void
   onLogout: () => void
-  userEmail: string
 }
 
-export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOverviewProps) {
+export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
   const [employees, setEmployees] = useState<TeamEmployee[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -96,14 +95,6 @@ export function TeamOverview({ onNavigateBack, onLogout, userEmail }: TeamOvervi
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      <div className="absolute top-4 right-4 z-20">
-        <UserProfile 
-          userEmail={userEmail} 
-          onLogout={onLogout}
-          showAdmin={false}
-          onAdminClick={() => {}}
-        />
-      </div>
       <div className="container mx-auto px-4 sm:px-6 py-8 max-w-7xl relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}

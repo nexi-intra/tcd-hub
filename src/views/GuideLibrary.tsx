@@ -20,10 +20,9 @@ const defaultCategories: string[] = ['Procedures', 'Technical', 'HR', 'Safety', 
 interface GuideLibraryProps {
   onNavigateBack: () => void
   onLogout: () => void
-  userEmail: string
 }
 
-export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibraryProps) {
+export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
   const [guides, setGuides] = useKV<Guide[]>('guides', [])
   const [categories, setCategories] = useKV<string[]>('categories', defaultCategories)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -182,7 +181,6 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
               </div>
             </div>
             <div className="flex gap-2 flex-shrink-0 items-center">
-              <UserProfile userEmail={userEmail} onLogout={onLogout} />
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   onClick={() => setCategoryManagerOpen(true)}
