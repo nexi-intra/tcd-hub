@@ -117,7 +117,6 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
 
   const endGame = () => {
     isPlayingRef.current = false
-    setGameState('gameover')
     
     if (timerRef.current) {
       clearInterval(timerRef.current)
@@ -128,18 +127,24 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     
     setTargets([])
     
-    const newHighScore: HighScore = {
-      id: Date.now().toString(),
-      playerName: playerName.trim(),
-      score: currentScore,
-      timestamp: Date.now(),
-      playerEmail: userEmail,
-    }
-    
-    setHighScores(currentScores => {
-      const updated = [...(currentScores || []), newHighScore]
-      return updated.sort((a, b) => b.score - a.score).slice(0, 50)
+    setCurrentScore(finalScore => {
+      const newHighScore: HighScore = {
+        id: Date.now().toString(),
+        playerName: playerName.trim(),
+        score: finalScore,
+        timestamp: Date.now(),
+        playerEmail: userEmail,
+      }
+      
+      setHighScores(currentScores => {
+        const updated = [...(currentScores || []), newHighScore]
+        return updated.sort((a, b) => b.score - a.score).slice(0, 50)
+      })
+      
+      return finalScore
     })
+    
+    setGameState('gameover')
   }
 
   const resetGame = () => {
