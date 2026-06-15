@@ -493,6 +493,98 @@ Return ONLY a JSON object with this exact structure:
     await window.spark.kv.set('vacation-entries', updatedVacations)
     await loadVacationEntries()
     setIsEditVacationDialogOpen(false)
+    
+    const originalStartDate = new Date(editingVacation.startDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const originalEndDate = new Date(editingVacation.endDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const newStartDate = editVacationStartDate.toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const newEndDate = editVacationEndDate.toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+
+    try {
+      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${editingVacation.userEmail} about their vacation being EDITED/MODIFIED by a manager.
+
+Original Vacation Details:
+Original Start Date: ${originalStartDate}
+Original End Date: ${originalEndDate}
+${editingVacation.notes ? `Original Notes: ${editingVacation.notes}` : 'No original notes'}
+
+New Vacation Details:
+New Start Date: ${newStartDate}
+New End Date: ${newEndDate}
+${editVacationNotes.trim() ? `New Notes: ${editVacationNotes.trim()}` : 'No new notes'}
+Modified by: ${userEmail}
+
+The email should be in Danish, professional and informative, and include:
+- A clear subject line that indicates vacation modification
+- Notification that their vacation dates have been changed by a manager
+- Clear comparison showing original dates vs new dates
+- The name/email of who made the changes
+- A professional tone
+- Suggestion that they can contact the manager if they have questions
+- A brief note that this is an automatic notification
+
+Return ONLY a JSON object with this exact structure:
+{
+  "subject": "subject line here",
+  "body": "email body here with proper line breaks"
+}`
+
+      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
+      const emailContent = JSON.parse(emailContentJson)
+
+      const emails = await window.spark.kv.get<Array<{
+        id: string
+        from: string
+        to: string
+        subject: string
+        message: string
+        timestamp: number
+        read: boolean
+      }>>('emails') || []
+
+      const newEmail = {
+        id: Date.now().toString() + '-vacation-edit',
+        from: userEmail,
+        to: editingVacation.userEmail,
+        subject: emailContent.subject,
+        message: emailContent.body,
+        timestamp: Date.now(),
+        read: false
+      }
+
+      await window.spark.kv.set('emails', [...emails, newEmail])
+
+      const notification = {
+        id: Date.now().toString(),
+        type: 'email' as const,
+        message: `Din ferie er blevet redigeret af en manager`,
+        timestamp: Date.now(),
+        read: false,
+        from: userEmail,
+        emailId: newEmail.id
+      }
+
+      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
+      await window.spark.kv.set('email-notifications', [...notifications, notification])
+    } catch (emailError) {
+      console.error('Error sending vacation edit email:', emailError)
+    }
+
     setEditingVacation(null)
     setEditVacationStartDate(undefined)
     setEditVacationEndDate(undefined)
