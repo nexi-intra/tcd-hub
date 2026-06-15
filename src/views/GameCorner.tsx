@@ -1279,28 +1279,6 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background text-sm font-bold shrink-0">
                                   {getRankIcon() || `#${index + 1}`}
                                 </div>
-                                <div className="relative shrink-0">
-                                  <Avatar 
-                                    className={cn(
-                                      "w-10 h-10 ring-offset-background",
-                                      getAnimationStyle(getPlayerBorder(score.playerEmail, playerAchievements).animation)
-                                    )}
-                                    style={{
-                                      borderWidth: `${getPlayerBorder(score.playerEmail, playerAchievements).thickness}px`,
-                                      borderStyle: getPlayerBorder(score.playerEmail, playerAchievements).pattern || 'solid',
-                                      borderImage: getPlayerBorder(score.playerEmail, playerAchievements).gradient,
-                                      borderImageSlice: 1,
-                                      boxShadow: getPlayerBorder(score.playerEmail, playerAchievements).glow 
-                                        ? `0 0 20px ${getPlayerBorder(score.playerEmail, playerAchievements).glow}`
-                                        : undefined
-                                    }}
-                                  >
-                                    <AvatarImage src={getAvatarUrl(score.playerEmail, userAvatarUrl, userEmail)} alt={score.playerName} />
-                                    <AvatarFallback className="text-xs font-bold">
-                                      {getInitials(score.playerName)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                </div>
                                 <div className="flex-1 min-w-0">
                                   <div className={cn(
                                     "font-medium truncate",
