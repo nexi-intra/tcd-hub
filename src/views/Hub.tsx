@@ -258,7 +258,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="flex justify-center mb-6"
           >
-            <img src={nexiLogo} alt="Nexi Logo" className="w-20 h-20 sm:w-24 sm:h-24" />
+            <img src={nexiLogo} alt="Nexi Logo" className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24" />
           </motion.div>
           <motion.h1 
             className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-4"
