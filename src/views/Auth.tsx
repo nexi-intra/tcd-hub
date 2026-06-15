@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
+import nexiLogo from '@/assets/images/nexi-logo.svg'
 
 interface AuthProps {
   onAuthenticated: (userId: string, email: string) => void
@@ -95,6 +96,14 @@ export function Auth({ onAuthenticated }: AuthProps) {
           transition={{ duration: 0.6 }}
         >
           <div className="text-center mb-8">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="flex justify-center mb-6"
+            >
+              <img src={nexiLogo} alt="Nexi Logo" className="w-24 h-24" />
+            </motion.div>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">Terminal Configuration & Dispatch Hub</h1>
             <p className="text-muted-foreground">
               {mode === 'login' ? 'Log ind for at fortsætte' : 'Opret en ny konto'}
