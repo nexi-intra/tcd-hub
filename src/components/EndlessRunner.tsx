@@ -121,28 +121,47 @@ export function EndlessRunner({ userEmail, playerName }: EndlessRunnerProps) {
   const createTrackSegment = (z: number) => {
     if (!gameRef.current) return
     
-    const segmentGeometry = new THREE.BoxGeometry(4, 0.2, 10)
+    const random = Math.random()
+    let xOffset = 0
+    let width = 4
+    let segmentLength = 10
+    
+    if (z < -50) {
+      if (random < 0.3) {
+        xOffset = (Math.random() - 0.5) * 1.5
+      }
+      if (random > 0.7) {
+        width = 3 + Math.random() * 1
+      }
+      if (random > 0.85) {
+        segmentLength = 8 + Math.random() * 4
+      }
+    }
+    
+    const colorVariation = Math.random() * 0.2
+    const segmentGeometry = new THREE.BoxGeometry(width, 0.2, segmentLength)
     const segmentMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x4444ff,
-      emissive: 0x222288,
+      color: new THREE.Color().setHSL(0.6 + colorVariation * 0.1, 0.8, 0.4),
+      emissive: new THREE.Color().setHSL(0.6 + colorVariation * 0.1, 0.8, 0.2),
       roughness: 0.3,
       metalness: 0.6,
     })
     const segment = new THREE.Mesh(segmentGeometry, segmentMaterial)
-    segment.position.set(0, 0, z)
+    segment.position.set(xOffset, 0, z)
     segment.castShadow = true
     segment.receiveShadow = true
     
-    const edgeGeometry1 = new THREE.BoxGeometry(0.2, 0.4, 10)
+    const edgeGeometry1 = new THREE.BoxGeometry(0.2, 0.4, segmentLength)
+    const hue = 0.5 + Math.random() * 0.2
     const edgeMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x00ffff,
-      emissive: 0x0088ff,
+      color: new THREE.Color().setHSL(hue, 1, 0.6),
+      emissive: new THREE.Color().setHSL(hue, 1, 0.4),
       emissiveIntensity: 0.8,
     })
     const edge1 = new THREE.Mesh(edgeGeometry1, edgeMaterial)
-    edge1.position.set(-2.1, 0.2, z)
+    edge1.position.set(xOffset - width / 2 - 0.1, 0.2, z)
     const edge2 = new THREE.Mesh(edgeGeometry1, edgeMaterial)
-    edge2.position.set(2.1, 0.2, z)
+    edge2.position.set(xOffset + width / 2 + 0.1, 0.2, z)
     
     gameRef.current.scene.add(segment)
     gameRef.current.scene.add(edge1)
@@ -157,16 +176,21 @@ export function EndlessRunner({ userEmail, playerName }: EndlessRunnerProps) {
     let xPos = (Math.random() - 0.5) * 3
     
     if (type === 'cube') {
-      geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8)
+      const size = 0.6 + Math.random() * 0.4
+      geometry = new THREE.BoxGeometry(size, size, size)
     } else if (type === 'tall') {
-      geometry = new THREE.BoxGeometry(0.6, 2, 0.6)
+      const width = 0.5 + Math.random() * 0.3
+      const height = 1.5 + Math.random() * 1
+      geometry = new THREE.BoxGeometry(width, height, width)
     } else {
-      geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8)
+      const size = 0.6 + Math.random() * 0.4
+      geometry = new THREE.BoxGeometry(size, size, size)
     }
     
+    const hue = 0 + Math.random() * 0.1
     const material = new THREE.MeshStandardMaterial({ 
-      color: 0xff4444,
-      emissive: 0x880000,
+      color: new THREE.Color().setHSL(hue, 0.9, 0.5),
+      emissive: new THREE.Color().setHSL(hue, 0.8, 0.3),
       emissiveIntensity: 0.5,
     })
     const obstacle = new THREE.Mesh(geometry, material)
@@ -177,7 +201,7 @@ export function EndlessRunner({ userEmail, playerName }: EndlessRunnerProps) {
       const movingObstacle = obstacle as MovingObstacle
       movingObstacle.isMoving = true
       movingObstacle.moveDirection = Math.random() > 0.5 ? 1 : -1
-      movingObstacle.moveSpeed = 0.02 + Math.random() * 0.02
+      movingObstacle.moveSpeed = 0.015 + Math.random() * 0.025
     }
     
     gameRef.current.scene.add(obstacle)
@@ -187,7 +211,7 @@ export function EndlessRunner({ userEmail, playerName }: EndlessRunnerProps) {
   const createGap = (z: number) => {
     if (!gameRef.current) return
     
-    const gapSize = 3 + Math.random() * 2
+    const gapSize = 2 + Math.floor(Math.random() * 3)
     
     for (let i = 0; i < gapSize; i++) {
       const segmentZ = z - i * 10
@@ -330,6 +354,8 @@ export function EndlessRunner({ userEmail, playerName }: EndlessRunnerProps) {
         gameRef.current.ballVelocity.x *= 0.9
         gameRef.current.ballPosition.x += gameRef.current.ballVelocity.x
         gameRef.current.ballPosition.x = Math.max(-1.8, Math.min(1.8, gameRef.current.ballPosition.x))
+
+        gameRef.current.ballPosition.z -= gameRef.current.speed
 
         gameRef.current.ballVelocity.y -= 0.02
         gameRef.current.ballPosition.y += gameRef.current.ballVelocity.y
