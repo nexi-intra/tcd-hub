@@ -468,9 +468,9 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                 <h3 className="text-lg font-semibold text-foreground">{t.hub.overview.sickToday}</h3>
               </div>
               {peopleSick.length === 0 ? (
-                <p className="text-muted-foreground text-sm">{t.hub.overview.noOneSick}</p>
+                <p className="text-muted-foreground text-sm text-center">{t.hub.overview.noOneSick}</p>
               ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 items-center">
                   {peopleSick.map((person, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       <User size={16} className="text-muted-foreground" />
