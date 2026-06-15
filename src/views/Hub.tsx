@@ -418,18 +418,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                 <FirstAidKit size={24} weight="duotone" />
               </Button>
             </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <UserProfile 
-                userEmail={userEmail} 
-                onLogout={onLogout}
-                showAdmin={isAdminOrManager}
-                onAdminClick={() => onNavigate('admin')}
-              />
-            </motion.div>
           </div>
         </div>
       </div>
