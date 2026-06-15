@@ -158,7 +158,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      <div className="absolute top-6 right-6 left-6 z-20 flex flex-wrap items-center justify-end gap-3">
+      <div className="absolute top-6 right-6 left-6 z-20 flex flex-wrap items-center justify-end gap-4">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -242,9 +242,9 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         }}
         userEmail={userEmail}
       />
-      <div className="container mx-auto px-4 sm:px-6 pt-40 sm:pt-48 pb-12 sm:pb-20 max-w-7xl relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 pt-56 sm:pt-64 pb-12 sm:pb-20 max-w-7xl relative z-10">
         <motion.header 
-          className="text-center mb-16 sm:mb-20 mt-8 sm:mt-12"
+          className="text-center mb-16 sm:mb-20 mt-4 sm:mt-6"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
