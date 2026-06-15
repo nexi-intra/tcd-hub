@@ -244,7 +244,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         }}
         userEmail={userEmail}
       />
-      <div className="container mx-auto px-4 sm:px-6 pt-48 sm:pt-52 pb-12 sm:pb-20 max-w-7xl relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 pt-56 sm:pt-60 pb-12 sm:pb-20 max-w-7xl relative z-10">
         <motion.header 
           className="text-center mb-10 sm:mb-12"
           initial={{ opacity: 0, y: -20 }}
