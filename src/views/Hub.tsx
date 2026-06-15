@@ -608,11 +608,13 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     {module.description}
                   </p>
 
-                  <div className={cn(
-                    "inline-flex items-center gap-2 px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-xs font-semibold text-white transition-all duration-300 opacity-0 group-hover:opacity-100",
-                    `bg-gradient-to-r ${module.gradient}`
-                  )}>
-                    {t.hub.openModule} →
+                  <div className="flex justify-center w-full">
+                    <div className={cn(
+                      "inline-flex items-center gap-2 px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-xs font-semibold text-white transition-all duration-300 opacity-0 group-hover:opacity-100",
+                      `bg-gradient-to-r ${module.gradient}`
+                    )}>
+                      {t.hub.openModule} →
+                    </div>
                   </div>
                 </div>
               </Card>
