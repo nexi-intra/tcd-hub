@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +18,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { UserRole, ADMIN_EMAIL, hasManagerAccess, getRoleDisplayName, getRoleDescription } from '@/lib/userRoles'
+import { cn } from '@/lib/utils'
+import { getEmployeeColorByEmail } from '@/lib/employeeColors'
+import React from 'react'
 
 interface User {
   email: string
@@ -78,6 +81,10 @@ export function ManagerPanel({ onNavigateBack, onLogout }: ManagerPanelProps) {
   const [editVacationEndDate, setEditVacationEndDate] = useState<Date | undefined>()
   const [editVacationNotes, setEditVacationNotes] = useState('')
   const [vacationFilter, setVacationFilter] = useState<'all' | 'pending' | 'approved'>('all')
+  const [previewVacation, setPreviewVacation] = useState<VacationEntry | null>(null)
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false)
+  const [previewMonth, setPreviewMonth] = useState(new Date().getMonth())
+  const [previewYear, setPreviewYear] = useState(new Date().getFullYear())
 
   useEffect(() => {
     const loadUserAndCheckAccess = async () => {
@@ -962,6 +969,20 @@ Return ONLY a JSON object with this exact structure:
 
                       <div className="flex gap-2 pl-16">
                         <Button
+                          onClick={() => {
+                            const startDate = new Date(vacation.startDate)
+                            setPreviewMonth(startDate.getMonth())
+                            setPreviewYear(startDate.getFullYear())
+                            setPreviewVacation(vacation)
+                            setIsPreviewDialogOpen(true)
+                          }}
+                          variant="outline"
+                          className="gap-2"
+                        >
+                          <Eye size={18} weight="bold" />
+                          Preview
+                        </Button>
+                        <Button
                           onClick={() => handleApproveVacation(vacation)}
                           className="flex-1 gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
                         >
@@ -1308,6 +1329,276 @@ Return ONLY a JSON object with this exact structure:
               <Plus size={18} weight="bold" />
               Opret bruger
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <Eye size={24} weight="duotone" className="text-accent" />
+              Feriekalender Preview
+            </DialogTitle>
+            <DialogDescription>
+              Sådan vil feriekalenderen se ud hvis du godkender denne anmodning
+            </DialogDescription>
+          </DialogHeader>
+          
+          {previewVacation && (() => {
+            const months = [
+              'Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni',
+              'Juli', 'August', 'September', 'Oktober', 'November', 'December'
+            ]
+            
+            const getDaysInMonth = (month: number, year: number) => {
+              return new Date(year, month + 1, 0).getDate()
+            }
+
+            const getFirstDayOfMonth = (month: number, year: number) => {
+              const day = new Date(year, month, 1).getDay()
+              return day === 0 ? 6 : day - 1
+            }
+
+            const getWeekNumber = (date: Date) => {
+              const firstDayOfYear = new Date(date.getFullYear(), 0, 1)
+              const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000
+              return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7)
+            }
+
+            const isDateInVacation = (day: number, vacation: VacationEntry, month: number, year: number) => {
+              const checkDate = new Date(year, month, day)
+              const start = new Date(vacation.startDate)
+              const end = new Date(vacation.endDate)
+              
+              start.setHours(0, 0, 0, 0)
+              end.setHours(23, 59, 59, 999)
+              checkDate.setHours(12, 0, 0, 0)
+
+              return checkDate >= start && checkDate <= end
+            }
+
+            const getFirstName = (email: string) => {
+              const user = users.find(u => u.email === email)
+              if (user?.fullName) {
+                return user.fullName.split(' ')[0]
+              }
+              return email.split('@')[0].split('.')[0]
+            }
+
+            const daysInMonth = getDaysInMonth(previewMonth, previewYear)
+            const firstDay = getFirstDayOfMonth(previewMonth, previewYear)
+
+            const approvedVacations = allVacations.filter((v) => {
+              const start = new Date(v.startDate)
+              const end = new Date(v.endDate)
+              
+              if (isNaN(start.getTime()) || isNaN(end.getTime())) return false
+              
+              const monthStart = new Date(previewYear, previewMonth, 1)
+              const monthEnd = new Date(previewYear, previewMonth + 1, 0)
+
+              return (start <= monthEnd && end >= monthStart) && v.status === 'approved'
+            })
+
+            const previewVacations = [...approvedVacations, previewVacation]
+
+            return (
+              <div className="py-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (previewMonth === 0) {
+                          setPreviewMonth(11)
+                          setPreviewYear(previewYear - 1)
+                        } else {
+                          setPreviewMonth(previewMonth - 1)
+                        }
+                      }}
+                    >
+                      ←
+                    </Button>
+                    <h3 className="text-lg font-bold">
+                      {months[previewMonth]} {previewYear}
+                    </h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (previewMonth === 11) {
+                          setPreviewMonth(0)
+                          setPreviewYear(previewYear + 1)
+                        } else {
+                          setPreviewMonth(previewMonth + 1)
+                        }
+                      }}
+                    >
+                      →
+                    </Button>
+                  </div>
+                  <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
+                    <Eye size={14} className="mr-1" />
+                    Preview Mode
+                  </Badge>
+                </div>
+
+                <div className="mb-4 p-3 bg-accent/10 border border-accent/30 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div
+                      className="w-4 h-4 rounded"
+                      style={{ 
+                        backgroundColor: getEmployeeColorByEmail(previewVacation.userEmail).bg
+                      }}
+                    />
+                    <span className="font-semibold">Ny ferie anmodning:</span>
+                    <span>{getFirstName(previewVacation.userEmail)}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {format(new Date(previewVacation.startDate), 'd. MMMM yyyy', { locale: da })} → {format(new Date(previewVacation.endDate), 'd. MMMM yyyy', { locale: da })}
+                  </div>
+                  {previewVacation.notes && (
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Note: {previewVacation.notes}
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-2 rounded-lg p-4">
+                  <div className="grid grid-cols-8 gap-2">
+                    <div className="text-center font-semibold text-xs py-2 text-muted-foreground">
+                      Uge
+                    </div>
+                    {['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'].map((day, index) => (
+                      <div
+                        key={day}
+                        className={cn(
+                          "text-center font-semibold text-xs py-2",
+                          index >= 5 ? "text-muted-foreground/60" : "text-muted-foreground"
+                        )}
+                      >
+                        {day}
+                      </div>
+                    ))}
+
+                    {Array.from({ length: Math.ceil((firstDay + daysInMonth) / 7) }).map((_, weekIndex) => {
+                      const firstDateOfWeek = new Date(previewYear, previewMonth, weekIndex * 7 - firstDay + 1)
+                      const weekNumber = getWeekNumber(firstDateOfWeek)
+                      
+                      return (
+                        <React.Fragment key={`week-${weekIndex}`}>
+                          <div className="flex items-center justify-center text-xs font-bold text-muted-foreground border rounded bg-muted/30">
+                            {weekNumber}
+                          </div>
+                          {Array.from({ length: 7 }).map((_, dayIndex) => {
+                            const cellIndex = weekIndex * 7 + dayIndex
+                            const day = cellIndex - firstDay + 1
+                            
+                            if (cellIndex < firstDay || day > daysInMonth) {
+                              return <div key={`empty-${cellIndex}`} className="aspect-square" />
+                            }
+
+                            const dayVacations = previewVacations.filter((vacation) =>
+                              isDateInVacation(day, vacation, previewMonth, previewYear)
+                            )
+                            const currentDate = new Date(previewYear, previewMonth, day)
+                            const dayOfWeek = currentDate.getDay()
+                            const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6
+                            const isToday =
+                              day === new Date().getDate() &&
+                              previewMonth === new Date().getMonth() &&
+                              previewYear === new Date().getFullYear()
+
+                            return (
+                              <div
+                                key={day}
+                                className={cn(
+                                  "aspect-square border rounded p-1 relative text-xs",
+                                  isToday && "ring-2 ring-primary",
+                                  isWeekendDay && "bg-muted/50 opacity-60"
+                                )}
+                              >
+                                <div className={cn(
+                                  "font-semibold mb-1 text-[10px]",
+                                  isWeekendDay && "text-muted-foreground"
+                                )}>
+                                  {day}
+                                </div>
+                                {isWeekendDay ? (
+                                  <div className="text-[8px] text-muted-foreground text-center mt-1">
+                                    Lukket
+                                  </div>
+                                ) : (
+                                  <div className="space-y-0.5">
+                                    {dayVacations.slice(0, 3).map((vacation) => (
+                                      <div
+                                        key={vacation.id}
+                                        className={cn(
+                                          "text-[9px] px-1 py-0.5 rounded truncate font-medium",
+                                          vacation.id === previewVacation.id && "ring-1 ring-amber-500"
+                                        )}
+                                        style={{ 
+                                          backgroundColor: getEmployeeColorByEmail(vacation.userEmail).bg,
+                                          color: getEmployeeColorByEmail(vacation.userEmail).text
+                                        }}
+                                        title={`${getFirstName(vacation.userEmail)}${vacation.notes ? ': ' + vacation.notes : ''}`}
+                                      >
+                                        {getFirstName(vacation.userEmail)}
+                                      </div>
+                                    ))}
+                                    {dayVacations.length > 3 && (
+                                      <div className="text-[8px] text-muted-foreground">
+                                        +{dayVacations.length - 3}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </React.Fragment>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsPreviewDialogOpen(false)}
+            >
+              Luk Preview
+            </Button>
+            {previewVacation && (
+              <>
+                <Button
+                  onClick={() => {
+                    setIsPreviewDialogOpen(false)
+                    handleApproveVacation(previewVacation)
+                  }}
+                  className="gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
+                >
+                  <Check size={18} weight="bold" />
+                  Godkend Ferie
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsPreviewDialogOpen(false)
+                    handleRejectVacation(previewVacation)
+                  }}
+                  variant="destructive"
+                  className="gap-2"
+                >
+                  <X size={18} weight="bold" />
+                  Afvis Ferie
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
