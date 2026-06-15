@@ -252,7 +252,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     },
     {
       id: 'game',
-      title: language === 'da' ? 'Spil Hjørne' : 'Game Corner',
+      title: language === 'da' ? 'Spille Hjørne' : 'Game Corner',
       description: language === 'da' ? 'Konkurrér med dine kollegaer i sjove spil' : 'Compete with your colleagues in fun games',
       icon: <Trophy size={48} weight="duotone" />,
       color: 'oklch(0.70 0.18 90)',
