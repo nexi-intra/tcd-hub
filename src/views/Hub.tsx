@@ -300,7 +300,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="absolute top-6 right-6 left-6 z-20">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pb-12">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4 pb-12">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}

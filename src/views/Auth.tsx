@@ -220,7 +220,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
             </div>
           </Card>
 
-          <div className="mt-6 flex flex-col sm:flex-row gap-2 justify-center">
+          <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
             <ThemeToggle />
             <LanguageToggle />
           </div>
