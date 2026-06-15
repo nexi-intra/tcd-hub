@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useKV } from '@github/spark/hooks'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -69,6 +70,22 @@ const DIFFICULTY_SETTINGS: Record<Difficulty, DifficultySettings> = {
     description: { da: '20 sekunder, hurtige mål', en: '20 seconds, fast targets' },
     color: 'oklch(0.65 0.26 340)',
   },
+}
+
+const getAvatarUrl = (email: string) => {
+  const hash = email.toLowerCase().split('').reduce((acc, char) => {
+    return char.charCodeAt(0) + ((acc << 5) - acc)
+  }, 0)
+  const id = Math.abs(hash) % 100
+  return `https://i.pravatar.cc/150?img=${id}`
+}
+
+const getInitials = (name: string) => {
+  const parts = name.trim().split(' ')
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
 }
 
 export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
@@ -644,9 +661,15 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                                   borderColor: `color-mix(in oklch, ${settings.color} 30%, transparent)`
                                 } : {}}
                               >
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background text-sm font-bold">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background text-sm font-bold shrink-0">
                                   {getRankIcon() || `#${index + 1}`}
                                 </div>
+                                <Avatar className="w-10 h-10 shrink-0 border-2" style={isCurrentPlayer ? { borderColor: settings.color } : {}}>
+                                  <AvatarImage src={getAvatarUrl(score.playerEmail)} alt={score.playerName} />
+                                  <AvatarFallback className="text-xs font-bold">
+                                    {getInitials(score.playerName)}
+                                  </AvatarFallback>
+                                </Avatar>
                                 <div className="flex-1 min-w-0">
                                   <div className={cn(
                                     "font-medium truncate",
