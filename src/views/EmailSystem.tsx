@@ -329,7 +329,7 @@ export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
     })
 
     try {
-      const prompt = `Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
+      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
 
 Vacation Request Details:
 Start Date: ${startDateFormatted}
@@ -344,7 +344,11 @@ The email should be in Danish, friendly yet professional, and include:
 - The name/email of who approved it
 - A congratulatory or positive tone
 - A brief note that this is an automatic notification
-- DO NOT include "med venlig hilsen" or any closing salutation
+
+CRITICAL REQUIREMENT: 
+- DO NOT include "Med venlig hilsen", "Venlig hilsen", "mvh", or ANY closing salutation/signature
+- The email body should end immediately after the main message content
+- Do not add any farewell phrases, sign-offs, or closing statements
 
 Return ONLY a JSON object with this exact structure:
 {
@@ -409,7 +413,7 @@ Return ONLY a JSON object with this exact structure:
     })
 
     try {
-      const prompt = `Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
+      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
 
 Vacation Request Details:
 Start Date: ${startDateFormatted}
@@ -425,7 +429,11 @@ The email should be in Danish, professional and respectful, and include:
 - A professional and understanding tone
 - Suggestion that they can contact the manager for more information or to discuss alternative dates
 - A brief note that this is an automatic notification
-- DO NOT include "med venlig hilsen" or any closing salutation
+
+CRITICAL REQUIREMENT: 
+- DO NOT include "Med venlig hilsen", "Venlig hilsen", "mvh", or ANY closing salutation/signature
+- The email body should end immediately after the main message content
+- Do not add any farewell phrases, sign-offs, or closing statements
 
 Return ONLY a JSON object with this exact structure:
 {
