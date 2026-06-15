@@ -973,6 +973,165 @@ Return ONLY a JSON object with this exact structure:
                 </Badge>
               </div>
 
+              <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(() => {
+                  const employeeStats = new Map<string, { 
+                    name: string
+                    email: string
+                    count: number
+                    lastDate: string 
+                  }>()
+
+                  sickLeaveEntries.forEach((entry) => {
+                    const existing = employeeStats.get(entry.userEmail)
+                    if (existing) {
+                      existing.count++
+                      const existingDate = new Date(existing.lastDate)
+                      const currentDate = new Date(entry.startDate)
+                      if (currentDate > existingDate) {
+                        existing.lastDate = entry.startDate
+                      }
+                    } else {
+                      employeeStats.set(entry.userEmail, {
+                        name: entry.userName,
+                        email: entry.userEmail,
+                        count: 1,
+                        lastDate: entry.startDate
+                      })
+                    }
+                  })
+
+                  const sortedStats = Array.from(employeeStats.values()).sort((a, b) => b.count - a.count)
+                  const totalEmployees = users.length
+                  const employeesWithSickLeave = employeeStats.size
+                  const totalSickDays = sickLeaveEntries.length
+
+                  return (
+                    <>
+                      <Card className="p-4 bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-medium text-muted-foreground">Total Sygemeldinger</div>
+                          <FirstAidKit size={20} className="text-destructive" weight="duotone" />
+                        </div>
+                        <div className="text-3xl font-bold text-destructive">{totalSickDays}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {employeesWithSickLeave} af {totalEmployees} medarbejdere
+                        </div>
+                      </Card>
+
+                      <Card className="p-4 bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-medium text-muted-foreground">Gennemsnit pr. Medarbejder</div>
+                          <UserIcon size={20} className="text-accent" weight="duotone" />
+                        </div>
+                        <div className="text-3xl font-bold text-accent">
+                          {employeesWithSickLeave > 0 ? (totalSickDays / employeesWithSickLeave).toFixed(1) : '0'}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          dage pr. sygemeldt medarbejder
+                        </div>
+                      </Card>
+
+                      <Card className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-medium text-muted-foreground">Mest Sygemeldinger</div>
+                          <Crown size={20} className="text-primary" weight="duotone" />
+                        </div>
+                        {sortedStats.length > 0 ? (
+                          <>
+                            <div className="text-lg font-bold text-primary truncate">{sortedStats[0].name}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {sortedStats[0].count} {sortedStats[0].count === 1 ? 'sygemelding' : 'sygemeldinger'}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-lg font-bold text-muted-foreground">Ingen data</div>
+                        )}
+                      </Card>
+                    </>
+                  )
+                })()}
+              </div>
+
+              {sickLeaveEntries.length > 0 && (() => {
+                const employeeStats = new Map<string, { 
+                  name: string
+                  email: string
+                  count: number
+                  lastDate: string 
+                }>()
+
+                sickLeaveEntries.forEach((entry) => {
+                  const existing = employeeStats.get(entry.userEmail)
+                  if (existing) {
+                    existing.count++
+                    const existingDate = new Date(existing.lastDate)
+                    const currentDate = new Date(entry.startDate)
+                    if (currentDate > existingDate) {
+                      existing.lastDate = entry.startDate
+                    }
+                  } else {
+                    employeeStats.set(entry.userEmail, {
+                      name: entry.userName,
+                      email: entry.userEmail,
+                      count: 1,
+                      lastDate: entry.startDate
+                    })
+                  }
+                })
+
+                const sortedStats = Array.from(employeeStats.values()).sort((a, b) => b.count - a.count)
+
+                return (
+                  <Card className="p-4 mb-6 bg-muted/30 border">
+                    <div className="flex items-center gap-2 mb-4">
+                      <UserIcon size={20} className="text-primary" weight="duotone" />
+                      <h3 className="font-bold text-lg">Medarbejder Statistik</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {sortedStats.map((stat, index) => (
+                        <div 
+                          key={stat.email}
+                          className="flex items-center justify-between p-3 rounded-lg bg-card border hover:shadow-sm transition-all"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-destructive/20 to-destructive/10 text-destructive font-bold text-sm">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <div className="font-semibold">{stat.name}</div>
+                              <div className="text-xs text-muted-foreground">{stat.email}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="font-bold text-lg text-destructive">{stat.count}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {stat.count === 1 ? 'sygemelding' : 'sygemeldinger'}
+                              </div>
+                            </div>
+                            <div className="text-right min-w-[100px]">
+                              <div className="text-xs text-muted-foreground">Seneste</div>
+                              <div className="text-sm font-medium">
+                                {(() => {
+                                  try {
+                                    const date = new Date(stat.lastDate)
+                                    if (isNaN(date.getTime())) return 'Ugyldig'
+                                    return format(date, 'd. MMM', { locale: da })
+                                  } catch {
+                                    return 'Ugyldig'
+                                  }
+                                })()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )
+              })()}
+
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
                   Her kan du se og håndtere alle sygemeldinger. Du kan slette sygemeldinger hvis der er fejl eller dobbeltindberetninger.
