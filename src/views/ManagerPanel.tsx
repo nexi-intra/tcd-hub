@@ -594,10 +594,95 @@ Return ONLY a JSON object with this exact structure:
 
   const deleteVacation = async (id: string) => {
     const allVacationsData = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
+    const vacationToDelete = allVacationsData.find(v => v.id === id)
+    
+    if (!vacationToDelete) {
+      toast.error('Ferie ikke fundet')
+      return
+    }
+
     const updatedVacations = allVacationsData.filter(v => v.id !== id)
     await window.spark.kv.set('vacation-entries', updatedVacations)
     await loadVacationEntries()
     toast.success('Ferie slettet')
+
+    const startDateFormatted = new Date(vacationToDelete.startDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const endDateFormatted = new Date(vacationToDelete.endDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+
+    try {
+      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacationToDelete.userEmail} about their vacation being DELETED by a manager.
+
+Deleted Vacation Details:
+Start Date: ${startDateFormatted}
+End Date: ${endDateFormatted}
+${vacationToDelete.notes ? `Notes: ${vacationToDelete.notes}` : 'No notes'}
+Status at deletion: ${vacationToDelete.status === 'approved' ? 'Godkendt (Approved)' : vacationToDelete.status === 'pending' ? 'Afventende (Pending)' : 'Status ukendt'}
+Deleted by: ${userEmail}
+
+The email should be in Danish, professional and clear, and include:
+- A clear subject line that indicates vacation deletion
+- Clear notification that their vacation has been removed from the system
+- The vacation period that was deleted
+- The status it had before deletion (approved/pending)
+- The name/email of who deleted it
+- A professional and understanding tone
+- Suggestion that they can contact the manager if they have questions or if this was done in error
+- A brief note that this is an automatic notification
+
+Return ONLY a JSON object with this exact structure:
+{
+  "subject": "subject line here",
+  "body": "email body here with proper line breaks"
+}`
+
+      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
+      const emailContent = JSON.parse(emailContentJson)
+
+      const emails = await window.spark.kv.get<Array<{
+        id: string
+        from: string
+        to: string
+        subject: string
+        message: string
+        timestamp: number
+        read: boolean
+      }>>('emails') || []
+
+      const newEmail = {
+        id: Date.now().toString() + '-vacation-delete',
+        from: userEmail,
+        to: vacationToDelete.userEmail,
+        subject: emailContent.subject,
+        message: emailContent.body,
+        timestamp: Date.now(),
+        read: false
+      }
+
+      await window.spark.kv.set('emails', [...emails, newEmail])
+
+      const notification = {
+        id: Date.now().toString(),
+        type: 'email' as const,
+        message: `Din ferie er blevet slettet af en manager`,
+        timestamp: Date.now(),
+        read: false,
+        from: userEmail,
+        emailId: newEmail.id
+      }
+
+      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
+      await window.spark.kv.set('email-notifications', [...notifications, notification])
+    } catch (emailError) {
+      console.error('Error sending vacation deletion email:', emailError)
+    }
   }
 
   const getRoleBadge = (role: UserRole) => {
