@@ -423,7 +423,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                 <h3 className="text-lg font-semibold text-foreground">{t.hub.overview.myTasks}</h3>
               </div>
               {myTasks.length === 0 ? (
-                <p className="text-muted-foreground text-sm">{t.hub.overview.noTasks}</p>
+                <p className="text-muted-foreground text-sm text-center">{t.hub.overview.noTasks}</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {myTasks.map((task, idx) => (
