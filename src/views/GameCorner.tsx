@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useKV } from '@github/spark/hooks'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -20,6 +21,7 @@ interface HighScore {
   score: number
   timestamp: number
   playerEmail: string
+  difficulty: Difficulty
 }
 
 interface Target {
@@ -178,11 +180,12 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
         score: finalScore,
         timestamp: Date.now(),
         playerEmail: userEmail,
+        difficulty: difficulty,
       }
       
       setHighScores(currentScores => {
         const updated = [...(currentScores || []), newHighScore]
-        return updated.sort((a, b) => b.score - a.score).slice(0, 50)
+        return updated.sort((a, b) => b.score - a.score).slice(0, 150)
       })
       
       return finalScore
@@ -204,8 +207,15 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     .sort((a, b) => b.score - a.score)
     .slice(0, 10)
 
+  const getScoresByDifficulty = (diff: Difficulty) => {
+    return (highScores || [])
+      .filter(score => score.difficulty === diff)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+  }
+
   const currentPlayerBestScore = (highScores || [])
-    .filter(hs => hs.playerEmail === userEmail)
+    .filter(hs => hs.playerEmail === userEmail && hs.difficulty === difficulty)
     .sort((a, b) => b.score - a.score)[0]
 
   useEffect(() => {
@@ -514,66 +524,95 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                 </h3>
               </div>
 
-              {sortedHighScores.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Medal size={48} weight="duotone" className="mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">
-                    {language === 'da' 
-                      ? 'Ingen scores endnu. Vær den første!' 
-                      : 'No scores yet. Be the first!'}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {sortedHighScores.map((score, index) => {
-                    const isCurrentPlayer = score.playerEmail === userEmail
-                    const getRankIcon = () => {
-                      if (index === 0) return <Crown size={20} weight="fill" className="text-[oklch(0.70_0.18_90)]" />
-                      if (index === 1) return <Medal size={20} weight="fill" className="text-[oklch(0.60_0.15_30)]" />
-                      if (index === 2) return <Medal size={20} weight="fill" className="text-[oklch(0.50_0.10_50)]" />
-                      return null
-                    }
+              <Tabs defaultValue="easy" className="w-full">
+                <TabsList className="grid w-full grid-cols-3 mb-4">
+                  {(['easy', 'medium', 'hard'] as Difficulty[]).map((level) => (
+                    <TabsTrigger 
+                      key={level} 
+                      value={level}
+                      className="text-xs"
+                    >
+                      {DIFFICULTY_SETTINGS[level].label[language]}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
 
-                    return (
-                      <motion.div
-                        key={score.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className={cn(
-                          "flex items-center gap-3 p-3 rounded-lg transition-colors",
-                          isCurrentPlayer 
-                            ? "bg-[oklch(0.70_0.18_90)]/10 border border-[oklch(0.70_0.18_90)]/30" 
-                            : "bg-muted/30 hover:bg-muted/50"
-                        )}
-                      >
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background text-sm font-bold">
-                          {getRankIcon() || `#${index + 1}`}
+                {(['easy', 'medium', 'hard'] as Difficulty[]).map((level) => {
+                  const levelScores = getScoresByDifficulty(level)
+                  const settings = DIFFICULTY_SETTINGS[level]
+
+                  return (
+                    <TabsContent key={level} value={level} className="mt-0">
+                      {levelScores.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Medal size={48} weight="duotone" className="mx-auto mb-3 opacity-50" />
+                          <p className="text-sm">
+                            {language === 'da' 
+                              ? 'Ingen scores endnu. Vær den første!' 
+                              : 'No scores yet. Be the first!'}
+                          </p>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className={cn(
-                            "font-medium truncate",
-                            isCurrentPlayer && "text-[oklch(0.70_0.18_90)]"
-                          )}>
-                            {score.playerName}
-                            {isCurrentPlayer && (
-                              <span className="text-xs ml-2 opacity-70">
-                                ({language === 'da' ? 'dig' : 'you'})
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(score.timestamp).toLocaleDateString(language === 'da' ? 'da-DK' : 'en-US')}
-                          </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {levelScores.map((score, index) => {
+                            const isCurrentPlayer = score.playerEmail === userEmail
+                            const getRankIcon = () => {
+                              if (index === 0) return <Crown size={20} weight="fill" style={{ color: settings.color }} />
+                              if (index === 1) return <Medal size={20} weight="fill" className="text-[oklch(0.60_0.15_30)]" />
+                              if (index === 2) return <Medal size={20} weight="fill" className="text-[oklch(0.50_0.10_50)]" />
+                              return null
+                            }
+
+                            return (
+                              <motion.div
+                                key={score.id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                className={cn(
+                                  "flex items-center gap-3 p-3 rounded-lg transition-colors",
+                                  isCurrentPlayer 
+                                    ? "border" 
+                                    : "bg-muted/30 hover:bg-muted/50"
+                                )}
+                                style={isCurrentPlayer ? {
+                                  backgroundColor: `color-mix(in oklch, ${settings.color} 10%, transparent)`,
+                                  borderColor: `color-mix(in oklch, ${settings.color} 30%, transparent)`
+                                } : {}}
+                              >
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background text-sm font-bold">
+                                  {getRankIcon() || `#${index + 1}`}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className={cn(
+                                    "font-medium truncate",
+                                    isCurrentPlayer && "font-bold"
+                                  )}
+                                  style={isCurrentPlayer ? { color: settings.color } : {}}
+                                  >
+                                    {score.playerName}
+                                    {isCurrentPlayer && (
+                                      <span className="text-xs ml-2 opacity-70">
+                                        ({language === 'da' ? 'dig' : 'you'})
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {new Date(score.timestamp).toLocaleDateString(language === 'da' ? 'da-DK' : 'en-US')}
+                                  </div>
+                                </div>
+                                <div className="text-xl font-bold">
+                                  {score.score}
+                                </div>
+                              </motion.div>
+                            )
+                          })}
                         </div>
-                        <div className="text-xl font-bold">
-                          {score.score}
-                        </div>
-                      </motion.div>
-                    )
-                  })}
-                </div>
-              )}
+                      )}
+                    </TabsContent>
+                  )
+                })}
+              </Tabs>
             </Card>
           </div>
         </div>
