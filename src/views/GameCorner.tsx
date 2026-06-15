@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Trophy, Target, Lightning, Crown, Medal, Star } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useKV } from '@github/spark/hooks'
@@ -135,8 +134,6 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   }
 
   const startGame = () => {
-    if (!playerName.trim()) return
-    
     const settings = DIFFICULTY_SETTINGS[difficulty]
     
     isPlayingRef.current = true
@@ -354,18 +351,6 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        {language === 'da' ? 'Dit navn' : 'Your name'}
-                      </label>
-                      <Input
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        placeholder={language === 'da' ? 'Indtast dit navn' : 'Enter your name'}
-                        onKeyDown={(e) => e.key === 'Enter' && startGame()}
-                      />
-                    </div>
-
                     {currentPlayerBestScore && (
                       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                         <Star size={16} weight="fill" style={{ color: DIFFICULTY_SETTINGS[difficulty].color }} />
@@ -376,7 +361,6 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
 
                     <Button
                       onClick={startGame}
-                      disabled={!playerName.trim()}
                       size="lg"
                       className="w-full hover:opacity-90"
                       style={{ 
