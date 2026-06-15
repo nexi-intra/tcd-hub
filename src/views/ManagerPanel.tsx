@@ -1393,9 +1393,6 @@ Return ONLY a JSON object with this exact structure:
                         className="flex items-center justify-between p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all group"
                       >
                         <div className="flex items-center gap-4 flex-1">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                            {getUserName().charAt(0).toUpperCase()}
-                          </div>
                           <div className="flex-1">
                             <div className="font-bold text-lg mb-1">{getUserName()}</div>
                             <div className="text-sm text-muted-foreground mb-2">{vacation.userEmail}</div>
