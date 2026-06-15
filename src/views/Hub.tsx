@@ -414,7 +414,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="mb-10"
         >
-          <h2 className="text-xl sm:text-2xl font-bold mb-6 text-foreground">{t.hub.overview.title}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
               <div className="flex items-center gap-3 mb-4">
