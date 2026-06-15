@@ -80,6 +80,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const [timeLeft, setTimeLeft] = useState(30)
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [targets, setTargets] = useState<Target[]>([])
+  const [combo, setCombo] = useState(0)
+  const [highestCombo, setHighestCombo] = useState(0)
   const [highScores, setHighScores] = useKV<HighScore[]>('game-corner-highscores', [])
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<number | null>(null)
@@ -124,6 +126,14 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     }, settings.targetLifetime)
   }
 
+  const getComboMultiplier = (comboCount: number): number => {
+    if (comboCount < 3) return 1
+    if (comboCount < 5) return 1.5
+    if (comboCount < 10) return 2
+    if (comboCount < 15) return 2.5
+    return 3
+  }
+
   const startGame = () => {
     if (!playerName.trim()) return
     
@@ -132,6 +142,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     isPlayingRef.current = true
     setGameState('playing')
     setCurrentScore(0)
+    setCombo(0)
+    setHighestCombo(0)
     setTimeLeft(settings.timeLimit)
     setTargets([])
     
@@ -153,7 +165,17 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     const settings = DIFFICULTY_SETTINGS[difficulty]
     
     setTargets(prev => prev.filter(t => t.id !== targetId))
-    setCurrentScore(prev => prev + settings.pointsPerTarget)
+    
+    setCombo(prevCombo => {
+      const newCombo = prevCombo + 1
+      setHighestCombo(prev => Math.max(prev, newCombo))
+      
+      const multiplier = getComboMultiplier(newCombo)
+      const pointsEarned = Math.round(settings.pointsPerTarget * multiplier)
+      setCurrentScore(prev => prev + pointsEarned)
+      
+      return newCombo
+    })
     
     if (targetSpawnRef.current) {
       clearTimeout(targetSpawnRef.current)
@@ -170,6 +192,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     if (targets.length > 0) {
       const settings = DIFFICULTY_SETTINGS[difficulty]
       setCurrentScore(score => Math.max(0, score - settings.penaltyPoints))
+      setCombo(0)
     }
   }
 
@@ -374,12 +397,15 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                       <li>• {language === 'da' 
                         ? `Hvert mål giver ${DIFFICULTY_SETTINGS[difficulty].pointsPerTarget} point` 
                         : `Each target gives ${DIFFICULTY_SETTINGS[difficulty].pointsPerTarget} points`}</li>
+                      <li className="text-[oklch(0.65_0.15_140)] font-medium">• {language === 'da' 
+                        ? 'Byg combo ved at ramme mål uden at fejle - få op til 3x point!' 
+                        : 'Build combo by hitting targets without missing - get up to 3x points!'}</li>
                       <li>• {language === 'da' 
                         ? `Mål forsvinder efter ${DIFFICULTY_SETTINGS[difficulty].targetLifetime / 1000} sekunder (ingen straf)` 
                         : `Targets disappear after ${DIFFICULTY_SETTINGS[difficulty].targetLifetime / 1000} seconds (no penalty)`}</li>
                       <li className="text-destructive font-medium">• {language === 'da' 
-                        ? `Klik ved siden af et mål: ${DIFFICULTY_SETTINGS[difficulty].penaltyPoints} point i straf!` 
-                        : `Click outside a target: ${DIFFICULTY_SETTINGS[difficulty].penaltyPoints} point penalty!`}</li>
+                        ? `Klik ved siden af et mål: ${DIFFICULTY_SETTINGS[difficulty].penaltyPoints} point i straf & mister combo!` 
+                        : `Click outside a target: ${DIFFICULTY_SETTINGS[difficulty].penaltyPoints} point penalty & lose combo!`}</li>
                       <li>• {language === 'da' 
                         ? `Du har ${DIFFICULTY_SETTINGS[difficulty].timeLimit} sekunder total` 
                         : `You have ${DIFFICULTY_SETTINGS[difficulty].timeLimit} seconds total`}</li>
@@ -411,6 +437,35 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                           {timeLeft}s
                         </div>
                       </div>
+                      {combo > 0 && (
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          key={combo}
+                          className="relative"
+                        >
+                          <div className="text-sm text-muted-foreground">
+                            {language === 'da' ? 'Combo' : 'Combo'}
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                            <div 
+                              className="text-4xl font-bold"
+                              style={{ 
+                                color: combo >= 15 ? 'oklch(0.65 0.26 340)' :
+                                       combo >= 10 ? 'oklch(0.70 0.18 90)' :
+                                       combo >= 5 ? 'oklch(0.65 0.15 140)' :
+                                       combo >= 3 ? 'oklch(0.70 0.18 60)' :
+                                       'var(--foreground)'
+                              }}
+                            >
+                              {combo}x
+                            </div>
+                            <div className="text-xs font-medium text-muted-foreground">
+                              {getComboMultiplier(combo).toFixed(1)}x {language === 'da' ? 'point' : 'pts'}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
                     </div>
                     <Badge variant="outline" className="text-lg px-4 py-2">
                       {playerName}
@@ -484,9 +539,18 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                     <div className="text-6xl font-bold mb-2" style={{ color: DIFFICULTY_SETTINGS[difficulty].color }}>
                       {currentScore}
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-muted-foreground mb-4">
                       {language === 'da' ? 'point' : 'points'} • {DIFFICULTY_SETTINGS[difficulty].label[language]}
                     </div>
+                    {highestCombo > 0 && (
+                      <div className="flex items-center justify-center gap-2 text-sm">
+                        <Lightning size={16} weight="fill" className="text-[oklch(0.70_0.18_90)]" />
+                        <span className="text-muted-foreground">
+                          {language === 'da' ? 'Højeste combo:' : 'Highest combo:'}
+                        </span>
+                        <span className="font-bold text-foreground">{highestCombo}x</span>
+                      </div>
+                    )}
                   </div>
 
                   {currentPlayerBestScore && currentScore > currentPlayerBestScore.score && (
