@@ -228,7 +228,10 @@ const ACHIEVEMENTS: Achievement[] = [
   },
 ]
 
-const getAvatarUrl = (email: string) => {
+const getAvatarUrl = (email: string, userAvatarUrl?: string, currentUserEmail?: string) => {
+  if (userAvatarUrl && email === currentUserEmail) {
+    return userAvatarUrl
+  }
   const hash = email.toLowerCase().split('').reduce((acc, char) => {
     return char.charCodeAt(0) + ((acc << 5) - acc)
   }, 0)
@@ -328,6 +331,22 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const isPlayingRef = useRef(false)
   
   const [usersData] = useKV<Record<string, { fullName: string }>>('users', {})
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string>('')
+  
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userData = await window.spark.user()
+        if (userData && userData.avatarUrl) {
+          setUserAvatarUrl(userData.avatarUrl)
+        }
+      } catch (error) {
+        console.error('Failed to fetch user data:', error)
+      }
+    }
+    
+    fetchUserData()
+  }, [])
   
   useEffect(() => {
     if (usersData) {
@@ -721,7 +740,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                                   : undefined
                               }}
                             >
-                              <AvatarImage src={getAvatarUrl(userEmail)} alt={playerName} />
+                              <AvatarImage src={getAvatarUrl(userEmail, userAvatarUrl, userEmail)} alt={playerName} />
                               <AvatarFallback className="text-sm font-bold">
                                 {getInitials(playerName)}
                               </AvatarFallback>
@@ -1226,7 +1245,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                                         : undefined
                                     }}
                                   >
-                                    <AvatarImage src={getAvatarUrl(score.playerEmail)} alt={score.playerName} />
+                                    <AvatarImage src={getAvatarUrl(score.playerEmail, userAvatarUrl, userEmail)} alt={score.playerName} />
                                     <AvatarFallback className="text-xs font-bold">
                                       {getInitials(score.playerName)}
                                     </AvatarFallback>
