@@ -36,6 +36,7 @@ interface DifficultySettings {
   timeLimit: number
   targetLifetime: number
   pointsPerTarget: number
+  penaltyPoints: number
   label: { da: string; en: string }
   description: { da: string; en: string }
   color: string
@@ -46,6 +47,7 @@ const DIFFICULTY_SETTINGS: Record<Difficulty, DifficultySettings> = {
     timeLimit: 45,
     targetLifetime: 2000,
     pointsPerTarget: 10,
+    penaltyPoints: 5,
     label: { da: 'Let', en: 'Easy' },
     description: { da: '45 sekunder, langsomme mål', en: '45 seconds, slow targets' },
     color: 'oklch(0.65 0.15 140)',
@@ -54,6 +56,7 @@ const DIFFICULTY_SETTINGS: Record<Difficulty, DifficultySettings> = {
     timeLimit: 30,
     targetLifetime: 1500,
     pointsPerTarget: 15,
+    penaltyPoints: 10,
     label: { da: 'Medium', en: 'Medium' },
     description: { da: '30 sekunder, normale mål', en: '30 seconds, normal targets' },
     color: 'oklch(0.70 0.18 90)',
@@ -62,6 +65,7 @@ const DIFFICULTY_SETTINGS: Record<Difficulty, DifficultySettings> = {
     timeLimit: 20,
     targetLifetime: 1000,
     pointsPerTarget: 25,
+    penaltyPoints: 15,
     label: { da: 'Svær', en: 'Hard' },
     description: { da: '20 sekunder, hurtige mål', en: '20 seconds, fast targets' },
     color: 'oklch(0.65 0.26 340)',
@@ -110,7 +114,12 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     
     targetSpawnRef.current = window.setTimeout(() => {
       if (isPlayingRef.current) {
-        setTargets([])
+        setTargets(prev => {
+          if (prev.length > 0) {
+            setCurrentScore(score => Math.max(0, score - settings.penaltyPoints))
+          }
+          return []
+        })
         targetSpawnRef.current = window.setTimeout(() => {
           if (isPlayingRef.current) {
             spawnTarget()
@@ -365,6 +374,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                       <li>• {language === 'da' 
                         ? `Mål forsvinder efter ${DIFFICULTY_SETTINGS[difficulty].targetLifetime / 1000} sekunder` 
                         : `Targets disappear after ${DIFFICULTY_SETTINGS[difficulty].targetLifetime / 1000} seconds`}</li>
+                      <li className="text-destructive font-medium">• {language === 'da' 
+                        ? `Misser du et mål, mister du ${DIFFICULTY_SETTINGS[difficulty].penaltyPoints} point!` 
+                        : `Miss a target and lose ${DIFFICULTY_SETTINGS[difficulty].penaltyPoints} points!`}</li>
                       <li>• {language === 'da' 
                         ? `Du har ${DIFFICULTY_SETTINGS[difficulty].timeLimit} sekunder total` 
                         : `You have ${DIFFICULTY_SETTINGS[difficulty].timeLimit} seconds total`}</li>
