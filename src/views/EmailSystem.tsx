@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Email {
   id: string
@@ -75,6 +76,7 @@ interface EmailSystemProps {
 }
 
 export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
+  const { t } = useLanguage()
   const [emails, setEmails] = useKV<Email[]>('emails', [])
   const [folders, setFolders] = useKV<EmailFolder[]>('email-folders', [])
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
@@ -242,13 +244,13 @@ export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
 
   const handleSendEmail = async () => {
     if (!composeData.to || !composeData.subject || !composeData.message) {
-      toast.error('Udfyld venligst alle felter')
+      toast.error(t.email.fillAllFields)
       return
     }
 
     const userExists = (users || []).some(u => u.email === composeData.to)
     if (!userExists) {
-      toast.error('Brugeren findes ikke i systemet')
+      toast.error(t.email.userNotFound)
       return
     }
 
@@ -277,7 +279,7 @@ export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
     const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
     await window.spark.kv.set('email-notifications', [...notifications, notification])
 
-    toast.success('Email sendt!')
+    toast.success(t.email.emailSent)
     setComposeData({ to: '', subject: '', message: '' })
     setView('sent')
   }
@@ -293,7 +295,7 @@ export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
   const handleDeleteEmail = (emailId: string) => {
     setEmails(currentEmails => (currentEmails || []).filter(email => email.id !== emailId))
     setSelectedEmail(null)
-    toast.success('Email slettet')
+    toast.success(t.email.emailDeleted)
   }
 
   const handleEmailClick = (email: Email) => {
