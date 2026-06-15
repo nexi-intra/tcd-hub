@@ -835,15 +835,6 @@ Return ONLY a JSON object with this exact structure:
                       className="flex items-center justify-between p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all"
                     >
                       <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg ${
-                          user.role === 'admin' 
-                            ? 'bg-gradient-to-br from-accent via-primary to-secondary' 
-                            : user.role === 'manager'
-                            ? 'bg-gradient-to-br from-primary to-secondary'
-                            : 'bg-gradient-to-br from-secondary to-accent'
-                        }`}>
-                          {user.fullName.charAt(0).toUpperCase()}
-                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <div className="font-bold text-lg">{user.fullName}</div>
