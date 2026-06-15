@@ -536,7 +536,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     {module.icon}
                   </motion.div>
 
-                  <h3 className="text-base sm:text-lg md:text-xl font-bold mb-2 text-foreground">
+                  <h3 className="text-base sm:text-lg md:text-xl font-bold mb-2 text-foreground text-center">
                     {module.title}
                   </h3>
                   
