@@ -94,6 +94,8 @@ export function EmailSystem({ onNavigateBack, userEmail }: EmailSystemProps) {
   const [folderName, setFolderName] = useState('')
   const [showMoveToFolderDialog, setShowMoveToFolderDialog] = useState(false)
   const [emailToMove, setEmailToMove] = useState<Email | null>(null)
+  const [draggedEmail, setDraggedEmail] = useState<Email | null>(null)
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null)
   const [composeData, setComposeData] = useState({
     to: '',
     subject: '',
@@ -537,6 +539,55 @@ Return ONLY a JSON object with this exact structure:
     setEmailToMove(null)
   }
 
+  const handleDragStart = (e: React.DragEvent, email: Email) => {
+    setDraggedEmail(email)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', email.id)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedEmail(null)
+    setDragOverFolder(null)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDragEnterFolder = (folderId: string | null) => {
+    setDragOverFolder(folderId)
+  }
+
+  const handleDragLeaveFolder = () => {
+    setDragOverFolder(null)
+  }
+
+  const handleDropOnFolder = (e: React.DragEvent, folderId: string | null) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!draggedEmail) return
+
+    setEmails(current =>
+      (current || []).map(email =>
+        email.id === draggedEmail.id
+          ? { ...email, folderId: folderId || undefined }
+          : email
+      )
+    )
+
+    if (folderId) {
+      const folder = userFolders.find(f => f.id === folderId)
+      toast.success(`Email flyttet til ${folder?.name}`)
+    } else {
+      toast.success('Email flyttet til indbakke')
+    }
+
+    setDraggedEmail(null)
+    setDragOverFolder(null)
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('da-DK', {
       day: 'numeric',
@@ -687,22 +738,33 @@ Return ONLY a JSON object with this exact structure:
 
               <Separator className="my-4" />
 
-              <Button
-                variant={view === 'inbox' ? 'secondary' : 'ghost'}
-                className="w-full justify-start gap-2"
-                onClick={() => {
-                  setView('inbox')
-                  setSelectedEmail(null)
-                }}
-              >
-                <Envelope size={20} weight={view === 'inbox' ? 'fill' : 'regular'} />
-                Indbakke
-                {unreadCount > 0 && (
-                  <Badge className="ml-auto bg-primary text-primary-foreground">
-                    {unreadCount}
-                  </Badge>
+              <div
+                onDragOver={handleDragOver}
+                onDragEnter={() => handleDragEnterFolder(null)}
+                onDragLeave={handleDragLeaveFolder}
+                onDrop={(e) => handleDropOnFolder(e, null)}
+                className={cn(
+                  "rounded-lg transition-all duration-200",
+                  dragOverFolder === null && draggedEmail && "ring-2 ring-primary bg-primary/5"
                 )}
-              </Button>
+              >
+                <Button
+                  variant={view === 'inbox' ? 'secondary' : 'ghost'}
+                  className="w-full justify-start gap-2"
+                  onClick={() => {
+                    setView('inbox')
+                    setSelectedEmail(null)
+                  }}
+                >
+                  <Envelope size={20} weight={view === 'inbox' ? 'fill' : 'regular'} />
+                  Indbakke
+                  {unreadCount > 0 && (
+                    <Badge className="ml-auto bg-primary text-primary-foreground">
+                      {unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </div>
 
               <Button
                 variant={view === 'sent' ? 'secondary' : 'ghost'}
@@ -766,10 +828,20 @@ Return ONLY a JSON object with this exact structure:
                   {userFolders.map(folder => {
                     const folderEmailCount = (emails || []).filter(e => e.folderId === folder.id).length
                     return (
-                      <div key={folder.id} className="group relative">
+                      <div
+                        key={folder.id}
+                        className="group relative"
+                        onDragOver={handleDragOver}
+                        onDragEnter={() => handleDragEnterFolder(folder.id)}
+                        onDragLeave={handleDragLeaveFolder}
+                        onDrop={(e) => handleDropOnFolder(e, folder.id)}
+                      >
                         <Button
                           variant={view === 'folder' && selectedFolderId === folder.id ? 'secondary' : 'ghost'}
-                          className="w-full justify-start gap-2 pr-16"
+                          className={cn(
+                            "w-full justify-start gap-2 pr-16 transition-all duration-200",
+                            dragOverFolder === folder.id && draggedEmail && "ring-2 ring-primary bg-primary/5"
+                          )}
                           onClick={() => {
                             setView('folder')
                             setSelectedFolderId(folder.id)
@@ -1117,13 +1189,17 @@ Return ONLY a JSON object with this exact structure:
                           </div>
                         ) : (
                           (view === 'inbox' ? inboxEmails : view === 'sent' ? sentEmails : folderEmails).map((email) => (
-                            <motion.button
+                            <motion.div
                               key={email.id}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e as any, email)}
+                              onDragEnd={handleDragEnd}
                               onClick={() => handleEmailClick(email)}
                               className={cn(
                                 "w-full text-left p-4 rounded-lg border transition-all duration-200",
-                                "hover:bg-muted hover:border-primary/40",
-                                !email.read && view === 'inbox' && "bg-primary/5 border-primary/20 font-semibold"
+                                "hover:bg-muted hover:border-primary/40 cursor-move",
+                                !email.read && view === 'inbox' && "bg-primary/5 border-primary/20 font-semibold",
+                                draggedEmail?.id === email.id && "opacity-50"
                               )}
                               whileHover={{ scale: 1.01 }}
                               whileTap={{ scale: 0.99 }}
@@ -1164,7 +1240,7 @@ Return ONLY a JSON object with this exact structure:
                                   <EnvelopeOpen size={20} className="text-primary flex-shrink-0" weight="fill" />
                                 )}
                               </div>
-                            </motion.button>
+                            </motion.div>
                           ))
                         )}
                       </div>
