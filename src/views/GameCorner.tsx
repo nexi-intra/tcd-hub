@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Progress } from '@/components/ui/progress'
 import { useKV } from '@github/spark/hooks'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -263,6 +264,48 @@ const getAnimationStyle = (animation?: string) => {
       return 'animate-glow'
     default:
       return ''
+  }
+}
+
+const getAchievementProgress = (achievement: Achievement, stats: PlayerStats): { current: number; target: number; progress: number } => {
+  switch (achievement.id) {
+    case 'first-game':
+      return { current: stats.totalGames, target: 1, progress: Math.min((stats.totalGames / 1) * 100, 100) }
+    case 'score-100':
+      return { current: stats.highestScore, target: 100, progress: Math.min((stats.highestScore / 100) * 100, 100) }
+    case 'score-300':
+      return { current: stats.highestScore, target: 300, progress: Math.min((stats.highestScore / 300) * 100, 100) }
+    case 'combo-master':
+      return { current: stats.highestCombo, target: 15, progress: Math.min((stats.highestCombo / 15) * 100, 100) }
+    case 'hard-mode':
+      return { current: stats.gamesWonHard, target: 5, progress: Math.min((stats.gamesWonHard / 5) * 100, 100) }
+    case 'dedication':
+      return { current: stats.totalGames, target: 50, progress: Math.min((stats.totalGames / 50) * 100, 100) }
+    case 'legendary-player':
+      return { current: stats.highestScore, target: 500, progress: Math.min((stats.highestScore / 500) * 100, 100) }
+    default:
+      return { current: 0, target: 1, progress: 0 }
+  }
+}
+
+const formatProgressText = (achievement: Achievement, stats: PlayerStats, language: 'da' | 'en'): string => {
+  const { current, target } = getAchievementProgress(achievement, stats)
+  
+  switch (achievement.id) {
+    case 'first-game':
+      return language === 'da' ? `${current}/${target} spil` : `${current}/${target} game`
+    case 'score-100':
+    case 'score-300':
+    case 'legendary-player':
+      return language === 'da' ? `${current}/${target} point` : `${current}/${target} points`
+    case 'combo-master':
+      return `${current}/${target}x combo`
+    case 'hard-mode':
+      return language === 'da' ? `${current}/${target} spil på svær` : `${current}/${target} games on hard`
+    case 'dedication':
+      return language === 'da' ? `${current}/${target} spil` : `${current}/${target} games`
+    default:
+      return `${current}/${target}`
   }
 }
 
@@ -536,6 +579,15 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
 
   const availableBorders = [AVATAR_BORDERS[0], ...unlockedBorders]
 
+  const nextAchievementToUnlock = ACHIEVEMENTS.find(achievement => {
+    const isUnlocked = currentPlayerAchievements.unlockedAchievements.includes(achievement.id)
+    return !isUnlocked
+  })
+
+  const nextAchievementProgress = nextAchievementToUnlock 
+    ? getAchievementProgress(nextAchievementToUnlock, currentPlayerStats)
+    : null
+
   const selectBorder = (borderId: string) => {
     setPlayerAchievements(current => ({
       ...current,
@@ -583,13 +635,20 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
           </div>
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Medal size={20} weight="fill" />
-                {language === 'da' ? 'Præstationer' : 'Achievements'}
-                {currentPlayerAchievements.unlockedAchievements.length > 0 && (
-                  <Badge variant="secondary" className="ml-1">
-                    {currentPlayerAchievements.unlockedAchievements.length}
-                  </Badge>
+              <Button variant="outline" className="gap-2 flex-col h-auto py-2">
+                <div className="flex items-center gap-2">
+                  <Medal size={20} weight="fill" />
+                  {language === 'da' ? 'Præstationer' : 'Achievements'}
+                  {currentPlayerAchievements.unlockedAchievements.length > 0 && (
+                    <Badge variant="secondary" className="ml-1">
+                      {currentPlayerAchievements.unlockedAchievements.length}
+                    </Badge>
+                  )}
+                </div>
+                {nextAchievementProgress && nextAchievementProgress.progress > 0 && nextAchievementProgress.progress < 100 && (
+                  <div className="w-full mt-1">
+                    <Progress value={nextAchievementProgress.progress} className="h-1" />
+                  </div>
                 )}
               </Button>
             </DialogTrigger>
@@ -601,6 +660,30 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-6 mt-4">
+                <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 p-4 rounded-lg border border-primary/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-sm">
+                      {language === 'da' ? 'Samlet Fremskridt' : 'Overall Progress'}
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default" className="text-sm font-bold">
+                        {currentPlayerAchievements.unlockedAchievements.length} / {ACHIEVEMENTS.length}
+                      </Badge>
+                      <Badge variant="secondary" className="text-sm">
+                        {Math.round((currentPlayerAchievements.unlockedAchievements.length / ACHIEVEMENTS.length) * 100)}%
+                      </Badge>
+                    </div>
+                  </div>
+                  <Progress 
+                    value={(currentPlayerAchievements.unlockedAchievements.length / ACHIEVEMENTS.length) * 100} 
+                    className="h-3"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {language === 'da' 
+                      ? `${ACHIEVEMENTS.length - currentPlayerAchievements.unlockedAchievements.length} præstationer tilbage at låse op`
+                      : `${ACHIEVEMENTS.length - currentPlayerAchievements.unlockedAchievements.length} achievements left to unlock`}
+                  </p>
+                </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                     <Sparkle size={20} weight="fill" className="text-[oklch(0.70_0.18_90)]" />
@@ -665,6 +748,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                     {ACHIEVEMENTS.map(achievement => {
                       const isUnlocked = currentPlayerAchievements.unlockedAchievements.includes(achievement.id)
                       const Icon = achievement.icon
+                      const progressData = getAchievementProgress(achievement, currentPlayerStats)
+                      const progressText = formatProgressText(achievement, currentPlayerStats, language)
+                      
                       return (
                         <div
                           key={achievement.id}
@@ -672,7 +758,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                             "p-4 rounded-lg border transition-all",
                             isUnlocked 
                               ? "border-primary/30 bg-gradient-to-r from-primary/5 to-transparent" 
-                              : "border-border bg-muted/30 opacity-60"
+                              : "border-border bg-muted/30"
                           )}
                         >
                           <div className="flex items-start gap-3">
@@ -691,15 +777,39 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
                                 <h4 className="font-semibold">{achievement.name[language]}</h4>
-                                {isUnlocked && (
+                                {isUnlocked ? (
                                   <Badge variant="outline" className="text-xs">
                                     ✓ {language === 'da' ? 'Låst op' : 'Unlocked'}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-xs font-bold">
+                                    {Math.round(progressData.progress)}%
                                   </Badge>
                                 )}
                               </div>
                               <p className="text-sm text-muted-foreground mt-1">
                                 {achievement.description[language]}
                               </p>
+                              {!isUnlocked && (
+                                <div className="mt-3 space-y-1">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground font-medium">
+                                      {language === 'da' ? 'Fremskridt' : 'Progress'}
+                                    </span>
+                                    <span className="font-bold text-foreground">
+                                      {progressText}
+                                    </span>
+                                  </div>
+                                  <Progress 
+                                    value={progressData.progress} 
+                                    className="h-2"
+                                  />
+                                  <div className="text-xs text-muted-foreground">
+                                    {language === 'da' ? '🎁 Lås op: ' : '🎁 Unlock: '}
+                                    {achievement.border.name[language]}
+                                  </div>
+                                </div>
+                              )}
                               {isUnlocked && (
                                 <div className="mt-2 text-xs text-primary font-medium">
                                   {language === 'da' ? '🎁 Ramme låst op: ' : '🎁 Frame unlocked: '}
