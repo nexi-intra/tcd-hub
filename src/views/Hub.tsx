@@ -79,6 +79,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [myTasks, setMyTasks] = useState<Array<{ roleName: string; roleColor: string }>>([])
   const [peopleOff, setPeopleOff] = useState<Array<{ name: string; type: 'vacation' | 'single' }>>([])
   const [peopleSick, setPeopleSick] = useState<string[]>([])
+  const [todaysMeal, setTodaysMeal] = useState<string>('')
   
   useEffect(() => {
     const checkUserRole = async () => {
@@ -103,6 +104,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   useEffect(() => {
     const loadOverviewData = async () => {
       const today = format(new Date(), 'yyyy-MM-dd')
+      const currentDate = new Date()
       
       const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
       const roles = (await window.spark.kv.get<ShiftRole[]>('shift-roles')) || []
@@ -139,6 +141,46 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       })
       
       setPeopleOff(todayOff)
+      
+      interface WeekMenu {
+        weekNumber: number
+        year: number
+        weekStart: string
+        meals: {
+          monday: string
+          tuesday: string
+          wednesday: string
+          thursday: string
+          friday: string
+        }
+      }
+      
+      const weekMenus = (await window.spark.kv.get<WeekMenu[]>('meal-plan-weeks')) || []
+      const getWeekNumber = (date: Date): number => {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+        const dayNum = d.getUTCDay() || 7
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+        return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+      }
+      
+      const currentWeek = getWeekNumber(currentDate)
+      const currentYear = currentDate.getFullYear()
+      const currentWeekMenu = weekMenus.find(w => w.weekNumber === currentWeek && w.year === currentYear)
+      
+      if (currentWeekMenu) {
+        const dayOfWeek = currentDate.getDay()
+        const dayKeys: Array<keyof typeof currentWeekMenu.meals> = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+        
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+          const dayKey = dayKeys[dayOfWeek - 1]
+          setTodaysMeal(currentWeekMenu.meals[dayKey] || '')
+        } else {
+          setTodaysMeal('')
+        }
+      } else {
+        setTodaysMeal('')
+      }
     }
     
     loadOverviewData()
@@ -364,7 +406,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           className="mb-10"
         >
           <h2 className="text-xl sm:text-2xl font-bold mb-6 text-foreground">{t.hub.overview.title}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]">
@@ -428,6 +470,20 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     </div>
                   ))}
                 </div>
+              )}
+            </Card>
+
+            <Card className="p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]">
+                  <ForkKnife size={24} weight="duotone" className="text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">{t.hub.overview.todaysMeal}</h3>
+              </div>
+              {!todaysMeal ? (
+                <p className="text-muted-foreground text-sm">{t.hub.overview.noMeal}</p>
+              ) : (
+                <p className="text-sm text-foreground leading-relaxed">{todaysMeal}</p>
               )}
             </Card>
           </div>

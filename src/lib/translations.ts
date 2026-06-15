@@ -36,9 +36,11 @@ export const translations = {
         myTasks: "Mine Opgaver I Dag",
         offToday: "Fri I Dag",
         sickToday: "Syge I Dag",
+        todaysMeal: "Mad I Dag",
         noTasks: "Ingen opgaver i dag",
         noOneOff: "Ingen har fri i dag",
-        noOneSick: "Ingen syge i dag"
+        noOneSick: "Ingen syge i dag",
+        noMeal: "Ingen madplan for i dag"
       }
     },
     shifts: {
@@ -584,9 +586,11 @@ export const translations = {
         myTasks: "My Tasks Today",
         offToday: "Off Today",
         sickToday: "Sick Today",
+        todaysMeal: "Today's Meal",
         noTasks: "No tasks today",
         noOneOff: "No one off today",
-        noOneSick: "No one sick today"
+        noOneSick: "No one sick today",
+        noMeal: "No meal plan for today"
       }
     },
     shifts: {
