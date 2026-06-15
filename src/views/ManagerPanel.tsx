@@ -4,16 +4,13 @@ import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAid
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
@@ -1354,44 +1351,22 @@ Return ONLY a JSON object with this exact structure:
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Startdato *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarBlank size={18} className="mr-2" />
-                    {editVacationStartDate ? format(editVacationStartDate, 'd. MMMM yyyy', { locale: da }) : 'Vælg startdato'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-card border-2" align="center" sideOffset={8}>
-                  <Calendar
-                    mode="single"
-                    selected={editVacationStartDate}
-                    onSelect={setEditVacationStartDate}
-                    locale={da}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                type="date"
+                value={editVacationStartDate ? format(editVacationStartDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => setEditVacationStartDate(e.target.value ? new Date(e.target.value) : undefined)}
+                className="w-full"
+              />
             </div>
             <div className="space-y-2">
               <Label>Slutdato *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarBlank size={18} className="mr-2" />
-                    {editVacationEndDate ? format(editVacationEndDate, 'd. MMMM yyyy', { locale: da }) : 'Vælg slutdato'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-card border-2" align="center" sideOffset={8}>
-                  <Calendar
-                    mode="single"
-                    selected={editVacationEndDate}
-                    onSelect={setEditVacationEndDate}
-                    locale={da}
-                    disabled={(date) => editVacationStartDate ? date < editVacationStartDate : false}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                type="date"
+                value={editVacationEndDate ? format(editVacationEndDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => setEditVacationEndDate(e.target.value ? new Date(e.target.value) : undefined)}
+                min={editVacationStartDate ? format(editVacationStartDate, 'yyyy-MM-dd') : undefined}
+                className="w-full"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-vacation-notes">Bemærkninger</Label>
