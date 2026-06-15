@@ -11,6 +11,7 @@ import { MealPlan } from '@/views/MealPlan'
 import { Auth } from '@/views/Auth'
 import { useKV } from '@github/spark/hooks'
 import { LanguageProvider } from '@/contexts/LanguageContext'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 
 type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals'
 
@@ -67,24 +68,28 @@ function App() {
 
   if (!userSession) {
     return (
-      <LanguageProvider>
-        <Auth onAuthenticated={handleAuthenticated} />
-      </LanguageProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <Auth onAuthenticated={handleAuthenticated} />
+        </LanguageProvider>
+      </ThemeProvider>
     )
   }
 
   return (
-    <LanguageProvider>
-      {currentView === 'hub' && <Hub onNavigate={handleNavigate} onLogout={handleLogout} userEmail={userSession.email} />}
-      {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
-      {currentView === 'calendar' && <VacationCalendar onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
-      {currentView === 'shifts' && <ShiftSchedule onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
-      {currentView === 'admin' && <AdminPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
-      {currentView === 'manager' && <ManagerPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
-      {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
-      {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
-      {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} />}
-    </LanguageProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        {currentView === 'hub' && <Hub onNavigate={handleNavigate} onLogout={handleLogout} userEmail={userSession.email} />}
+        {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
+        {currentView === 'calendar' && <VacationCalendar onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
+        {currentView === 'shifts' && <ShiftSchedule onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
+        {currentView === 'admin' && <AdminPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
+        {currentView === 'manager' && <ManagerPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
+        {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
+        {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
+        {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} />}
+      </LanguageProvider>
+    </ThemeProvider>
   )
 }
 

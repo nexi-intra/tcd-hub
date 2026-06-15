@@ -361,6 +361,10 @@ export const translations = {
       noResults: "Ingen resultater",
       comingSoon: "Kommer snart"
     },
+    theme: {
+      light: "Lys",
+      dark: "Mørk"
+    },
     vacationRequestDialog: {
       title: "Anmod om Ferie",
       requestVacation: "Anmod om Ferie",
@@ -806,6 +810,10 @@ export const translations = {
       loading: "Loading...",
       noResults: "No results",
       comingSoon: "Coming soon"
+    },
+    theme: {
+      light: "Light",
+      dark: "Dark"
     },
     vacationRequestDialog: {
       title: "Request Vacation",

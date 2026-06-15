@@ -8,6 +8,7 @@ import { UserProfile } from '@/components/UserProfile'
 import { SickLeaveDialog } from '@/components/SickLeaveDialog'
 import { EmailNotifications } from '@/components/EmailNotifications'
 import { LanguageToggle } from '@/components/LanguageToggle'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { cn } from '@/lib/utils'
 import { hasManagerAccess } from '@/lib/userRoles'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -163,6 +164,13 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="absolute top-6 right-6 z-20 flex items-center gap-4">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <ThemeToggle />
+        </motion.div>
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
