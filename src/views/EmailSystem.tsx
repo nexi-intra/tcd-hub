@@ -710,17 +710,16 @@ Return ONLY a JSON object with this exact structure:
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
+          className="mb-8"
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6 mb-8">
             <Button
+              variant="ghost"
+              size="icon"
               onClick={onNavigateBack}
-              variant="outline"
-              size="lg"
-              className="gap-2 bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg"
+              className="hover:bg-primary/10 h-12 w-12"
             >
-              <ArrowLeft size={20} weight="bold" />
-              Tilbage
+              <ArrowLeft size={28} />
             </Button>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">

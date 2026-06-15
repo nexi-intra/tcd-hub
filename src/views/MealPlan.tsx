@@ -182,32 +182,27 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
     <div className="min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-7xl">
         <motion.header
-          className="mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-4"
+          className="mb-8 flex items-center gap-6"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={onNavigateBack}
-              className="group"
-            >
-              <ArrowLeft
-                size={20}
-                className="group-hover:-translate-x-1 transition-transform"
-              />
-            </Button>
-            <div>
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent flex items-center gap-3">
-                <ForkKnife size={40} weight="duotone" className="text-primary" />
-                Madplan
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                Planlæg ugens menuer for mandag til fredag
-              </p>
-            </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onNavigateBack}
+            className="hover:bg-primary/10 h-12 w-12"
+          >
+            <ArrowLeft size={28} />
+          </Button>
+          <div>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent flex items-center gap-3">
+              <ForkKnife size={40} weight="duotone" className="text-primary" />
+              Madplan
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Planlæg ugens menuer for mandag til fredag
+            </p>
           </div>
         </motion.header>
 

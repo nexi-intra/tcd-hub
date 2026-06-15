@@ -893,24 +893,20 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 mt-12"
+          className="mb-6"
         >
-          <Button
-            onClick={onNavigateBack}
-            variant="outline"
-            size="lg"
-            className="mb-8 gap-2"
-          >
-            <ArrowLeft size={20} />
-            Tilbage til Hub
-          </Button>
-
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-4xl sm:text-5xl font-bold mb-2 bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
-                Vagtplan
-              </h1>
-            </div>
+          <div className="flex items-center gap-6 mb-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onNavigateBack}
+              className="hover:bg-primary/10 h-12 w-12"
+            >
+              <ArrowLeft size={28} />
+            </Button>
+            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
+              Vagtplan
+            </h1>
           </div>
         </motion.div>
 
