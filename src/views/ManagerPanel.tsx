@@ -1154,7 +1154,6 @@ Return ONLY a JSON object with this exact structure:
                     >
                       <div className="flex items-center gap-4 flex-1">
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                          {entry.userName.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1">
                           <div className="font-bold text-lg mb-1">{entry.userName}</div>
