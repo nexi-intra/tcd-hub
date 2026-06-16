@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@github/spark/hooks'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { useTeamData } from '@/hooks/useAppData'
 
 interface Position {
   x: number
@@ -78,13 +77,19 @@ const COUNTDOWN_DURATION = 3
 const STREAK_MILESTONES = [3, 5, 10, 15, 20]
 const STREAK_BONUSES = [5, 10, 25, 50, 100]
 
+interface User {
+  email: string
+  fullName: string
+  role: string
+  phone?: string
+}
+
 interface HitNMissProps {
   userEmail?: string
 }
 
 export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}) {
   const { language } = useLanguage()
-  const { employees } = useTeamData()
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [gameState, setGameState] = useState<GameState>('menu')
   const [score, setScore] = useState(0)
@@ -95,6 +100,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
   const [countdown, setCountdown] = useState(COUNTDOWN_DURATION)
   const [target, setTarget] = useState<TargetData | null>(null)
   const [showStreakBonus, setShowStreakBonus] = useState<{ amount: number; milestone: number } | null>(null)
+  const [users, setUsers] = useState<User[]>([])
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('hit-n-miss-global-leaderboard', {
     easy: [],
     medium: [],
@@ -105,9 +111,17 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  useEffect(() => {
+    const loadUsers = async () => {
+      const usersData = await window.spark.kv.get<User[]>('users') || []
+      setUsers(usersData)
+    }
+    loadUsers()
+  }, [])
+
   const getDisplayName = (email: string) => {
-    const employee = employees.find(emp => emp.email === email)
-    return employee ? employee.fullName : email.split('@')[0]
+    const user = users.find(u => u.email === email)
+    return user ? user.fullName : email.split('@')[0]
   }
 
   const getCurrentHighScore = () => {
