@@ -407,8 +407,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
 
     if (isDateLockedForEmployee(employee.email, dateString)) {
       const vacation = getEmployeeVacationForDate(employee.email, dateString)
+      const sickLeave = getEmployeeSickLeaveForDate(employee.email, dateString)
       if (vacation) {
         toast.error('Kan ikke tildele vagter når medarbejderen er på ferie')
+      } else if (sickLeave) {
+        toast.error('Kan ikke tildele vagter når medarbejderen er sygemeldt')
       } else {
         toast.error('Kan ikke tildele vagter på weekender eller helligdage')
       }
@@ -659,7 +662,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
   const isDateLockedForEmployee = (employeeEmail: string, dateString: string) => {
     const date = new Date(dateString)
     const vacation = getEmployeeVacationForDate(employeeEmail, dateString)
-    return isWeekend(date) || isDanishHoliday(dateString) || !!vacation
+    const sickLeave = getEmployeeSickLeaveForDate(employeeEmail, dateString)
+    return isWeekend(date) || isDanishHoliday(dateString) || !!vacation || !!sickLeave
   }
 
 

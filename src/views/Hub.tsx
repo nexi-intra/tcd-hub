@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -135,6 +135,23 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
       const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
       
+      const isSickToday = (userEmail: string) => {
+        return sickLeave.some(s => 
+          s.userEmail === userEmail && 
+          s.status === 'approved' && 
+          isSameDay(parseISO(s.startDate), currentDate)
+        )
+      }
+      
+      const isOnVacationToday = (userEmail: string) => {
+        return vacations.some(v => {
+          if (v.userEmail !== userEmail || v.status !== 'approved') return false
+          const start = parseISO(v.startDate)
+          const end = parseISO(v.endDate)
+          return (isSameDay(start, currentDate) || isSameDay(end, currentDate) || (start < currentDate && end > currentDate))
+        })
+      }
+      
       const todaysAssignments = assignments.filter(a => a.date === today)
       
       const taskPeopleMap: Record<string, { color: string; people: string[] }> = {}
@@ -149,6 +166,17 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             color: roleColor,
             people: []
           }
+        }
+      })
+      
+      todaysAssignments.forEach(assignment => {
+        const role = roles.find(r => r.id === assignment.roleId)
+        const roleName = role?.name || 'Unknown'
+        
+        const userEmail = Object.keys(usersData).find(email => usersData[email]?.fullName === assignment.employeeName)
+        
+        if (userEmail && (isSickToday(userEmail) || isOnVacationToday(userEmail))) {
+          return
         }
         
         if (!taskPeopleMap[roleName].people.includes(assignment.employeeName)) {
@@ -690,7 +718,10 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                 {teamTasks.map((task, idx) => (
-                  <div key={idx} className="flex flex-col gap-2 p-3 bg-muted/30 rounded-md">
+                  <div key={idx} className={cn(
+                    "flex flex-col gap-2 p-3 rounded-md",
+                    task.people.length === 0 ? "bg-amber-50 border-2 border-amber-400" : "bg-muted/30"
+                  )}>
                     <div className="flex items-center gap-2 mb-1">
                       <Badge
                         className="text-white text-sm font-semibold"
@@ -699,14 +730,21 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                         {task.taskName}
                       </Badge>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      {task.people.map((person, personIdx) => (
-                        <div key={personIdx} className="flex items-center gap-2">
-                          <User size={14} className="text-muted-foreground" />
-                          <span className="text-xs md:text-sm text-foreground">{person}</span>
-                        </div>
-                      ))}
-                    </div>
+                    {task.people.length === 0 ? (
+                      <div className="flex items-center gap-2 text-amber-700">
+                        <Warning size={16} weight="fill" />
+                        <span className="text-xs md:text-sm font-medium">{language === 'da' ? 'Ingen tildelt' : 'No one assigned'}</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {task.people.map((person, personIdx) => (
+                          <div key={personIdx} className="flex items-center gap-2">
+                            <User size={14} className="text-muted-foreground" />
+                            <span className="text-xs md:text-sm text-foreground">{person}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
