@@ -92,7 +92,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   useEffect(() => {
     const loadUnreadCount = async () => {
       const emails = (await window.spark.kv.get<Array<{ to: string; read: boolean; folderId?: string }>>('emails')) || []
-      const unreadInbox = emails.filter(e => e.to === userEmail && !e.read && !e.folderId).length
+      const unreadInbox = emails.filter(e => e.to === userEmail && !e.read && (e.folderId === undefined || e.folderId === null || e.folderId === '')).length
       setUnreadInboxCount(unreadInbox)
     }
     loadUnreadCount()

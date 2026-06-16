@@ -204,7 +204,7 @@ export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
   const userFolders = (folders || []).filter(folder => folder.userId === userEmail)
 
   const inboxEmails = (emails || [])
-    .filter(email => email.to === userEmail && !email.folderId)
+    .filter(email => email.to === userEmail && (email.folderId === undefined || email.folderId === null || email.folderId === ''))
     .filter(email => 
       searchQuery === '' || 
       email.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -216,7 +216,7 @@ export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
     .sort((a, b) => b.timestamp - a.timestamp)
 
   const sentEmails = (emails || [])
-    .filter(email => email.from === userEmail && !email.folderId)
+    .filter(email => email.from === userEmail && (email.folderId === undefined || email.folderId === null || email.folderId === ''))
     .filter(email => 
       searchQuery === '' || 
       email.to.toLowerCase().includes(searchQuery.toLowerCase()) ||
