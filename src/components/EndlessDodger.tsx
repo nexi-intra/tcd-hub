@@ -235,15 +235,28 @@ export function EndlessDodger({ userEmail }: { userEmail?: string }) {
     if (gameState === 'playing') {
       startTimeRef.current = Date.now()
       lastUpdateRef.current = Date.now()
+      
       startGameLoop()
       startSpawning()
       startSpeedIncrease()
-    } else {
+      
+      timerIntervalRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            handleGameOver()
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    } else if (gameState === 'menu' || gameState === 'gameover') {
       stopGame()
     }
 
     return () => {
-      stopGame()
+      if (gameState === 'menu' || gameState === 'gameover') {
+        stopGame()
+      }
     }
   }, [gameState])
 
@@ -384,16 +397,19 @@ export function EndlessDodger({ userEmail }: { userEmail?: string }) {
   }
 
   const startCountdown = () => {
+    stopGame()
+    
     const settings = DIFFICULTY_SETTINGS[difficulty]
     setCurrentSpeed(settings.initialSpeed)
     setSpawnRate(settings.spawnRate)
     
-    setGameState('countdown')
     setScore(0)
     setFallingObjects([])
     setPlayerX(GAME_WIDTH / 2 - PLAYER_WIDTH / 2)
     setTimeLeft(TIMER_DURATION)
     setCountdown(COUNTDOWN_DURATION)
+    
+    setGameState('countdown')
     
     let currentCount = COUNTDOWN_DURATION
     
@@ -406,23 +422,8 @@ export function EndlessDodger({ userEmail }: { userEmail?: string }) {
           clearInterval(countdownIntervalRef.current)
           countdownIntervalRef.current = undefined
         }
-        startPlaying()
+        setGameState('playing')
       }
-    }, 1000)
-  }
-
-  const startPlaying = () => {
-    setGameState('playing')
-    startTimeRef.current = Date.now()
-
-    timerIntervalRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          handleGameOver()
-          return 0
-        }
-        return prev - 1
-      })
     }, 1000)
   }
 
