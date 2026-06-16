@@ -524,11 +524,8 @@ export function HitNMiss() {
                 }}
               >
                 <div className="relative w-full h-full">
-                  <div className="absolute inset-0 rounded-full border-[6px] border-destructive bg-gradient-to-br from-card via-white to-card shadow-2xl flex items-center justify-center hover:scale-110 transition-transform">
-                    <div className="absolute rounded-full border-[5px] border-destructive/50" style={{ inset: '15px' }} />
-                    <div className="absolute rounded-full border-[4px] border-destructive/70" style={{ inset: '28px' }} />
-                    <div className="absolute rounded-full border-[3px] border-destructive bg-gradient-to-br from-destructive/20 to-destructive/30" style={{ inset: '40px' }} />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full bg-gradient-to-br from-destructive to-red-600 shadow-lg" />
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-destructive via-red-500 to-destructive/90 shadow-2xl flex items-center justify-center hover:scale-110 transition-transform">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[12px] h-[12px] rounded-full bg-white shadow-lg" />
                   </div>
                 </div>
               </div>
