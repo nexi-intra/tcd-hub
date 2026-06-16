@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { RocketLaunch, Trophy, X, Timer, Lightning, Speedometer, Fire, Flame, Crown } from '@phosphor-icons/react'
+import { RocketLaunch, Trophy, X, Timer, Lightning, Speedometer, Fire, Flame, Crown, Shield, Gauge } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@github/spark/hooks'
@@ -15,6 +15,19 @@ interface FallingObject {
   x: number
   y: number
   speed: number
+}
+
+interface PowerUp {
+  id: number
+  x: number
+  y: number
+  speed: number
+  type: 'shield' | 'speed'
+}
+
+interface ActivePowerUp {
+  type: 'shield' | 'speed'
+  expiresAt: number
 }
 
 interface LeaderboardEntry {
@@ -82,6 +95,10 @@ const DIFFICULTY_SETTINGS = {
 
 const PLAYER_SIZE = 50
 const OBJECT_SIZE = 40
+const POWERUP_SIZE = 35
+const SHIELD_DURATION = 5000
+const SPEED_DURATION = 4000
+const POWERUP_SPAWN_CHANCE = 0.08
 
 interface User {
   email: string
@@ -101,6 +118,8 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   const [score, setScore] = useState(0)
   const [playerX, setPlayerX] = useState(0)
   const [objects, setObjects] = useState<FallingObject[]>([])
+  const [powerUps, setPowerUps] = useState<PowerUp[]>([])
+  const [activePowerUps, setActivePowerUps] = useState<ActivePowerUp[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('endless-dodger-global-leaderboard', {
     easy: [],
@@ -209,6 +228,73 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     }
 
     setObjects(prev => [...prev, newObject])
+
+    if (Math.random() < POWERUP_SPAWN_CHANCE) {
+      spawnPowerUp()
+    }
+  }
+
+  const spawnPowerUp = () => {
+    if (!gameAreaRef.current) return
+
+    const rect = gameAreaRef.current.getBoundingClientRect()
+    const x = Math.random() * (rect.width - POWERUP_SIZE)
+    const type = Math.random() > 0.5 ? 'shield' : 'speed'
+
+    const newPowerUp: PowerUp = {
+      id: Date.now() + Math.random(),
+      x,
+      y: -POWERUP_SIZE,
+      speed: 2,
+      type
+    }
+
+    setPowerUps(prev => [...prev, newPowerUp])
+  }
+
+  const hasActiveShield = () => {
+    return activePowerUps.some(p => p.type === 'shield' && p.expiresAt > Date.now())
+  }
+
+  const hasActiveSpeed = () => {
+    return activePowerUps.some(p => p.type === 'speed' && p.expiresAt > Date.now())
+  }
+
+  const collectPowerUp = (powerUp: PowerUp) => {
+    const duration = powerUp.type === 'shield' ? SHIELD_DURATION : SPEED_DURATION
+    const newPowerUp: ActivePowerUp = {
+      type: powerUp.type,
+      expiresAt: Date.now() + duration
+    }
+
+    setActivePowerUps(prev => {
+      const filtered = prev.filter(p => p.type !== powerUp.type || p.expiresAt > Date.now())
+      return [...filtered, newPowerUp]
+    })
+
+    setPowerUps(prev => prev.filter(p => p.id !== powerUp.id))
+  }
+
+  const checkPowerUpCollision = (powerUpX: number, powerUpY: number): boolean => {
+    if (!gameAreaRef.current) return false
+
+    const rect = gameAreaRef.current.getBoundingClientRect()
+    const playerY = rect.height - PLAYER_SIZE - 20
+
+    const playerLeft = playerX
+    const playerRight = playerX + PLAYER_SIZE
+    const playerTop = playerY
+    const playerBottom = playerY + PLAYER_SIZE
+
+    const powerUpLeft = powerUpX
+    const powerUpRight = powerUpX + POWERUP_SIZE
+    const powerUpTop = powerUpY
+    const powerUpBottom = powerUpY + POWERUP_SIZE
+
+    const xOverlap = playerRight >= powerUpLeft && playerLeft <= powerUpRight
+    const yOverlap = playerBottom >= powerUpTop && playerTop <= powerUpBottom
+
+    return xOverlap && yOverlap
   }
 
   const checkCollision = (objX: number, objY: number): boolean => {
@@ -244,6 +330,8 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   const startGame = () => {
     setScore(0)
     setObjects([])
+    setPowerUps([])
+    setActivePowerUps([])
     setGameState('playing')
   }
 
@@ -268,6 +356,8 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     setGameState('menu')
     setScore(0)
     setObjects([])
+    setPowerUps([])
+    setActivePowerUps([])
     
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current)
@@ -318,6 +408,23 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
         const rect = gameAreaRef.current.getBoundingClientRect()
 
+        setActivePowerUps(prev => prev.filter(p => p.expiresAt > Date.now()))
+
+        setPowerUps(prev => {
+          const updated = prev.map(powerUp => ({
+            ...powerUp,
+            y: powerUp.y + powerUp.speed
+          })).filter(powerUp => powerUp.y < rect.height)
+
+          for (const powerUp of updated) {
+            if (checkPowerUpCollision(powerUp.x, powerUp.y)) {
+              collectPowerUp(powerUp)
+            }
+          }
+
+          return updated
+        })
+
         setObjects(prev => {
           const updated = prev.map(obj => ({
             ...obj,
@@ -326,8 +433,12 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
           for (const obj of updated) {
             if (checkCollision(obj.x, obj.y)) {
-              endGame()
-              return prev
+              if (!hasActiveShield()) {
+                endGame()
+                return prev
+              } else {
+                return prev.filter(o => o.id !== obj.id)
+              }
             }
           }
 
@@ -336,7 +447,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
         setScore(prev => prev + 1)
 
-        const moveSpeed = 8
+        const moveSpeed = hasActiveSpeed() ? 12 : 8
         if (keysPressed.current.has('ArrowLeft') || keysPressed.current.has('a')) {
           setPlayerX(prev => Math.max(0, prev - moveSpeed))
         }
@@ -511,6 +622,9 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   }
 
   if (gameState === 'playing') {
+    const shieldPowerUp = activePowerUps.find(p => p.type === 'shield' && p.expiresAt > Date.now())
+    const speedPowerUp = activePowerUps.find(p => p.type === 'speed' && p.expiresAt > Date.now())
+
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 rounded-xl border-2 border-primary/20">
@@ -532,6 +646,24 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
                 {getCurrentHighScore()}
               </div>
             </div>
+
+            {shieldPowerUp && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 backdrop-blur rounded-lg border border-blue-500/50 shadow-lg animate-pulse">
+                <Shield size={24} weight="fill" className="text-blue-500" />
+                <div className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                  {Math.ceil((shieldPowerUp.expiresAt - Date.now()) / 1000)}s
+                </div>
+              </div>
+            )}
+
+            {speedPowerUp && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 backdrop-blur rounded-lg border border-orange-500/50 shadow-lg animate-pulse">
+                <Gauge size={24} weight="fill" className="text-orange-500" />
+                <div className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                  {Math.ceil((speedPowerUp.expiresAt - Date.now()) / 1000)}s
+                </div>
+              </div>
+            )}
           </div>
 
           <Button
@@ -550,7 +682,11 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           className="relative h-[600px] bg-gradient-to-b from-background to-muted/30 rounded-xl border-2 border-primary/20 overflow-hidden shadow-2xl"
         >
           <div
-            className="absolute bg-gradient-to-r from-primary via-accent to-primary rounded-full shadow-2xl transition-all duration-100"
+            className={`absolute rounded-full shadow-2xl transition-all duration-100 ${
+              hasActiveShield() 
+                ? 'bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500 ring-4 ring-blue-400/50 animate-pulse' 
+                : 'bg-gradient-to-r from-primary via-accent to-primary'
+            }`}
             style={{
               left: `${playerX}px`,
               top: `${getPlayerY()}px`,
@@ -576,6 +712,31 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
             >
               <div className="w-full h-full flex items-center justify-center">
                 <X size={24} weight="bold" className="text-white" />
+              </div>
+            </div>
+          ))}
+
+          {powerUps.map(powerUp => (
+            <div
+              key={powerUp.id}
+              className={`absolute rounded-full shadow-2xl transition-all duration-100 animate-pulse ${
+                powerUp.type === 'shield' 
+                  ? 'bg-gradient-to-br from-blue-500 to-blue-400 border-2 border-blue-300' 
+                  : 'bg-gradient-to-br from-orange-500 to-orange-400 border-2 border-orange-300'
+              }`}
+              style={{
+                left: `${powerUp.x}px`,
+                top: `${powerUp.y}px`,
+                width: `${POWERUP_SIZE}px`,
+                height: `${POWERUP_SIZE}px`,
+              }}
+            >
+              <div className="w-full h-full flex items-center justify-center">
+                {powerUp.type === 'shield' ? (
+                  <Shield size={20} weight="fill" className="text-white" />
+                ) : (
+                  <Gauge size={20} weight="fill" className="text-white" />
+                )}
               </div>
             </div>
           ))}
