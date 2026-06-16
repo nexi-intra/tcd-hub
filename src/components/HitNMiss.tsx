@@ -523,10 +523,8 @@ export function HitNMiss() {
                   cursor: 'pointer'
                 }}
               >
-                <div className="relative w-full h-full">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-destructive via-red-500 to-destructive/90 shadow-2xl flex items-center justify-center hover:scale-110 transition-transform">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[12px] h-[12px] rounded-full bg-white shadow-lg" />
-                  </div>
+                <div className="relative w-full h-full rounded-full bg-gradient-to-br from-destructive via-red-500 to-destructive/90 shadow-2xl hover:scale-110 transition-transform flex items-center justify-center">
+                  <div className="w-3 h-3 rounded-full bg-white shadow-lg" />
                 </div>
               </div>
             )}
