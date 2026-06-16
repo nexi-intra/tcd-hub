@@ -769,28 +769,34 @@ Return ONLY a JSON object with this exact structure:
       hard: Array<{ email: string; score: number; timestamp: number }>
     }>('hit-n-miss-global-leaderboard')
 
-    if (!leaderboard) return
+    if (!leaderboard) {
+      toast.error('Leaderboard ikke fundet')
+      return
+    }
 
-    const board = leaderboard[editingScore.difficulty]
+    const updatedLeaderboard = { ...leaderboard }
+    const board = [...updatedLeaderboard[editingScore.difficulty]]
     const entryIndex = board.findIndex(entry => entry.email === editingScore.email)
     
     if (entryIndex !== -1) {
       board[entryIndex] = {
-        ...board[entryIndex],
+        email: editingScore.email,
         score: scoreValue,
         timestamp: Date.now()
       }
       board.sort((a, b) => b.score - a.score)
-      leaderboard[editingScore.difficulty] = board.slice(0, 10)
+      updatedLeaderboard[editingScore.difficulty] = board.slice(0, 10)
+      
+      await window.spark.kv.set('hit-n-miss-global-leaderboard', updatedLeaderboard)
+      await loadGameLeaderboard()
+      
+      setIsEditScoreDialogOpen(false)
+      setEditingScore(null)
+      setNewScore('')
+      toast.success('Score opdateret')
+    } else {
+      toast.error('Score entry ikke fundet')
     }
-
-    await window.spark.kv.set('hit-n-miss-global-leaderboard', leaderboard)
-    await loadGameLeaderboard()
-    
-    setIsEditScoreDialogOpen(false)
-    setEditingScore(null)
-    setNewScore('')
-    toast.success('Score opdateret')
   }
 
   const deleteScore = async (difficulty: 'easy' | 'medium' | 'hard', email: string) => {
