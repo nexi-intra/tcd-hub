@@ -959,7 +959,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
-              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <div className="flex items-center justify-center gap-2 md:gap-3 mb-3 md:mb-4">
                 <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.26_340)] to-[oklch(0.70_0.20_20)]">
                   <Calendar size={20} weight="duotone" className="text-white md:hidden" />
                   <Calendar size={24} weight="duotone" className="text-white hidden md:block" />
@@ -969,9 +969,9 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               {peopleOff.length === 0 ? (
                 <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noOneOff}</p>
               ) : (
-                <div className="flex flex-col gap-1.5 md:gap-2">
+                <div className="flex flex-col gap-1.5 md:gap-2 items-center">
                   {peopleOff.map((person, idx) => (
-                    <div key={idx} className="flex items-center gap-2 justify-center">
+                    <div key={idx} className="flex items-center gap-2">
                       <User size={14} className="text-muted-foreground md:hidden" />
                       <User size={16} className="text-muted-foreground hidden md:block" />
                       <span className="text-xs md:text-sm text-foreground">{person.name}</span>
@@ -982,7 +982,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             </Card>
 
             <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
-              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <div className="flex items-center justify-center gap-2 md:gap-3 mb-3 md:mb-4">
                 <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]">
                   <ForkKnife size={20} weight="duotone" className="text-white md:hidden" />
                   <ForkKnife size={24} weight="duotone" className="text-white hidden md:block" />
@@ -997,7 +997,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             </Card>
 
             <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
-              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <div className="flex items-center justify-center gap-2 md:gap-3 mb-3 md:mb-4">
                 <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)]">
                   <FirstAidKit size={20} weight="duotone" className="text-white md:hidden" />
                   <FirstAidKit size={24} weight="duotone" className="text-white hidden md:block" />
