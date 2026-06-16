@@ -42,25 +42,19 @@ export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
 
   const loadRegisteredUsers = async () => {
     setIsLoading(true)
-    const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: UserRole; phone?: string }>>('users')
-    const userSettings = await window.spark.kv.get<Record<string, { phoneNumber?: string }>>('user-settings') || {}
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean; phone?: string }>>('users')
     
     if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
       const userList: TeamEmployee[] = Object.values(usersData).map(user => {
-        const settingsPhone = userSettings[user.email]?.phoneNumber
-        const phone = user.phone || settingsPhone || ''
-        
         return {
           id: user.email,
           name: user.fullName,
           email: user.email,
-          phone,
+          phone: user.phone || '',
           role: user.role || 'user'
         }
-      })
+      }).sort((a, b) => a.name.localeCompare(b.name))
       setEmployees(userList)
-    } else if (Array.isArray(usersData)) {
-      setEmployees(usersData as TeamEmployee[])
     } else {
       setEmployees([])
     }
