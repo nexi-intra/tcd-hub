@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Target, Trophy, X, Timer, GraduationCap, Lightning, Speedometer, Fire } from '@phosphor-icons/react'
+import { Target, Trophy, X, Timer, GraduationCap, Lightning, Speedometer, Fire, Crown } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@github/spark/hooks'
@@ -44,7 +44,7 @@ const DIFFICULTY_SETTINGS = {
 }
 
 const MIN_DISTANCE_FROM_EDGE = 80
-const TARGET_SIZE = 80
+const TARGET_SIZE = 160
 const TIMER_DURATION = 30
 
 export function HitNMiss() {
@@ -385,6 +385,97 @@ export function HitNMiss() {
           )}
         </Card>
       )}
+
+      <Card className="p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 rounded-full bg-accent/10">
+            <Crown size={28} weight="duotone" className="text-accent" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold">
+              {language === 'da' ? 'Resultattavle' : 'Leaderboard'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {language === 'da' ? 'Bedste scores gennem tiderne' : 'All-time best scores'}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff, index) => {
+            const setting = DIFFICULTY_SETTINGS[diff]
+            const Icon = setting.icon
+            let bestScore = 0
+            if (diff === 'easy') bestScore = highScoreTimerEasy || 0
+            else if (diff === 'medium') bestScore = highScoreTimerMedium || 0
+            else bestScore = highScoreTimerHard || 0
+
+            const isTopScore = bestScore > 0 && (
+              (diff === 'easy' && bestScore >= (highScoreTimerMedium || 0) && bestScore >= (highScoreTimerHard || 0)) ||
+              (diff === 'medium' && bestScore >= (highScoreTimerEasy || 0) && bestScore >= (highScoreTimerHard || 0)) ||
+              (diff === 'hard' && bestScore >= (highScoreTimerEasy || 0) && bestScore >= (highScoreTimerMedium || 0))
+            )
+
+            return (
+              <div 
+                key={diff}
+                className={`relative p-4 rounded-lg border-2 transition-all ${
+                  isTopScore 
+                    ? 'border-accent bg-accent/5 shadow-lg' 
+                    : 'border-border bg-card'
+                }`}
+              >
+                {isTopScore && (
+                  <div className="absolute -top-3 -right-3 p-2 rounded-full bg-accent shadow-lg">
+                    <Crown size={20} weight="fill" className="text-accent-foreground" />
+                  </div>
+                )}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`p-2 rounded-lg ${
+                    diff === 'easy' ? 'bg-green-500/10' :
+                    diff === 'medium' ? 'bg-yellow-500/10' :
+                    'bg-red-500/10'
+                  }`}>
+                    <Icon size={24} weight="duotone" className={setting.color} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm">
+                      {setting.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {setting.description[language as 'en' | 'da']}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center py-3">
+                  <div className="text-3xl font-bold text-primary flex items-center justify-center gap-2">
+                    {bestScore > 0 ? (
+                      <>
+                        <Trophy size={24} weight="fill" />
+                        {bestScore}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground text-xl">
+                        {language === 'da' ? 'Ingen score endnu' : 'No score yet'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {(highScoreTimerEasy || 0) === 0 && (highScoreTimerMedium || 0) === 0 && (highScoreTimerHard || 0) === 0 && (
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              {language === 'da' 
+                ? 'Spil et spil i timer-tilstand for at sætte din første rekord!' 
+                : 'Play a game in timer mode to set your first record!'}
+            </p>
+          </div>
+        )}
+      </Card>
     </div>
   )
 }
