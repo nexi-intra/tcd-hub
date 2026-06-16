@@ -87,9 +87,102 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
     return day === 0 || day === 6
   }
 
-  const handleDeleteVacation = (id: string) => {
+  const handleDeleteVacation = async (id: string) => {
+    const vacation = (vacations || []).find(v => v.id === id)
+    if (!vacation) return
+
     setVacations((current) => (current || []).filter((v) => v.id !== id))
-    toast.success('Ferie slettet')
+    toast.success('Ferie anmodning fjernet')
+
+    const startDateFormatted = new Date(vacation.startDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+    const endDateFormatted = new Date(vacation.endDate).toLocaleDateString('da-DK', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+
+    try {
+      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to the manager about ${vacation.userEmail} REMOVING/CANCELING their vacation request.
+
+Vacation Request Details:
+Start Date: ${startDateFormatted}
+End Date: ${endDateFormatted}
+${vacation.notes ? `Notes: ${vacation.notes}` : 'No notes'}
+Removed by: ${vacation.userEmail}
+
+The email should be in Danish, brief and professional, and include:
+- A clear subject line that indicates the request has been canceled/removed
+- Brief notification that the employee has removed their vacation request
+- The vacation period details
+- A note that the request is no longer pending approval
+- A brief note that this is an automatic notification
+- DO NOT include any closing signature like "Med venlig hilsen" or similar - just provide the information without a closing
+
+Return ONLY a JSON object with this exact structure:
+{
+  "subject": "subject line here",
+  "body": "email body here with proper line breaks"
+}`
+
+      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
+      const emailContent = JSON.parse(emailContentJson)
+      
+      const emails = await window.spark.kv.get<Array<{
+        id: string
+        from: string
+        to: string
+        subject: string
+        message: string
+        timestamp: number
+        read: boolean
+      }>>('emails') || []
+
+      const users = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
+      const managerEmails: string[] = []
+      
+      if (users) {
+        for (const [email, userData] of Object.entries(users)) {
+          if (userData.isManager) {
+            managerEmails.push(email)
+          }
+        }
+      }
+
+      for (const managerEmail of managerEmails) {
+        const newEmail = {
+          id: Date.now().toString() + '-' + managerEmail + '-removal',
+          from: vacation.userEmail,
+          to: managerEmail,
+          subject: emailContent.subject,
+          message: emailContent.body,
+          timestamp: Date.now(),
+          read: false
+        }
+        emails.push(newEmail)
+
+        const notification = {
+          id: Date.now().toString() + '-notif-removal-' + managerEmail,
+          to: managerEmail,
+          subject: emailContent.subject,
+          body: emailContent.body,
+          timestamp: new Date().toISOString(),
+          type: 'vacation-removed' as const,
+          read: false
+        }
+
+        const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
+        await window.spark.kv.set('email-notifications', [...notifications, notification])
+      }
+
+      await window.spark.kv.set('emails', emails)
+    } catch (emailError) {
+      console.error('Error sending vacation removal email:', emailError)
+      toast.error('Kunne ikke sende email notifikation')
+    }
   }
 
   const handleApproveVacation = async (id: string) => {
