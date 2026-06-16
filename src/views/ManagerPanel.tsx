@@ -1662,21 +1662,15 @@ Return ONLY a JSON object with this exact structure:
                 </div>
               </div>
 
-              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
-                <p className="text-sm text-muted-foreground">
-                  Her kan du redigere og slette highscores fra Hit N Miss spillet. Du kan ændre score værdier eller fjerne hele entries.
+              <Card className="p-6 border-2 mb-6 bg-gradient-to-br from-primary/5 to-accent/5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Target size={24} className="text-primary" weight="duotone" />
+                  <h3 className="text-xl font-bold">Spil Statistik</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Oversigt over hvor mange gange hver bruger har spillet Hit N Miss.
                 </p>
-              </div>
-
-              {gamePlayCounts && Object.keys(gamePlayCounts).length > 0 && (
-                <Card className="p-6 border-2 mb-6 bg-gradient-to-br from-primary/5 to-accent/5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Target size={24} className="text-primary" weight="duotone" />
-                    <h3 className="text-xl font-bold">Spil Statistik</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Oversigt over hvor mange gange hver bruger har spillet Hit N Miss.
-                  </p>
+                {gamePlayCounts && Object.keys(gamePlayCounts).length > 0 ? (
                   <div className="space-y-3">
                     {Object.entries(gamePlayCounts)
                       .sort((a, b) => {
@@ -1727,8 +1721,20 @@ Return ONLY a JSON object with this exact structure:
                         )
                       })}
                   </div>
-                </Card>
-              )}
+                ) : (
+                  <div className="text-center py-12">
+                    <Trophy size={64} className="text-muted-foreground/30 mx-auto mb-4" weight="duotone" />
+                    <p className="text-muted-foreground">Ingen spil statistik endnu</p>
+                    <p className="text-sm text-muted-foreground mt-2">Statistik vil vises når brugere begynder at spille Hit N Miss</p>
+                  </div>
+                )}
+              </Card>
+
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Her kan du redigere og slette highscores fra Hit N Miss spillet. Du kan ændre score værdier eller fjerne hele entries.
+                </p>
+              </div>
 
               {!gameLeaderboard ? (
                 <div className="text-center py-12">
