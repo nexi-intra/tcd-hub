@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, User, CheckCircle, Clock, FolderOpen, MagnifyingGlass, Funnel } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, User, CheckCircle, Clock, FolderOpen, MagnifyingGlass, Funnel, Trash, X, UserPlus } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -23,6 +24,12 @@ interface ProjectBoardProps {
 
 export type ProjectStatus = 'open' | 'in-progress' | 'completed'
 
+export interface TeamMember {
+  email: string
+  name: string
+  assignedAt: string
+}
+
 export interface Project {
   id: string
   title: string
@@ -31,9 +38,7 @@ export interface Project {
   createdByName: string
   createdAt: string
   status: ProjectStatus
-  assignedTo?: string
-  assignedToName?: string
-  assignedAt?: string
+  teamMembers: TeamMember[]
   completedAt?: string
 }
 
@@ -71,6 +76,7 @@ export function ProjectBoard({ onNavigateBack, onLogout, userEmail }: ProjectBoa
       createdByName: currentUserName,
       createdAt: new Date().toISOString(),
       status: 'open',
+      teamMembers: [],
     }
 
     setProjects((current) => {
@@ -84,22 +90,56 @@ export function ProjectBoard({ onNavigateBack, onLogout, userEmail }: ProjectBoa
     toast.success(language === 'da' ? 'Projekt oprettet' : 'Project created')
   }
 
-  const handleTakeProject = (projectId: string) => {
+  const handleJoinProject = (projectId: string) => {
     setProjects((current) => {
       if (!current) return []
-      return current.map((p) =>
-        p.id === projectId
-          ? {
-              ...p,
-              status: 'in-progress' as ProjectStatus,
-              assignedTo: userEmail,
-              assignedToName: currentUserName,
-              assignedAt: new Date().toISOString(),
-            }
-          : p
-      )
+      return current.map((p) => {
+        if (p.id === projectId) {
+          const isAlreadyMember = p.teamMembers.some((m) => m.email === userEmail)
+          if (isAlreadyMember) {
+            return p
+          }
+          const newTeamMember: TeamMember = {
+            email: userEmail,
+            name: currentUserName,
+            assignedAt: new Date().toISOString(),
+          }
+          return {
+            ...p,
+            status: 'in-progress' as ProjectStatus,
+            teamMembers: [...p.teamMembers, newTeamMember],
+          }
+        }
+        return p
+      })
     })
-    toast.success(language === 'da' ? 'Du er nu tildelt projektet' : 'You are now assigned to the project')
+    toast.success(language === 'da' ? 'Du er nu med i projektet' : 'You joined the project')
+  }
+
+  const handleLeaveProject = (projectId: string) => {
+    setProjects((current) => {
+      if (!current) return []
+      return current.map((p) => {
+        if (p.id === projectId) {
+          const updatedMembers = p.teamMembers.filter((m) => m.email !== userEmail)
+          return {
+            ...p,
+            teamMembers: updatedMembers,
+            status: updatedMembers.length === 0 ? ('open' as ProjectStatus) : p.status,
+          }
+        }
+        return p
+      })
+    })
+    toast.success(language === 'da' ? 'Du har forladt projektet' : 'You left the project')
+  }
+
+  const handleRemoveProject = (projectId: string) => {
+    setProjects((current) => {
+      if (!current) return []
+      return current.filter((p) => p.id !== projectId)
+    })
+    toast.success(language === 'da' ? 'Projekt slettet' : 'Project deleted')
   }
 
   const handleCompleteProject = (projectId: string) => {
@@ -129,14 +169,14 @@ export function ProjectBoard({ onNavigateBack, onLogout, userEmail }: ProjectBoa
           p.title.toLowerCase().includes(query) ||
           p.description.toLowerCase().includes(query) ||
           p.createdByName.toLowerCase().includes(query) ||
-          p.assignedToName?.toLowerCase().includes(query)
+          p.teamMembers.some((m) => m.name.toLowerCase().includes(query))
       )
     }
 
     if (filterUser === 'my') {
-      filtered = filtered.filter((p) => p.assignedTo === userEmail || p.createdBy === userEmail)
+      filtered = filtered.filter((p) => p.teamMembers.some((m) => m.email === userEmail) || p.createdBy === userEmail)
     } else if (filterUser === 'unassigned') {
-      filtered = filtered.filter((p) => !p.assignedTo)
+      filtered = filtered.filter((p) => p.teamMembers.length === 0)
     }
 
     return filtered.sort((a, b) => {
@@ -189,8 +229,9 @@ export function ProjectBoard({ onNavigateBack, onLogout, userEmail }: ProjectBoa
   }
 
   const renderProjectCard = (project: Project) => {
-    const isAssignedToMe = project.assignedTo === userEmail
+    const isOnTeam = project.teamMembers.some((m) => m.email === userEmail)
     const isCreatedByMe = project.createdBy === userEmail
+    const canDelete = isCreatedByMe || isOnTeam
 
     return (
       <motion.div
@@ -202,7 +243,7 @@ export function ProjectBoard({ onNavigateBack, onLogout, userEmail }: ProjectBoa
       >
         <Card
           className={`p-5 border-2 transition-all duration-300 hover:shadow-lg ${
-            isAssignedToMe ? 'border-primary bg-primary/5' : 'hover:border-primary/40'
+            isOnTeam ? 'border-primary bg-primary/5' : 'hover:border-primary/40'
           }`}
         >
           <div className="flex items-start justify-between gap-3 mb-3">
@@ -212,11 +253,41 @@ export function ProjectBoard({ onNavigateBack, onLogout, userEmail }: ProjectBoa
                 {getStatusLabel(project.status)}
               </Badge>
             </div>
-            {isAssignedToMe && (
-              <Badge className="bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] text-white text-xs font-semibold">
-                {language === 'da' ? 'Dit projekt' : 'Your project'}
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {isOnTeam && (
+                <Badge className="bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] text-white text-xs font-semibold">
+                  {language === 'da' ? 'Dit projekt' : 'Your project'}
+                </Badge>
+              )}
+              {canDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10">
+                      <Trash size={16} weight="duotone" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{language === 'da' ? 'Slet projekt?' : 'Delete project?'}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {language === 'da' 
+                          ? 'Er du sikker på, at du vil slette dette projekt? Denne handling kan ikke fortrydes.'
+                          : 'Are you sure you want to delete this project? This action cannot be undone.'}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{language === 'da' ? 'Annuller' : 'Cancel'}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleRemoveProject(project.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {language === 'da' ? 'Slet' : 'Delete'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </div>
 
           {project.description && (
@@ -231,12 +302,30 @@ export function ProjectBoard({ onNavigateBack, onLogout, userEmail }: ProjectBoa
               </span>
             </div>
 
-            {project.assignedTo && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <User size={14} weight="duotone" />
-                <span>
-                  {language === 'da' ? 'Tildelt til' : 'Assigned to'}: <strong className="text-foreground">{project.assignedToName}</strong>
-                </span>
+            {project.teamMembers.length > 0 && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <UserPlus size={14} weight="duotone" />
+                  <span className="font-semibold">
+                    {language === 'da' ? 'Teammedlemmer' : 'Team Members'} ({project.teamMembers.length}):
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1 pl-5">
+                  {project.teamMembers.map((member) => (
+                    <Badge key={member.email} variant="secondary" className="text-xs">
+                      {member.name}
+                      {member.email === userEmail && (
+                        <button
+                          onClick={() => handleLeaveProject(project.id)}
+                          className="ml-1 hover:text-destructive transition-colors"
+                          title={language === 'da' ? 'Forlad projekt' : 'Leave project'}
+                        >
+                          <X size={12} weight="bold" />
+                        </button>
+                      )}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -258,18 +347,18 @@ export function ProjectBoard({ onNavigateBack, onLogout, userEmail }: ProjectBoa
           </div>
 
           <div className="flex gap-2">
-            {project.status === 'open' && !project.assignedTo && (
+            {!isOnTeam && project.status !== 'completed' && (
               <Button
-                onClick={() => handleTakeProject(project.id)}
+                onClick={() => handleJoinProject(project.id)}
                 className="flex-1 bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] hover:from-[oklch(0.48_0.12_250)] hover:to-[oklch(0.53_0.10_210)] text-white"
                 size="sm"
               >
-                <User size={16} weight="duotone" className="mr-2" />
-                {language === 'da' ? 'Tag projekt' : 'Take project'}
+                <UserPlus size={16} weight="duotone" className="mr-2" />
+                {language === 'da' ? 'Deltag i projekt' : 'Join project'}
               </Button>
             )}
 
-            {project.status === 'in-progress' && isAssignedToMe && (
+            {project.status === 'in-progress' && isOnTeam && (
               <Button
                 onClick={() => handleCompleteProject(project.id)}
                 className="flex-1 bg-gradient-to-r from-[oklch(0.62_0.20_150)] to-[oklch(0.55_0.24_192)] hover:from-[oklch(0.60_0.20_150)] hover:to-[oklch(0.53_0.24_192)] text-white"
