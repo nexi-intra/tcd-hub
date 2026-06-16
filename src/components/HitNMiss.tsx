@@ -113,8 +113,18 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
 
   useEffect(() => {
     const loadUsers = async () => {
-      const usersData = await window.spark.kv.get<User[]>('users') || []
-      setUsers(usersData)
+      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: string; phone?: string }>>('users')
+      if (usersData) {
+        const userList = Object.values(usersData).map(u => ({
+          email: u.email,
+          fullName: u.fullName,
+          role: u.role || 'user',
+          phone: u.phone
+        }))
+        setUsers(userList)
+      } else {
+        setUsers([])
+      }
     }
     loadUsers()
   }, [])
