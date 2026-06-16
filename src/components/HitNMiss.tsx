@@ -23,6 +23,7 @@ type GameState = 'menu' | 'countdown' | 'playing' | 'ended'
 const DIFFICULTY_SETTINGS = {
   easy: {
     lifetime: 3000,
+    targetSize: 280,
     label: { en: 'Easy', da: 'Let' },
     description: { en: '3s per target', da: '3s per mål' },
     icon: Speedometer,
@@ -30,6 +31,7 @@ const DIFFICULTY_SETTINGS = {
   },
   medium: {
     lifetime: 2000,
+    targetSize: 240,
     label: { en: 'Medium', da: 'Mellem' },
     description: { en: '2s per target', da: '2s per mål' },
     icon: Lightning,
@@ -37,6 +39,7 @@ const DIFFICULTY_SETTINGS = {
   },
   hard: {
     lifetime: 1000,
+    targetSize: 180,
     label: { en: 'Hard', da: 'Svær' },
     description: { en: '1s per target', da: '1s per mål' },
     icon: Fire,
@@ -45,7 +48,6 @@ const DIFFICULTY_SETTINGS = {
 }
 
 const MIN_DISTANCE_FROM_EDGE = 80
-const TARGET_SIZE = 240
 const TIMER_DURATION = 30
 const COUNTDOWN_DURATION = 3
 
@@ -104,9 +106,10 @@ export function HitNMiss() {
   const spawnTarget = () => {
     if (!gameAreaRef.current) return
 
+    const currentTargetSize = DIFFICULTY_SETTINGS[difficulty].targetSize
     const rect = gameAreaRef.current.getBoundingClientRect()
-    const maxX = rect.width - TARGET_SIZE - MIN_DISTANCE_FROM_EDGE
-    const maxY = rect.height - TARGET_SIZE - MIN_DISTANCE_FROM_EDGE
+    const maxX = rect.width - currentTargetSize - MIN_DISTANCE_FROM_EDGE
+    const maxY = rect.height - currentTargetSize - MIN_DISTANCE_FROM_EDGE
 
     const x = Math.random() * maxX + MIN_DISTANCE_FROM_EDGE
     const y = Math.random() * maxY + MIN_DISTANCE_FROM_EDGE
@@ -460,8 +463,8 @@ export function HitNMiss() {
                 style={{
                   left: `${target.position.x}px`,
                   top: `${target.position.y}px`,
-                  width: `${TARGET_SIZE}px`,
-                  height: `${TARGET_SIZE}px`,
+                  width: `${DIFFICULTY_SETTINGS[difficulty].targetSize}px`,
+                  height: `${DIFFICULTY_SETTINGS[difficulty].targetSize}px`,
                   cursor: 'pointer'
                 }}
               >
