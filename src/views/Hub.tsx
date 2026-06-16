@@ -279,7 +279,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       icon: <Folder size={48} weight="duotone" />,
       color: 'oklch(0.75 0.15 60)',
       gradient: 'from-[oklch(0.75_0.15_60)] via-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]',
-      available: false,
+      available: true,
       category: 'work',
     },
     {

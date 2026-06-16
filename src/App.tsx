@@ -9,11 +9,12 @@ import { TeamOverview } from '@/views/TeamOverview'
 import { EmailSystem } from '@/views/EmailSystem'
 import { MealPlan } from '@/views/MealPlan'
 import { GameCorner } from '@/views/GameCorner'
+import { ProjectBoard } from '@/views/ProjectBoard'
 import { Auth } from '@/views/Auth'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 
-type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games'
+type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games' | 'projects'
 
 interface UserSession {
   userId: string
@@ -141,6 +142,8 @@ function App() {
       setCurrentView('meals')
     } else if (moduleId === 'games') {
       setCurrentView('games')
+    } else if (moduleId === 'projects') {
+      setCurrentView('projects')
     }
   }
 
@@ -175,6 +178,7 @@ function App() {
         {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} />}
         {currentView === 'games' && <GameCorner onNavigateBack={handleNavigateBack} />}
+        {currentView === 'projects' && <ProjectBoard onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       </LanguageProvider>
     </ThemeProvider>
   )
