@@ -670,42 +670,42 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="mb-10"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
-              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]">
-                  <Users size={20} weight="duotone" className="text-white md:hidden" />
-                  <Users size={24} weight="duotone" className="text-white hidden md:block" />
-                </div>
-                <h3 className="text-base md:text-lg font-semibold text-foreground">{t.hub.overview.teamTasks || 'Team opgaver i dag'}</h3>
+          <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300 mb-4 md:mb-6">
+            <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+              <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]">
+                <Users size={20} weight="duotone" className="text-white md:hidden" />
+                <Users size={24} weight="duotone" className="text-white hidden md:block" />
               </div>
-              {teamTasks.length === 0 ? (
-                <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noTasks}</p>
-              ) : (
-                <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto">
-                  {teamTasks.map((member, idx) => (
-                    <div key={idx} className="flex flex-col gap-1 p-2 bg-muted/30 rounded-md">
-                      <div className="flex items-center gap-2 mb-1">
-                        <User size={14} className="text-muted-foreground" />
-                        <span className="text-xs md:text-sm font-medium text-foreground">{member.name}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {member.tasks.map((task, taskIdx) => (
-                          <Badge
-                            key={taskIdx}
-                            className="text-white text-xs"
-                            style={{ backgroundColor: task.roleColor }}
-                          >
-                            {task.roleName}
-                          </Badge>
-                        ))}
-                      </div>
+              <h3 className="text-base md:text-lg font-semibold text-foreground">{t.hub.overview.teamTasks || 'Team opgaver i dag'}</h3>
+            </div>
+            {teamTasks.length === 0 ? (
+              <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noTasks}</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                {teamTasks.map((member, idx) => (
+                  <div key={idx} className="flex flex-col gap-1 p-3 bg-muted/30 rounded-md">
+                    <div className="flex items-center gap-2 mb-1">
+                      <User size={14} className="text-muted-foreground" />
+                      <span className="text-xs md:text-sm font-medium text-foreground">{member.name}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </Card>
+                    <div className="flex flex-wrap gap-1">
+                      {member.tasks.map((task, taskIdx) => (
+                        <Badge
+                          key={taskIdx}
+                          className="text-white text-xs"
+                          style={{ backgroundColor: task.roleColor }}
+                        >
+                          {task.roleName}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
               <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
                 <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.26_340)] to-[oklch(0.70_0.20_20)]">
