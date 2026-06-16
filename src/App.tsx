@@ -177,7 +177,7 @@ function App() {
         {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
         {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} />}
-        {currentView === 'games' && <GameCorner onNavigateBack={handleNavigateBack} />}
+        {currentView === 'games' && <GameCorner onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
         {currentView === 'projects' && <ProjectBoard onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
       </LanguageProvider>
     </ThemeProvider>

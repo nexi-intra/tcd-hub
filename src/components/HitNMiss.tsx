@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Target, Trophy, X, Timer, GraduationCap, Lightning, Speedometer, Fire, Crown, Flame } from '@phosphor-icons/react'
+import { Target, Trophy, X, Timer, GraduationCap, Lightning, Speedometer, Fire, Crown, Flame, Medal, Star } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@github/spark/hooks'
@@ -14,6 +14,18 @@ interface TargetData {
   id: number
   position: Position
   spawnTime: number
+}
+
+interface LeaderboardEntry {
+  email: string
+  score: number
+  timestamp: number
+}
+
+interface GlobalLeaderboard {
+  easy: LeaderboardEntry[]
+  medium: LeaderboardEntry[]
+  hard: LeaderboardEntry[]
 }
 
 type GameMode = 'practice' | 'timer'
@@ -63,7 +75,11 @@ const COUNTDOWN_DURATION = 3
 const STREAK_MILESTONES = [3, 5, 10, 15, 20]
 const STREAK_BONUSES = [5, 10, 25, 50, 100]
 
-export function HitNMiss() {
+interface HitNMissProps {
+  userEmail?: string
+}
+
+export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}) {
   const { language } = useLanguage()
   const [gameMode, setGameMode] = useState<GameMode>('practice')
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
@@ -79,6 +95,11 @@ export function HitNMiss() {
   const [highScoreTimerEasy, setHighScoreTimerEasy] = useKV<number>('hit-n-miss-highscore-timer-easy', 0)
   const [highScoreTimerMedium, setHighScoreTimerMedium] = useKV<number>('hit-n-miss-highscore-timer-medium', 0)
   const [highScoreTimerHard, setHighScoreTimerHard] = useKV<number>('hit-n-miss-highscore-timer-hard', 0)
+  const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('hit-n-miss-global-leaderboard', {
+    easy: [],
+    medium: [],
+    hard: []
+  })
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const targetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -99,6 +120,58 @@ export function HitNMiss() {
       else if (difficulty === 'medium') setHighScoreTimerMedium(newScore)
       else setHighScoreTimerHard(newScore)
     }
+  }
+
+  const updateGlobalLeaderboard = (newScore: number) => {
+    if (gameMode !== 'timer' || !userEmail) return
+
+    setGlobalLeaderboard((currentLeaderboard) => {
+      if (!currentLeaderboard) {
+        currentLeaderboard = { easy: [], medium: [], hard: [] }
+      }
+      
+      const updated: GlobalLeaderboard = {
+        easy: [...(currentLeaderboard.easy || [])],
+        medium: [...(currentLeaderboard.medium || [])],
+        hard: [...(currentLeaderboard.hard || [])]
+      }
+      
+      const difficultyBoard = updated[difficulty]
+      
+      const existingEntryIndex = difficultyBoard.findIndex(entry => entry.email === userEmail)
+      
+      if (existingEntryIndex !== -1) {
+        if (newScore > difficultyBoard[existingEntryIndex].score) {
+          difficultyBoard[existingEntryIndex] = {
+            email: userEmail,
+            score: newScore,
+            timestamp: Date.now()
+          }
+        }
+      } else {
+        difficultyBoard.push({
+          email: userEmail,
+          score: newScore,
+          timestamp: Date.now()
+        })
+      }
+      
+      difficultyBoard.sort((a, b) => b.score - a.score)
+      updated[difficulty] = difficultyBoard.slice(0, 10)
+      
+      return updated
+    })
+  }
+
+  const getTopScoreForDifficulty = (diff: Difficulty): number => {
+    const board = globalLeaderboard?.[diff] || []
+    return board.length > 0 ? board[0].score : 0
+  }
+
+  const getUserRankForDifficulty = (diff: Difficulty): number | null => {
+    const board = globalLeaderboard?.[diff] || []
+    const index = board.findIndex(entry => entry.email === userEmail)
+    return index !== -1 ? index + 1 : null
   }
 
   const checkStreakBonus = (streak: number) => {
@@ -227,6 +300,8 @@ export function HitNMiss() {
     if (score > currentHighScore) {
       updateHighScore(score)
     }
+    
+    updateGlobalLeaderboard(score)
   }
 
   useEffect(() => {
@@ -575,85 +650,157 @@ export function HitNMiss() {
           </div>
           <div>
             <h3 className="text-xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-              {language === 'da' ? 'Resultattavle' : 'Leaderboard'}
+              {language === 'da' ? 'Global resultattavle' : 'Global Leaderboard'}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {language === 'da' ? 'Bedste scores gennem tiderne' : 'All-time best scores'}
+              {language === 'da' ? 'Konkurer med andre medarbejdere!' : 'Compete with other employees!'}
             </p>
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
             const setting = DIFFICULTY_SETTINGS[diff]
             const Icon = setting.icon
-            let bestScore = 0
-            if (diff === 'easy') bestScore = highScoreTimerEasy || 0
-            else if (diff === 'medium') bestScore = highScoreTimerMedium || 0
-            else bestScore = highScoreTimerHard || 0
-
-            const isTopScore = bestScore > 0 && (
-              (diff === 'easy' && bestScore >= (highScoreTimerMedium || 0) && bestScore >= (highScoreTimerHard || 0)) ||
-              (diff === 'medium' && bestScore >= (highScoreTimerEasy || 0) && bestScore >= (highScoreTimerHard || 0)) ||
-              (diff === 'hard' && bestScore >= (highScoreTimerEasy || 0) && bestScore >= (highScoreTimerMedium || 0))
-            )
+            const leaderboard = globalLeaderboard?.[diff] || []
+            const topScore = getTopScoreForDifficulty(diff)
+            const userRank = getUserRankForDifficulty(diff)
+            const userEntry = leaderboard.find(entry => entry.email === userEmail)
 
             return (
-              <div 
-                key={diff}
-                className={`relative p-4 rounded-lg transition-all ${
-                  isTopScore 
-                    ? 'border-2 border-accent bg-gradient-to-br from-accent/10 to-primary/10 shadow-lg' 
-                    : 'border-2 border-border bg-gradient-to-br from-card to-muted/20'
-                }`}
-              >
-                {isTopScore && (
-                  <div className="absolute -top-3 -right-3 p-2 rounded-full bg-gradient-to-br from-accent to-primary shadow-lg">
-                    <Crown size={20} weight="fill" className="text-accent-foreground" />
-                  </div>
-                )}
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`p-2 rounded-lg ${
-                    diff === 'easy' ? 'bg-gradient-to-br from-green-500/20 to-green-600/20' :
-                    diff === 'medium' ? 'bg-gradient-to-br from-yellow-500/20 to-yellow-600/20' :
-                    'bg-gradient-to-br from-red-500/20 to-red-600/20'
-                  }`}>
-                    <Icon size={24} weight="duotone" className={setting.color} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-sm">
-                      {setting.label[language as 'en' | 'da']}
+              <div key={diff} className="space-y-3">
+                <div className={`p-4 rounded-lg border-2 transition-all ${
+                  userRank === 1
+                    ? 'border-accent bg-gradient-to-br from-accent/10 to-primary/10 shadow-lg'
+                    : 'border-border bg-gradient-to-br from-card to-muted/20'
+                }`}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`p-2 rounded-lg ${
+                      diff === 'easy' ? 'bg-gradient-to-br from-green-500/20 to-green-600/20' :
+                      diff === 'medium' ? 'bg-gradient-to-br from-yellow-500/20 to-yellow-600/20' :
+                      'bg-gradient-to-br from-red-500/20 to-red-600/20'
+                    }`}>
+                      <Icon size={24} weight="duotone" className={setting.color} />
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {setting.description[language as 'en' | 'da']}
+                    <div className="flex-1">
+                      <div className="font-semibold">
+                        {setting.label[language as 'en' | 'da']}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {setting.description[language as 'en' | 'da']}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="text-center py-3">
-                  <div className="text-3xl font-bold text-primary flex items-center justify-center gap-2">
-                    {bestScore > 0 ? (
-                      <>
-                        <Trophy size={24} weight="fill" className="text-accent" />
-                        {bestScore}
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground text-xl">
-                        {language === 'da' ? 'Ingen score endnu' : 'No score yet'}
-                      </span>
-                    )}
-                  </div>
+
+                  {leaderboard.length > 0 ? (
+                    <div className="space-y-2">
+                      {leaderboard.slice(0, 5).map((entry, index) => {
+                        const isCurrentUser = entry.email === userEmail
+                        const rankColors = [
+                          'text-yellow-500',
+                          'text-gray-400',
+                          'text-amber-600'
+                        ]
+                        const rankIcons = [Crown, Medal, Star]
+                        const RankIcon = index < 3 ? rankIcons[index] : null
+
+                        return (
+                          <div
+                            key={entry.email}
+                            className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+                              isCurrentUser
+                                ? 'bg-primary/10 border border-primary/30 shadow-md'
+                                : 'bg-muted/30'
+                            }`}
+                          >
+                            <div className="flex items-center justify-center w-8 h-8">
+                              {RankIcon ? (
+                                <RankIcon 
+                                  size={20} 
+                                  weight="fill" 
+                                  className={rankColors[index]} 
+                                />
+                              ) : (
+                                <span className="text-sm font-bold text-muted-foreground">
+                                  #{index + 1}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className={`text-sm font-medium truncate ${
+                                isCurrentUser ? 'text-primary font-bold' : 'text-foreground'
+                              }`}>
+                                {entry.email.split('@')[0]}
+                                {isCurrentUser && ' (You)'}
+                              </div>
+                            </div>
+                            <div className={`text-lg font-bold ${
+                              isCurrentUser ? 'text-primary' : 'text-muted-foreground'
+                            }`}>
+                              {entry.score}
+                            </div>
+                          </div>
+                        )
+                      })}
+
+                      {userEntry && userRank && userRank > 5 && (
+                        <>
+                          <div className="text-center py-1">
+                            <span className="text-xs text-muted-foreground">...</span>
+                          </div>
+                          <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/30 shadow-md">
+                            <div className="flex items-center justify-center w-8 h-8">
+                              <span className="text-sm font-bold text-primary">
+                                #{userRank}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-bold text-primary truncate">
+                                {userEmail.split('@')[0]} (You)
+                              </div>
+                            </div>
+                            <div className="text-lg font-bold text-primary">
+                              {userEntry.score}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <Trophy size={32} className="text-muted-foreground/30 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {language === 'da'
+                          ? 'Ingen scores endnu'
+                          : 'No scores yet'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {language === 'da'
+                          ? 'Vær den første!'
+                          : 'Be the first!'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )
           })}
         </div>
 
-        {(highScoreTimerEasy || 0) === 0 && (highScoreTimerMedium || 0) === 0 && (highScoreTimerHard || 0) === 0 && (
-          <div className="mt-6 text-center">
+        {(globalLeaderboard?.easy?.length || 0) === 0 && 
+         (globalLeaderboard?.medium?.length || 0) === 0 && 
+         (globalLeaderboard?.hard?.length || 0) === 0 && (
+          <div className="mt-6 text-center p-6 rounded-lg bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border border-primary/10">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Crown size={24} weight="duotone" className="text-primary" />
+              <h4 className="text-lg font-bold text-primary">
+                {language === 'da' ? 'Start konkurrencen!' : 'Start the Competition!'}
+              </h4>
+            </div>
             <p className="text-sm text-muted-foreground">
-              {language === 'da' 
-                ? 'Spil et spil i timer-tilstand for at sætte din første rekord!' 
-                : 'Play a game in timer mode to set your first record!'}
+              {language === 'da'
+                ? 'Spil i timer-tilstand for at tilføje din score til resultattavlen og konkurrere med andre medarbejdere!'
+                : 'Play in timer mode to add your score to the leaderboard and compete with other employees!'}
             </p>
           </div>
         )}

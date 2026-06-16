@@ -7,9 +7,10 @@ import { Card } from '@/components/ui/card'
 
 interface GameCornerProps {
   onNavigateBack: () => void
+  userEmail?: string
 }
 
-export function GameCorner({ onNavigateBack }: GameCornerProps) {
+export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const { t, language } = useLanguage()
 
   return (
@@ -113,7 +114,7 @@ export function GameCorner({ onNavigateBack }: GameCornerProps) {
             </div>
           </Card>
 
-          <HitNMiss />
+          <HitNMiss userEmail={userEmail} />
         </div>
       </div>
     </div>
