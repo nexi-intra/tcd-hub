@@ -159,6 +159,24 @@ export function Auth({ onAuthenticated }: AuthProps) {
                 />
               </div>
 
+              {mode === 'signup' && (
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber" className="text-sm font-semibold flex items-center gap-2">
+                    <Phone size={16} />
+                    Telefonnummer
+                  </Label>
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="+45 12 34 56 78"
+                    className="h-12"
+                    required
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-semibold flex items-center gap-2">
                   <Lock size={16} />
