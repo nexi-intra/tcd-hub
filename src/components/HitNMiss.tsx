@@ -701,7 +701,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
 
                   {leaderboard.length > 0 ? (
                     <div className="space-y-2">
-                      {leaderboard.slice(0, 5).map((entry, index) => {
+                      {leaderboard.slice(0, 10).map((entry, index) => {
                         const isCurrentUser = entry.email === userEmail
                         const rankColors = [
                           'text-yellow-500',
@@ -749,7 +749,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
                         )
                       })}
 
-                      {userEntry && userRank && userRank > 5 && (
+                      {userEntry && userRank && userRank > 10 && (
                         <>
                           <div className="text-center py-1">
                             <span className="text-xs text-muted-foreground">...</span>
