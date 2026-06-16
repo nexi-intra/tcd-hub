@@ -165,18 +165,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       
       const taskPeopleMap: Record<string, { color: string; people: string[]; roleId: string }> = {}
       
-      todaysAssignments.forEach(assignment => {
-        const role = roles.find(r => r.id === assignment.roleId)
-        const roleName = role?.name || 'Unknown'
-        const roleColor = role?.color || 'gray'
-        const roleId = role?.id || ''
-        
-        if (!taskPeopleMap[roleName]) {
-          taskPeopleMap[roleName] = {
-            color: roleColor,
-            people: [],
-            roleId: roleId
-          }
+      roles.forEach(role => {
+        taskPeopleMap[role.name] = {
+          color: role.color,
+          people: [],
+          roleId: role.id
         }
       })
       
@@ -190,7 +183,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           return
         }
         
-        if (!taskPeopleMap[roleName].people.includes(assignment.employeeName)) {
+        if (taskPeopleMap[roleName] && !taskPeopleMap[roleName].people.includes(assignment.employeeName)) {
           taskPeopleMap[roleName].people.push(assignment.employeeName)
         }
       })
@@ -387,18 +380,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       
       const taskPeopleMap: Record<string, { color: string; people: string[]; roleId: string }> = {}
       
-      todaysAssignments.forEach(assignment => {
-        const role = roles.find(r => r.id === assignment.roleId)
-        const roleName = role?.name || 'Unknown'
-        const roleColor = role?.color || 'gray'
-        const roleId = role?.id || ''
-        
-        if (!taskPeopleMap[roleName]) {
-          taskPeopleMap[roleName] = {
-            color: roleColor,
-            people: [],
-            roleId: roleId
-          }
+      roles.forEach(role => {
+        taskPeopleMap[role.name] = {
+          color: role.color,
+          people: [],
+          roleId: role.id
         }
       })
       
@@ -412,7 +398,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           return
         }
         
-        if (!taskPeopleMap[roleName].people.includes(assignment.employeeName)) {
+        if (taskPeopleMap[roleName] && !taskPeopleMap[roleName].people.includes(assignment.employeeName)) {
           taskPeopleMap[roleName].people.push(assignment.employeeName)
         }
       })
@@ -906,9 +892,23 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                       </Badge>
                     </div>
                     {task.people.length === 0 ? (
-                      <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 py-2 justify-center">
-                        <Warning size={18} weight="fill" />
-                        <span className="text-xs md:text-sm font-semibold">{language === 'da' ? 'Ingen tildelt' : 'No one assigned'}</span>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 py-2 justify-center">
+                          <Warning size={18} weight="fill" />
+                          <span className="text-xs md:text-sm font-semibold">{language === 'da' ? 'Ingen tildelt' : 'No one assigned'}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full text-xs"
+                          onClick={() => {
+                            setSelectedTaskForAssign({ roleId: task.roleId, roleName: task.taskName })
+                            setShowQuickAssignDialog(true)
+                          }}
+                        >
+                          <UserPlus size={16} weight="duotone" className="mr-1" />
+                          {language === 'da' ? 'Tildel' : 'Assign'}
+                        </Button>
                       </div>
                     ) : (
                       <div className="flex flex-col gap-2">
@@ -929,6 +929,18 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                             <span className="text-xs md:text-sm text-foreground font-medium truncate">{person}</span>
                           </motion.div>
                         ))}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full text-xs mt-1"
+                          onClick={() => {
+                            setSelectedTaskForAssign({ roleId: task.roleId, roleName: task.taskName })
+                            setShowQuickAssignDialog(true)
+                          }}
+                        >
+                          <UserPlus size={16} weight="duotone" className="mr-1" />
+                          {language === 'da' ? 'Tilføj' : 'Add'}
+                        </Button>
                       </div>
                     )}
                   </motion.div>
