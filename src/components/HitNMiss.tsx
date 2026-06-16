@@ -337,36 +337,6 @@ export function HitNMiss() {
                             {setting.description[language as 'en' | 'da']}
                           </span>
                         </div>
-                        
-                        <div className="relative flex items-center justify-center" style={{ width: '100px', height: '100px' }}>
-                          <div 
-                            className={`rounded-full border-4 transition-all duration-300 ${
-                              isSelected 
-                                ? `${setting.borderColor} bg-gradient-to-br ${setting.bgGradient}` 
-                                : 'border-muted bg-muted/20'
-                            }`}
-                            style={{ 
-                              width: `${displaySize}px`, 
-                              height: `${displaySize}px` 
-                            }}
-                          >
-                            <div className={`absolute inset-0 rounded-full flex items-center justify-center ${
-                              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'
-                            } transition-opacity duration-300`}>
-                              <div className={`w-2 h-2 rounded-full bg-gradient-to-br ${
-                                isSelected 
-                                  ? setting.bgGradient 
-                                  : 'from-muted-foreground to-muted-foreground'
-                              }`} />
-                            </div>
-                          </div>
-                          
-                          {isSelected && (
-                            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full bg-card border border-border text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
-                              {actualTargetSize}px
-                            </div>
-                          )}
-                        </div>
                       </div>
                     </div>
                   )
