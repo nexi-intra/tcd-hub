@@ -259,7 +259,7 @@ Return ONLY a JSON object with this exact structure:
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
             <Label>{'Vælg datoer'}</Label>
-            <div className="border border-input rounded-md">
+            <div className="border border-input rounded-md overflow-hidden flex justify-center">
               <Calendar
                 mode="range"
                 selected={dateRange}
@@ -267,6 +267,7 @@ Return ONLY a JSON object with this exact structure:
                 numberOfMonths={1}
                 showWeekNumber
                 locale={da}
+                className="w-full"
               />
             </div>
             {dateRange?.from && (
