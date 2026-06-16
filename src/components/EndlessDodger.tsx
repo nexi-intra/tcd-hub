@@ -235,54 +235,10 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     return xOverlap && yOverlap
   }
 
-  const gameLoop = () => {
-    if (!gameAreaRef.current) return
-
-    const rect = gameAreaRef.current.getBoundingClientRect()
-
-    setObjects(prev => {
-      const updated = prev.map(obj => ({
-        ...obj,
-        y: obj.y + obj.speed
-      })).filter(obj => obj.y < rect.height)
-
-      for (const obj of updated) {
-        if (checkCollision(obj.x, obj.y)) {
-          endGame()
-          return prev
-        }
-      }
-
-      return updated
-    })
-
-    setScore(prev => prev + 1)
-
-    const moveSpeed = 8
-    if (keysPressed.current.has('ArrowLeft') || keysPressed.current.has('a')) {
-      setPlayerX(prev => Math.max(0, prev - moveSpeed))
-    }
-    if (keysPressed.current.has('ArrowRight') || keysPressed.current.has('d')) {
-      setPlayerX(prev => Math.min(rect.width - PLAYER_SIZE, prev + moveSpeed))
-    }
-
-    animationFrameRef.current = requestAnimationFrame(gameLoop)
-  }
-
   const startGame = () => {
     setScore(0)
     setObjects([])
-    
-    if (!gameAreaRef.current) return
-    const rect = gameAreaRef.current.getBoundingClientRect()
-    setPlayerX((rect.width - PLAYER_SIZE) / 2)
-    
     setGameState('playing')
-    gameLoop()
-    
-    spawnIntervalRef.current = setInterval(() => {
-      spawnObject()
-    }, DIFFICULTY_SETTINGS[difficulty].spawnRate)
   }
 
   const endGame = () => {
@@ -347,15 +303,62 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   }, [])
 
   useEffect(() => {
+    if (gameState === 'playing' && gameAreaRef.current) {
+      const rect = gameAreaRef.current.getBoundingClientRect()
+      setPlayerX((rect.width - PLAYER_SIZE) / 2)
+      
+      const runGameLoop = () => {
+        if (!gameAreaRef.current) return
+
+        const rect = gameAreaRef.current.getBoundingClientRect()
+
+        setObjects(prev => {
+          const updated = prev.map(obj => ({
+            ...obj,
+            y: obj.y + obj.speed
+          })).filter(obj => obj.y < rect.height)
+
+          for (const obj of updated) {
+            if (checkCollision(obj.x, obj.y)) {
+              endGame()
+              return prev
+            }
+          }
+
+          return updated
+        })
+
+        setScore(prev => prev + 1)
+
+        const moveSpeed = 8
+        if (keysPressed.current.has('ArrowLeft') || keysPressed.current.has('a')) {
+          setPlayerX(prev => Math.max(0, prev - moveSpeed))
+        }
+        if (keysPressed.current.has('ArrowRight') || keysPressed.current.has('d')) {
+          setPlayerX(prev => Math.min(rect.width - PLAYER_SIZE, prev + moveSpeed))
+        }
+
+        animationFrameRef.current = requestAnimationFrame(runGameLoop)
+      }
+      
+      animationFrameRef.current = requestAnimationFrame(runGameLoop)
+      
+      spawnIntervalRef.current = setInterval(() => {
+        spawnObject()
+      }, DIFFICULTY_SETTINGS[difficulty].spawnRate)
+    }
+    
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
+        animationFrameRef.current = null
       }
       if (spawnIntervalRef.current) {
         clearInterval(spawnIntervalRef.current)
+        spawnIntervalRef.current = null
       }
     }
-  }, [difficulty])
+  }, [gameState])
 
   if (gameState === 'menu') {
     return (
