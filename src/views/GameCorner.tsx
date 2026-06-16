@@ -150,6 +150,7 @@ const difficultyConfig = {
 function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavigateBack: () => void }) {
   const [gameState, setGameState] = useState<'select' | 'playing' | 'finished'>('select')
   const [difficulty, setDifficulty] = useState<Difficulty>('easy')
+  const [viewingDifficulty, setViewingDifficulty] = useState<Difficulty>('easy')
   const [score, setScore] = useState(0)
   const [hits, setHits] = useState(0)
   const [misses, setMisses] = useState(0)
@@ -175,11 +176,13 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
   const spawnTarget = () => {
     if (!gameAreaRef.current || gameState !== 'playing') return
 
-    const area = gameAreaRef.current.getBoundingClientRect()
-    const margin = config.targetSize / 2 + 20
+    const area = gameAreaRef.current
+    const areaWidth = area.offsetWidth
+    const areaHeight = area.offsetHeight
+    const margin = config.targetSize / 2 + 10
     
-    const x = Math.random() * (area.width - margin * 2) + margin
-    const y = Math.random() * (area.height - margin * 2) + margin
+    const x = Math.random() * (areaWidth - margin * 2) + margin
+    const y = Math.random() * (areaHeight - margin * 2) + margin
     
     const targetId = nextTargetId.current++
     
@@ -255,9 +258,9 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
     }
 
     setHighScores((currentScores) => {
-      const updated = [...currentScores, newScore]
+      const updated = [...(currentScores || []), newScore]
         .sort((a, b) => b.score - a.score)
-        .slice(0, 10)
+        .slice(0, 50)
       return updated
     })
   }
@@ -274,7 +277,9 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
     setTargets([])
   }
 
-  const filteredHighScores = (highScores || []).filter(s => s.difficulty === difficulty)
+  const filteredHighScores = (highScores || [])
+    .filter(s => s.difficulty === viewingDifficulty)
+    .slice(0, 10)
 
   return (
     <div className="min-h-screen bg-background">
@@ -464,10 +469,21 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
             >
               <Card className="p-6 border-2">
                 <h3 className="text-2xl font-bold mb-4 text-foreground">🏆 Topscorer</h3>
-                <div className="mb-4">
-                  <Badge className={`bg-gradient-to-r ${config.color} text-white`}>
-                    {config.label}
-                  </Badge>
+                <div className="mb-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">Vælg sværhedsgrad:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(Object.keys(difficultyConfig) as Difficulty[]).map((diff) => (
+                      <Button
+                        key={diff}
+                        size="sm"
+                        onClick={() => setViewingDifficulty(diff)}
+                        variant={viewingDifficulty === diff ? 'default' : 'outline'}
+                        className={viewingDifficulty === diff ? `bg-gradient-to-r ${difficultyConfig[diff].color} text-white hover:opacity-90` : ''}
+                      >
+                        {difficultyConfig[diff].label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
                 {!filteredHighScores || filteredHighScores.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
