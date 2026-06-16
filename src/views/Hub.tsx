@@ -867,7 +867,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                 <Users size={20} weight="duotone" className="text-white md:hidden" />
                 <Users size={24} weight="duotone" className="text-white hidden md:block" />
               </div>
-              <h3 className="text-base md:text-lg font-semibold text-foreground">{t.hub.overview.teamTasks || 'Team opgaver i dag'}</h3>
+              <h3 className="text-base md:text-lg font-semibold text-foreground text-center flex-1">{t.hub.overview.teamTasks || 'Team opgaver i dag'}</h3>
             </div>
             {teamTasks.length === 0 ? (
               <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noTasks}</p>
