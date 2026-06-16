@@ -31,7 +31,7 @@ interface GlobalLeaderboard {
 }
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'expert'
-type GameState = 'menu' | 'countdown' | 'playing' | 'ended'
+type GameState = 'menu' | 'playing' | 'ended'
 
 const DIFFICULTY_SETTINGS = {
   easy: {
@@ -82,7 +82,6 @@ const DIFFICULTY_SETTINGS = {
 
 const PLAYER_SIZE = 50
 const OBJECT_SIZE = 40
-const COUNTDOWN_DURATION = 3
 
 interface User {
   email: string
@@ -102,7 +101,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   const [score, setScore] = useState(0)
   const [playerX, setPlayerX] = useState(0)
   const [objects, setObjects] = useState<FallingObject[]>([])
-  const [countdown, setCountdown] = useState(COUNTDOWN_DURATION)
   const [users, setUsers] = useState<User[]>([])
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('endless-dodger-global-leaderboard', {
     easy: [],
@@ -114,7 +112,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const animationFrameRef = useRef<number | null>(null)
   const spawnIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const keysPressed = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -272,34 +269,14 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     animationFrameRef.current = requestAnimationFrame(gameLoop)
   }
 
-  const startCountdown = () => {
-    setGameState('countdown')
+  const startGame = () => {
     setScore(0)
     setObjects([])
-    setCountdown(COUNTDOWN_DURATION)
     
     if (!gameAreaRef.current) return
     const rect = gameAreaRef.current.getBoundingClientRect()
     setPlayerX((rect.width - PLAYER_SIZE) / 2)
     
-    let currentCount = COUNTDOWN_DURATION
-    
-    countdownIntervalRef.current = setInterval(() => {
-      currentCount--
-      
-      if (currentCount <= 0) {
-        if (countdownIntervalRef.current) {
-          clearInterval(countdownIntervalRef.current)
-          countdownIntervalRef.current = null
-        }
-        startGame()
-      } else {
-        setCountdown(currentCount)
-      }
-    }, 1000)
-  }
-
-  const startGame = () => {
     setGameState('playing')
     gameLoop()
     
@@ -339,11 +316,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       clearInterval(spawnIntervalRef.current)
       spawnIntervalRef.current = null
     }
-
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current)
-      countdownIntervalRef.current = null
-    }
   }
 
   useEffect(() => {
@@ -371,9 +343,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       if (spawnIntervalRef.current) {
         clearInterval(spawnIntervalRef.current)
       }
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current)
-      }
     }
   }, [])
 
@@ -384,9 +353,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       }
       if (spawnIntervalRef.current) {
         clearInterval(spawnIntervalRef.current)
-      }
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current)
       }
     }
   }, [difficulty])
@@ -457,7 +423,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
           <div className="flex justify-center">
             <Button
-              onClick={startCountdown}
+              onClick={startGame}
               size="lg"
               className="text-xl px-12 py-6 bg-gradient-to-r from-primary via-accent to-primary hover:shadow-2xl hover:scale-105 transition-all duration-300 font-bold"
             >
@@ -531,24 +497,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
             })}
           </div>
         </Card>
-      </div>
-    )
-  }
-
-  if (gameState === 'countdown') {
-    return (
-      <div className="flex items-center justify-center min-h-[600px]">
-        <div className="text-center space-y-8">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-20 blur-3xl animate-pulse" />
-            <div className="relative text-[200px] font-bold bg-gradient-to-br from-primary via-accent to-primary bg-clip-text text-transparent animate-bounce">
-              {countdown}
-            </div>
-          </div>
-          <p className="text-2xl text-muted-foreground animate-pulse">
-            {language === 'da' ? 'Gør dig klar...' : 'Get ready...'}
-          </p>
-        </div>
       </div>
     )
   }
@@ -687,7 +635,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
             <div className="flex gap-4 justify-center pt-4">
               <Button
-                onClick={startCountdown}
+                onClick={startGame}
                 size="lg"
                 className="bg-gradient-to-r from-primary via-accent to-primary hover:shadow-2xl hover:scale-105 transition-all duration-300 font-bold px-8"
               >
