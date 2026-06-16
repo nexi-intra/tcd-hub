@@ -389,7 +389,7 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
                       <div
                         ref={gameAreaRef}
                         onClick={handleMissClick}
-                        className="relative w-full h-[400px] bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border-2 border-dashed border-border overflow-hidden cursor-crosshair"
+                        className="relative w-full h-[400px] bg-gradient-to-br from-muted/50 to-muted/20 rounded-xl border-2 border-border overflow-hidden cursor-crosshair"
                       >
                         {targets.map((target) => (
                           <motion.button
@@ -408,7 +408,7 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
                               width: config.targetSize,
                               height: config.targetSize,
                             }}
-                            className={`rounded-full bg-gradient-to-br ${config.color} hover:opacity-80 shadow-lg cursor-pointer transition-opacity flex items-center justify-center`}
+                            className={`rounded-full bg-gradient-to-br ${config.color} hover:opacity-80 shadow-2xl cursor-pointer transition-opacity flex items-center justify-center border-4 border-white z-10`}
                           >
                             <Target size={config.targetSize * 0.5} weight="bold" className="text-white" />
                           </motion.button>
