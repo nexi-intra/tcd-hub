@@ -684,6 +684,21 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
             <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
               <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]">
+                  <ForkKnife size={20} weight="duotone" className="text-white md:hidden" />
+                  <ForkKnife size={24} weight="duotone" className="text-white hidden md:block" />
+                </div>
+                <h3 className="text-base md:text-lg font-semibold text-foreground">{t.hub.overview.todaysMeal}</h3>
+              </div>
+              {!todaysMeal ? (
+                <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noMeal}</p>
+              ) : (
+                <p className="text-xs md:text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere text-center">{todaysMeal}</p>
+              )}
+            </Card>
+
+            <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
+              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
                 <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)]">
                   <FirstAidKit size={20} weight="duotone" className="text-white md:hidden" />
                   <FirstAidKit size={24} weight="duotone" className="text-white hidden md:block" />
@@ -702,21 +717,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     </div>
                   ))}
                 </div>
-              )}
-            </Card>
-
-            <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
-              <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]">
-                  <ForkKnife size={20} weight="duotone" className="text-white md:hidden" />
-                  <ForkKnife size={24} weight="duotone" className="text-white hidden md:block" />
-                </div>
-                <h3 className="text-base md:text-lg font-semibold text-foreground">{t.hub.overview.todaysMeal}</h3>
-              </div>
-              {!todaysMeal ? (
-                <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noMeal}</p>
-              ) : (
-                <p className="text-xs md:text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere text-center">{todaysMeal}</p>
               )}
             </Card>
           </div>
