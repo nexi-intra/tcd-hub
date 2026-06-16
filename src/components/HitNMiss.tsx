@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Target, Trophy, X } from '@phosphor-icons/react'
+import { Target, Trophy, X, Timer, Infinity } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@github/spark/hooks'
@@ -16,19 +16,26 @@ interface TargetData {
   spawnTime: number
 }
 
+type GameMode = 'endless' | 'timer'
+
 const TARGET_LIFETIME = 2000
 const MIN_DISTANCE_FROM_EDGE = 80
 const TARGET_SIZE = 80
+const TIMER_DURATION = 30
 
 export function HitNMiss() {
   const { language } = useLanguage()
+  const [gameMode, setGameMode] = useState<GameMode>('endless')
   const [isPlaying, setIsPlaying] = useState(false)
   const [score, setScore] = useState(0)
   const [misses, setMisses] = useState(0)
+  const [timeLeft, setTimeLeft] = useState(TIMER_DURATION)
   const [target, setTarget] = useState<TargetData | null>(null)
-  const [highScore, setHighScore] = useKV<number>('hit-n-miss-highscore', 0)
+  const [highScoreEndless, setHighScoreEndless] = useKV<number>('hit-n-miss-highscore-endless', 0)
+  const [highScoreTimer, setHighScoreTimer] = useKV<number>('hit-n-miss-highscore-timer', 0)
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const targetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const spawnTarget = () => {
     if (!gameAreaRef.current) return
@@ -77,7 +84,21 @@ export function HitNMiss() {
     setScore(0)
     setMisses(0)
     setTarget(null)
+    setTimeLeft(TIMER_DURATION)
+    
     setTimeout(() => spawnTarget(), 500)
+
+    if (gameMode === 'timer') {
+      timerIntervalRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            endGame()
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
   }
 
   const endGame = () => {
@@ -85,10 +106,18 @@ export function HitNMiss() {
     if (targetTimeoutRef.current) {
       clearTimeout(targetTimeoutRef.current)
     }
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current)
+    }
     setTarget(null)
     
-    if (score > (highScore || 0)) {
-      setHighScore(score)
+    const currentHighScore = gameMode === 'endless' ? highScoreEndless : highScoreTimer
+    if (score > (currentHighScore || 0)) {
+      if (gameMode === 'endless') {
+        setHighScoreEndless(score)
+      } else {
+        setHighScoreTimer(score)
+      }
     }
   }
 
@@ -96,6 +125,9 @@ export function HitNMiss() {
     return () => {
       if (targetTimeoutRef.current) {
         clearTimeout(targetTimeoutRef.current)
+      }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
       }
     }
   }, [])
@@ -126,17 +158,47 @@ export function HitNMiss() {
               </div>
               <div className="text-2xl font-bold text-primary flex items-center gap-2">
                 <Trophy size={24} weight="fill" />
-                {highScore || 0}
+                {gameMode === 'endless' ? (highScoreEndless || 0) : (highScoreTimer || 0)}
               </div>
             </div>
           </div>
         </div>
 
         {!isPlaying && (
-          <div className="text-center py-8">
-            <Button onClick={startGame} size="lg" className="px-8">
-              {language === 'da' ? 'Start spil' : 'Start Game'}
-            </Button>
+          <div className="space-y-6">
+            <div className="flex items-center justify-center gap-4">
+              <Button 
+                onClick={() => setGameMode('endless')}
+                variant={gameMode === 'endless' ? 'default' : 'outline'}
+                className="flex items-center gap-2 min-w-[140px]"
+              >
+                <Infinity size={20} weight="bold" />
+                {language === 'da' ? 'Endeløs' : 'Endless'}
+              </Button>
+              <Button 
+                onClick={() => setGameMode('timer')}
+                variant={gameMode === 'timer' ? 'default' : 'outline'}
+                className="flex items-center gap-2 min-w-[140px]"
+              >
+                <Timer size={20} weight="bold" />
+                {language === 'da' ? '30 sekunder' : '30 seconds'}
+              </Button>
+            </div>
+            
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-4">
+                {gameMode === 'endless' 
+                  ? (language === 'da' 
+                    ? 'Spil så længe du vil! Slå så mange mål som muligt.' 
+                    : 'Play as long as you want! Hit as many targets as possible.')
+                  : (language === 'da' 
+                    ? 'Du har 30 sekunder! Få den højeste score muligt.' 
+                    : 'You have 30 seconds! Get the highest score possible.')}
+              </p>
+              <Button onClick={startGame} size="lg" className="px-8">
+                {language === 'da' ? 'Start spil' : 'Start Game'}
+              </Button>
+            </div>
           </div>
         )}
       </Card>
@@ -158,6 +220,19 @@ export function HitNMiss() {
                 </div>
                 <div className="text-3xl font-bold text-destructive">{misses}</div>
               </div>
+              {gameMode === 'timer' && (
+                <>
+                  <div className="h-10 w-px bg-border" />
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                      {language === 'da' ? 'Tid tilbage' : 'Time Left'}
+                    </div>
+                    <div className={`text-3xl font-bold ${timeLeft <= 5 ? 'text-destructive animate-pulse' : 'text-accent'}`}>
+                      {timeLeft}s
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
             <Button onClick={endGame} variant="destructive" size="sm">
               <X size={16} weight="bold" className="mr-2" />
@@ -228,7 +303,7 @@ export function HitNMiss() {
           <p className="text-muted-foreground mb-4">
             {language === 'da' ? 'Din sidste score' : 'Your final score'}: <span className="text-2xl font-bold text-primary">{score}</span>
           </p>
-          {score > (highScore || 0) && (
+          {score > ((gameMode === 'endless' ? highScoreEndless : highScoreTimer) || 0) && (
             <p className="text-sm text-accent font-semibold">
               {language === 'da' ? '🎉 Ny højeste score!' : '🎉 New high score!'}
             </p>
