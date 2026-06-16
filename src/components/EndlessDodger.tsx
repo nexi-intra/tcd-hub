@@ -38,6 +38,7 @@ const INITIAL_SPEED = 2
 const MAX_SPEED = 8
 const SPEED_INCREASE_INTERVAL = 5000
 const SPAWN_RATE_DECREASE_INTERVAL = 8000
+const COLLISION_MARGIN = 8
 
 export function EndlessDodger({ userEmail }: { userEmail?: string }) {
   const { language } = useLanguage()
@@ -147,24 +148,22 @@ export function EndlessDodger({ userEmail }: { userEmail?: string }) {
   const checkCollisions = () => {
     setFallingObjects(prev => {
       for (const obj of prev) {
-        const playerTop = GAME_HEIGHT - PLAYER_HEIGHT
-        const playerBottom = GAME_HEIGHT
-        const playerLeft = playerX
-        const playerRight = playerX + PLAYER_WIDTH
+        const playerTop = GAME_HEIGHT - PLAYER_HEIGHT + COLLISION_MARGIN
+        const playerBottom = GAME_HEIGHT - COLLISION_MARGIN
+        const playerLeft = playerX + COLLISION_MARGIN
+        const playerRight = playerX + PLAYER_WIDTH - COLLISION_MARGIN
         
-        const objTop = obj.y
-        const objBottom = obj.y + obj.size
-        const objLeft = obj.x
-        const objRight = obj.x + obj.size
+        const objTop = obj.y + COLLISION_MARGIN
+        const objBottom = obj.y + obj.size - COLLISION_MARGIN
+        const objLeft = obj.x + COLLISION_MARGIN
+        const objRight = obj.x + obj.size - COLLISION_MARGIN
         
-        const isOverlapping = !(
-          objBottom < playerTop ||
-          objTop > playerBottom ||
-          objRight < playerLeft ||
-          objLeft > playerRight
-        )
+        const xOverlap = playerRight > objLeft && playerLeft < objRight
+        const yOverlap = playerBottom > objTop && playerTop < objBottom
         
-        if (isOverlapping) {
+        const isColliding = xOverlap && yOverlap
+        
+        if (isColliding) {
           handleGameOver()
           return prev
         }
