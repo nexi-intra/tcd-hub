@@ -69,11 +69,11 @@ export function EndlessRunner({ userEmail, playerName }: EndlessRunnerProps) {
     gameRef.current.isPlaying = true
     gameRef.current.score = 0
     gameRef.current.distance = 0
-    gameRef.current.speed = 0.2
+    gameRef.current.speed = 0.15
     gameRef.current.ballPosition.set(0, 1, 0)
     gameRef.current.ballVelocity.set(0, 0, 0)
-    gameRef.current.lastObstacleZ = -20
-    gameRef.current.lastGapZ = -50
+    gameRef.current.lastObstacleZ = 0
+    gameRef.current.lastGapZ = -100
     gameRef.current.cameraShake = 0
     gameRef.current.speedIncreaseTimer = 0
     
@@ -86,7 +86,7 @@ export function EndlessRunner({ userEmail, playerName }: EndlessRunnerProps) {
     gameRef.current.trackSegments = []
     gameRef.current.obstacles = []
     
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 35; i++) {
       createTrackSegment(-i * 10)
     }
   }
