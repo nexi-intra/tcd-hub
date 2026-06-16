@@ -91,8 +91,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
   useEffect(() => {
     const loadUnreadCount = async () => {
-      const emails = (await window.spark.kv.get<Array<{ to: string; read: boolean }>>('emails')) || []
-      const unreadInbox = emails.filter(e => e.to === userEmail && !e.read).length
+      const emails = (await window.spark.kv.get<Array<{ to: string; read: boolean; folderId?: string }>>('emails')) || []
+      const unreadInbox = emails.filter(e => e.to === userEmail && !e.read && !e.folderId).length
       setUnreadInboxCount(unreadInbox)
     }
     loadUnreadCount()
@@ -595,8 +595,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           setShowEmailNotifications(open)
           if (!open) {
             const loadUnreadCount = async () => {
-              const emails = (await window.spark.kv.get<Array<{ to: string; read: boolean }>>('emails')) || []
-              const unreadInbox = emails.filter(e => e.to === userEmail && !e.read).length
+              const emails = (await window.spark.kv.get<Array<{ to: string; read: boolean; folderId?: string }>>('emails')) || []
+              const unreadInbox = emails.filter(e => e.to === userEmail && !e.read && !e.folderId).length
               setUnreadInboxCount(unreadInbox)
             }
             loadUnreadCount()
