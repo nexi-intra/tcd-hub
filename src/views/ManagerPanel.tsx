@@ -774,18 +774,22 @@ Return ONLY a JSON object with this exact structure:
       return
     }
 
-    const updatedLeaderboard = { ...leaderboard }
-    const board = [...updatedLeaderboard[editingScore.difficulty]]
+    const board = leaderboard[editingScore.difficulty]
     const entryIndex = board.findIndex(entry => entry.email === editingScore.email)
     
     if (entryIndex !== -1) {
       board[entryIndex] = {
-        email: editingScore.email,
+        ...board[entryIndex],
         score: scoreValue,
         timestamp: Date.now()
       }
+      
       board.sort((a, b) => b.score - a.score)
-      updatedLeaderboard[editingScore.difficulty] = board.slice(0, 10)
+      
+      const updatedLeaderboard = {
+        ...leaderboard,
+        [editingScore.difficulty]: board
+      }
       
       await window.spark.kv.set('hit-n-miss-global-leaderboard', updatedLeaderboard)
       await loadGameLeaderboard()
