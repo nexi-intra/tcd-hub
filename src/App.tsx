@@ -14,6 +14,7 @@ import { Auth } from '@/views/Auth'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
+import { toast } from 'sonner'
 
 type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games' | 'projects'
 
@@ -33,6 +34,7 @@ interface StoredSession {
 }
 
 const SESSION_DURATION = 24 * 60 * 60 * 1000
+const SESSION_TIMEOUT = 30 * 60 * 1000
 
 function generateSessionToken(): string {
   return `session_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
@@ -77,15 +79,74 @@ function App() {
   const [currentView, setCurrentView] = useState<View>('hub')
   const [userSession, setUserSession] = useState<UserSession | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [lastActivity, setLastActivity] = useState(Date.now())
 
   useEffect(() => {
-    const clearSessionOnLoad = async () => {
-      await window.spark.kv.delete('last-session-token')
+    const validateStoredSession = async () => {
+      try {
+        const storedToken = await window.spark.kv.get<string>('last-session-token')
+        
+        if (!storedToken) {
+          setIsCheckingAuth(false)
+          return
+        }
+
+        const validation = await validateSession(storedToken)
+        
+        if (validation.valid && validation.session) {
+          setUserSession({
+            userId: validation.session.userId,
+            email: validation.session.email,
+            token: validation.session.token,
+            expiresAt: validation.session.expiresAt
+          })
+        } else {
+          await window.spark.kv.delete('last-session-token')
+        }
+      } catch (error) {
+        console.error('Session validation error:', error)
+        await window.spark.kv.delete('last-session-token')
+      }
+      
       setIsCheckingAuth(false)
     }
     
-    clearSessionOnLoad()
+    validateStoredSession()
   }, [])
+
+  useEffect(() => {
+    if (!userSession) return
+
+    const handleActivity = () => {
+      setLastActivity(Date.now())
+    }
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
+    events.forEach(event => {
+      document.addEventListener(event, handleActivity)
+    })
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleActivity)
+      })
+    }
+  }, [userSession])
+
+  useEffect(() => {
+    if (!userSession) return
+
+    const checkSessionTimeout = setInterval(() => {
+      const timeSinceActivity = Date.now() - lastActivity
+      
+      if (timeSinceActivity > SESSION_TIMEOUT) {
+        toast.info('Din session er udløbet på grund af inaktivitet')
+        handleLogout()
+      }
+    }, 60000)
+
+    return () => clearInterval(checkSessionTimeout)
+  }, [userSession, lastActivity])
 
   const handleAuthenticated = async (userId: string, email: string, rememberMe: boolean) => {
     const token = await createSession(userId, email)
@@ -96,6 +157,7 @@ function App() {
     }
     
     setUserSession({ userId, email, token, expiresAt })
+    setLastActivity(Date.now())
   }
 
   const handleLogout = async () => {
