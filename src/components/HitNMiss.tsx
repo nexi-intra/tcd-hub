@@ -694,7 +694,6 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
                                 isCurrentUser ? 'text-primary font-bold' : 'text-foreground'
                               }`}>
                                 {getDisplayName(entry.email)}
-                                {isCurrentUser && ' (You)'}
                               </div>
                             </div>
                             <div className={`text-lg font-bold ${
