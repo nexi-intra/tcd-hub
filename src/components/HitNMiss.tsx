@@ -34,7 +34,7 @@ type GameState = 'menu' | 'countdown' | 'playing' | 'ended'
 const DIFFICULTY_SETTINGS = {
   easy: {
     lifetime: 3000,
-    targetSize: 100,
+    targetSize: 140,
     label: { en: 'Easy', da: 'Let' },
     description: { en: '3s per target', da: '3s per mål' },
     icon: Speedometer,
@@ -46,7 +46,7 @@ const DIFFICULTY_SETTINGS = {
   },
   medium: {
     lifetime: 2000,
-    targetSize: 100,
+    targetSize: 90,
     label: { en: 'Medium', da: 'Mellem' },
     description: { en: '2s per target', da: '2s per mål' },
     icon: Lightning,
@@ -58,7 +58,7 @@ const DIFFICULTY_SETTINGS = {
   },
   hard: {
     lifetime: 1000,
-    targetSize: 100,
+    targetSize: 50,
     label: { en: 'Hard', da: 'Svær' },
     description: { en: '1s per target', da: '1s per mål' },
     icon: Fire,
@@ -600,13 +600,19 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
                 style={{
                   left: `${target.position.x}px`,
                   top: `${target.position.y}px`,
-                  width: '100px',
-                  height: '100px',
+                  width: `${DIFFICULTY_SETTINGS[difficulty].targetSize}px`,
+                  height: `${DIFFICULTY_SETTINGS[difficulty].targetSize}px`,
                   cursor: 'pointer'
                 }}
               >
                 <div className="relative w-full h-full rounded-full bg-gradient-to-br from-destructive via-red-500 to-destructive/90 shadow-2xl hover:scale-110 transition-transform flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-white shadow-lg" />
+                  <div 
+                    className="rounded-full bg-white shadow-lg"
+                    style={{
+                      width: `${DIFFICULTY_SETTINGS[difficulty].targetSize * 0.12}px`,
+                      height: `${DIFFICULTY_SETTINGS[difficulty].targetSize * 0.12}px`
+                    }}
+                  />
                 </div>
               </div>
             )}
