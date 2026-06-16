@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -52,15 +52,6 @@ interface VacationEntry {
   reviewedAt?: string
 }
 
-interface HighScore {
-  id: string
-  playerName: string
-  score: number
-  timestamp: number
-  playerEmail: string
-  difficulty: 'easy' | 'medium' | 'hard'
-}
-
 interface ManagerPanelProps {
   onNavigateBack: () => void
   onLogout: () => void
@@ -95,10 +86,6 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false)
   const [previewMonth, setPreviewMonth] = useState(new Date().getMonth())
   const [previewYear, setPreviewYear] = useState(new Date().getFullYear())
-  const [highScores, setHighScores] = useState<HighScore[]>([])
-  const [isEditScoreDialogOpen, setIsEditScoreDialogOpen] = useState(false)
-  const [editingScore, setEditingScore] = useState<HighScore | null>(null)
-  const [editScoreValue, setEditScoreValue] = useState('')
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -108,7 +95,6 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         loadUsers()
         loadSickLeaveEntries()
         loadVacationEntries()
-        loadGameScores()
       }
     }
     checkAccess()
@@ -177,11 +163,6 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0
       return dateA.getTime() - dateB.getTime()
     }))
-  }
-
-  const loadGameScores = async () => {
-    const scores = await window.spark.kv.get<HighScore[]>('game-corner-highscores') || []
-    setHighScores(scores.sort((a, b) => b.score - a.score))
   }
 
   const changeUserRole = async (email: string, newRole: UserRole) => {
@@ -748,58 +729,6 @@ Return ONLY a JSON object with this exact structure:
     }
   }
 
-  const openEditScoreDialog = (score: HighScore) => {
-    setEditingScore(score)
-    setEditScoreValue(score.score.toString())
-    setIsEditScoreDialogOpen(true)
-  }
-
-  const handleSaveScore = async () => {
-    if (!editingScore) return
-    
-    const newScore = parseInt(editScoreValue, 10)
-    if (isNaN(newScore) || newScore < 0) {
-      toast.error('Ugyldig score værdi')
-      return
-    }
-
-    const allScores = await window.spark.kv.get<HighScore[]>('game-corner-highscores') || []
-    const updatedScores = allScores.map(s => 
-      s.id === editingScore.id ? { ...s, score: newScore } : s
-    )
-    
-    await window.spark.kv.set('game-corner-highscores', updatedScores)
-    await loadGameScores()
-    setIsEditScoreDialogOpen(false)
-    setEditingScore(null)
-    setEditScoreValue('')
-    toast.success('Score opdateret')
-  }
-
-  const deleteScore = async (id: string) => {
-    const allScores = await window.spark.kv.get<HighScore[]>('game-corner-highscores') || []
-    const updatedScores = allScores.filter(s => s.id !== id)
-    await window.spark.kv.set('game-corner-highscores', updatedScores)
-    await loadGameScores()
-    toast.success('Score slettet')
-  }
-
-  const getDifficultyLabel = (difficulty: 'easy' | 'medium' | 'hard') => {
-    switch (difficulty) {
-      case 'easy': return 'Let'
-      case 'medium': return 'Medium'
-      case 'hard': return 'Svær'
-    }
-  }
-
-  const getDifficultyColor = (difficulty: 'easy' | 'medium' | 'hard') => {
-    switch (difficulty) {
-      case 'easy': return 'oklch(0.65 0.15 140)'
-      case 'medium': return 'oklch(0.70 0.18 90)'
-      case 'hard': return 'oklch(0.65 0.26 340)'
-    }
-  }
-
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
       case 'admin':
@@ -890,7 +819,7 @@ Return ONLY a JSON object with this exact structure:
         </motion.div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 max-w-5xl">
+          <TabsList className="grid w-full grid-cols-4 max-w-5xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
@@ -911,10 +840,6 @@ Return ONLY a JSON object with this exact structure:
             <TabsTrigger value="vacation-overview" className="gap-2">
               <CalendarBlank size={18} />
               Ferie Oversigt
-            </TabsTrigger>
-            <TabsTrigger value="game-corner" className="gap-2">
-              <Trophy size={18} />
-              Spil Hjørne
             </TabsTrigger>
           </TabsList>
 
@@ -1623,126 +1548,7 @@ Return ONLY a JSON object with this exact structure:
             </Card>
           </TabsContent>
 
-          <TabsContent value="game-corner" className="space-y-6">
-            <Card className="p-6 border-2">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <Trophy size={28} className="text-[oklch(0.70_0.18_90)]" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Spil Hjørne Scores</h2>
-                </div>
-                <Badge variant="outline" className="text-sm">
-                  {highScores.length} {highScores.length === 1 ? 'score' : 'scores'}
-                </Badge>
-              </div>
 
-              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
-                <p className="text-sm text-muted-foreground">
-                  Her kan du se, redigere og slette alle scores fra Spil Hjørnet. Du kan ændre en spillers score eller helt fjerne en score fra listen.
-                </p>
-              </div>
-
-              {highScores.length === 0 ? (
-                <div className="text-center py-12">
-                  <Trophy size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
-                  <p className="text-muted-foreground">Ingen scores endnu</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {highScores.map((score, index) => {
-                    const getUserName = () => {
-                      const user = users.find(u => u.email === score.playerEmail)
-                      return user ? user.fullName : score.playerName
-                    }
-
-                    return (
-                      <motion.div
-                        key={score.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center justify-between p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all group"
-                      >
-                        <div className="flex items-center gap-4 flex-1">
-                          <div 
-                            className="flex items-center justify-center w-12 h-12 rounded-xl text-white font-bold text-lg shadow-lg"
-                            style={{ 
-                              background: `linear-gradient(135deg, ${getDifficultyColor(score.difficulty)}, oklch(0.65 0.26 340))` 
-                            }}
-                          >
-                            #{index + 1}
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-bold text-lg mb-1">{getUserName()}</div>
-                            <div className="text-sm text-muted-foreground mb-2">{score.playerEmail}</div>
-                            <div className="flex items-center gap-3 text-sm">
-                              <Badge 
-                                variant="outline" 
-                                style={{ 
-                                  borderColor: getDifficultyColor(score.difficulty),
-                                  color: getDifficultyColor(score.difficulty)
-                                }}
-                              >
-                                {getDifficultyLabel(score.difficulty)}
-                              </Badge>
-                              <span className="text-muted-foreground">
-                                {new Date(score.timestamp).toLocaleDateString('da-DK', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-3xl font-bold" style={{ color: getDifficultyColor(score.difficulty) }}>
-                            {score.score}
-                          </div>
-                        </div>
-                        <div className="ml-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => openEditScoreDialog(score)}
-                            className="hover:bg-primary/10"
-                          >
-                            <PencilSimple size={20} />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash size={20} />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Slet score?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Er du sikker på at du vil slette denne score for <strong>{getUserName()}</strong>? Denne handling kan ikke fortrydes.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Annuller</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteScore(score.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Slet score
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
-                </div>
-              )}
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
 
@@ -1941,50 +1747,6 @@ Return ONLY a JSON object with this exact structure:
             <Button onClick={handleCreateUser} className="gap-2">
               <Plus size={18} weight="bold" />
               Opret bruger
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isEditScoreDialogOpen} onOpenChange={setIsEditScoreDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Rediger Score</DialogTitle>
-            <DialogDescription>
-              Ændre score for {editingScore?.playerName}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-score">Score *</Label>
-              <Input
-                id="edit-score"
-                type="number"
-                min="0"
-                value={editScoreValue}
-                onChange={(e) => setEditScoreValue(e.target.value)}
-                placeholder="Indtast ny score"
-              />
-            </div>
-            {editingScore && (
-              <div className="text-sm text-muted-foreground space-y-1">
-                <div>Spiller: <span className="font-medium">{editingScore.playerName}</span></div>
-                <div>Sværhedsgrad: <span className="font-medium">{getDifficultyLabel(editingScore.difficulty)}</span></div>
-                <div>Original score: <span className="font-medium">{editingScore.score}</span></div>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setIsEditScoreDialogOpen(false)
-              setEditingScore(null)
-              setEditScoreValue('')
-            }}>
-              Annuller
-            </Button>
-            <Button onClick={handleSaveScore} className="gap-2">
-              <Check size={18} weight="bold" />
-              Gem ændringer
             </Button>
           </DialogFooter>
         </DialogContent>
