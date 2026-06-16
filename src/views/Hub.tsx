@@ -892,7 +892,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                         : "bg-gradient-to-br from-card to-muted/30 border-border hover:border-primary/30 hover:shadow-md"
                     )}
                   >
-                    <div className="flex items-center justify-center gap-2 pb-2 border-b-2 relative"
+                    <div className="flex items-center justify-start gap-3 pb-2 border-b-2"
                       style={{ borderColor: task.taskColor + '40' }}
                     >
                       <Badge
@@ -904,25 +904,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                       >
                         {task.taskName}
                       </Badge>
-                      <div className="flex items-center gap-2 absolute right-0">
-                        <div 
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
-                          style={{ backgroundColor: task.taskColor }}
-                        >
-                          {task.people.length}
-                        </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
-                          onClick={() => {
-                            setSelectedTaskForAssign({ roleId: task.roleId, roleName: task.taskName })
-                            setShowQuickAssignDialog(true)
-                          }}
-                          title={language === 'da' ? 'Tildel opgave' : 'Assign task'}
-                        >
-                          <UserPlus size={18} weight="duotone" />
-                        </Button>
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
+                        style={{ backgroundColor: task.taskColor }}
+                      >
+                        {task.people.length}
                       </div>
                     </div>
                     {task.people.length === 0 ? (
