@@ -84,6 +84,7 @@ export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
   const [isManager, setIsManager] = useState(false)
   const [userEmail, setUserEmail] = useState<string>('')
   const [view, setView] = useState<'inbox' | 'sent' | 'compose' | 'vacation-requests' | 'folder'>('inbox')
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [selectedVacation, setSelectedVacation] = useState<VacationEntry | null>(null)
   const [showCalendarPreview, setShowCalendarPreview] = useState(false)
@@ -128,10 +129,15 @@ export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
           setUsers(usersData as Array<{ email: string; name: string }>)
         }
       }
+
+      const kvEmails = await window.spark.kv.get<Email[]>('emails')
+      if (kvEmails && Array.isArray(kvEmails)) {
+        setEmails(kvEmails)
+      }
     }
     
     loadUserAndData()
-  }, [])
+  }, [refreshTrigger])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -143,6 +149,14 @@ export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onNavigateBack])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshTrigger(prev => prev + 1)
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   const getInitials = (email: string) => {
     const name = email.split('@')[0]
