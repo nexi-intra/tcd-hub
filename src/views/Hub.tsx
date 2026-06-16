@@ -77,7 +77,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [unreadInboxCount, setUnreadInboxCount] = useState(0)
   const [pendingVacationRequests, setPendingVacationRequests] = useState(0)
   
-  const [myTasks, setMyTasks] = useState<Array<{ roleName: string; roleColor: string }>>([])
+  const [teamTasks, setTeamTasks] = useState<Array<{ name: string; tasks: Array<{ roleName: string; roleColor: string }> }>>([])
   const [peopleOff, setPeopleOff] = useState<Array<{ name: string; type: 'vacation' | 'single' }>>([])
   const [peopleSick, setPeopleSick] = useState<string[]>([])
   const [todaysMeal, setTodaysMeal] = useState<string>('')
@@ -135,13 +135,27 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
       const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
       
-      const myTasksToday = assignments
-        .filter(a => a.date === today && a.employeeName === (usersData[userEmail]?.fullName || userEmail))
-        .map(a => {
-          const role = roles.find(r => r.id === a.roleId)
-          return { roleName: role?.name || 'Unknown', roleColor: role?.color || 'gray' }
+      const todaysAssignments = assignments.filter(a => a.date === today)
+      
+      const employeeTasksMap: Record<string, Array<{ roleName: string; roleColor: string }>> = {}
+      
+      todaysAssignments.forEach(assignment => {
+        const role = roles.find(r => r.id === assignment.roleId)
+        if (!employeeTasksMap[assignment.employeeName]) {
+          employeeTasksMap[assignment.employeeName] = []
+        }
+        employeeTasksMap[assignment.employeeName].push({
+          roleName: role?.name || 'Unknown',
+          roleColor: role?.color || 'gray'
         })
-      setMyTasks(myTasksToday)
+      })
+      
+      const teamTasksList = Object.entries(employeeTasksMap).map(([name, tasks]) => ({
+        name,
+        tasks
+      }))
+      
+      setTeamTasks(teamTasksList)
       
       const todaySick = sickLeave
         .filter(s => s.status === 'approved' && isSameDay(parseISO(s.startDate), new Date()))
@@ -660,23 +674,33 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
               <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
                 <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]">
-                  <CheckCircle size={20} weight="duotone" className="text-white md:hidden" />
-                  <CheckCircle size={24} weight="duotone" className="text-white hidden md:block" />
+                  <Users size={20} weight="duotone" className="text-white md:hidden" />
+                  <Users size={24} weight="duotone" className="text-white hidden md:block" />
                 </div>
-                <h3 className="text-base md:text-lg font-semibold text-foreground">{t.hub.overview.myTasks}</h3>
+                <h3 className="text-base md:text-lg font-semibold text-foreground">{t.hub.overview.teamTasks || 'Team opgaver i dag'}</h3>
               </div>
-              {myTasks.length === 0 ? (
+              {teamTasks.length === 0 ? (
                 <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noTasks}</p>
               ) : (
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {myTasks.map((task, idx) => (
-                    <Badge
-                      key={idx}
-                      className="text-white text-xs"
-                      style={{ backgroundColor: task.roleColor }}
-                    >
-                      {task.roleName}
-                    </Badge>
+                <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto">
+                  {teamTasks.map((member, idx) => (
+                    <div key={idx} className="flex flex-col gap-1 p-2 bg-muted/30 rounded-md">
+                      <div className="flex items-center gap-2 mb-1">
+                        <User size={14} className="text-muted-foreground" />
+                        <span className="text-xs md:text-sm font-medium text-foreground">{member.name}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {member.tasks.map((task, taskIdx) => (
+                          <Badge
+                            key={taskIdx}
+                            className="text-white text-xs"
+                            style={{ backgroundColor: task.roleColor }}
+                          >
+                            {task.roleName}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}

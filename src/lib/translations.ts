@@ -36,6 +36,7 @@ export const translations = {
       overview: {
         title: "Overblik",
         myTasks: "Mine Opgaver I Dag",
+        teamTasks: "Team Opgaver I Dag",
         offToday: "Fri I Dag",
         sickToday: "Syge I Dag",
         todaysMeal: "Mad I Dag",
@@ -588,6 +589,7 @@ export const translations = {
       overview: {
         title: "Overview",
         myTasks: "My Tasks Today",
+        teamTasks: "Team Tasks Today",
         offToday: "Off Today",
         sickToday: "Sick Today",
         todaysMeal: "Today's Meal",
