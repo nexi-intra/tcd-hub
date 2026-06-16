@@ -257,9 +257,9 @@ Return ONLY a JSON object with this exact structure:
           <DialogTitle className="text-2xl font-bold">{t.vacationRequestDialog.title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-          <div className="space-y-2">
-            <Label>{'Vælg datoer'}</Label>
-            <div className="border border-input rounded-md overflow-hidden flex justify-center">
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Vælg periode</Label>
+            <div className="border border-input rounded-lg overflow-hidden bg-card">
               <Calendar
                 mode="range"
                 selected={dateRange}
@@ -267,30 +267,34 @@ Return ONLY a JSON object with this exact structure:
                 numberOfMonths={1}
                 showWeekNumber
                 locale={da}
-                className="w-full"
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
               />
             </div>
             {dateRange?.from && (
-              <p className="text-sm text-muted-foreground">
-                {dateRange.to
-                  ? `${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`
-                  : format(dateRange.from, 'dd/MM/yyyy')}
-              </p>
+              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
+                <span className="text-sm font-medium">Valgt periode:</span>
+                <span className="text-sm text-muted-foreground">
+                  {dateRange.to
+                    ? `${format(dateRange.from, 'dd/MM/yyyy', { locale: da })} - ${format(dateRange.to, 'dd/MM/yyyy', { locale: da })}`
+                    : format(dateRange.from, 'dd/MM/yyyy', { locale: da })}
+                </span>
+              </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">{t.vacationRequestDialog.comment}</Label>
+            <Label htmlFor="notes" className="text-base font-semibold">{t.vacationRequestDialog.comment}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder={t.vacationRequestDialog.commentPlaceholder}
               rows={4}
+              className="resize-none"
             />
           </div>
 
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-3 pt-2">
             <Button
               type="button"
               variant="outline"
@@ -301,7 +305,7 @@ Return ONLY a JSON object with this exact structure:
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !dateRange?.from || !dateRange?.to}
               className="gap-2"
             >
               <PaperPlaneTilt size={18} weight="bold" />
