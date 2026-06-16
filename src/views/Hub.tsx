@@ -293,16 +293,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       category: 'social',
     },
     {
-      id: 'manager',
-      title: t.hub.modules.manager,
-      description: isAdminOrManager ? t.hub.descriptions.manager : t.hub.descriptions.managerLocked,
-      icon: <ShieldCheck size={48} weight="duotone" />,
-      color: 'oklch(0.58 0.25 25)',
-      gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
-      available: isAdminOrManager,
-      category: 'admin',
-    },
-    {
       id: 'games',
       title: t.hub.modules.games,
       description: t.hub.descriptions.games,
@@ -311,6 +301,16 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       gradient: 'from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)]',
       available: true,
       category: 'leisure',
+    },
+    {
+      id: 'manager',
+      title: t.hub.modules.manager,
+      description: isAdminOrManager ? t.hub.descriptions.manager : t.hub.descriptions.managerLocked,
+      icon: <ShieldCheck size={48} weight="duotone" />,
+      color: 'oklch(0.58 0.25 25)',
+      gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
+      available: isAdminOrManager,
+      category: 'admin',
     },
   ]
 
