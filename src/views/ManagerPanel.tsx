@@ -199,8 +199,15 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
     const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
+      const userFullName = usersData[email].fullName
+      
       delete usersData[email]
       await window.spark.kv.set('users', usersData)
+      
+      const assignments = (await window.spark.kv.get<Array<{ id: string; employeeId: string; employeeName: string; roleId: string; date: string; comment?: string }>>('shift-assignments')) || []
+      const updatedAssignments = assignments.filter(a => a.employeeName !== userFullName)
+      await window.spark.kv.set('shift-assignments', updatedAssignments)
+      
       await loadUsers()
       toast.success('Bruger slettet')
     }
