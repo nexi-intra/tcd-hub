@@ -614,15 +614,22 @@ Return ONLY a JSON object with this exact structure:
                             </div>
                           ) : (
                             <div className="space-y-0.5">
-                              {dayVacations.slice(0, 3).map((vacation) => (
-                                <div
-                                  key={vacation.id}
-                                  className="text-[10px] px-1 py-0.5 rounded truncate font-medium text-foreground"
-                                  title={`${getFirstName(vacation.userEmail)}${vacation.notes ? ': ' + vacation.notes : ''}`}
-                                >
-                                  {getFirstName(vacation.userEmail)}
-                                </div>
-                              ))}
+                              {dayVacations.slice(0, 3).map((vacation) => {
+                                const userColor = getEmployeeColorByEmail(vacation.userEmail)
+                                return (
+                                  <div
+                                    key={vacation.id}
+                                    className="text-[10px] px-1.5 py-0.5 rounded truncate font-semibold"
+                                    style={{
+                                      backgroundColor: userColor.bg,
+                                      color: userColor.text
+                                    }}
+                                    title={`${getFirstName(vacation.userEmail)}${vacation.notes ? ': ' + vacation.notes : ''}`}
+                                  >
+                                    {getFirstName(vacation.userEmail)}
+                                  </div>
+                                )
+                              })}
                               {dayVacations.length > 3 && (
                                 <div className="text-[9px] text-muted-foreground">
                                   +{dayVacations.length - 3}
