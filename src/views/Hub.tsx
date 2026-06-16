@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, Trophy } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -261,16 +261,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       gradient: 'from-[oklch(0.50_0.27_262)] via-[oklch(0.55_0.24_192)] to-[oklch(0.50_0.27_262)]',
       available: true,
       category: 'work',
-    },
-    {
-      id: 'game',
-      title: language === 'da' ? 'Spille Hjørne' : 'Game Corner',
-      description: language === 'da' ? 'Konkurrér med dine kollegaer i sjove spil' : 'Compete with your colleagues in fun games',
-      icon: <Trophy size={48} weight="duotone" />,
-      color: 'oklch(0.70 0.18 90)',
-      gradient: 'from-[oklch(0.70_0.18_90)] via-[oklch(0.75_0.15_60)] to-[oklch(0.70_0.18_90)]',
-      available: true,
-      category: 'leisure',
     },
     {
       id: 'documents',
