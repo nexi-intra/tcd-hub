@@ -31,15 +31,16 @@ interface VacationEntry {
 interface VacationCalendarProps {
   onNavigateBack: () => void
   onLogout: () => void
+  userEmail: string
 }
 
-export function VacationCalendar({ onNavigateBack, onLogout }: VacationCalendarProps) {
+export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUserEmail }: VacationCalendarProps) {
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [isManager, setIsManager] = useState(false)
   const [usersData, setUsersData] = useState<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>({})
-  const [userEmail, setUserEmail] = useState<string>('')
+  const userEmail = propUserEmail
   const { t, language } = useLanguage()
 
   const months = [
@@ -50,21 +51,18 @@ export function VacationCalendar({ onNavigateBack, onLogout }: VacationCalendarP
 
   useEffect(() => {
     const loadUser = async () => {
-      const session = await window.spark.kv.get<{ userId: string; email: string }>('user-session')
-      if (session) {
-        setUserEmail(session.email)
-        
-        const users = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
-        if (users) {
-          setUsersData(users)
-          if (users[session.email]) {
-            setIsManager(users[session.email].isManager || false)
-          }
+      const users = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
+      if (users) {
+        setUsersData(users)
+        if (users[userEmail]) {
+          setIsManager(users[userEmail].isManager || false)
         }
       }
     }
-    loadUser()
-  }, [])
+    if (userEmail) {
+      loadUser()
+    }
+  }, [userEmail])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
