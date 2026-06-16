@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,10 @@ import { SickLeaveDialog } from '@/components/SickLeaveDialog'
 import { EmailNotifications } from '@/components/EmailNotifications'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { hasManagerAccess } from '@/lib/userRoles'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -77,10 +81,15 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [unreadInboxCount, setUnreadInboxCount] = useState(0)
   const [pendingVacationRequests, setPendingVacationRequests] = useState(0)
   
-  const [teamTasks, setTeamTasks] = useState<Array<{ taskName: string; taskColor: string; people: string[] }>>([])
+  const [teamTasks, setTeamTasks] = useState<Array<{ taskName: string; taskColor: string; people: string[]; roleId: string }>>([])
   const [peopleOff, setPeopleOff] = useState<Array<{ name: string; type: 'vacation' | 'single' }>>([])
   const [peopleSick, setPeopleSick] = useState<string[]>([])
   const [todaysMeal, setTodaysMeal] = useState<string>('')
+  
+  const [showQuickAssignDialog, setShowQuickAssignDialog] = useState(false)
+  const [selectedTaskForAssign, setSelectedTaskForAssign] = useState<{ roleId: string; roleName: string } | null>(null)
+  const [selectedEmployeeForAssign, setSelectedEmployeeForAssign] = useState<string>('')
+  const [allEmployees, setAllEmployees] = useState<Array<{ email: string; name: string }>>([])
   
   useEffect(() => {
     const checkUserRole = async () => {
@@ -154,17 +163,19 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       
       const todaysAssignments = assignments.filter(a => a.date === today)
       
-      const taskPeopleMap: Record<string, { color: string; people: string[] }> = {}
+      const taskPeopleMap: Record<string, { color: string; people: string[]; roleId: string }> = {}
       
       todaysAssignments.forEach(assignment => {
         const role = roles.find(r => r.id === assignment.roleId)
         const roleName = role?.name || 'Unknown'
         const roleColor = role?.color || 'gray'
+        const roleId = role?.id || ''
         
         if (!taskPeopleMap[roleName]) {
           taskPeopleMap[roleName] = {
             color: roleColor,
-            people: []
+            people: [],
+            roleId: roleId
           }
         }
       })
@@ -187,10 +198,17 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       const teamTasksList = Object.entries(taskPeopleMap).map(([taskName, data]) => ({
         taskName,
         taskColor: data.color,
-        people: data.people
+        people: data.people,
+        roleId: data.roleId
       }))
       
       setTeamTasks(teamTasksList)
+      
+      const users = Object.entries(usersData).map(([email, data]) => ({
+        email,
+        name: data.fullName
+      }))
+      setAllEmployees(users)
       
       const todaySick = sickLeave
         .filter(s => s.status === 'approved' && isSameDay(parseISO(s.startDate), new Date()))
@@ -265,6 +283,150 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       return
     }
     onNavigate(moduleId)
+  }
+
+  const handleQuickAssign = async () => {
+    if (!selectedTaskForAssign || !selectedEmployeeForAssign) {
+      toast.error(language === 'da' ? 'Vælg en medarbejder' : 'Select an employee')
+      return
+    }
+
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+    const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
+    
+    const selectedEmployee = allEmployees.find(e => e.email === selectedEmployeeForAssign)
+    if (!selectedEmployee) {
+      toast.error(language === 'da' ? 'Medarbejder ikke fundet' : 'Employee not found')
+      return
+    }
+
+    const employeeName = selectedEmployee.name
+    const employeeEmail = selectedEmployee.email
+
+    const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+    const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
+    
+    const isSickToday = sickLeave.some(s => 
+      s.userEmail === employeeEmail && 
+      s.status === 'approved' && 
+      isSameDay(parseISO(s.startDate), new Date())
+    )
+    
+    const isOnVacationToday = vacations.some(v => {
+      if (v.userEmail !== employeeEmail || v.status !== 'approved') return false
+      const start = parseISO(v.startDate)
+      const end = parseISO(v.endDate)
+      const now = new Date()
+      return (isSameDay(start, now) || isSameDay(end, now) || (start < now && end > now))
+    })
+
+    if (isSickToday) {
+      toast.error(language === 'da' ? `${employeeName} er syg i dag` : `${employeeName} is sick today`)
+      return
+    }
+
+    if (isOnVacationToday) {
+      toast.error(language === 'da' ? `${employeeName} har fri i dag` : `${employeeName} is off today`)
+      return
+    }
+
+    const alreadyAssigned = assignments.some(
+      a => a.date === today && a.employeeName === employeeName && a.roleId === selectedTaskForAssign.roleId
+    )
+
+    if (alreadyAssigned) {
+      toast.error(language === 'da' ? `${employeeName} har allerede denne opgave` : `${employeeName} already has this task`)
+      return
+    }
+
+    const newAssignment: ShiftAssignment = {
+      id: `assignment_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      employeeId: employeeEmail,
+      employeeName: employeeName,
+      roleId: selectedTaskForAssign.roleId,
+      date: today,
+    }
+
+    await window.spark.kv.set('shift-assignments', [...assignments, newAssignment])
+
+    toast.success(language === 'da' ? `${employeeName} tildelt ${selectedTaskForAssign.roleName}` : `${employeeName} assigned to ${selectedTaskForAssign.roleName}`)
+    
+    setShowQuickAssignDialog(false)
+    setSelectedTaskForAssign(null)
+    setSelectedEmployeeForAssign('')
+
+    const loadOverviewData = async () => {
+      const today = format(new Date(), 'yyyy-MM-dd')
+      const currentDate = new Date()
+      
+      const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+      const roles = (await window.spark.kv.get<ShiftRole[]>('shift-roles')) || []
+      const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+      const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
+      const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
+      
+      const isSickToday = (userEmail: string) => {
+        return sickLeave.some(s => 
+          s.userEmail === userEmail && 
+          s.status === 'approved' && 
+          isSameDay(parseISO(s.startDate), currentDate)
+        )
+      }
+      
+      const isOnVacationToday = (userEmail: string) => {
+        return vacations.some(v => {
+          if (v.userEmail !== userEmail || v.status !== 'approved') return false
+          const start = parseISO(v.startDate)
+          const end = parseISO(v.endDate)
+          return (isSameDay(start, currentDate) || isSameDay(end, currentDate) || (start < currentDate && end > currentDate))
+        })
+      }
+      
+      const todaysAssignments = assignments.filter(a => a.date === today)
+      
+      const taskPeopleMap: Record<string, { color: string; people: string[]; roleId: string }> = {}
+      
+      todaysAssignments.forEach(assignment => {
+        const role = roles.find(r => r.id === assignment.roleId)
+        const roleName = role?.name || 'Unknown'
+        const roleColor = role?.color || 'gray'
+        const roleId = role?.id || ''
+        
+        if (!taskPeopleMap[roleName]) {
+          taskPeopleMap[roleName] = {
+            color: roleColor,
+            people: [],
+            roleId: roleId
+          }
+        }
+      })
+      
+      todaysAssignments.forEach(assignment => {
+        const role = roles.find(r => r.id === assignment.roleId)
+        const roleName = role?.name || 'Unknown'
+        
+        const userEmail = Object.keys(usersData).find(email => usersData[email]?.fullName === assignment.employeeName)
+        
+        if (userEmail && (isSickToday(userEmail) || isOnVacationToday(userEmail))) {
+          return
+        }
+        
+        if (!taskPeopleMap[roleName].people.includes(assignment.employeeName)) {
+          taskPeopleMap[roleName].people.push(assignment.employeeName)
+        }
+      })
+      
+      const teamTasksList = Object.entries(taskPeopleMap).map(([taskName, data]) => ({
+        taskName,
+        taskColor: data.color,
+        people: data.people,
+        roleId: data.roleId
+      }))
+      
+      setTeamTasks(teamTasksList)
+    }
+    loadOverviewData()
   }
 
   type AnimationCategory = 'work' | 'social' | 'admin' | 'leisure'
@@ -730,7 +892,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                         : "bg-gradient-to-br from-card to-muted/30 border-border hover:border-primary/30 hover:shadow-md"
                     )}
                   >
-                    <div className="flex items-center justify-between gap-2 pb-2 border-b-2 border-dashed"
+                    <div className="flex items-center justify-between gap-2 pb-2 border-b-2"
                       style={{ borderColor: task.taskColor + '40' }}
                     >
                       <Badge
@@ -742,11 +904,25 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                       >
                         {task.taskName}
                       </Badge>
-                      <div 
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
-                        style={{ backgroundColor: task.taskColor }}
-                      >
-                        {task.people.length}
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
+                          style={{ backgroundColor: task.taskColor }}
+                        >
+                          {task.people.length}
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                          onClick={() => {
+                            setSelectedTaskForAssign({ roleId: task.roleId, roleName: task.taskName })
+                            setShowQuickAssignDialog(true)
+                          }}
+                          title={language === 'da' ? 'Tildel opgave' : 'Assign task'}
+                        >
+                          <UserPlus size={18} weight="duotone" />
+                        </Button>
                       </div>
                     </div>
                     {task.people.length === 0 ? (
@@ -923,6 +1099,51 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           })}
         </motion.div>
       </div>
+
+      <Dialog open={showQuickAssignDialog} onOpenChange={setShowQuickAssignDialog}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              {language === 'da' ? 'Tildel opgave' : 'Assign task'}
+              {selectedTaskForAssign && (
+                <span className="block text-sm text-muted-foreground font-normal mt-1">
+                  {selectedTaskForAssign.roleName}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="employee-select">
+                {language === 'da' ? 'Vælg medarbejder' : 'Select employee'}
+              </Label>
+              <Select value={selectedEmployeeForAssign} onValueChange={setSelectedEmployeeForAssign}>
+                <SelectTrigger id="employee-select">
+                  <SelectValue placeholder={language === 'da' ? 'Vælg medarbejder...' : 'Select employee...'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {allEmployees.map((employee) => (
+                    <SelectItem key={employee.email} value={employee.email}>
+                      {employee.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowQuickAssignDialog(false)}>
+              {language === 'da' ? 'Annuller' : 'Cancel'}
+            </Button>
+            <Button
+              onClick={handleQuickAssign}
+              className="bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] text-white"
+            >
+              {language === 'da' ? 'Tildel' : 'Assign'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
