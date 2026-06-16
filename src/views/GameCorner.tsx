@@ -155,13 +155,13 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
   const [hits, setHits] = useState(0)
   const [misses, setMisses] = useState(0)
   const [timeLeft, setTimeLeft] = useState(30)
-  const [targets, setTargets] = useState<TargetPosition[]>([])
+  const [target, setTarget] = useState<TargetPosition | null>(null)
   const [highScores, setHighScores] = useKV<FastClicksScore[]>('fast-clicks-target-scores', [])
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const nextTargetId = useRef(0)
   const spawnTimerRef = useRef<number | null>(null)
   const gameTimerRef = useRef<number | null>(null)
-  const targetTimersRef = useRef<Map<number, number>>(new Map())
+  const targetTimerRef = useRef<number | null>(null)
 
   const config = difficultyConfig[difficulty]
 
@@ -169,7 +169,7 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
     return () => {
       if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current)
       if (gameTimerRef.current) clearInterval(gameTimerRef.current)
-      targetTimersRef.current.forEach(timer => clearTimeout(timer))
+      if (targetTimerRef.current) clearTimeout(targetTimerRef.current)
     }
   }, [])
 
@@ -186,16 +186,22 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
     
     const targetId = nextTargetId.current++
     
-    setTargets(prev => [...prev, { x, y, id: targetId }])
+    console.log('🎯 Spawn target:', { id: targetId, x: Math.round(x), y: Math.round(y) })
     
-    const timer = window.setTimeout(() => {
-      setTargets(prev => prev.filter(t => t.id !== targetId))
-      targetTimersRef.current.delete(targetId)
+    setTarget({ x, y, id: targetId })
+    
+    if (targetTimerRef.current) {
+      clearTimeout(targetTimerRef.current)
+    }
+    
+    targetTimerRef.current = window.setTimeout(() => {
+      console.log('❌ Target timeout (miss):', targetId)
+      setTarget(null)
+      setMisses(prev => prev + 1)
+      setScore(prev => Math.max(0, prev + config.missPoints))
+      
+      spawnTimerRef.current = window.setTimeout(spawnTarget, config.spawnDelay)
     }, config.targetLifetime)
-    
-    targetTimersRef.current.set(targetId, timer)
-    
-    spawnTimerRef.current = window.setTimeout(spawnTarget, config.spawnDelay)
   }
 
   const startGame = (selectedDifficulty: Difficulty) => {
@@ -204,7 +210,7 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
     setHits(0)
     setMisses(0)
     setTimeLeft(difficultyConfig[selectedDifficulty].gameDuration)
-    setTargets([])
+    setTarget(null)
     setGameState('playing')
     nextTargetId.current = 0
     
@@ -223,23 +229,28 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
 
   const endGame = () => {
     setGameState('finished')
-    setTargets([])
+    setTarget(null)
     if (spawnTimerRef.current) clearTimeout(spawnTimerRef.current)
     if (gameTimerRef.current) clearInterval(gameTimerRef.current)
-    targetTimersRef.current.forEach(timer => clearTimeout(timer))
-    targetTimersRef.current.clear()
+    if (targetTimerRef.current) clearTimeout(targetTimerRef.current)
   }
 
   const handleTargetClick = (targetId: number) => {
-    setTargets(prev => prev.filter(t => t.id !== targetId))
+    console.log('✅ Target hit:', targetId)
+    setTarget(null)
     setScore(prev => prev + config.hitPoints)
     setHits(prev => prev + 1)
     
-    const timer = targetTimersRef.current.get(targetId)
-    if (timer) {
-      clearTimeout(timer)
-      targetTimersRef.current.delete(targetId)
+    if (targetTimerRef.current) {
+      clearTimeout(targetTimerRef.current)
+      targetTimerRef.current = null
     }
+    
+    if (spawnTimerRef.current) {
+      clearTimeout(spawnTimerRef.current)
+    }
+    
+    spawnTimerRef.current = window.setTimeout(spawnTarget, config.spawnDelay)
   }
 
   const handleMissClick = () => {
@@ -274,7 +285,7 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
     setHits(0)
     setMisses(0)
     setTimeLeft(30)
-    setTargets([])
+    setTarget(null)
   }
 
   const filteredHighScores = (highScores || [])
@@ -391,7 +402,7 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
                         onClick={handleMissClick}
                         className="relative w-full h-[400px] bg-gradient-to-br from-muted/50 to-muted/20 rounded-xl border-2 border-border overflow-hidden cursor-crosshair"
                       >
-                        {targets.map((target) => (
+                        {target && (
                           <motion.button
                             key={target.id}
                             initial={{ scale: 0 }}
@@ -407,12 +418,13 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
                               top: target.y - config.targetSize / 2,
                               width: config.targetSize,
                               height: config.targetSize,
+                              zIndex: 50,
                             }}
-                            className={`rounded-full bg-gradient-to-br ${config.color} hover:opacity-80 shadow-2xl cursor-pointer transition-opacity flex items-center justify-center border-4 border-white z-10`}
+                            className={`rounded-full bg-gradient-to-br ${config.color} hover:opacity-80 shadow-2xl cursor-pointer transition-opacity flex items-center justify-center border-4 border-white`}
                           >
                             <Target size={config.targetSize * 0.5} weight="bold" className="text-white" />
                           </motion.button>
-                        ))}
+                        )}
                       </div>
                     </motion.div>
                   )}
