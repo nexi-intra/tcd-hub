@@ -72,7 +72,7 @@ interface Target {
   y: number
 }
 
-type Difficulty = 'easy' | 'medium' | 'hard'
+type Difficulty = 'easy' | 'medium' | 'hard' | 'expert'
 
 interface DifficultySettings {
   timeLimit: number
@@ -86,31 +86,40 @@ interface DifficultySettings {
 
 const DIFFICULTY_SETTINGS: Record<Difficulty, DifficultySettings> = {
   easy: {
-    timeLimit: 45,
-    targetLifetime: 2000,
+    timeLimit: 30,
+    targetLifetime: 1500,
     pointsPerTarget: 10,
     penaltyPoints: 5,
     label: { da: 'Let', en: 'Easy' },
-    description: { da: '45 sekunder, langsomme mål', en: '45 seconds, slow targets' },
+    description: { da: '30 sek, korte mål', en: '30 sec, short targets' },
     color: 'oklch(0.65 0.15 140)',
   },
   medium: {
-    timeLimit: 30,
-    targetLifetime: 1500,
+    timeLimit: 25,
+    targetLifetime: 1100,
     pointsPerTarget: 15,
     penaltyPoints: 10,
     label: { da: 'Medium', en: 'Medium' },
-    description: { da: '30 sekunder, normale mål', en: '30 seconds, normal targets' },
+    description: { da: '25 sek, hurtige mål', en: '25 sec, fast targets' },
     color: 'oklch(0.70 0.18 90)',
   },
   hard: {
     timeLimit: 20,
-    targetLifetime: 1000,
+    targetLifetime: 800,
     pointsPerTarget: 25,
     penaltyPoints: 15,
     label: { da: 'Svær', en: 'Hard' },
-    description: { da: '20 sekunder, hurtige mål', en: '20 seconds, fast targets' },
+    description: { da: '20 sek, meget hurtige mål', en: '20 sec, very fast targets' },
     color: 'oklch(0.65 0.26 340)',
+  },
+  expert: {
+    timeLimit: 15,
+    targetLifetime: 550,
+    pointsPerTarget: 40,
+    penaltyPoints: 20,
+    label: { da: 'Ekspert', en: 'Expert' },
+    description: { da: '15 sek, ekstremt hurtige mål', en: '15 sec, extremely fast targets' },
+    color: 'oklch(0.60 0.30 280)',
   },
 }
 
@@ -316,7 +325,7 @@ const formatProgressText = (achievement: Achievement, stats: PlayerStats, langua
 export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const { t, language } = useLanguage()
   const [activeGame, setActiveGame] = useState<'clicker' | 'runner'>('clicker')
-  const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameover'>('menu')
+  const [gameState, setGameState] = useState<'menu' | 'countdown' | 'playing' | 'gameover'>('menu')
   const [playerName, setPlayerName] = useState('')
   const [currentScore, setCurrentScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(30)
@@ -327,10 +336,13 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const [highScores, setHighScores] = useKV<HighScore[]>('game-corner-highscores', [])
   const [playerAchievements, setPlayerAchievements] = useKV<PlayerAchievements>('game-corner-achievements', {})
   const [newlyUnlockedAchievements, setNewlyUnlockedAchievements] = useState<Achievement[]>([])
+  const [countdown, setCountdown] = useState(3)
+  const [clickAnimation, setClickAnimation] = useState<{ x: number; y: number; id: string } | null>(null)
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<number | null>(null)
   const targetSpawnRef = useRef<number | null>(null)
   const isPlayingRef = useRef(false)
+  const audioContextRef = useRef<AudioContext | null>(null)
   
   const [usersData] = useKV<Record<string, { fullName: string }>>('users', {})
   const [userAvatarUrl, setUserAvatarUrl] = useState<string>('')
@@ -358,6 +370,59 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
       }
     }
   }, [usersData, userEmail])
+
+  const initAudio = () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+    }
+  }
+
+  const playSound = (frequency: number, duration: number, volume: number = 0.3) => {
+    initAudio()
+    const ctx = audioContextRef.current
+    if (!ctx) return
+
+    const oscillator = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(ctx.destination)
+
+    oscillator.frequency.value = frequency
+    oscillator.type = 'sine'
+
+    gainNode.gain.setValueAtTime(volume, ctx.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration)
+
+    oscillator.start(ctx.currentTime)
+    oscillator.stop(ctx.currentTime + duration)
+  }
+
+  const playHitSound = (combo: number) => {
+    const baseFreq = 440 + (combo * 50)
+    playSound(baseFreq, 0.1, 0.2)
+    setTimeout(() => playSound(baseFreq * 1.5, 0.05, 0.15), 50)
+  }
+
+  const playMissSound = () => {
+    playSound(200, 0.15, 0.15)
+    setTimeout(() => playSound(150, 0.1, 0.1), 80)
+  }
+
+  const playCountdownSound = () => {
+    playSound(600, 0.1, 0.2)
+  }
+
+  const playStartSound = () => {
+    playSound(800, 0.15, 0.25)
+    setTimeout(() => playSound(1000, 0.1, 0.2), 100)
+  }
+
+  const playGameOverSound = () => {
+    playSound(400, 0.2, 0.2)
+    setTimeout(() => playSound(350, 0.2, 0.15), 150)
+    setTimeout(() => playSound(300, 0.3, 0.1), 300)
+  }
 
   const spawnTarget = () => {
     if (!isPlayingRef.current || !gameAreaRef.current) return
@@ -395,38 +460,66 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   }
 
   const startGame = () => {
-    const settings = DIFFICULTY_SETTINGS[difficulty]
-    
-    isPlayingRef.current = true
-    setGameState('playing')
+    setGameState('countdown')
+    setCountdown(3)
     setCurrentScore(0)
     setCombo(0)
     setHighestCombo(0)
-    setTimeLeft(settings.timeLimit)
     setTargets([])
     
-    timerRef.current = window.setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          endGame()
-          return 0
-        }
-        return prev - 1
-      })
+    let count = 3
+    const countdownInterval = setInterval(() => {
+      playCountdownSound()
+      count--
+      setCountdown(count)
+      
+      if (count === 0) {
+        clearInterval(countdownInterval)
+        playStartSound()
+        
+        setTimeout(() => {
+          const settings = DIFFICULTY_SETTINGS[difficulty]
+          isPlayingRef.current = true
+          setGameState('playing')
+          setTimeLeft(settings.timeLimit)
+          
+          timerRef.current = window.setInterval(() => {
+            setTimeLeft(prev => {
+              if (prev <= 1) {
+                endGame()
+                return 0
+              }
+              return prev - 1
+            })
+          }, 1000)
+          
+          setTimeout(() => spawnTarget(), 200)
+        }, 500)
+      }
     }, 1000)
-    
-    setTimeout(() => spawnTarget(), 500)
   }
 
   const hitTarget = (targetId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     const settings = DIFFICULTY_SETTINGS[difficulty]
     
+    const rect = gameAreaRef.current?.getBoundingClientRect()
+    if (rect) {
+      setClickAnimation({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        id: Date.now().toString()
+      })
+      setTimeout(() => setClickAnimation(null), 500)
+    }
+    
     setTargets(prev => prev.filter(t => t.id !== targetId))
     
     setCombo(prevCombo => {
       const newCombo = prevCombo + 1
       setHighestCombo(prev => Math.max(prev, newCombo))
+      
+      playHitSound(newCombo)
       
       const multiplier = getComboMultiplier(newCombo)
       const pointsEarned = Math.round(settings.pointsPerTarget * multiplier)
@@ -446,9 +539,21 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     }, 100)
   }
 
-  const handleGameAreaClick = () => {
+  const handleGameAreaClick = (e: React.MouseEvent) => {
     if (targets.length > 0) {
       const settings = DIFFICULTY_SETTINGS[difficulty]
+      playMissSound()
+      
+      const rect = gameAreaRef.current?.getBoundingClientRect()
+      if (rect) {
+        setClickAnimation({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+          id: Date.now().toString()
+        })
+        setTimeout(() => setClickAnimation(null), 500)
+      }
+      
       setCurrentScore(score => Math.max(0, score - settings.penaltyPoints))
       setCombo(0)
     }
@@ -533,6 +638,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
       clearTimeout(targetSpawnRef.current)
     }
     
+    playGameOverSound()
     setTargets([])
     
     setCurrentScore(finalScore => {
@@ -979,8 +1085,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                       <label className="text-sm font-medium mb-3 block">
                         {language === 'da' ? 'Vælg sværhedsgrad' : 'Select difficulty'}
                       </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {(['easy', 'medium', 'hard'] as Difficulty[]).map((level) => {
+                      <div className="grid grid-cols-2 gap-2">
+                        {(['easy', 'medium', 'hard', 'expert'] as Difficulty[]).map((level) => {
                           const settings = DIFFICULTY_SETTINGS[level]
                           return (
                             <motion.button
@@ -1054,9 +1160,48 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                 </motion.div>
               )}
 
+              {gameState === 'countdown' && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center justify-center min-h-[500px]"
+                >
+                  <motion.div
+                    key={countdown}
+                    initial={{ scale: 0, rotate: -180, opacity: 0 }}
+                    animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                    exit={{ scale: 0, rotate: 180, opacity: 0 }}
+                    transition={{ type: 'spring', duration: 0.5 }}
+                    className="text-center"
+                  >
+                    {countdown > 0 ? (
+                      <div 
+                        className="text-[200px] font-bold leading-none"
+                        style={{ 
+                          color: DIFFICULTY_SETTINGS[difficulty].color,
+                          textShadow: `0 0 60px ${DIFFICULTY_SETTINGS[difficulty].color}, 0 0 120px ${DIFFICULTY_SETTINGS[difficulty].color}`
+                        }}
+                      >
+                        {countdown}
+                      </div>
+                    ) : (
+                      <div 
+                        className="text-[100px] font-bold leading-none"
+                        style={{ 
+                          color: DIFFICULTY_SETTINGS[difficulty].color,
+                          textShadow: `0 0 60px ${DIFFICULTY_SETTINGS[difficulty].color}`
+                        }}
+                      >
+                        {language === 'da' ? 'START!' : 'GO!'}
+                      </div>
+                    )}
+                  </motion.div>
+                </motion.div>
+              )}
+
               {gameState === 'playing' && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-6">
                       <div>
                         <div className="text-sm text-muted-foreground">
@@ -1112,37 +1257,77 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                     </Badge>
                   </div>
 
+                  <div className="w-full">
+                    <Progress 
+                      value={(timeLeft / DIFFICULTY_SETTINGS[difficulty].timeLimit) * 100} 
+                      className="h-2"
+                      style={{
+                        backgroundColor: 'var(--muted)'
+                      }}
+                    />
+                  </div>
+
                   <div
                     ref={gameAreaRef}
                     onClick={handleGameAreaClick}
-                    className="relative w-full h-[500px] bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border-2 border-dashed border-border overflow-hidden"
-                    style={{ cursor: 'crosshair' }}
+                    className="relative w-full h-[500px] rounded-lg border-2 overflow-hidden"
+                    style={{ 
+                      cursor: 'crosshair',
+                      background: `
+                        radial-gradient(circle at 20% 50%, ${DIFFICULTY_SETTINGS[difficulty].color}15 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, oklch(0.65 0.26 340 / 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 20%, oklch(0.70 0.18 90 / 0.1) 0%, transparent 40%),
+                        linear-gradient(135deg, oklch(0.96 0.01 250) 0%, oklch(0.94 0.02 240) 100%)
+                      `,
+                      borderColor: DIFFICULTY_SETTINGS[difficulty].color,
+                      boxShadow: `0 0 30px ${DIFFICULTY_SETTINGS[difficulty].color}20`
+                    }}
                   >
                     <AnimatePresence>
                       {targets.map((target) => (
                         <motion.button
                           key={target.id}
-                          initial={{ scale: 0, rotate: -180 }}
-                          animate={{ scale: 1, rotate: 0 }}
-                          exit={{ scale: 0, rotate: 180 }}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
+                          initial={{ scale: 0, rotate: -180, opacity: 0 }}
+                          animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                          exit={{ scale: 0, rotate: 180, opacity: 0 }}
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
                           onClick={(e) => hitTarget(target.id, e)}
-                          className="absolute w-16 h-16 rounded-full shadow-lg flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 hover:shadow-xl transition-shadow"
+                          className="absolute w-16 h-16 rounded-full flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2 transition-all"
                           style={{
                             left: `${target.x}px`,
                             top: `${target.y}px`,
                             background: `linear-gradient(135deg, ${DIFFICULTY_SETTINGS[difficulty].color}, oklch(0.65 0.26 340))`,
+                            boxShadow: `
+                              0 0 20px ${DIFFICULTY_SETTINGS[difficulty].color}80,
+                              0 0 40px ${DIFFICULTY_SETTINGS[difficulty].color}40,
+                              0 4px 15px rgba(0,0,0,0.3)
+                            `,
                           }}
                         >
-                          <Target size={32} weight="fill" className="text-white" />
+                          <Crosshair size={32} weight="bold" className="text-white" />
                         </motion.button>
                       ))}
+                      
+                      {clickAnimation && (
+                        <motion.div
+                          key={clickAnimation.id}
+                          initial={{ scale: 0.5, opacity: 1 }}
+                          animate={{ scale: 2, opacity: 0 }}
+                          transition={{ duration: 0.5 }}
+                          className="absolute w-16 h-16 rounded-full border-4 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                          style={{
+                            left: `${clickAnimation.x}px`,
+                            top: `${clickAnimation.y}px`,
+                            borderColor: targets.length > 0 ? DIFFICULTY_SETTINGS[difficulty].color : 'oklch(0.55 0.15 25)',
+                          }}
+                        />
+                      )}
                     </AnimatePresence>
 
                     {targets.length === 0 && (
-                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                        {language === 'da' ? 'Vent på næste mål...' : 'Waiting for next target...'}
+                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground font-medium">
+                        {language === 'da' ? 'Næste mål...' : 'Next target...'}
                       </div>
                     )}
                   </div>
@@ -1245,8 +1430,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
               </div>
 
               <Tabs defaultValue="easy" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4">
-                  {(['easy', 'medium', 'hard'] as Difficulty[]).map((level) => (
+                <TabsList className="grid w-full grid-cols-4 mb-4">
+                  {(['easy', 'medium', 'hard', 'expert'] as Difficulty[]).map((level) => (
                     <TabsTrigger 
                       key={level} 
                       value={level}
@@ -1257,7 +1442,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                   ))}
                 </TabsList>
 
-                {(['easy', 'medium', 'hard'] as Difficulty[]).map((level) => {
+                {(['easy', 'medium', 'hard', 'expert'] as Difficulty[]).map((level) => {
                   const levelScores = getScoresByDifficulty(level)
                   const settings = DIFFICULTY_SETTINGS[level]
 
