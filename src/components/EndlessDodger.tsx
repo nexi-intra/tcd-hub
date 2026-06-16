@@ -1,40 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
-import { RocketLaunch, Trophy, X, Timer, Lightning, Speedometer, Fire, Flame, Crown, Shield, Gauge, Clock, Star } from '@phosphor-icons/react'
+import { RocketLaunch, Trophy, X, Lightning, Speedometer, Fire, Flame, Crown } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@github/spark/hooks'
 import { useLanguage } from '@/contexts/LanguageContext'
-
-interface Position {
-  x: number
-  y: number
-}
 
 interface FallingObject {
   id: number
   x: number
   y: number
   speed: number
-}
-
-interface PowerUp {
-  id: number
-  x: number
-  y: number
-  speed: number
-  type: 'shield' | 'speed' | 'slowMotion' | 'scoreMultiplier'
-}
-
-interface ActivePowerUp {
-  type: 'shield' | 'speed' | 'slowMotion' | 'scoreMultiplier'
-  expiresAt: number
-}
-
-interface PowerUpExpiring {
-  id: number
-  type: 'shield' | 'speed' | 'slowMotion' | 'scoreMultiplier'
-  x: number
-  y: number
 }
 
 interface LeaderboardEntry {
@@ -102,13 +77,6 @@ const DIFFICULTY_SETTINGS = {
 
 const PLAYER_SIZE = 50
 const OBJECT_SIZE = 40
-const POWERUP_SIZE = 35
-const SHIELD_DURATION = 8000
-const SPEED_DURATION = 6000
-const SLOW_MOTION_DURATION = 7000
-const SCORE_MULTIPLIER_DURATION = 10000
-const POWERUP_SPAWN_CHANCE = 0.05
-const EXPIRATION_WARNING_TIME = 2000
 
 interface User {
   email: string
@@ -128,9 +96,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   const [score, setScore] = useState(0)
   const [playerX, setPlayerX] = useState(0)
   const [objects, setObjects] = useState<FallingObject[]>([])
-  const [powerUps, setPowerUps] = useState<PowerUp[]>([])
-  const [activePowerUps, setActivePowerUps] = useState<ActivePowerUp[]>([])
-  const [expiringNotifications, setExpiringNotifications] = useState<PowerUpExpiring[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('endless-dodger-global-leaderboard', {
     easy: [],
@@ -239,143 +204,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     }
 
     setObjects(prev => [...prev, newObject])
-
-    if (Math.random() < POWERUP_SPAWN_CHANCE) {
-      spawnPowerUp()
-    }
-  }
-
-  const spawnPowerUp = () => {
-    if (!gameAreaRef.current) return
-
-    const rect = gameAreaRef.current.getBoundingClientRect()
-    const x = Math.random() * (rect.width - POWERUP_SIZE)
-    const random = Math.random()
-    
-    let type: 'shield' | 'speed' | 'slowMotion' | 'scoreMultiplier'
-    if (random < 0.25) {
-      type = 'shield'
-    } else if (random < 0.5) {
-      type = 'speed'
-    } else if (random < 0.75) {
-      type = 'slowMotion'
-    } else {
-      type = 'scoreMultiplier'
-    }
-
-    const newPowerUp: PowerUp = {
-      id: Date.now() + Math.random(),
-      x,
-      y: -POWERUP_SIZE,
-      speed: 2,
-      type
-    }
-
-    setPowerUps(prev => [...prev, newPowerUp])
-  }
-
-  const hasActiveShield = () => {
-    return activePowerUps.some(p => p.type === 'shield' && p.expiresAt > Date.now())
-  }
-
-  const hasActiveSpeed = () => {
-    return activePowerUps.some(p => p.type === 'speed' && p.expiresAt > Date.now())
-  }
-
-  const hasActiveSlowMotion = () => {
-    return activePowerUps.some(p => p.type === 'slowMotion' && p.expiresAt > Date.now())
-  }
-
-  const hasActiveScoreMultiplier = () => {
-    return activePowerUps.some(p => p.type === 'scoreMultiplier' && p.expiresAt > Date.now())
-  }
-
-  const getScoreMultiplier = () => {
-    return hasActiveScoreMultiplier() ? 2 : 1
-  }
-
-  const collectPowerUp = (powerUp: PowerUp) => {
-    let duration: number
-    switch (powerUp.type) {
-      case 'shield':
-        duration = SHIELD_DURATION
-        break
-      case 'speed':
-        duration = SPEED_DURATION
-        break
-      case 'slowMotion':
-        duration = SLOW_MOTION_DURATION
-        break
-      case 'scoreMultiplier':
-        duration = SCORE_MULTIPLIER_DURATION
-        break
-    }
-
-    const newPowerUp: ActivePowerUp = {
-      type: powerUp.type,
-      expiresAt: Date.now() + duration
-    }
-
-    setActivePowerUps(prev => {
-      const filtered = prev.filter(p => p.type !== powerUp.type || p.expiresAt > Date.now())
-      return [...filtered, newPowerUp]
-    })
-
-    setPowerUps(prev => prev.filter(p => p.id !== powerUp.id))
-  }
-
-  useEffect(() => {
-    if (gameState !== 'playing') return
-
-    const checkExpiring = setInterval(() => {
-      const now = Date.now()
-      activePowerUps.forEach(powerUp => {
-        const timeLeft = powerUp.expiresAt - now
-        if (timeLeft > 0 && timeLeft <= EXPIRATION_WARNING_TIME) {
-          const alreadyNotified = expiringNotifications.some(
-            n => n.type === powerUp.type && n.id === powerUp.expiresAt
-          )
-          if (!alreadyNotified && gameAreaRef.current) {
-            const rect = gameAreaRef.current.getBoundingClientRect()
-            setExpiringNotifications(prev => [...prev, {
-              id: powerUp.expiresAt,
-              type: powerUp.type,
-              x: rect.width / 2 - 50,
-              y: 100
-            }])
-            setTimeout(() => {
-              setExpiringNotifications(prev => 
-                prev.filter(n => n.id !== powerUp.expiresAt)
-              )
-            }, 1500)
-          }
-        }
-      })
-    }, 100)
-
-    return () => clearInterval(checkExpiring)
-  }, [gameState, activePowerUps, expiringNotifications])
-
-  const checkPowerUpCollision = (powerUpX: number, powerUpY: number): boolean => {
-    if (!gameAreaRef.current) return false
-
-    const rect = gameAreaRef.current.getBoundingClientRect()
-    const playerY = rect.height - PLAYER_SIZE - 20
-
-    const playerLeft = playerX
-    const playerRight = playerX + PLAYER_SIZE
-    const playerTop = playerY
-    const playerBottom = playerY + PLAYER_SIZE
-
-    const powerUpLeft = powerUpX
-    const powerUpRight = powerUpX + POWERUP_SIZE
-    const powerUpTop = powerUpY
-    const powerUpBottom = powerUpY + POWERUP_SIZE
-
-    const xOverlap = playerRight >= powerUpLeft && playerLeft <= powerUpRight
-    const yOverlap = playerBottom >= powerUpTop && playerTop <= powerUpBottom
-
-    return xOverlap && yOverlap
   }
 
   const checkCollision = (objX: number, objY: number): boolean => {
@@ -411,8 +239,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   const startGame = () => {
     setScore(0)
     setObjects([])
-    setPowerUps([])
-    setActivePowerUps([])
     setGameState('playing')
   }
 
@@ -437,8 +263,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     setGameState('menu')
     setScore(0)
     setObjects([])
-    setPowerUps([])
-    setActivePowerUps([])
     
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current)
@@ -489,49 +313,25 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
         const rect = gameAreaRef.current.getBoundingClientRect()
 
-        setActivePowerUps(prev => prev.filter(p => p.expiresAt > Date.now()))
-
-        const slowMotionFactor = hasActiveSlowMotion() ? 0.5 : 1
-
-        setPowerUps(prev => {
-          const updated = prev.map(powerUp => ({
-            ...powerUp,
-            y: powerUp.y + (powerUp.speed * slowMotionFactor)
-          })).filter(powerUp => powerUp.y < rect.height)
-
-          for (const powerUp of updated) {
-            if (checkPowerUpCollision(powerUp.x, powerUp.y)) {
-              collectPowerUp(powerUp)
-            }
-          }
-
-          return updated
-        })
-
         setObjects(prev => {
           const updated = prev.map(obj => ({
             ...obj,
-            y: obj.y + (obj.speed * slowMotionFactor)
+            y: obj.y + obj.speed
           })).filter(obj => obj.y < rect.height)
 
           for (const obj of updated) {
             if (checkCollision(obj.x, obj.y)) {
-              if (!hasActiveShield()) {
-                endGame()
-                return prev
-              } else {
-                return prev.filter(o => o.id !== obj.id)
-              }
+              endGame()
+              return prev
             }
           }
 
           return updated
         })
 
-        const scoreIncrement = 1 * getScoreMultiplier()
-        setScore(prev => prev + scoreIncrement)
+        setScore(prev => prev + 1)
 
-        const moveSpeed = hasActiveSpeed() ? 12 : 8
+        const moveSpeed = 8
         if (keysPressed.current.has('ArrowLeft') || keysPressed.current.has('a')) {
           setPlayerX(prev => Math.max(0, prev - moveSpeed))
         }
@@ -706,11 +506,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   }
 
   if (gameState === 'playing') {
-    const shieldPowerUp = activePowerUps.find(p => p.type === 'shield' && p.expiresAt > Date.now())
-    const speedPowerUp = activePowerUps.find(p => p.type === 'speed' && p.expiresAt > Date.now())
-    const slowMotionPowerUp = activePowerUps.find(p => p.type === 'slowMotion' && p.expiresAt > Date.now())
-    const scoreMultiplierPowerUp = activePowerUps.find(p => p.type === 'scoreMultiplier' && p.expiresAt > Date.now())
-
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 rounded-xl border-2 border-primary/20">
@@ -721,7 +516,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
               </div>
               <div className="text-2xl font-bold text-primary">
                 {Math.floor(score / 10)}
-                {hasActiveScoreMultiplier() && <span className="text-sm ml-1 text-yellow-500">×2</span>}
               </div>
             </div>
             
@@ -733,42 +527,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
                 {getCurrentHighScore()}
               </div>
             </div>
-
-            {shieldPowerUp && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 backdrop-blur rounded-lg border border-blue-500/50 shadow-lg animate-pulse">
-                <Shield size={24} weight="fill" className="text-blue-500" />
-                <div className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                  {Math.ceil((shieldPowerUp.expiresAt - Date.now()) / 1000)}s
-                </div>
-              </div>
-            )}
-
-            {speedPowerUp && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 backdrop-blur rounded-lg border border-orange-500/50 shadow-lg animate-pulse">
-                <Gauge size={24} weight="fill" className="text-orange-500" />
-                <div className="text-xs font-bold text-orange-600 dark:text-orange-400">
-                  {Math.ceil((speedPowerUp.expiresAt - Date.now()) / 1000)}s
-                </div>
-              </div>
-            )}
-
-            {slowMotionPowerUp && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 backdrop-blur rounded-lg border border-purple-500/50 shadow-lg animate-pulse">
-                <Clock size={24} weight="fill" className="text-purple-500" />
-                <div className="text-xs font-bold text-purple-600 dark:text-purple-400">
-                  {Math.ceil((slowMotionPowerUp.expiresAt - Date.now()) / 1000)}s
-                </div>
-              </div>
-            )}
-
-            {scoreMultiplierPowerUp && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 backdrop-blur rounded-lg border border-yellow-500/50 shadow-lg animate-pulse">
-                <Star size={24} weight="fill" className="text-yellow-500" />
-                <div className="text-xs font-bold text-yellow-600 dark:text-yellow-400">
-                  {Math.ceil((scoreMultiplierPowerUp.expiresAt - Date.now()) / 1000)}s
-                </div>
-              </div>
-            )}
           </div>
 
           <Button
@@ -787,11 +545,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           className="relative h-[600px] bg-gradient-to-b from-background to-muted/30 rounded-xl border-2 border-primary/20 overflow-hidden shadow-2xl"
         >
           <div
-            className={`absolute rounded-full shadow-2xl transition-all duration-100 ${
-              hasActiveShield() 
-                ? 'bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500 ring-4 ring-blue-400/50 animate-pulse' 
-                : 'bg-gradient-to-r from-primary via-accent to-primary'
-            }`}
+            className="absolute rounded-full shadow-2xl transition-all duration-100 bg-gradient-to-r from-primary via-accent to-primary"
             style={{
               left: `${playerX}px`,
               top: `${getPlayerY()}px`,
@@ -820,98 +574,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
               </div>
             </div>
           ))}
-
-          {powerUps.map(powerUp => {
-            let bgColor = ''
-            let borderColor = ''
-            let Icon = Shield
-            
-            switch (powerUp.type) {
-              case 'shield':
-                bgColor = 'bg-gradient-to-br from-blue-500 to-blue-400'
-                borderColor = 'border-blue-300'
-                Icon = Shield
-                break
-              case 'speed':
-                bgColor = 'bg-gradient-to-br from-orange-500 to-orange-400'
-                borderColor = 'border-orange-300'
-                Icon = Gauge
-                break
-              case 'slowMotion':
-                bgColor = 'bg-gradient-to-br from-purple-500 to-purple-400'
-                borderColor = 'border-purple-300'
-                Icon = Clock
-                break
-              case 'scoreMultiplier':
-                bgColor = 'bg-gradient-to-br from-yellow-500 to-yellow-400'
-                borderColor = 'border-yellow-300'
-                Icon = Star
-                break
-            }
-
-            return (
-              <div
-                key={powerUp.id}
-                className={`absolute rounded-full shadow-2xl transition-all duration-100 animate-pulse ${bgColor} border-2 ${borderColor}`}
-                style={{
-                  left: `${powerUp.x}px`,
-                  top: `${powerUp.y}px`,
-                  width: `${POWERUP_SIZE}px`,
-                  height: `${POWERUP_SIZE}px`,
-                }}
-              >
-                <div className="w-full h-full flex items-center justify-center">
-                  <Icon size={20} weight="fill" className="text-white" />
-                </div>
-              </div>
-            )
-          })}
-
-          {expiringNotifications.map(notification => {
-            let text = ''
-            let Icon = Shield
-            let color = 'text-blue-500'
-            
-            switch (notification.type) {
-              case 'shield':
-                text = language === 'da' ? 'Skjold udløber!' : 'Shield expiring!'
-                Icon = Shield
-                color = 'text-blue-500'
-                break
-              case 'speed':
-                text = language === 'da' ? 'Hastighed udløber!' : 'Speed expiring!'
-                Icon = Gauge
-                color = 'text-orange-500'
-                break
-              case 'slowMotion':
-                text = language === 'da' ? 'Slow-motion udløber!' : 'Slow-motion expiring!'
-                Icon = Clock
-                color = 'text-purple-500'
-                break
-              case 'scoreMultiplier':
-                text = language === 'da' ? 'Multiplikator udløber!' : 'Multiplier expiring!'
-                Icon = Star
-                color = 'text-yellow-500'
-                break
-            }
-
-            return (
-              <div
-                key={notification.id}
-                className="absolute bg-card/95 backdrop-blur border-2 border-destructive/50 rounded-xl p-4 shadow-2xl animate-pulse"
-                style={{
-                  left: `${notification.x}px`,
-                  top: `${notification.y}px`,
-                  zIndex: 1000
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <Icon size={24} weight="fill" className={color} />
-                  <span className="font-bold text-sm">{text}</span>
-                </div>
-              </div>
-            )
-          })}
 
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-xs text-muted-foreground bg-card/80 backdrop-blur px-4 py-2 rounded-full border">
             {language === 'da' ? '← → eller A D for at flytte' : '← → or A D to move'}
