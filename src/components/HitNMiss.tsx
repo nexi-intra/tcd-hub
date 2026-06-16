@@ -241,7 +241,7 @@ export function HitNMiss() {
             </div>
             <div>
               <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                {language === 'da' ? 'Træf N Fejl' : 'Hit N Miss'}
+                Hit N Miss
               </h2>
               <p className="text-sm text-muted-foreground">
                 {language === 'da' 
