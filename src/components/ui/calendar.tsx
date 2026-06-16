@@ -31,14 +31,14 @@ function Calendar({
         month_caption: "flex justify-center pt-1 relative items-center",
         caption_start: "flex justify-center pt-1 relative items-center",
         caption_end: "flex justify-center pt-1 relative items-center",
-        table: "w-full border-collapse",
+        table: "w-full border-collapse border-spacing-0",
         head_row: "flex w-full gap-1 mb-2",
         head_cell:
           "text-muted-foreground rounded-md w-10 h-10 font-semibold text-sm flex items-center justify-center shrink-0",
         row: "flex w-full gap-1 mt-1",
         week: "flex w-full gap-1 mt-1",
         cell: cn(
-          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 w-10 h-10 shrink-0",
+          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 w-10 h-10 shrink-0 flex items-center justify-center",
           props.mode === "range"
             ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
             : "[&:has([aria-selected])]:rounded-md"
