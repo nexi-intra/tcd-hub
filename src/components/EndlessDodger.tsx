@@ -411,19 +411,21 @@ export function EndlessDodger({ userEmail }: { userEmail?: string }) {
     
     setGameState('countdown')
     
-    let currentCount = COUNTDOWN_DURATION
-    
     countdownIntervalRef.current = setInterval(() => {
-      currentCount -= 1
-      setCountdown(currentCount)
-      
-      if (currentCount <= 0) {
-        if (countdownIntervalRef.current) {
-          clearInterval(countdownIntervalRef.current)
-          countdownIntervalRef.current = undefined
+      setCountdown((prev) => {
+        const newCount = prev - 1
+        
+        if (newCount <= 0) {
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current)
+            countdownIntervalRef.current = undefined
+          }
+          setGameState('playing')
+          return 0
         }
-        setGameState('playing')
-      }
+        
+        return newCount
+      })
     }, 1000)
   }
 
