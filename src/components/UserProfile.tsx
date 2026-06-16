@@ -58,56 +58,85 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
   }
 
   const handleSaveSettings = async () => {
-    const usersData = (await window.spark.kv.get<Record<string, UserData>>('users')) || {}
-    const userData = usersData[userEmail]
+    try {
+      console.log('handleSaveSettings called')
+      console.log('userEmail:', userEmail)
+      
+      const usersData = (await window.spark.kv.get<Record<string, UserData>>('users')) || {}
+      console.log('usersData loaded:', Object.keys(usersData))
+      
+      const userData = usersData[userEmail]
+      console.log('userData found:', !!userData)
 
-    if (!userData) {
-      toast.error('Bruger ikke fundet')
-      return
+      if (!userData) {
+        console.error('User not found in database')
+        toast.error('Bruger ikke fundet')
+        return
+      }
+
+      if (newPassword) {
+        console.log('Password change requested')
+        
+        if (!currentPassword) {
+          console.log('Validation failed: no current password')
+          toast.error('Indtast nuværende adgangskode')
+          return
+        }
+
+        console.log('Current password from DB:', userData.password)
+        console.log('Current password entered:', currentPassword)
+
+        if (userData.password !== currentPassword) {
+          console.log('Validation failed: current password incorrect')
+          toast.error('Nuværende adgangskode er forkert')
+          return
+        }
+
+        if (newPassword.length < 6) {
+          console.log('Validation failed: password too short')
+          toast.error('Adgangskode skal være mindst 6 tegn')
+          return
+        }
+
+        if (newPassword !== confirmPassword) {
+          console.log('Validation failed: passwords do not match')
+          toast.error('Adgangskoderne stemmer ikke overens')
+          return
+        }
+
+        console.log('All validations passed, updating password')
+
+        usersData[userEmail] = {
+          ...userData,
+          password: newPassword,
+          phone: phoneNumber || userData.phone,
+        }
+
+        await window.spark.kv.set('users', usersData)
+        console.log('Password updated successfully in database')
+        toast.success('Adgangskode opdateret succesfuldt')
+      } else if (phoneNumber !== userData.phone) {
+        console.log('Phone number change requested')
+        
+        usersData[userEmail] = {
+          ...userData,
+          phone: phoneNumber,
+        }
+
+        await window.spark.kv.set('users', usersData)
+        console.log('Phone number updated successfully')
+        toast.success('Indstillinger opdateret')
+      } else {
+        console.log('No changes detected')
+        toast.info('Ingen ændringer foretaget')
+      }
+
+      console.log('Closing modal')
+      setSettingsOpen(false)
+    } catch (error) {
+      console.error('Error in handleSaveSettings:', error)
+      toast.error('Der opstod en fejl. Prøv venligst igen.')
     }
-
-    if (newPassword) {
-      if (!currentPassword) {
-        toast.error('Indtast nuværende adgangskode')
-        return
-      }
-
-      if (userData.password !== currentPassword) {
-        toast.error('Nuværende adgangskode er forkert')
-        return
-      }
-
-      if (newPassword.length < 6) {
-        toast.error('Adgangskode skal være mindst 6 tegn')
-        return
-      }
-
-      if (newPassword !== confirmPassword) {
-        toast.error('Adgangskoderne stemmer ikke overens')
-        return
-      }
-
-      usersData[userEmail] = {
-        ...userData,
-        password: newPassword,
-        phone: phoneNumber || userData.phone,
-      }
-
-      await window.spark.kv.set('users', usersData)
-      toast.success('Adgangskode opdateret succesfuldt')
-    } else if (phoneNumber !== userData.phone) {
-      usersData[userEmail] = {
-        ...userData,
-        phone: phoneNumber,
-      }
-
-      await window.spark.kv.set('users', usersData)
-      toast.success('Indstillinger opdateret')
-    } else {
-      toast.info('Ingen ændringer foretaget')
-    }
-
-    setSettingsOpen(false)
   }
 
   return (
