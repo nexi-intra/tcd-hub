@@ -416,14 +416,17 @@ export function EndlessDodger({ userEmail }: { userEmail?: string }) {
         if (prev <= 1) {
           if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current)
-            countdownIntervalRef.current = undefined
           }
-          setGameState('playing')
+          startPlaying()
           return 0
         }
         return prev - 1
       })
     }, 1000)
+  }
+
+  const startPlaying = () => {
+    setGameState('playing')
   }
 
   const handleRestart = () => {
