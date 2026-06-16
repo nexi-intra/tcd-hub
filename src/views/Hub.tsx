@@ -75,6 +75,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [showSickLeaveDialog, setShowSickLeaveDialog] = useState(false)
   const [showEmailNotifications, setShowEmailNotifications] = useState(false)
   const [unreadInboxCount, setUnreadInboxCount] = useState(0)
+  const [pendingVacationRequests, setPendingVacationRequests] = useState(0)
   
   const [myTasks, setMyTasks] = useState<Array<{ roleName: string; roleColor: string }>>([])
   const [peopleOff, setPeopleOff] = useState<Array<{ name: string; type: 'vacation' | 'single' }>>([])
@@ -100,6 +101,28 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     const interval = setInterval(loadUnreadCount, 5000)
     return () => clearInterval(interval)
   }, [userEmail])
+
+  useEffect(() => {
+    const loadPendingVacationRequests = async () => {
+      if (!isAdminOrManager) {
+        setPendingVacationRequests(0)
+        return
+      }
+      
+      const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
+      const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+      
+      const pendingVacations = vacations.filter(v => v.status === 'pending').length
+      const pendingSickLeave = sickLeave.filter(s => s.status === 'pending').length
+      
+      setPendingVacationRequests(pendingVacations + pendingSickLeave)
+    }
+    
+    loadPendingVacationRequests()
+    
+    const interval = setInterval(loadPendingVacationRequests, 5000)
+    return () => clearInterval(interval)
+  }, [isAdminOrManager])
 
   useEffect(() => {
     const loadOverviewData = async () => {
@@ -752,6 +775,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     {module.id === 'email' && unreadInboxCount > 0 && (
                       <Badge className="absolute top-4 right-4 md:top-5 md:right-5 z-10 bg-[oklch(0.58_0.25_25)] text-white px-3 py-1.5 md:px-4 md:py-2 text-xs max-w-[calc(100%-2rem)] text-center whitespace-nowrap">
                         {unreadInboxCount} {unreadInboxCount > 1 ? t.hub.newMessagesPlural : t.hub.newMessages}
+                      </Badge>
+                    )}
+                    {module.id === 'manager' && pendingVacationRequests > 0 && (
+                      <Badge className="absolute top-4 right-4 md:top-5 md:right-5 z-10 bg-[oklch(0.58_0.25_25)] text-white px-3 py-1.5 md:px-4 md:py-2 text-xs max-w-[calc(100%-2rem)] text-center whitespace-nowrap">
+                        {pendingVacationRequests} {pendingVacationRequests > 1 ? (language === 'da' ? 'anmodninger' : 'requests') : (language === 'da' ? 'anmodning' : 'request')}
                       </Badge>
                     )}
                     <motion.div 
