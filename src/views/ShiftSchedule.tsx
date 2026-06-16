@@ -1235,8 +1235,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
                                           {!isEmployeeCellLocked && (roles || []).length > 0 && (
                                             <Popover>
                                               <PopoverTrigger asChild>
-                                                <button className="w-full h-full min-h-[20px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded transition-all flex items-center justify-center border border-dashed border-muted-foreground/20">
-                                                  <Plus size={12} />
+                                                <button className="w-full h-full min-h-[24px] text-primary/80 hover:text-primary hover:bg-primary/10 rounded-md transition-all flex items-center justify-center gap-1 border-2 border-primary/40 hover:border-primary/60 font-semibold">
+                                                  <Plus size={13} weight="bold" />
+                                                  <span className="text-[10px]">Opgave</span>
                                                 </button>
                                               </PopoverTrigger>
                                               <PopoverContent className="w-64 p-2" align="center">
@@ -1264,8 +1265,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
                                         !isEmployeeCellLocked && (roles || []).length > 0 ? (
                                           <Popover>
                                             <PopoverTrigger asChild>
-                                              <button className="w-full h-full min-h-[24px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded transition-all flex items-center justify-center">
-                                                <Plus size={14} />
+                                              <button className="w-full h-full min-h-[28px] text-primary/80 hover:text-primary hover:bg-primary/10 rounded-md transition-all flex items-center justify-center gap-1.5 border-2 border-primary/40 hover:border-primary/60 font-semibold">
+                                                <Plus size={14} weight="bold" />
+                                                <span className="text-[11px]">Opgave</span>
                                               </button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-64 p-2" align="center">
@@ -1297,14 +1299,15 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
                                         <button
                                           onClick={() => openCommentDialog(employee.id, dateString)}
                                           className={cn(
-                                            "w-full h-full min-h-[20px] rounded transition-all flex items-center justify-center gap-1 text-[10px] font-medium",
+                                            "w-full h-full min-h-[24px] rounded-md transition-all flex items-center justify-center gap-1 text-[10px] font-semibold border-2",
                                             cellComment 
-                                              ? "text-amber-700 hover:text-amber-800 hover:bg-amber-50" 
-                                              : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/30"
+                                              ? "text-amber-700 hover:text-amber-800 hover:bg-amber-50 bg-amber-50/50 border-amber-400/60 hover:border-amber-500" 
+                                              : "text-amber-600/70 hover:text-amber-700 hover:bg-amber-50/50 border-amber-400/40 hover:border-amber-500/60"
                                           )}
                                           title={cellComment ? "Rediger kommentar" : "Tilføj kommentar"}
                                         >
-                                          <ChatText size={11} weight={cellComment ? "fill" : "regular"} />
+                                          <ChatText size={12} weight={cellComment ? "fill" : "bold"} />
+                                          <span>Kommentar</span>
                                         </button>
                                       )}
                                     </div>
@@ -1759,10 +1762,35 @@ export function ShiftSchedule({ onNavigateBack, onLogout }: ShiftScheduleProps) 
                 ⚠️ Advarsel: Alle opgaver for alle medarbejdere i den valgte uge vil blive fjernet. Denne handling kan ikke fortrydes.
               </p>
             </div>
-            <Button onClick={handleClearWeek} variant="destructive" className="w-full gap-2">
-              <Trash size={18} />
-              Ryd Hele Ugen
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full gap-2" disabled={clearWeekNumber === null}>
+                  <Trash size={18} />
+                  Ryd Hele Ugen
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-destructive">⚠️ Bekræft Sletning</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Er du helt sikker på at du vil rydde alle opgaver for uge {clearWeekNumber}?
+                    <br /><br />
+                    <strong>Dette vil fjerne alle opgaver for alle medarbejdere i denne uge.</strong>
+                    <br /><br />
+                    Denne handling kan <strong>IKKE</strong> fortrydes!
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuller</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClearWeek}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Ja, Ryd Hele Ugen
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </DialogContent>
       </Dialog>

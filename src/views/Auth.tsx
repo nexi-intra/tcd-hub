@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { User, Lock, EnvelopeSimple, Eye, EyeSlash } from '@phosphor-icons/react'
+import { User, Lock, EnvelopeSimple, Eye, EyeSlash, Phone } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -21,6 +21,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fullName, setFullName] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -32,6 +33,12 @@ export function Auth({ onAuthenticated }: AuthProps) {
     if (mode === 'signup') {
       if (!fullName.trim()) {
         toast.error('Indtast venligst dit fulde navn')
+        setIsLoading(false)
+        return
+      }
+
+      if (!phoneNumber.trim()) {
+        toast.error('Indtast venligst dit telefonnummer')
         setIsLoading(false)
         return
       }
@@ -48,7 +55,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
         return
       }
 
-      const usersData = (await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
+      const usersData = (await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; phone: string; isManager: boolean }>>('users')) || {}
       
       if (usersData[email]) {
         toast.error('En bruger med denne email eksisterer allerede')
@@ -58,7 +65,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
 
       const userId = `user_${Date.now()}`
       const role = email.toLowerCase() === 'jacob.remmer@nexigroup.com' ? 'admin' : 'user'
-      usersData[email] = { email, password, fullName, isManager: role === 'admin' }
+      usersData[email] = { email, password, fullName, phone: phoneNumber.trim(), isManager: role === 'admin' }
       await window.spark.kv.set('users', usersData)
       
       toast.success('Konto oprettet!')
@@ -89,6 +96,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
     setPassword('')
     setConfirmPassword('')
     setFullName('')
+    setPhoneNumber('')
     setRememberMe(false)
   }
 
