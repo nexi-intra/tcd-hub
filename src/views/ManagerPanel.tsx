@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -86,6 +86,14 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false)
   const [previewMonth, setPreviewMonth] = useState(new Date().getMonth())
   const [previewYear, setPreviewYear] = useState(new Date().getFullYear())
+  const [gameLeaderboard, setGameLeaderboard] = useState<{
+    easy: Array<{ email: string; score: number; timestamp: number }>
+    medium: Array<{ email: string; score: number; timestamp: number }>
+    hard: Array<{ email: string; score: number; timestamp: number }>
+  } | null>(null)
+  const [editingScore, setEditingScore] = useState<{ difficulty: 'easy' | 'medium' | 'hard'; email: string; score: number } | null>(null)
+  const [isEditScoreDialogOpen, setIsEditScoreDialogOpen] = useState(false)
+  const [newScore, setNewScore] = useState('')
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -95,6 +103,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         loadUsers()
         loadSickLeaveEntries()
         loadVacationEntries()
+        loadGameLeaderboard()
       }
     }
     checkAccess()
@@ -729,6 +738,77 @@ Return ONLY a JSON object with this exact structure:
     }
   }
 
+  const loadGameLeaderboard = async () => {
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; timestamp: number }>
+    }>('hit-n-miss-global-leaderboard')
+    
+    setGameLeaderboard(leaderboard || { easy: [], medium: [], hard: [] })
+  }
+
+  const openEditScoreDialog = (difficulty: 'easy' | 'medium' | 'hard', email: string, score: number) => {
+    setEditingScore({ difficulty, email, score })
+    setNewScore(score.toString())
+    setIsEditScoreDialogOpen(true)
+  }
+
+  const handleSaveScore = async () => {
+    if (!editingScore) return
+
+    const scoreValue = parseInt(newScore)
+    if (isNaN(scoreValue) || scoreValue < 0) {
+      toast.error('Ugyldig score')
+      return
+    }
+
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; timestamp: number }>
+    }>('hit-n-miss-global-leaderboard')
+
+    if (!leaderboard) return
+
+    const board = leaderboard[editingScore.difficulty]
+    const entryIndex = board.findIndex(entry => entry.email === editingScore.email)
+    
+    if (entryIndex !== -1) {
+      board[entryIndex] = {
+        ...board[entryIndex],
+        score: scoreValue,
+        timestamp: Date.now()
+      }
+      board.sort((a, b) => b.score - a.score)
+      leaderboard[editingScore.difficulty] = board.slice(0, 10)
+    }
+
+    await window.spark.kv.set('hit-n-miss-global-leaderboard', leaderboard)
+    await loadGameLeaderboard()
+    
+    setIsEditScoreDialogOpen(false)
+    setEditingScore(null)
+    setNewScore('')
+    toast.success('Score opdateret')
+  }
+
+  const deleteScore = async (difficulty: 'easy' | 'medium' | 'hard', email: string) => {
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; timestamp: number }>
+    }>('hit-n-miss-global-leaderboard')
+
+    if (!leaderboard) return
+
+    leaderboard[difficulty] = leaderboard[difficulty].filter(entry => entry.email !== email)
+    
+    await window.spark.kv.set('hit-n-miss-global-leaderboard', leaderboard)
+    await loadGameLeaderboard()
+    toast.success('Score slettet')
+  }
+
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
       case 'admin':
@@ -819,7 +899,7 @@ Return ONLY a JSON object with this exact structure:
         </motion.div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-5xl">
+          <TabsList className="grid w-full grid-cols-5 max-w-6xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
@@ -840,6 +920,10 @@ Return ONLY a JSON object with this exact structure:
             <TabsTrigger value="vacation-overview" className="gap-2">
               <CalendarBlank size={18} />
               Ferie Oversigt
+            </TabsTrigger>
+            <TabsTrigger value="game-scores" className="gap-2">
+              <Trophy size={18} />
+              Hit N Miss
             </TabsTrigger>
           </TabsList>
 
@@ -1548,6 +1632,135 @@ Return ONLY a JSON object with this exact structure:
             </Card>
           </TabsContent>
 
+          <TabsContent value="game-scores" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Target size={28} className="text-accent" weight="duotone" />
+                  <h2 className="text-2xl font-bold">Hit N Miss Highscores</h2>
+                </div>
+              </div>
+
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Her kan du redigere og slette highscores fra Hit N Miss spillet. Du kan ændre score værdier eller fjerne hele entries.
+                </p>
+              </div>
+
+              {!gameLeaderboard ? (
+                <div className="text-center py-12">
+                  <Trophy size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
+                  <p className="text-muted-foreground">Indlæser highscores...</p>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {(['easy', 'medium', 'hard'] as const).map((difficulty) => {
+                    const board = gameLeaderboard[difficulty] || []
+                    const difficultyLabels = {
+                      easy: { da: 'Let', color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/30' },
+                      medium: { da: 'Mellem', color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
+                      hard: { da: 'Svær', color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/30' }
+                    }
+                    const setting = difficultyLabels[difficulty]
+
+                    return (
+                      <div key={difficulty} className="space-y-3">
+                        <div className={`p-4 rounded-lg ${setting.bg} border ${setting.border}`}>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <Trophy size={24} weight="duotone" className={setting.color} />
+                              <div>
+                                <h3 className="font-bold text-lg">{setting.da}</h3>
+                                <p className="text-xs text-muted-foreground">
+                                  {board.length} {board.length === 1 ? 'score' : 'scores'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {board.length === 0 ? (
+                            <div className="text-center py-6">
+                              <Target size={32} className="text-muted-foreground/30 mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground">Ingen scores endnu</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {board.map((entry, index) => {
+                                const getUserName = () => {
+                                  const user = users.find(u => u.email === entry.email)
+                                  return user ? user.fullName : entry.email
+                                }
+
+                                return (
+                                  <motion.div
+                                    key={entry.email}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center justify-between p-3 rounded-lg bg-card border hover:shadow-sm transition-all group"
+                                  >
+                                    <div className="flex items-center gap-3 flex-1">
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 font-bold text-sm">
+                                        #{index + 1}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-semibold truncate">{getUserName()}</div>
+                                        <div className="text-xs text-muted-foreground">{entry.email}</div>
+                                      </div>
+                                      <div className="text-lg font-bold text-primary">
+                                        {entry.score}
+                                      </div>
+                                    </div>
+                                    <div className="ml-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => openEditScoreDialog(difficulty, entry.email, entry.score)}
+                                        className="hover:bg-primary/10"
+                                      >
+                                        <PencilSimple size={20} />
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                          >
+                                            <Trash size={20} />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Slet score?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Er du sikker på at du vil slette scoren for <strong>{getUserName()}</strong>? Denne handling kan ikke fortrydes.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() => deleteScore(difficulty, entry.email)}
+                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                              Slet score
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </motion.div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
 
         </Tabs>
       </div>
@@ -2018,6 +2231,43 @@ Return ONLY a JSON object with this exact structure:
                 </Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditScoreDialogOpen} onOpenChange={setIsEditScoreDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rediger score</DialogTitle>
+            <DialogDescription>
+              Rediger scoren for {editingScore?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-score">Score *</Label>
+              <Input
+                id="edit-score"
+                type="number"
+                value={newScore}
+                onChange={(e) => setNewScore(e.target.value)}
+                placeholder="Indtast score"
+                min="0"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsEditScoreDialogOpen(false)
+              setEditingScore(null)
+              setNewScore('')
+            }}>
+              Annuller
+            </Button>
+            <Button onClick={handleSaveScore} className="gap-2">
+              <Check size={18} weight="bold" />
+              Gem ændringer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
