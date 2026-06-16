@@ -309,8 +309,9 @@ export function HitNMiss() {
                   const setting = DIFFICULTY_SETTINGS[diff]
                   const Icon = setting.icon
                   const isSelected = difficulty === diff
-                  const relativeSize = setting.targetSize / 280
-                  const displaySize = 80 * relativeSize
+                  const actualTargetSize = setting.targetSize
+                  const scaleFactor = 0.35
+                  const displaySize = actualTargetSize * scaleFactor
                   
                   return (
                     <div
@@ -362,7 +363,7 @@ export function HitNMiss() {
                           
                           {isSelected && (
                             <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full bg-card border border-border text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
-                              {Math.round(displaySize)}px
+                              {actualTargetSize}px
                             </div>
                           )}
                         </div>
