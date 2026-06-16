@@ -3,16 +3,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { PaperPlaneTilt, Plus, CalendarBlank } from '@phosphor-icons/react'
+import { Input } from '@/components/ui/input'
+import { PaperPlaneTilt, Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
 
 interface VacationEntry {
   id: string
@@ -32,22 +30,22 @@ interface VacationRequestDialogProps {
 
 export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps) {
   const [open, setOpen] = useState(false)
-  const [startDate, setStartDate] = useState<Date | undefined>()
-  const [endDate, setEndDate] = useState<Date | undefined>()
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
   const { t } = useLanguage()
 
   const hasUnsavedChanges = useMemo(() => {
-    return startDate !== undefined || endDate !== undefined || notes.trim() !== ''
+    return startDate !== '' || endDate !== '' || notes.trim() !== ''
   }, [startDate, endDate, notes])
 
   useUnsavedChanges({
     hasUnsavedChanges,
     onConfirmedExit: () => {
-      setStartDate(undefined)
-      setEndDate(undefined)
+      setStartDate('')
+      setEndDate('')
       setNotes('')
       setOpen(false)
     },
@@ -70,8 +68,8 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
     setIsSubmitting(true)
 
     try {
-      const startDateStr = format(startDate, 'yyyy-MM-dd')
-      const endDateStr = format(endDate, 'yyyy-MM-dd')
+      const startDateStr = startDate
+      const endDateStr = endDate
 
       const newVacation: VacationEntry = {
         id: Date.now().toString(),
@@ -88,8 +86,8 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
       const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
       const managers = Object.values(usersData || {}).filter(user => user.isManager)
 
-      const startDateFormatted = format(startDate, 'd. MMMM yyyy', { locale: da })
-      const endDateFormatted = format(endDate, 'd. MMMM yyyy', { locale: da })
+      const startDateFormatted = format(new Date(startDate), 'd. MMMM yyyy', { locale: da })
+      const endDateFormatted = format(new Date(endDate), 'd. MMMM yyyy', { locale: da })
 
       for (const manager of managers) {
         try {
@@ -225,8 +223,8 @@ Return ONLY a JSON object with this exact structure:
       }
 
       toast.success(t.vacationRequestDialog.requestSent)
-      setStartDate(undefined)
-      setEndDate(undefined)
+      setStartDate('')
+      setEndDate('')
       setNotes('')
       setOpen(false)
     } catch (error) {
@@ -251,60 +249,26 @@ Return ONLY a JSON object with this exact structure:
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
-            <Label>{t.vacationRequestDialog.startDate || 'Startdato'}</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !startDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarBlank size={16} weight="bold" className="mr-2" />
-                  {startDate ? format(startDate, 'PPP', { locale: da }) : <span>Vælg startdato</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  showWeekNumber
-                  locale={da}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <Label htmlFor="start-date">{t.vacationRequestDialog.startDate || 'Startdato'}</Label>
+            <Input
+              id="start-date"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full"
+            />
           </div>
 
           <div className="space-y-2">
-            <Label>{t.vacationRequestDialog.endDate || 'Slutdato'}</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !endDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarBlank size={16} weight="bold" className="mr-2" />
-                  {endDate ? format(endDate, 'PPP', { locale: da }) : <span>Vælg slutdato</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  showWeekNumber
-                  locale={da}
-                  disabled={(date) => startDate ? date < startDate : false}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <Label htmlFor="end-date">{t.vacationRequestDialog.endDate || 'Slutdato'}</Label>
+            <Input
+              id="end-date"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              min={startDate}
+              className="w-full"
+            />
           </div>
 
           <div className="space-y-2">

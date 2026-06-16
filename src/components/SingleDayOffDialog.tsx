@@ -3,16 +3,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { PaperPlaneTilt, CalendarX, CalendarBlank } from '@phosphor-icons/react'
+import { Input } from '@/components/ui/input'
+import { PaperPlaneTilt, CalendarX } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
 
 interface VacationEntry {
   id: string
@@ -33,20 +31,20 @@ interface SingleDayOffDialogProps {
 
 export function SingleDayOffDialog({ userEmail }: SingleDayOffDialogProps) {
   const [open, setOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>()
+  const [selectedDate, setSelectedDate] = useState('')
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
   const { t } = useLanguage()
 
   const hasUnsavedChanges = useMemo(() => {
-    return selectedDate !== undefined || notes.trim() !== ''
+    return selectedDate !== '' || notes.trim() !== ''
   }, [selectedDate, notes])
 
   useUnsavedChanges({
     hasUnsavedChanges,
     onConfirmedExit: () => {
-      setSelectedDate(undefined)
+      setSelectedDate('')
       setNotes('')
       setOpen(false)
     },
@@ -61,7 +59,8 @@ export function SingleDayOffDialog({ userEmail }: SingleDayOffDialogProps) {
       return
     }
 
-    const dayOfWeek = selectedDate.getDay()
+    const dateObj = new Date(selectedDate)
+    const dayOfWeek = dateObj.getDay()
     
     if (dayOfWeek === 0 || dayOfWeek === 6) {
       toast.error(t.singleDayOffDialog.weekendError)
@@ -71,7 +70,7 @@ export function SingleDayOffDialog({ userEmail }: SingleDayOffDialogProps) {
     setIsSubmitting(true)
 
     try {
-      const selectedDateStr = format(selectedDate, 'yyyy-MM-dd')
+      const selectedDateStr = selectedDate
 
       const newVacation: VacationEntry = {
         id: Date.now().toString(),
@@ -89,7 +88,7 @@ export function SingleDayOffDialog({ userEmail }: SingleDayOffDialogProps) {
       const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
       const managers = Object.values(usersData || {}).filter(user => user.isManager)
 
-      const dateFormatted = format(selectedDate, 'EEEE d. MMMM yyyy', { locale: da })
+      const dateFormatted = format(new Date(selectedDate), 'EEEE d. MMMM yyyy', { locale: da })
 
       for (const manager of managers) {
         try {
@@ -223,7 +222,7 @@ Return ONLY a JSON object with this exact structure:
       }
 
       toast.success(t.singleDayOffDialog.requestSent)
-      setSelectedDate(undefined)
+      setSelectedDate('')
       setNotes('')
       setOpen(false)
     } catch (error) {
@@ -248,35 +247,14 @@ Return ONLY a JSON object with this exact structure:
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
-            <Label>{t.singleDayOffDialog.date}</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarBlank size={16} weight="bold" className="mr-2" />
-                  {selectedDate ? format(selectedDate, 'PPP', { locale: da }) : <span>Vælg dato</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  showWeekNumber
-                  locale={da}
-                  disabled={(date) => {
-                    const dayOfWeek = date.getDay()
-                    return dayOfWeek === 0 || dayOfWeek === 6
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <Label htmlFor="single-date">{t.singleDayOffDialog.date}</Label>
+            <Input
+              id="single-date"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-full"
+            />
             <p className="text-xs text-muted-foreground">
               {t.singleDayOffDialog.weekdayOnly}
             </p>
