@@ -151,6 +151,19 @@ function App() {
     setCurrentView('hub')
   }
 
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (currentView !== 'hub') {
+          setCurrentView('hub')
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleEscapeKey)
+    return () => window.removeEventListener('keydown', handleEscapeKey)
+  }, [currentView])
+
   if (isCheckingAuth) {
     return null
   }
