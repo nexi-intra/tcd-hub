@@ -378,52 +378,84 @@ export function HitNMiss() {
       )}
 
       {gameState === 'playing' && (
-        <Card className="p-0 overflow-hidden border-2 border-primary/20">
-          <div className="bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 p-4 flex items-center justify-between border-b-2 border-primary/20">
-            <div className="flex items-center gap-6">
-              <div className="px-4 py-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
-                  {language === 'da' ? 'Point' : 'Score'}
-                </div>
-                <div className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  {score}
-                </div>
-              </div>
-              <div className="h-10 w-px bg-border" />
-              <div className="px-4 py-2 rounded-lg bg-gradient-to-br from-destructive/10 to-destructive/20 border border-destructive/30">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
-                  {language === 'da' ? 'Forbiede' : 'Misses'}
-                </div>
-                <div className="text-3xl font-bold text-destructive">{misses}</div>
-              </div>
-              <div className="h-10 w-px bg-border" />
-              <div className="px-4 py-2 rounded-lg bg-gradient-to-br from-accent/10 to-accent/20 border border-accent/30">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold flex items-center gap-1">
-                  <Flame size={14} weight="fill" />
-                  {language === 'da' ? 'Serie' : 'Streak'}
-                </div>
-                <div className={`text-3xl font-bold ${hitStreak >= 5 ? 'text-accent animate-pulse' : 'text-accent'}`}>
-                  {hitStreak}
-                </div>
-              </div>
-              {gameMode === 'timer' && (
-                <>
-                  <div className="h-10 w-px bg-border" />
-                  <div className="px-4 py-2 rounded-lg bg-gradient-to-br from-primary/10 to-primary/20 border border-primary/30">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
-                      {language === 'da' ? 'Tid tilbage' : 'Time Left'}
+        <Card className="p-0 overflow-hidden border-2 border-primary/30 shadow-2xl">
+          <div className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 border-b-2 border-primary/30">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/10 to-primary/5" />
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-8">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent blur-xl opacity-30 group-hover:opacity-50 transition-opacity" />
+                  <div className="relative px-6 py-3 rounded-xl bg-gradient-to-br from-primary/20 to-accent/30 border-2 border-primary/40 backdrop-blur-sm">
+                    <div className="text-[10px] text-primary-foreground/70 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                      <Trophy size={12} weight="fill" />
+                      {language === 'da' ? 'Point' : 'Score'}
                     </div>
-                    <div className={`text-3xl font-bold ${timeLeft <= 5 ? 'text-destructive animate-pulse' : 'text-accent'}`}>
-                      {timeLeft}s
+                    <div className="text-4xl font-black bg-gradient-to-br from-white to-primary-foreground bg-clip-text text-transparent drop-shadow-lg">
+                      {score}
                     </div>
                   </div>
-                </>
-              )}
+                </div>
+                
+                <div className="h-14 w-[2px] bg-gradient-to-b from-transparent via-border to-transparent" />
+                
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-destructive to-red-600 blur-lg opacity-20 group-hover:opacity-40 transition-opacity" />
+                  <div className="relative px-5 py-3 rounded-xl bg-gradient-to-br from-destructive/20 to-red-500/20 border-2 border-destructive/40 backdrop-blur-sm">
+                    <div className="text-[10px] text-destructive-foreground/70 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                      <X size={12} weight="bold" />
+                      {language === 'da' ? 'Fejl' : 'Misses'}
+                    </div>
+                    <div className="text-4xl font-black text-red-400 drop-shadow-lg">
+                      {misses}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="h-14 w-[2px] bg-gradient-to-b from-transparent via-border to-transparent" />
+                
+                <div className="relative group">
+                  <div className={`absolute inset-0 bg-gradient-to-br from-accent to-yellow-500 blur-lg transition-opacity ${hitStreak >= 5 ? 'opacity-60 animate-pulse' : 'opacity-20'}`} />
+                  <div className={`relative px-5 py-3 rounded-xl bg-gradient-to-br from-accent/20 to-yellow-500/20 border-2 ${hitStreak >= 5 ? 'border-accent shadow-lg shadow-accent/30' : 'border-accent/40'} backdrop-blur-sm transition-all`}>
+                    <div className="text-[10px] text-accent-foreground/70 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                      <Flame size={12} weight="fill" className={hitStreak >= 5 ? 'animate-pulse' : ''} />
+                      {language === 'da' ? 'Serie' : 'Combo'}
+                    </div>
+                    <div className={`text-4xl font-black drop-shadow-lg transition-all ${hitStreak >= 10 ? 'text-yellow-300 scale-110' : hitStreak >= 5 ? 'text-yellow-400' : 'text-yellow-500'}`}>
+                      {hitStreak}x
+                    </div>
+                  </div>
+                </div>
+                
+                {gameMode === 'timer' && (
+                  <>
+                    <div className="h-14 w-[2px] bg-gradient-to-b from-transparent via-border to-transparent" />
+                    
+                    <div className="relative group">
+                      <div className={`absolute inset-0 blur-lg transition-opacity ${timeLeft <= 5 ? 'bg-destructive opacity-40' : 'bg-primary/20 opacity-20'}`} />
+                      <div className={`relative px-5 py-3 rounded-xl backdrop-blur-sm transition-all ${timeLeft <= 5 ? 'bg-gradient-to-br from-destructive/30 to-red-600/30 border-2 border-destructive shadow-lg shadow-destructive/30' : 'bg-gradient-to-br from-primary/20 to-primary/30 border-2 border-primary/40'}`}>
+                        <div className={`text-[10px] uppercase tracking-widest font-bold mb-1 flex items-center gap-1 ${timeLeft <= 5 ? 'text-destructive-foreground/90' : 'text-primary-foreground/70'}`}>
+                          <Timer size={12} weight="fill" className={timeLeft <= 5 ? 'animate-pulse' : ''} />
+                          {language === 'da' ? 'Tid' : 'Time'}
+                        </div>
+                        <div className={`text-4xl font-black drop-shadow-lg ${timeLeft <= 5 ? 'text-red-400 animate-pulse' : 'text-blue-400'}`}>
+                          {timeLeft}s
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              <Button 
+                onClick={endGame} 
+                variant="destructive" 
+                size="lg"
+                className="shadow-xl hover:shadow-2xl transition-shadow font-bold"
+              >
+                <X size={20} weight="bold" className="mr-2" />
+                {language === 'da' ? 'Stop' : 'Quit'}
+              </Button>
             </div>
-            <Button onClick={endGame} variant="destructive" size="sm">
-              <X size={16} weight="bold" className="mr-2" />
-              {language === 'da' ? 'Afslut spil' : 'End Game'}
-            </Button>
           </div>
 
           <div
@@ -482,7 +514,7 @@ export function HitNMiss() {
                   e.stopPropagation()
                   handleTargetClick()
                 }}
-                className="absolute animate-in zoom-in-50 duration-300"
+                className="absolute animate-in zoom-in-50 duration-200"
                 style={{
                   left: `${target.position.x}px`,
                   top: `${target.position.y}px`,
@@ -492,8 +524,7 @@ export function HitNMiss() {
                 }}
               >
                 <div className="relative w-full h-full">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-destructive via-red-500 to-destructive/80 animate-ping opacity-30" />
-                  <div className="absolute inset-0 rounded-full border-[6px] border-destructive bg-gradient-to-br from-card via-white to-card shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
+                  <div className="absolute inset-0 rounded-full border-[6px] border-destructive bg-gradient-to-br from-card via-white to-card shadow-2xl flex items-center justify-center hover:scale-110 transition-transform">
                     <div className="absolute rounded-full border-[5px] border-destructive/50" style={{ inset: '15px' }} />
                     <div className="absolute rounded-full border-[4px] border-destructive/70" style={{ inset: '28px' }} />
                     <div className="absolute rounded-full border-[3px] border-destructive bg-gradient-to-br from-destructive/20 to-destructive/30" style={{ inset: '40px' }} />
