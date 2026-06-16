@@ -1102,8 +1102,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
       <Dialog open={showQuickAssignDialog} onOpenChange={setShowQuickAssignDialog}>
         <DialogContent className="sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-xl font-bold text-center">
               {language === 'da' ? 'Tildel opgave' : 'Assign task'}
               {selectedTaskForAssign && (
                 <span className="block text-sm text-muted-foreground font-normal mt-1">
