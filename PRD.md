@@ -1,14 +1,50 @@
-# Planning Guide
+# Terminal Configuration & Dispatch Hub - Product Requirements Document
 
-A centralized team hub for Nexi Group that provides easy access to multiple team resources and tools with user authentication, starting with a comprehensive knowledge base (Guide Library) and designed to expand with additional modules like team directory, calendar, analytics, documents, projects, and team chat.
+A comprehensive team management platform for Nexi Group that provides centralized access to shift scheduling, vacation planning, team directory, internal communications, meal planning, project management, and game breaks - all with multi-language support and role-based access control.
 
 **Experience Qualities**: 
-1. **Intuitive** - Users should immediately understand how to navigate between different modules and find what they need
-2. **Organized** - Clear visual hierarchy and module organization that makes the hub feel like a natural starting point for team activities
-3. **Scalable** - Architecture that allows for easy addition of new modules without cluttering the interface
+1. **Cohesive** - All modules feel like parts of a unified system with consistent design patterns, shared components, and standardized interactions
+2. **Professional** - Modern SaaS-grade interface with polished animations, proper loading states, and attention to detail throughout
+3. **Efficient** - Streamlined workflows that reduce clicks and cognitive load, with smart defaults and bulk operations where appropriate
 
-**Complexity Level**: Light Application (multiple features with basic state)
-This is a hub-based application with modular navigation between different team tools. Features user authentication with login/signup functionality to protect access. Currently implements the Guide Library module with CRUD operations, search/filter capabilities, and AI chat interface. Designed to accommodate future modules through a consistent navigation pattern.
+**Complexity Level**: Complex Application (advanced functionality with multiple interconnected modules and views)
+
+This is a full-featured team management hub with 11 active modules spanning HR, operations, communications, and team culture. Features comprehensive user authentication with session management, role-based access control (admin/manager/employee), real-time data synchronization, internationalization (Danish/English), theme switching (light/dark), and persistent data storage. The application architecture is built on reusable components, custom data hooks, and a centralized design system for maintainability and consistency.
+
+## Active Modules
+
+### 1. Shift Schedule (Vagtplan)
+Complete shift management system with roles, assignments, and daily planning. Supports individual and bulk scheduling, role color coding, comments per assignment, and integrates with sick leave and vacation data for conflict detection.
+
+### 2. Vacation Calendar (Feriekalender)
+Team vacation planning with approval workflow. Employees request time off (single days or ranges), managers approve/reject, and the calendar shows visual overlaps and availability conflicts.
+
+### 3. Team Overview (Team Oversigt)
+Employee directory with profiles, contact information, roles, and avatars. Supports adding, editing, and viewing team member details with responsive cards and search functionality.
+
+### 4. Email System
+Internal messaging platform with inbox, sent items, folders, and compose features. Supports threaded conversations, read/unread states, starring, and folder organization.
+
+### 5. Guide Library (Guide Bibliotek)
+Knowledge base with CRUD operations, category filtering, search, Word document uploads, and an AI chatbot assistant that can answer questions about stored guides.
+
+### 6. Meal Plan (Madplan)
+Weekly cafeteria menu display showing meals for each weekday. View current week's offerings with day-by-day breakdown.
+
+### 7. Project Board (Projekter)
+Task and project management with kanban-style boards, task assignments, status tracking, and team collaboration features.
+
+### 8. Game Corner (Spil Hjørnet)
+Leisure module for team breaks and morale. Currently placeholder for future games integration.
+
+### 9. Manager Panel
+Administrative dashboard for managers and admins. Displays statistics on sick leave (both employee and child sick days), vacation requests pending approval, shift coverage, and team metrics. Provides approval/rejection workflows.
+
+### 10. Admin Panel
+System administration for user management, role assignments, and application configuration. Restricted to admin users only.
+
+### 11. Hub Dashboard
+Central overview showing today's tasks, people off, today's meal, and sick employees. Quick access cards to all modules with unread email counts and real-time data updates.
 
 ## Essential Features
 

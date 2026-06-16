@@ -10,41 +10,16 @@
     font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     font-feature-settings: "ss01", "cv01";
     @apply text-foreground;
-    background: 
-      repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 80px,
-        oklch(0.90 0.09 240 / 0.3) 80px,
-        oklch(0.90 0.09 240 / 0.3) 81px
-      ),
-      repeating-linear-gradient(
-        -45deg,
-        transparent,
-        transparent 80px,
-        oklch(0.90 0.09 240 / 0.25) 80px,
-        oklch(0.90 0.09 240 / 0.25) 81px
-      ),
-      linear-gradient(
-        135deg,
-        oklch(0.94 0.08 240) 0%,
-        oklch(0.92 0.08 240) 50%,
-        oklch(0.90 0.08 245) 100%
-      );
+    min-height: 100vh;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Quicksand', sans-serif;
   }
-}
 
-@keyframes rainbow-border {
-  0%, 100% { filter: hue-rotate(0deg); }
-  50% { filter: hue-rotate(360deg); }
-}
-
-.animate-rainbow {
-  animation: rainbow-border 3s linear infinite;
+  #root {
+    min-height: 100vh;
+  }
 }
 
 :root {
