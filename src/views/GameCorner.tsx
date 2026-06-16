@@ -1,121 +1,302 @@
-import { GameController, Sparkle, Trophy, Target } from '@phosphor-icons/react'
-import { PageHeader } from '@/components/shared/PageHeader'
-import { colors } from '@/lib/designSystem'
+import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { GameController, Target, ArrowLeft } from '@phosphor-icons/react'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { HitNMiss } from '@/components/HitNMiss'
-import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 interface GameCornerProps {
   onNavigateBack: () => void
   userEmail?: string
 }
 
-export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
-  const { t, language } = useLanguage()
+type GameView = 'hub' | 'hitnmiss'
 
-  return (
-    <div className="min-h-screen" style={{
-      background: `
-        radial-gradient(circle at 20% 30%, oklch(0.60 0.15 280 / 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 80% 60%, oklch(0.65 0.12 210 / 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 50% 90%, oklch(0.55 0.10 150 / 0.12) 0%, transparent 50%),
-        linear-gradient(
-          135deg,
-          oklch(0.98 0.01 250) 0%,
-          oklch(0.97 0.02 280) 25%,
-          oklch(0.98 0.01 210) 50%,
-          oklch(0.97 0.02 240) 75%,
-          oklch(0.98 0.01 250) 100%
-        )
-      `
-    }}>
-      <div style={{
+interface GameModule {
+  id: string
+  title: string
+  description: string
+  icon: React.ReactNode
+  color: string
+  gradient: string
+  available: boolean
+}
+
+export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
+  const { language } = useLanguage()
+  const [currentView, setCurrentView] = useState<GameView>('hub')
+
+  const games: GameModule[] = [
+    {
+      id: 'hitnmiss',
+      title: language === 'da' ? 'Hit N Miss' : 'Hit N Miss',
+      description: language === 'da' 
+        ? 'Test din reaktionstid og præcision. Klik på skydeskiverne så hurtigt som muligt!'
+        : 'Test your reaction time and precision. Click the targets as fast as you can!',
+      icon: <Target size={48} weight="duotone" />,
+      color: 'oklch(0.72 0.20 310)',
+      gradient: 'from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)]',
+      available: true,
+    },
+  ]
+
+  const getIconAnimation = () => {
+    return {
+      initial: {
+        scale: 1,
+        rotate: 0,
+        y: 0,
+      },
+      hover: {
+        scale: [1, 1.3, 1.15],
+        rotate: [0, -15, 15, -10, 10, 0],
+        y: [0, -8, 0],
+      },
+      transition: {
+        duration: 0.8,
+        ease: "easeInOut"
+      }
+    }
+  }
+
+  const getCardAnimation = () => {
+    return {
+      initial: {
+        scale: 1,
+        y: 0,
+        rotate: 0,
+        boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
+      },
+      hover: {
+        scale: 1.08,
+        y: -10,
+        rotate: [0, 3, -3, 0],
+        boxShadow: "0 30px 60px -15px rgba(0, 0, 0, 0.35)",
+      },
+      tap: { scale: 0.92 },
+      transition: {
+        duration: 0.3,
+        ease: "easeInOut"
+      }
+    }
+  }
+
+  if (currentView === 'hitnmiss') {
+    return (
+      <div className="min-h-screen" style={{
         background: `
-          repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 100px,
-            oklch(0.96 0.01 240 / 0.3) 100px,
-            oklch(0.96 0.01 240 / 0.3) 101px
-          ),
-          repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 100px,
-            oklch(0.96 0.01 240 / 0.3) 100px,
-            oklch(0.96 0.01 240 / 0.3) 101px
+          radial-gradient(circle at 20% 30%, oklch(0.60 0.15 280 / 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 80% 60%, oklch(0.65 0.12 210 / 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 50% 90%, oklch(0.55 0.10 150 / 0.12) 0%, transparent 50%),
+          linear-gradient(
+            135deg,
+            oklch(0.98 0.01 250) 0%,
+            oklch(0.97 0.02 280) 25%,
+            oklch(0.98 0.01 210) 50%,
+            oklch(0.97 0.02 240) 75%,
+            oklch(0.98 0.01 250) 100%
           )
         `
       }}>
-        <PageHeader
-          title={t.hub.modules.games}
-          icon={<GameController size={32} weight="duotone" />}
-          gradient={colors.gradients.games}
-          onNavigateBack={onNavigateBack}
-        />
-
-        <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
-          <Card className="p-6 mb-8 bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 border-2 border-primary/20">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-primary via-accent to-primary shadow-xl">
-                <Sparkle size={36} weight="duotone" className="text-primary-foreground" />
-              </div>
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                  {language === 'da' ? 'Velkommen til Spilhjørnet' : 'Welcome to Game Corner'}
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                  {language === 'da' 
-                    ? 'Test dine færdigheder og konkurrer om de bedste scores!' 
-                    : 'Test your skills and compete for the best scores!'}
-                </p>
-              </div>
-              <div className="hidden md:flex items-center gap-4">
-                <div className="text-center p-4 rounded-xl bg-gradient-to-br from-accent/20 to-primary/20 border border-accent/30">
-                  <Trophy size={28} weight="fill" className="text-accent mx-auto mb-1" />
-                  <div className="text-xs text-muted-foreground font-semibold">
-                    {language === 'da' ? 'Høj Score' : 'High Score'}
+        <div style={{
+          background: `
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              transparent 100px,
+              oklch(0.96 0.01 240 / 0.3) 100px,
+              oklch(0.96 0.01 240 / 0.3) 101px
+            ),
+            repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent 100px,
+              oklch(0.96 0.01 240 / 0.3) 100px,
+              oklch(0.96 0.01 240 / 0.3) 101px
+            )
+          `
+        }}>
+          <div className="relative bg-gradient-to-r from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)] py-8 shadow-xl border-b-4 border-white/10">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
+            <div className="container mx-auto px-4 sm:px-6 relative z-10">
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={() => setCurrentView('hub')}
+                  variant="ghost"
+                  size="lg"
+                  className="text-white hover:bg-white/20 transition-colors"
+                >
+                  <ArrowLeft size={24} weight="bold" />
+                </Button>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-sm shadow-xl">
+                    <Target size={32} weight="duotone" className="text-white" />
                   </div>
-                </div>
-                <div className="text-center p-4 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30">
-                  <Target size={28} weight="duotone" className="text-primary mx-auto mb-1" />
-                  <div className="text-xs text-muted-foreground font-semibold">
-                    {language === 'da' ? 'Præcision' : 'Accuracy'}
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">
+                      Hit N Miss
+                    </h1>
+                    <p className="text-white/90 text-sm sm:text-base">
+                      {language === 'da' 
+                        ? 'Test din reaktionstid og præcision'
+                        : 'Test your reaction time and precision'}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
-            
-            <div className="flex flex-wrap gap-3 mt-6">
-              <div className="flex-1 min-w-[200px] p-4 rounded-lg bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20">
-                <div className="text-sm font-semibold text-green-600 dark:text-green-400">
-                  {language === 'da' ? '🎯 Let modus' : '🎯 Easy Mode'}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {language === 'da' ? 'Perfekt til at komme i gang' : 'Perfect for getting started'}
-                </div>
-              </div>
-              <div className="flex-1 min-w-[200px] p-4 rounded-lg bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20">
-                <div className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">
-                  {language === 'da' ? '⚡ Mellem modus' : '⚡ Medium Mode'}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {language === 'da' ? 'Balanceret udfordring' : 'Balanced challenge'}
-                </div>
-              </div>
-              <div className="flex-1 min-w-[200px] p-4 rounded-lg bg-gradient-to-br from-red-500/10 to-red-600/10 border border-red-500/20">
-                <div className="text-sm font-semibold text-red-600 dark:text-red-400">
-                  {language === 'da' ? '🔥 Svær modus' : '🔥 Hard Mode'}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {language === 'da' ? 'For de mest erfarne' : 'For the most experienced'}
-                </div>
-              </div>
-            </div>
-          </Card>
+          </div>
 
-          <HitNMiss userEmail={userEmail} />
+          <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
+            <HitNMiss userEmail={userEmail} />
+          </div>
         </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen relative overflow-hidden">
+      <div className="absolute top-6 right-6 left-6 z-20">
+        <div className="flex items-center justify-start pb-12">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <Button
+              onClick={onNavigateBack}
+              variant="outline"
+              size="lg"
+              className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold"
+            >
+              <ArrowLeft size={20} weight="bold" />
+              {language === 'da' ? 'Tilbage til Hub' : 'Back to Hub'}
+            </Button>
+          </motion.div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 pt-56 sm:pt-60 pb-12 sm:pb-20 max-w-7xl relative z-10">
+        <motion.header 
+          className="text-center mb-10 sm:mb-12"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="flex justify-center mb-6"
+          >
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)] shadow-2xl">
+              <GameController size={64} weight="duotone" className="text-white" />
+            </div>
+          </motion.div>
+          <motion.h1 
+            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-br from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)] bg-clip-text text-transparent mb-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+          >
+            {language === 'da' ? 'Spilhjørnet' : 'Game Corner'}
+          </motion.h1>
+          <motion.p
+            className="text-lg text-muted-foreground max-w-2xl mx-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
+            {language === 'da' 
+              ? 'Tag en pause og test dine færdigheder. Konkurrér med kollegaer om de bedste scores!'
+              : 'Take a break and test your skills. Compete with colleagues for the best scores!'}
+          </motion.p>
+        </motion.header>
+
+        <motion.div 
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+        >
+          {games.filter(game => game.available).map((game, index) => {
+            const cardAnimation = getCardAnimation()
+            const iconAnimation = getIconAnimation()
+            
+            return (
+              <motion.div
+                key={game.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 + index * 0.05, duration: 0.4 }}
+              >
+                <motion.div
+                  initial={cardAnimation.initial}
+                  whileHover={cardAnimation.hover}
+                  whileTap={cardAnimation.tap}
+                  transition={cardAnimation.transition}
+                >
+                  <Card
+                    className="relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[180px] sm:min-h-[220px] flex flex-col cursor-pointer hover:border-primary/40"
+                    onClick={() => setCurrentView(game.id as GameView)}
+                  >
+                    <motion.div 
+                      className="absolute inset-0 bg-gradient-to-br"
+                      style={{
+                        background: `radial-gradient(circle at top right, ${game.color}15, transparent)`
+                      }}
+                      initial={{ opacity: 0 }}
+                      whileHover={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                    
+                    <div className="relative p-4 md:p-6 flex flex-col flex-1">
+                      <motion.div 
+                        className={cn(
+                          "mb-3 md:mb-4 inline-flex items-center justify-center rounded-2xl p-2 md:p-3 shadow-lg",
+                          `bg-gradient-to-br ${game.gradient}`
+                        )}
+                        style={{ color: 'white' }}
+                        initial={iconAnimation.initial}
+                        whileHover={iconAnimation.hover}
+                        transition={iconAnimation.transition}
+                      >
+                        <div className="[&>svg]:w-8 [&>svg]:h-8 md:[&>svg]:w-12 md:[&>svg]:h-12">
+                          {game.icon}
+                        </div>
+                      </motion.div>
+
+                      <h3 className="text-sm sm:text-base md:text-lg font-bold mb-1.5 md:mb-2 text-foreground text-center">
+                        {game.title}
+                      </h3>
+                      
+                      <p className="text-muted-foreground text-xs leading-relaxed mb-3 md:mb-4 flex-1">
+                        {game.description}
+                      </p>
+                    </div>
+                  </Card>
+                </motion.div>
+              </motion.div>
+            )
+          })}
+        </motion.div>
+
+        {games.filter(g => g.available).length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-center py-20"
+          >
+            <GameController size={64} className="text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-lg text-muted-foreground">
+              {language === 'da' ? 'Nye spil kommer snart!' : 'New games coming soon!'}
+            </p>
+          </motion.div>
+        )}
       </div>
     </div>
   )
