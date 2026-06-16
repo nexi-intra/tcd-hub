@@ -27,7 +27,10 @@ const DIFFICULTY_SETTINGS = {
     label: { en: 'Easy', da: 'Let' },
     description: { en: '3s per target', da: '3s per mål' },
     icon: Speedometer,
-    color: 'text-green-500'
+    color: 'text-green-500',
+    bgGradient: 'from-green-500/20 to-green-600/20',
+    borderColor: 'border-green-500/30',
+    glowColor: 'shadow-green-500/20'
   },
   medium: {
     lifetime: 2000,
@@ -35,7 +38,10 @@ const DIFFICULTY_SETTINGS = {
     label: { en: 'Medium', da: 'Mellem' },
     description: { en: '2s per target', da: '2s per mål' },
     icon: Lightning,
-    color: 'text-yellow-500'
+    color: 'text-yellow-500',
+    bgGradient: 'from-yellow-500/20 to-yellow-600/20',
+    borderColor: 'border-yellow-500/30',
+    glowColor: 'shadow-yellow-500/20'
   },
   hard: {
     lifetime: 1000,
@@ -43,7 +49,10 @@ const DIFFICULTY_SETTINGS = {
     label: { en: 'Hard', da: 'Svær' },
     description: { en: '1s per target', da: '1s per mål' },
     icon: Fire,
-    color: 'text-red-500'
+    color: 'text-red-500',
+    bgGradient: 'from-red-500/20 to-red-600/20',
+    borderColor: 'border-red-500/30',
+    glowColor: 'shadow-red-500/20'
   }
 }
 
@@ -295,27 +304,70 @@ export function HitNMiss() {
                   {language === 'da' ? 'Vælg sværhedsgrad' : 'Select Difficulty'}
                 </p>
               </div>
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex items-center justify-center gap-4">
                 {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
                   const setting = DIFFICULTY_SETTINGS[diff]
                   const Icon = setting.icon
+                  const isSelected = difficulty === diff
+                  const relativeSize = setting.targetSize / 280
+                  const displaySize = 80 * relativeSize
+                  
                   return (
-                    <Button
+                    <div
                       key={diff}
                       onClick={() => setDifficulty(diff)}
-                      variant={difficulty === diff ? 'default' : 'outline'}
-                      className="flex flex-col items-center gap-2 h-auto py-3 px-4 min-w-[110px]"
+                      className={`group relative cursor-pointer rounded-xl p-6 transition-all duration-300 min-w-[140px] ${
+                        isSelected 
+                          ? `bg-gradient-to-br ${setting.bgGradient} border-2 ${setting.borderColor} shadow-lg ${setting.glowColor}` 
+                          : 'bg-card border-2 border-border hover:border-border/60 hover:shadow-md'
+                      }`}
                     >
-                      <Icon size={24} weight="duotone" className={difficulty === diff ? '' : setting.color} />
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="font-semibold text-sm">
-                          {setting.label[language as 'en' | 'da']}
-                        </span>
-                        <span className="text-xs opacity-80">
-                          {setting.description[language as 'en' | 'da']}
-                        </span>
+                      <div className="flex flex-col items-center gap-3">
+                        <Icon 
+                          size={28} 
+                          weight="duotone" 
+                          className={isSelected ? setting.color : `${setting.color} opacity-60 group-hover:opacity-100`} 
+                        />
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`font-bold text-base ${isSelected ? setting.color : 'text-foreground'}`}>
+                            {setting.label[language as 'en' | 'da']}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {setting.description[language as 'en' | 'da']}
+                          </span>
+                        </div>
+                        
+                        <div className="relative flex items-center justify-center" style={{ width: '100px', height: '100px' }}>
+                          <div 
+                            className={`rounded-full border-4 transition-all duration-300 ${
+                              isSelected 
+                                ? `${setting.borderColor} bg-gradient-to-br ${setting.bgGradient}` 
+                                : 'border-muted bg-muted/20'
+                            }`}
+                            style={{ 
+                              width: `${displaySize}px`, 
+                              height: `${displaySize}px` 
+                            }}
+                          >
+                            <div className={`absolute inset-0 rounded-full flex items-center justify-center ${
+                              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'
+                            } transition-opacity duration-300`}>
+                              <div className={`w-2 h-2 rounded-full bg-gradient-to-br ${
+                                isSelected 
+                                  ? setting.bgGradient 
+                                  : 'from-muted-foreground to-muted-foreground'
+                              }`} />
+                            </div>
+                          </div>
+                          
+                          {isSelected && (
+                            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full bg-card border border-border text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
+                              {Math.round(displaySize)}px
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </Button>
+                    </div>
                   )
                 })}
               </div>
