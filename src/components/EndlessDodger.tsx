@@ -393,19 +393,21 @@ export function EndlessDodger({ userEmail }: { userEmail?: string }) {
     setFallingObjects([])
     setPlayerX(GAME_WIDTH / 2 - PLAYER_WIDTH / 2)
     setTimeLeft(TIMER_DURATION)
-    setCountdown(COUNTDOWN_DURATION)
+    setCountdown(3)
+    
+    let currentCount = 3
     
     countdownIntervalRef.current = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          if (countdownIntervalRef.current) {
-            clearInterval(countdownIntervalRef.current)
-          }
-          startPlaying()
-          return 0
+      currentCount -= 1
+      
+      if (currentCount <= 0) {
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current)
         }
-        return prev - 1
-      })
+        startPlaying()
+      } else {
+        setCountdown(currentCount)
+      }
     }, 1000)
   }
 
