@@ -73,16 +73,17 @@ interface VacationEntry {
 interface EmailSystemProps {
   onNavigateBack: () => void
   onLogout: () => void
+  userEmail: string
 }
 
-export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
+export function EmailSystem({ onNavigateBack, userEmail: propUserEmail }: EmailSystemProps) {
   const { t } = useLanguage()
   const [emails, setEmails] = useKV<Email[]>('emails', [])
   const [folders, setFolders] = useKV<EmailFolder[]>('email-folders', [])
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
   const [users, setUsers] = useState<Array<{ email: string; name: string }>>([])
   const [isManager, setIsManager] = useState(false)
-  const [userEmail, setUserEmail] = useState<string>('')
+  const userEmail = propUserEmail
   const [view, setView] = useState<'inbox' | 'sent' | 'compose' | 'vacation-requests' | 'folder'>('inbox')
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
@@ -109,35 +110,30 @@ export function EmailSystem({ onNavigateBack }: EmailSystemProps) {
 
   useEffect(() => {
     const loadUserAndData = async () => {
-      const session = await window.spark.kv.get<{ userId: string; email: string }>('user-session')
-      if (session) {
-        setUserEmail(session.email)
+      const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; isManager: boolean }>>('users')
+    
+      if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
+        const userList = Object.values(usersData).map(user => ({
+          email: user.email,
+          name: user.fullName
+        }))
+        setUsers(userList)
         
-        const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; isManager: boolean }>>('users')
-      
-        if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
-          const userList = Object.values(usersData).map(user => ({
-            email: user.email,
-            name: user.fullName
-          }))
-          setUsers(userList)
-          
-          if (usersData[session.email]) {
-            setIsManager(usersData[session.email].isManager || false)
-          }
-        } else if (Array.isArray(usersData)) {
-          setUsers(usersData as Array<{ email: string; name: string }>)
+        if (usersData[userEmail]) {
+          setIsManager(usersData[userEmail].isManager || false)
         }
+      } else if (Array.isArray(usersData)) {
+        setUsers(usersData as Array<{ email: string; name: string }>)
       }
 
       const kvEmails = await window.spark.kv.get<Email[]>('emails')
       if (kvEmails && Array.isArray(kvEmails)) {
-        setEmails(currentEmails => kvEmails)
+        setEmails(() => kvEmails)
       }
     }
     
     loadUserAndData()
-  }, [refreshTrigger, setEmails])
+  }, [refreshTrigger, setEmails, userEmail])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

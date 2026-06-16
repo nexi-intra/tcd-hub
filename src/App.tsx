@@ -172,7 +172,7 @@ function App() {
         {currentView === 'admin' && <AdminPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
         {currentView === 'manager' && <ManagerPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
-        {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
+        {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} />}
         {currentView === 'game' && <GameCorner onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
       </LanguageProvider>
