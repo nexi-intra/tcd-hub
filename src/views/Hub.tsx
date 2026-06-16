@@ -77,7 +77,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [unreadInboxCount, setUnreadInboxCount] = useState(0)
   const [pendingVacationRequests, setPendingVacationRequests] = useState(0)
   
-  const [teamTasks, setTeamTasks] = useState<Array<{ name: string; tasks: Array<{ roleName: string; roleColor: string }> }>>([])
+  const [teamTasks, setTeamTasks] = useState<Array<{ taskName: string; taskColor: string; people: string[] }>>([])
   const [peopleOff, setPeopleOff] = useState<Array<{ name: string; type: 'vacation' | 'single' }>>([])
   const [peopleSick, setPeopleSick] = useState<string[]>([])
   const [todaysMeal, setTodaysMeal] = useState<string>('')
@@ -137,22 +137,29 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       
       const todaysAssignments = assignments.filter(a => a.date === today)
       
-      const employeeTasksMap: Record<string, Array<{ roleName: string; roleColor: string }>> = {}
+      const taskPeopleMap: Record<string, { color: string; people: string[] }> = {}
       
       todaysAssignments.forEach(assignment => {
         const role = roles.find(r => r.id === assignment.roleId)
-        if (!employeeTasksMap[assignment.employeeName]) {
-          employeeTasksMap[assignment.employeeName] = []
+        const roleName = role?.name || 'Unknown'
+        const roleColor = role?.color || 'gray'
+        
+        if (!taskPeopleMap[roleName]) {
+          taskPeopleMap[roleName] = {
+            color: roleColor,
+            people: []
+          }
         }
-        employeeTasksMap[assignment.employeeName].push({
-          roleName: role?.name || 'Unknown',
-          roleColor: role?.color || 'gray'
-        })
+        
+        if (!taskPeopleMap[roleName].people.includes(assignment.employeeName)) {
+          taskPeopleMap[roleName].people.push(assignment.employeeName)
+        }
       })
       
-      const teamTasksList = Object.entries(employeeTasksMap).map(([name, tasks]) => ({
-        name,
-        tasks
+      const teamTasksList = Object.entries(taskPeopleMap).map(([taskName, data]) => ({
+        taskName,
+        taskColor: data.color,
+        people: data.people
       }))
       
       setTeamTasks(teamTasksList)
@@ -682,21 +689,22 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noTasks}</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-                {teamTasks.map((member, idx) => (
-                  <div key={idx} className="flex flex-col gap-1 p-3 bg-muted/30 rounded-md">
+                {teamTasks.map((task, idx) => (
+                  <div key={idx} className="flex flex-col gap-2 p-3 bg-muted/30 rounded-md">
                     <div className="flex items-center gap-2 mb-1">
-                      <User size={14} className="text-muted-foreground" />
-                      <span className="text-xs md:text-sm font-medium text-foreground">{member.name}</span>
+                      <Badge
+                        className="text-white text-sm font-semibold"
+                        style={{ backgroundColor: task.taskColor }}
+                      >
+                        {task.taskName}
+                      </Badge>
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {member.tasks.map((task, taskIdx) => (
-                        <Badge
-                          key={taskIdx}
-                          className="text-white text-xs"
-                          style={{ backgroundColor: task.roleColor }}
-                        >
-                          {task.roleName}
-                        </Badge>
+                    <div className="flex flex-col gap-1">
+                      {task.people.map((person, personIdx) => (
+                        <div key={personIdx} className="flex items-center gap-2">
+                          <User size={14} className="text-muted-foreground" />
+                          <span className="text-xs md:text-sm text-foreground">{person}</span>
+                        </div>
                       ))}
                     </div>
                   </div>
