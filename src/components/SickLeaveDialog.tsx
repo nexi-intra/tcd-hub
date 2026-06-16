@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 
 interface SickLeaveDialogProps {
   open: boolean
@@ -44,6 +45,33 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [sickLeaveType, setSickLeaveType] = useState<'self' | 'child'>('self')
   const { t } = useLanguage()
+
+  const initialReason = editEntry?.reason || ''
+  const initialDate = editEntry ? format(new Date(editEntry.startDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+  const initialEmail = editEntry?.userEmail || userEmail
+  const initialType = editEntry?.type || 'self'
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!open) return false
+    return (
+      reason !== initialReason ||
+      selectedDate !== initialDate ||
+      selectedUserEmail !== initialEmail ||
+      sickLeaveType !== initialType
+    )
+  }, [reason, selectedDate, selectedUserEmail, sickLeaveType, initialReason, initialDate, initialEmail, initialType, open])
+
+  useUnsavedChanges({
+    hasUnsavedChanges,
+    onConfirmedExit: () => {
+      setReason('')
+      setSelectedDate('')
+      setSelectedUserEmail('')
+      setSickLeaveType('self')
+      onOpenChange(false)
+    },
+    enabled: open
+  })
 
   useEffect(() => {
     const fetchUsers = async () => {

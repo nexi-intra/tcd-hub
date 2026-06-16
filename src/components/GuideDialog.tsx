@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import { fileStorage } from '@/lib/fileStorage'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 
 interface GuideDialogProps {
   open: boolean
@@ -43,6 +44,26 @@ export function GuideDialog({ open, onOpenChange, onSave, onBulkSave, editGuide,
   const [isProcessing, setIsProcessing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!open) return false
+    if (uploadedFiles.length > 0) return true
+    if (title.trim() !== '' || content.trim() !== '' || tags.trim() !== '') return true
+    return false
+  }, [title, content, tags, uploadedFiles, open])
+
+  useUnsavedChanges({
+    hasUnsavedChanges,
+    onConfirmedExit: () => {
+      setTitle('')
+      setCategory(categories[0] || 'General')
+      setContent('')
+      setTags('')
+      setUploadedFiles([])
+      onOpenChange(false)
+    },
+    enabled: open
+  })
 
   useEffect(() => {
     if (editGuide) {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,6 +8,7 @@ import { PaperPlaneTilt, Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 
 interface VacationEntry {
   id: string
@@ -33,6 +34,21 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
   const { t } = useLanguage()
+
+  const hasUnsavedChanges = useMemo(() => {
+    return startDate !== '' || endDate !== '' || notes.trim() !== ''
+  }, [startDate, endDate, notes])
+
+  useUnsavedChanges({
+    hasUnsavedChanges,
+    onConfirmedExit: () => {
+      setStartDate('')
+      setEndDate('')
+      setNotes('')
+      setOpen(false)
+    },
+    enabled: open
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
