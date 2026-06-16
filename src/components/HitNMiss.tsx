@@ -23,7 +23,7 @@ type GameState = 'menu' | 'countdown' | 'playing' | 'ended'
 const DIFFICULTY_SETTINGS = {
   easy: {
     lifetime: 3000,
-    targetSize: 280,
+    targetSize: 100,
     label: { en: 'Easy', da: 'Let' },
     description: { en: '3s per target', da: '3s per mål' },
     icon: Speedometer,
@@ -34,7 +34,7 @@ const DIFFICULTY_SETTINGS = {
   },
   medium: {
     lifetime: 2000,
-    targetSize: 240,
+    targetSize: 100,
     label: { en: 'Medium', da: 'Mellem' },
     description: { en: '2s per target', da: '2s per mål' },
     icon: Lightning,
@@ -516,18 +516,18 @@ export function HitNMiss() {
                 style={{
                   left: `${target.position.x}px`,
                   top: `${target.position.y}px`,
-                  width: `${DIFFICULTY_SETTINGS[difficulty].targetSize}px`,
-                  height: `${DIFFICULTY_SETTINGS[difficulty].targetSize}px`,
+                  width: '100px',
+                  height: '100px',
                   cursor: 'pointer'
                 }}
               >
                 <div className="relative w-full h-full">
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-destructive via-red-500 to-destructive/80 animate-ping opacity-30" />
-                  <div className="absolute inset-0 rounded-full border-8 border-destructive bg-gradient-to-br from-card via-white to-card shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
-                    <div className="absolute inset-[15%] rounded-full border-8 border-destructive/50" />
-                    <div className="absolute inset-[30%] rounded-full border-8 border-destructive/70" />
-                    <div className="absolute inset-[45%] rounded-full border-8 border-destructive bg-gradient-to-br from-destructive/20 to-destructive/30" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[8%] h-[8%] rounded-full bg-gradient-to-br from-destructive to-red-600 shadow-lg" />
+                  <div className="absolute inset-0 rounded-full border-[6px] border-destructive bg-gradient-to-br from-card via-white to-card shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
+                    <div className="absolute rounded-full border-[5px] border-destructive/50" style={{ inset: '15px' }} />
+                    <div className="absolute rounded-full border-[4px] border-destructive/70" style={{ inset: '28px' }} />
+                    <div className="absolute rounded-full border-[3px] border-destructive bg-gradient-to-br from-destructive/20 to-destructive/30" style={{ inset: '40px' }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full bg-gradient-to-br from-destructive to-red-600 shadow-lg" />
                   </div>
                 </div>
               </div>
