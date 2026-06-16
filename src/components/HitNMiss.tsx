@@ -45,7 +45,7 @@ const DIFFICULTY_SETTINGS = {
   },
   hard: {
     lifetime: 1000,
-    targetSize: 180,
+    targetSize: 100,
     label: { en: 'Hard', da: 'Svær' },
     description: { en: '1s per target', da: '1s per mål' },
     icon: Fire,
