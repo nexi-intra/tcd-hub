@@ -90,11 +90,12 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     easy: Array<{ email: string; score: number; timestamp: number }>
     medium: Array<{ email: string; score: number; timestamp: number }>
     hard: Array<{ email: string; score: number; timestamp: number }>
+    expert: Array<{ email: string; score: number; timestamp: number }>
   } | null>(null)
-  const [editingScore, setEditingScore] = useState<{ difficulty: 'easy' | 'medium' | 'hard'; email: string; score: number } | null>(null)
+  const [editingScore, setEditingScore] = useState<{ difficulty: 'easy' | 'medium' | 'hard' | 'expert'; email: string; score: number } | null>(null)
   const [isEditScoreDialogOpen, setIsEditScoreDialogOpen] = useState(false)
   const [newScore, setNewScore] = useState('')
-  const [gamePlayCounts, setGamePlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard', number>> | null>(null)
+  const [gamePlayCounts, setGamePlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -751,15 +752,16 @@ Return ONLY a JSON object with this exact structure:
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; timestamp: number }>
     }>('hit-n-miss-global-leaderboard')
     
-    setGameLeaderboard(leaderboard || { easy: [], medium: [], hard: [] })
+    setGameLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
     
-    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard', number>>>('hit-n-miss-play-counts')
+    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('hit-n-miss-play-counts')
     setGamePlayCounts(playCounts || {})
   }
 
-  const openEditScoreDialog = (difficulty: 'easy' | 'medium' | 'hard', email: string, score: number) => {
+  const openEditScoreDialog = (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string, score: number) => {
     setEditingScore({ difficulty, email, score })
     setNewScore(score.toString())
     setIsEditScoreDialogOpen(true)
@@ -778,6 +780,7 @@ Return ONLY a JSON object with this exact structure:
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; timestamp: number }>
     }>('hit-n-miss-global-leaderboard')
 
     if (!leaderboard) {
@@ -786,7 +789,7 @@ Return ONLY a JSON object with this exact structure:
     }
 
     const board = leaderboard[editingScore.difficulty]
-    const entryIndex = board.findIndex(entry => entry.email === editingScore.email)
+    const entryIndex = board.findIndex((entry: { email: string; score: number; timestamp: number }) => entry.email === editingScore.email)
     
     if (entryIndex !== -1) {
       board[entryIndex] = {
@@ -795,7 +798,7 @@ Return ONLY a JSON object with this exact structure:
         timestamp: Date.now()
       }
       
-      board.sort((a, b) => b.score - a.score)
+      board.sort((a: { score: number }, b: { score: number }) => b.score - a.score)
       
       const updatedLeaderboard = {
         ...leaderboard,
@@ -814,16 +817,17 @@ Return ONLY a JSON object with this exact structure:
     }
   }
 
-  const deleteScore = async (difficulty: 'easy' | 'medium' | 'hard', email: string) => {
+  const deleteScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
     const leaderboard = await window.spark.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; timestamp: number }>
     }>('hit-n-miss-global-leaderboard')
 
     if (!leaderboard) return
 
-    leaderboard[difficulty] = leaderboard[difficulty].filter(entry => entry.email !== email)
+    leaderboard[difficulty] = leaderboard[difficulty].filter((entry: { email: string }) => entry.email !== email)
     
     await window.spark.kv.set('hit-n-miss-global-leaderboard', leaderboard)
     await loadGameLeaderboard()
@@ -1716,6 +1720,10 @@ Return ONLY a JSON object with this exact structure:
                                 <div className="text-xs text-muted-foreground mb-1">Svær</div>
                                 <div className="font-bold text-red-600">{counts.hard || 0}</div>
                               </div>
+                              <div className="p-2 rounded bg-purple-500/10 border border-purple-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Ekspert</div>
+                                <div className="font-bold text-purple-600">{counts.expert || 0}</div>
+                              </div>
                             </div>
                           </motion.div>
                         )
@@ -1743,12 +1751,13 @@ Return ONLY a JSON object with this exact structure:
                 </div>
               ) : (
                 <div className="space-y-8">
-                  {(['easy', 'medium', 'hard'] as const).map((difficulty) => {
+                  {(['easy', 'medium', 'hard', 'expert'] as const).map((difficulty) => {
                     const board = gameLeaderboard[difficulty] || []
                     const difficultyLabels = {
                       easy: { da: 'Let', color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/30' },
                       medium: { da: 'Mellem', color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
-                      hard: { da: 'Svær', color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/30' }
+                      hard: { da: 'Svær', color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/30' },
+                      expert: { da: 'Ekspert', color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/30' }
                     }
                     const setting = difficultyLabels[difficulty]
 
