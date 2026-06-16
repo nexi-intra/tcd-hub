@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@github/spark/hooks'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useTeamData } from '@/hooks/useAppData'
 
 interface Position {
   x: number
@@ -42,7 +43,8 @@ const DIFFICULTY_SETTINGS = {
     color: 'text-green-500',
     bgGradient: 'from-green-500/20 to-green-600/20',
     borderColor: 'border-green-500/30',
-    glowColor: 'shadow-green-500/20'
+    glowColor: 'shadow-green-500/20',
+    missPenalty: 20
   },
   medium: {
     lifetime: 2000,
@@ -53,7 +55,8 @@ const DIFFICULTY_SETTINGS = {
     color: 'text-yellow-500',
     bgGradient: 'from-yellow-500/20 to-yellow-600/20',
     borderColor: 'border-yellow-500/30',
-    glowColor: 'shadow-yellow-500/20'
+    glowColor: 'shadow-yellow-500/20',
+    missPenalty: 30
   },
   hard: {
     lifetime: 1000,
@@ -64,7 +67,8 @@ const DIFFICULTY_SETTINGS = {
     color: 'text-red-500',
     bgGradient: 'from-red-500/20 to-red-600/20',
     borderColor: 'border-red-500/30',
-    glowColor: 'shadow-red-500/20'
+    glowColor: 'shadow-red-500/20',
+    missPenalty: 50
   }
 }
 
@@ -81,6 +85,7 @@ interface HitNMissProps {
 
 export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}) {
   const { language } = useLanguage()
+  const { employees } = useTeamData()
   const [gameMode, setGameMode] = useState<GameMode>('practice')
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [gameState, setGameState] = useState<GameState>('menu')
@@ -104,6 +109,11 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
   const targetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const getDisplayName = (email: string) => {
+    const employee = employees.find(emp => emp.email === email)
+    return employee ? employee.fullName : email.split('@')[0]
+  }
 
   const getCurrentHighScore = () => {
     if (gameMode === 'timer') {
@@ -208,9 +218,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
     const targetLifetime = DIFFICULTY_SETTINGS[difficulty].lifetime
 
     targetTimeoutRef.current = setTimeout(() => {
-      console.log('Target expired - miss!')
-      setMisses(prev => prev + 1)
-      setScore(prev => Math.max(0, prev - 1))
+      console.log('Target expired - no penalty')
       setHitStreak(0)
       spawnTarget()
     }, targetLifetime)
@@ -240,7 +248,8 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
   const handleMissClick = () => {
     console.log('Clicked outside target - miss!')
     setMisses(prev => prev + 1)
-    setScore(prev => Math.max(0, prev - 1))
+    const penalty = DIFFICULTY_SETTINGS[difficulty].missPenalty
+    setScore(prev => Math.max(0, prev - penalty))
     setHitStreak(0)
   }
 
@@ -569,22 +578,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
               `
             }}
           >
-            {showStreakBonus && (
-              <div className="absolute top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-300">
-                <div className="text-center px-4 py-2 rounded-lg bg-gradient-to-r from-accent via-primary to-accent shadow-xl border-2 border-accent/30">
-                  <div className="text-xs font-bold text-accent-foreground uppercase tracking-wider flex items-center gap-1.5 justify-center">
-                    <Flame size={16} weight="fill" />
-                    {language === 'da' ? 'Bonus' : 'Bonus'}
-                  </div>
-                  <div className="text-3xl font-bold text-accent-foreground">
-                    +{showStreakBonus.amount}
-                  </div>
-                  <div className="text-xs text-accent-foreground/90">
-                    {showStreakBonus.milestone}x {language === 'da' ? 'serie!' : 'combo!'}
-                  </div>
-                </div>
-              </div>
-            )}
+
             
             {target && (
               <div
@@ -733,7 +727,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
                               <div className={`text-sm font-medium truncate ${
                                 isCurrentUser ? 'text-primary font-bold' : 'text-foreground'
                               }`}>
-                                {entry.email.split('@')[0]}
+                                {getDisplayName(entry.email)}
                                 {isCurrentUser && ' (You)'}
                               </div>
                             </div>
@@ -759,7 +753,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-bold text-primary truncate">
-                                {userEmail.split('@')[0]} (You)
+                                {getDisplayName(userEmail)} (You)
                               </div>
                             </div>
                             <div className="text-lg font-bold text-primary">
