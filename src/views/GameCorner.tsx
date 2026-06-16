@@ -177,16 +177,26 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
     if (!gameAreaRef.current || gameState !== 'playing') return
 
     const area = gameAreaRef.current
-    const areaWidth = area.offsetWidth
-    const areaHeight = area.offsetHeight
-    const margin = config.targetSize / 2 + 10
+    const areaRect = area.getBoundingClientRect()
+    const areaWidth = areaRect.width
+    const areaHeight = areaRect.height
+    const margin = config.targetSize / 2 + 20
     
-    const x = Math.random() * (areaWidth - margin * 2) + margin
-    const y = Math.random() * (areaHeight - margin * 2) + margin
+    const maxX = areaWidth - margin * 2
+    const maxY = areaHeight - margin * 2
+    
+    const x = Math.random() * maxX + margin
+    const y = Math.random() * maxY + margin
     
     const targetId = nextTargetId.current++
     
-    console.log('🎯 Spawn target:', { id: targetId, x: Math.round(x), y: Math.round(y) })
+    console.log('🎯 Spawn target:', { 
+      id: targetId, 
+      x: Math.round(x), 
+      y: Math.round(y),
+      areaSize: { width: Math.round(areaWidth), height: Math.round(areaHeight) },
+      targetSize: config.targetSize
+    })
     
     setTarget({ x, y, id: targetId })
     
@@ -400,27 +410,30 @@ function FastClicksGame({ onBack, onNavigateBack }: { onBack: () => void; onNavi
                       <div
                         ref={gameAreaRef}
                         onClick={handleMissClick}
-                        className="relative w-full h-[400px] bg-gradient-to-br from-muted/50 to-muted/20 rounded-xl border-2 border-border overflow-hidden cursor-crosshair"
+                        className="relative w-full h-[400px] bg-gradient-to-br from-muted/50 to-muted/20 rounded-xl border-2 border-border cursor-crosshair"
+                        style={{ position: 'relative', overflow: 'visible' }}
                       >
                         {target && (
                           <motion.button
                             key={target.id}
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
                             onClick={(e) => {
                               e.stopPropagation()
                               handleTargetClick(target.id)
                             }}
                             style={{
                               position: 'absolute',
-                              left: target.x - config.targetSize / 2,
-                              top: target.y - config.targetSize / 2,
-                              width: config.targetSize,
-                              height: config.targetSize,
-                              zIndex: 50,
+                              left: `${target.x}px`,
+                              top: `${target.y}px`,
+                              width: `${config.targetSize}px`,
+                              height: `${config.targetSize}px`,
+                              transform: 'translate(-50%, -50%)',
+                              zIndex: 100,
                             }}
-                            className={`rounded-full bg-gradient-to-br ${config.color} hover:opacity-80 shadow-2xl cursor-pointer transition-opacity flex items-center justify-center border-4 border-white`}
+                            className={`rounded-full bg-gradient-to-br ${config.color} hover:scale-110 shadow-2xl cursor-pointer transition-transform flex items-center justify-center border-4 border-white`}
                           >
                             <Target size={config.targetSize * 0.5} weight="bold" className="text-white" />
                           </motion.button>
