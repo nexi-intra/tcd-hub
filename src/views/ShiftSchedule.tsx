@@ -743,19 +743,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                   todayDate && sickLeave && "bg-red-100 ring-2 ring-red-300",
                   todayDate && vacation && "bg-blue-100 ring-2 ring-blue-300"
                 )}
-                style={{
-                  backgroundColor: sickLeave 
-                    ? undefined 
-                    : vacation
-                    ? undefined
-                    : `color-mix(in oklch, ${employeeColor.bg} 15%, transparent)`,
-                  ...(currentWeek && !sickLeave && !vacation && { 
-                    boxShadow: `inset 0 0 0 1px ${employeeColor.bg}` 
-                  }),
-                  ...(todayDate && !sickLeave && !vacation && { 
-                    boxShadow: `inset 0 0 0 2px ${employeeColor.bg}` 
-                  })
-                }}
               >
                 <div className="space-y-2">
                   {vacation && (
@@ -1167,18 +1154,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                     style={{
                                       width: '120px',
                                       minWidth: '120px',
-                                      maxWidth: '120px',
-                                      backgroundColor: sickLeave 
-                                        ? undefined 
-                                        : vacation
-                                        ? undefined
-                                        : `color-mix(in oklch, ${employeeColor.bg} 12%, transparent)`,
-                                      ...(currentWeek && !sickLeave && !vacation && { 
-                                        boxShadow: `inset 0 0 0 1px ${employeeColor.bg}` 
-                                      }),
-                                      ...(todayDate && !sickLeave && !vacation && { 
-                                        boxShadow: `inset 0 0 0 2px ${employeeColor.bg}` 
-                                      })
+                                      maxWidth: '120px'
                                     }}
                                   >
                                     <div className="space-y-1.5 min-h-[60px]">
