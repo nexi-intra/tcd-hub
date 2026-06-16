@@ -706,7 +706,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           className="mb-10"
         >
           <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300 mb-4 md:mb-6">
-            <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+            <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
               <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]">
                 <Users size={20} weight="duotone" className="text-white md:hidden" />
                 <Users size={24} weight="duotone" className="text-white hidden md:block" />
@@ -716,36 +716,66 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             {teamTasks.length === 0 ? (
               <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noTasks}</p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
                 {teamTasks.map((task, idx) => (
-                  <div key={idx} className={cn(
-                    "flex flex-col gap-2 p-3 rounded-md",
-                    task.people.length === 0 ? "bg-amber-50 border-2 border-amber-400" : "bg-muted/30"
-                  )}>
-                    <div className="flex items-center gap-2 mb-1">
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className={cn(
+                      "flex flex-col gap-3 p-4 rounded-xl border-2 shadow-sm transition-all duration-300",
+                      task.people.length === 0 
+                        ? "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-400 dark:from-amber-950/40 dark:to-amber-900/30 dark:border-amber-600" 
+                        : "bg-gradient-to-br from-card to-muted/30 border-border hover:border-primary/30 hover:shadow-md"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2 pb-2 border-b-2 border-dashed"
+                      style={{ borderColor: task.taskColor + '40' }}
+                    >
                       <Badge
-                        className="text-white text-sm font-semibold"
-                        style={{ backgroundColor: task.taskColor }}
+                        className="text-white text-xs md:text-sm font-bold px-3 py-1 shadow-sm"
+                        style={{ 
+                          backgroundColor: task.taskColor,
+                          boxShadow: `0 2px 8px ${task.taskColor}40`
+                        }}
                       >
                         {task.taskName}
                       </Badge>
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
+                        style={{ backgroundColor: task.taskColor }}
+                      >
+                        {task.people.length}
+                      </div>
                     </div>
                     {task.people.length === 0 ? (
-                      <div className="flex items-center gap-2 text-amber-700">
-                        <Warning size={16} weight="fill" />
-                        <span className="text-xs md:text-sm font-medium">{language === 'da' ? 'Ingen tildelt' : 'No one assigned'}</span>
+                      <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 py-2 justify-center">
+                        <Warning size={18} weight="fill" />
+                        <span className="text-xs md:text-sm font-semibold">{language === 'da' ? 'Ingen tildelt' : 'No one assigned'}</span>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-2">
                         {task.people.map((person, personIdx) => (
-                          <div key={personIdx} className="flex items-center gap-2">
-                            <User size={14} className="text-muted-foreground" />
-                            <span className="text-xs md:text-sm text-foreground">{person}</span>
-                          </div>
+                          <motion.div
+                            key={personIdx}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 + personIdx * 0.05 }}
+                            className="flex items-center gap-2 p-2 rounded-lg bg-background/60 hover:bg-background transition-colors duration-200"
+                          >
+                            <div 
+                              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                              style={{ backgroundColor: task.taskColor }}
+                            >
+                              {person.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-xs md:text-sm text-foreground font-medium truncate">{person}</span>
+                          </motion.div>
                         ))}
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             )}
