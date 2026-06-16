@@ -207,6 +207,15 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
     }, targetLifetime)
   }
 
+  const calculateComboMultiplier = (streak: number): number => {
+    if (streak < 3) return 1
+    if (streak < 5) return 1.5
+    if (streak < 10) return 2
+    if (streak < 15) return 2.5
+    if (streak < 20) return 3
+    return 3.5
+  }
+
   const handleTargetClick = () => {
     console.log('Target hit!')
     if (targetTimeoutRef.current) {
@@ -221,8 +230,10 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
     }
     
     const basePoints = 10
+    const multiplier = calculateComboMultiplier(newStreak)
+    const pointsWithMultiplier = Math.round(basePoints * multiplier)
     const streakBonus = checkStreakBonus(newStreak)
-    const totalPoints = basePoints + streakBonus
+    const totalPoints = pointsWithMultiplier + streakBonus
     
     setScore(prev => prev + totalPoints)
     spawnTarget()
@@ -462,6 +473,11 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
                     <div className={`text-4xl font-black drop-shadow-lg transition-all ${hitStreak >= 10 ? 'text-yellow-300 scale-110' : hitStreak >= 5 ? 'text-yellow-400' : 'text-yellow-500'}`}>
                       {hitStreak}x
                     </div>
+                    {hitStreak >= 3 && (
+                      <div className="text-[10px] text-accent font-bold mt-1 text-center">
+                        {calculateComboMultiplier(hitStreak)}x {language === 'da' ? 'point' : 'points'}
+                      </div>
+                    )}
                   </div>
                 </div>
                 
