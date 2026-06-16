@@ -892,7 +892,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                         : "bg-gradient-to-br from-card to-muted/30 border-border hover:border-primary/30 hover:shadow-md"
                     )}
                   >
-                    <div className="flex items-center justify-between gap-2 pb-2 border-b-2"
+                    <div className="flex items-center justify-center gap-2 pb-2 border-b-2 relative"
                       style={{ borderColor: task.taskColor + '40' }}
                     >
                       <Badge
@@ -904,7 +904,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                       >
                         {task.taskName}
                       </Badge>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 absolute right-0">
                         <div 
                           className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
                           style={{ backgroundColor: task.taskColor }}
