@@ -75,6 +75,9 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [hasAccess, setHasAccess] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [newName, setNewName] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [newPhone, setNewPhone] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [newUserName, setNewUserName] = useState('')
@@ -212,9 +215,15 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     }
   }
 
-  const openEditNameDialog = (user: User) => {
+  const openEditNameDialog = async (user: User) => {
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
+    const userData = usersData?.[user.email]
+    
     setEditingUser(user)
     setNewName(user.fullName)
+    setNewEmail(user.email)
+    setNewPhone(userData?.phone || '')
+    setNewPassword('')
     setIsEditDialogOpen(true)
   }
 
@@ -224,16 +233,54 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
-    if (usersData && usersData[editingUser.email]) {
-      usersData[editingUser.email].fullName = newName.trim()
-      await window.spark.kv.set('users', usersData)
-      await loadUsers()
-      setIsEditDialogOpen(false)
-      setEditingUser(null)
-      setNewName('')
-      toast.success('Navn opdateret')
+    if (!newEmail.trim()) {
+      toast.error('Email kan ikke være tom')
+      return
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(newEmail.trim())) {
+      toast.error('Ugyldig email adresse')
+      return
+    }
+
+    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
+    if (!usersData || !usersData[editingUser.email]) {
+      toast.error('Bruger ikke fundet')
+      return
+    }
+
+    const userData = usersData[editingUser.email]
+
+    if (newPassword && newPassword.length < 6) {
+      toast.error('Adgangskode skal være mindst 6 tegn')
+      return
+    }
+
+    const updatedUserData = {
+      ...userData,
+      fullName: newName.trim(),
+      email: newEmail.trim(),
+      phone: newPhone.trim() || userData.phone,
+      password: newPassword.trim() || userData.password,
+    }
+
+    if (newEmail.trim().toLowerCase() !== editingUser.email.toLowerCase()) {
+      delete usersData[editingUser.email]
+      usersData[newEmail.trim().toLowerCase()] = updatedUserData
+    } else {
+      usersData[editingUser.email] = updatedUserData
+    }
+
+    await window.spark.kv.set('users', usersData)
+    await loadUsers()
+    setIsEditDialogOpen(false)
+    setEditingUser(null)
+    setNewName('')
+    setNewEmail('')
+    setNewPhone('')
+    setNewPassword('')
+    toast.success('Bruger opdateret succesfuldt')
   }
 
   const handleCreateUser = async () => {
@@ -1744,16 +1791,16 @@ Return ONLY a JSON object with this exact structure:
       </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Rediger brugernavn</DialogTitle>
+            <DialogTitle>Rediger bruger</DialogTitle>
             <DialogDescription>
-              Ændre navnet på brugeren {editingUser?.email}
+              Rediger information for brugeren {editingUser?.email}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="user-name">Fulde navn</Label>
+              <Label htmlFor="user-name">Fulde navn *</Label>
               <Input
                 id="user-name"
                 value={newName}
@@ -1761,9 +1808,52 @@ Return ONLY a JSON object with this exact structure:
                 placeholder="Indtast fuldt navn"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-email">Email *</Label>
+              <Input
+                id="user-email"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="f.eks. jacob@nexigroup.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-phone">Telefon nummer</Label>
+              <div className="flex gap-2">
+                <Phone size={20} className="text-muted-foreground mt-2.5" />
+                <Input
+                  id="user-phone"
+                  type="tel"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="f.eks. +45 12 34 56 78"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-password">Ny adgangskode (valgfri)</Label>
+              <Input
+                id="user-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Lad være tom for at beholde nuværende"
+              />
+              {newPassword && newPassword.length > 0 && newPassword.length < 6 && (
+                <p className="text-xs text-destructive">Adgangskode skal være mindst 6 tegn</p>
+              )}
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setIsEditDialogOpen(false)
+              setEditingUser(null)
+              setNewName('')
+              setNewEmail('')
+              setNewPhone('')
+              setNewPassword('')
+            }}>
               Annuller
             </Button>
             <Button onClick={handleSaveUserName}>

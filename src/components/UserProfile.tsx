@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { SignOut, User, UserGear, Gear } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 
 interface UserProfileProps {
@@ -29,33 +28,51 @@ interface UserProfileProps {
   hideEmail?: boolean
 }
 
-interface UserSettings {
-  phoneNumber?: string
-  password?: string
+interface UserData {
+  email: string
+  password: string
+  fullName: string
+  phone?: string
+  isManager?: boolean
 }
 
 export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hideEmail = false }: UserProfileProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [userSettings, setUserSettings] = useKV<Record<string, UserSettings>>('user-settings', {})
   const [phoneNumber, setPhoneNumber] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  const handleOpenSettings = () => {
-    const settings = (userSettings || {})[userEmail] || {}
-    setPhoneNumber(settings.phoneNumber || '')
+  const handleOpenSettings = async () => {
+    const usersData = (await window.spark.kv.get<Record<string, UserData>>('users')) || {}
+    const userData = usersData[userEmail]
+    
+    if (userData) {
+      setPhoneNumber(userData.phone || '')
+    }
+    
     setCurrentPassword('')
     setNewPassword('')
     setConfirmPassword('')
     setSettingsOpen(true)
   }
 
-  const handleSaveSettings = () => {
-    const currentSettings = (userSettings || {})[userEmail] || {}
+  const handleSaveSettings = async () => {
+    const usersData = (await window.spark.kv.get<Record<string, UserData>>('users')) || {}
+    const userData = usersData[userEmail]
+
+    if (!userData) {
+      toast.error('Bruger ikke fundet')
+      return
+    }
 
     if (newPassword) {
-      if (currentSettings.password && currentSettings.password !== currentPassword) {
+      if (!currentPassword) {
+        toast.error('Indtast nuværende adgangskode')
+        return
+      }
+
+      if (userData.password !== currentPassword) {
         toast.error('Nuværende adgangskode er forkert')
         return
       }
@@ -69,18 +86,27 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
         toast.error('Adgangskoderne stemmer ikke overens')
         return
       }
+
+      usersData[userEmail] = {
+        ...userData,
+        password: newPassword,
+        phone: phoneNumber || userData.phone,
+      }
+
+      await window.spark.kv.set('users', usersData)
+      toast.success('Adgangskode opdateret succesfuldt')
+    } else if (phoneNumber !== userData.phone) {
+      usersData[userEmail] = {
+        ...userData,
+        phone: phoneNumber,
+      }
+
+      await window.spark.kv.set('users', usersData)
+      toast.success('Indstillinger opdateret')
+    } else {
+      toast.info('Ingen ændringer foretaget')
     }
 
-    setUserSettings((current) => ({
-      ...(current || {}),
-      [userEmail]: {
-        ...currentSettings,
-        phoneNumber: phoneNumber || currentSettings.phoneNumber,
-        password: newPassword || currentSettings.password,
-      },
-    }))
-
-    toast.success('Indstillinger opdateret')
     setSettingsOpen(false)
   }
 
@@ -155,17 +181,15 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium mb-4">Skift adgangskode</h4>
               <div className="space-y-4">
-                {(userSettings || {})[userEmail]?.password && (
-                  <div className="space-y-2">
-                    <Label htmlFor="current-password">Nuværende adgangskode</Label>
-                    <Input
-                      id="current-password"
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                    />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="current-password">Nuværende adgangskode</Label>
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="new-password">Ny adgangskode</Label>
                   <Input
