@@ -523,11 +523,11 @@ export function HitNMiss() {
               >
                 <div className="relative w-full h-full">
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-destructive via-red-500 to-destructive/80 animate-ping opacity-30" />
-                  <div className="absolute inset-0 rounded-full border-4 border-destructive bg-gradient-to-br from-card via-white to-card shadow-2xl flex items-center justify-center hover:scale-110 transition-transform">
-                    <div className="absolute inset-2 rounded-full border-4 border-destructive/40" />
-                    <div className="absolute inset-4 rounded-full border-4 border-destructive/60" />
-                    <div className="absolute inset-6 rounded-full border-4 border-destructive/80 bg-gradient-to-br from-destructive/5 to-destructive/10" />
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-destructive to-red-600 shadow-lg" />
+                  <div className="absolute inset-0 rounded-full border-8 border-destructive bg-gradient-to-br from-card via-white to-card shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
+                    <div className="absolute inset-[15%] rounded-full border-8 border-destructive/50" />
+                    <div className="absolute inset-[30%] rounded-full border-8 border-destructive/70" />
+                    <div className="absolute inset-[45%] rounded-full border-8 border-destructive bg-gradient-to-br from-destructive/20 to-destructive/30" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[8%] h-[8%] rounded-full bg-gradient-to-br from-destructive to-red-600 shadow-lg" />
                   </div>
                 </div>
               </div>
