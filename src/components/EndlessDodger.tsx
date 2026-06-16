@@ -412,10 +412,8 @@ export function EndlessDodger({ userEmail }: { userEmail?: string }) {
     setGameState('countdown')
     
     countdownIntervalRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        const newCount = prev - 1
-        
-        if (newCount <= 0) {
+      setCountdown(prev => {
+        if (prev <= 1) {
           if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current)
             countdownIntervalRef.current = undefined
@@ -423,8 +421,7 @@ export function EndlessDodger({ userEmail }: { userEmail?: string }) {
           setGameState('playing')
           return 0
         }
-        
-        return newCount
+        return prev - 1
       })
     }, 1000)
   }
