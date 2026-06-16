@@ -612,11 +612,7 @@ Return ONLY a JSON object with this exact structure:
                               {dayVacations.slice(0, 3).map((vacation) => (
                                 <div
                                   key={vacation.id}
-                                  className="text-[10px] px-1 py-0.5 rounded truncate font-medium"
-                                  style={{ 
-                                    backgroundColor: getEmployeeColorByEmail(vacation.userEmail).bg,
-                                    color: getEmployeeColorByEmail(vacation.userEmail).text
-                                  }}
+                                  className="text-[10px] px-1 py-0.5 rounded truncate font-medium text-foreground"
                                   title={`${getFirstName(vacation.userEmail)}${vacation.notes ? ': ' + vacation.notes : ''}`}
                                 >
                                   {getFirstName(vacation.userEmail)}
