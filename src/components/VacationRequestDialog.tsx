@@ -257,9 +257,9 @@ Return ONLY a JSON object with this exact structure:
           <DialogTitle className="text-2xl font-bold">{t.vacationRequestDialog.title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Vælg periode</Label>
-            <div className="border border-input rounded-lg overflow-hidden bg-card">
+          <div className="space-y-2">
+            <Label>Vælg periode</Label>
+            <div className="flex justify-center">
               <Calendar
                 mode="range"
                 selected={dateRange}
@@ -268,6 +268,7 @@ Return ONLY a JSON object with this exact structure:
                 showWeekNumber
                 locale={da}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                className="rounded-md border"
               />
             </div>
             {dateRange?.from && (
@@ -283,18 +284,17 @@ Return ONLY a JSON object with this exact structure:
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes" className="text-base font-semibold">{t.vacationRequestDialog.comment}</Label>
+            <Label htmlFor="notes">{t.vacationRequestDialog.comment}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder={t.vacationRequestDialog.commentPlaceholder}
               rows={4}
-              className="resize-none"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
