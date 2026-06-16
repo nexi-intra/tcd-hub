@@ -82,36 +82,17 @@ function App() {
   const [lastActivity, setLastActivity] = useState(Date.now())
 
   useEffect(() => {
-    const validateStoredSession = async () => {
+    const clearSessionOnStart = async () => {
       try {
-        const storedToken = await window.spark.kv.get<string>('last-session-token')
-        
-        if (!storedToken) {
-          setIsCheckingAuth(false)
-          return
-        }
-
-        const validation = await validateSession(storedToken)
-        
-        if (validation.valid && validation.session) {
-          setUserSession({
-            userId: validation.session.userId,
-            email: validation.session.email,
-            token: validation.session.token,
-            expiresAt: validation.session.expiresAt
-          })
-        } else {
-          await window.spark.kv.delete('last-session-token')
-        }
-      } catch (error) {
-        console.error('Session validation error:', error)
         await window.spark.kv.delete('last-session-token')
+      } catch (error) {
+        console.error('Error clearing session:', error)
       }
       
       setIsCheckingAuth(false)
     }
     
-    validateStoredSession()
+    clearSessionOnStart()
   }, [])
 
   useEffect(() => {
@@ -151,10 +132,6 @@ function App() {
   const handleAuthenticated = async (userId: string, email: string, rememberMe: boolean) => {
     const token = await createSession(userId, email)
     const expiresAt = Date.now() + SESSION_DURATION
-    
-    if (rememberMe) {
-      await window.spark.kv.set('last-session-token', token)
-    }
     
     setUserSession({ userId, email, token, expiresAt })
     setLastActivity(Date.now())
