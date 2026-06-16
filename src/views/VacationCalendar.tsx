@@ -40,6 +40,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [isManager, setIsManager] = useState(false)
   const [usersData, setUsersData] = useState<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>({})
+  const [allTeamMembers, setAllTeamMembers] = useState<Array<{ email: string; name: string }>>([])
   const userEmail = propUserEmail
   const { t, language } = useLanguage()
 
@@ -57,6 +58,12 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
         if (users[userEmail]) {
           setIsManager(users[userEmail].isManager || false)
         }
+        
+        const teamList = Object.values(users).map(user => ({
+          email: user.email,
+          name: user.fullName
+        })).sort((a, b) => a.name.localeCompare(b.name))
+        setAllTeamMembers(teamList)
       }
     }
     if (userEmail) {
@@ -324,8 +331,6 @@ Return ONLY a JSON object with this exact structure:
     const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7)
   }
-
-  const uniqueUsers = Array.from(new Set((vacations || []).map(v => v.userEmail)))
 
   const myVacations = (vacations || []).filter(v => v.userEmail === userEmail && v.status !== 'rejected')
   const pendingRequests = (vacations || []).filter(v => v.status === 'pending' && v.userEmail !== userEmail)
@@ -702,25 +707,25 @@ Return ONLY a JSON object with this exact structure:
             </Tabs>
           </Card>
 
-          {uniqueUsers.length > 1 && (
+          {allTeamMembers.length > 1 && (
             <Card className="p-6 border-2">
               <h3 className="text-xl font-bold mb-4">Alle Team Medlemmer</h3>
               <div className="flex flex-wrap gap-3">
-                {uniqueUsers.map((email) => (
+                {allTeamMembers.map((member) => (
                   <div
-                    key={email}
+                    key={member.email}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-card"
                   >
                     <div
                       className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
                       style={{ 
-                        backgroundColor: getEmployeeColorByEmail(email).bg,
-                        color: getEmployeeColorByEmail(email).text
+                        backgroundColor: getEmployeeColorByEmail(member.email).bg,
+                        color: getEmployeeColorByEmail(member.email).text
                       }}
                     >
-                      {getFirstName(email).charAt(0).toUpperCase()}
+                      {member.name.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm font-medium">{getFirstName(email)}</span>
+                    <span className="text-sm font-medium">{member.name.split(' ')[0]}</span>
                   </div>
                 ))}
               </div>
