@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Target, Trophy, X, Timer, GraduationCap, Lightning, Speedometer, Fire, Crown, Flame, Medal, Star } from '@phosphor-icons/react'
+import { Target, Trophy, X, Timer, Lightning, Speedometer, Fire, Crown, Flame, Medal, Star } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@github/spark/hooks'
@@ -29,7 +29,6 @@ interface GlobalLeaderboard {
   hard: LeaderboardEntry[]
 }
 
-type GameMode = 'practice' | 'timer'
 type Difficulty = 'easy' | 'medium' | 'hard'
 type GameState = 'menu' | 'countdown' | 'playing' | 'ended'
 
@@ -86,7 +85,6 @@ interface HitNMissProps {
 export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}) {
   const { language } = useLanguage()
   const { employees } = useTeamData()
-  const [gameMode, setGameMode] = useState<GameMode>('practice')
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [gameState, setGameState] = useState<GameState>('menu')
   const [score, setScore] = useState(0)
@@ -97,9 +95,6 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
   const [countdown, setCountdown] = useState(COUNTDOWN_DURATION)
   const [target, setTarget] = useState<TargetData | null>(null)
   const [showStreakBonus, setShowStreakBonus] = useState<{ amount: number; milestone: number } | null>(null)
-  const [highScoreTimerEasy, setHighScoreTimerEasy] = useKV<number>('hit-n-miss-highscore-timer-easy', 0)
-  const [highScoreTimerMedium, setHighScoreTimerMedium] = useKV<number>('hit-n-miss-highscore-timer-medium', 0)
-  const [highScoreTimerHard, setHighScoreTimerHard] = useKV<number>('hit-n-miss-highscore-timer-hard', 0)
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('hit-n-miss-global-leaderboard', {
     easy: [],
     medium: [],
@@ -116,24 +111,12 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
   }
 
   const getCurrentHighScore = () => {
-    if (gameMode === 'timer') {
-      if (difficulty === 'easy') return highScoreTimerEasy || 0
-      if (difficulty === 'medium') return highScoreTimerMedium || 0
-      return highScoreTimerHard || 0
-    }
-    return 0
-  }
-
-  const updateHighScore = (newScore: number) => {
-    if (gameMode === 'timer') {
-      if (difficulty === 'easy') setHighScoreTimerEasy(newScore)
-      else if (difficulty === 'medium') setHighScoreTimerMedium(newScore)
-      else setHighScoreTimerHard(newScore)
-    }
+    const board = globalLeaderboard?.[difficulty] || []
+    return board.length > 0 ? board[0].score : 0
   }
 
   const updateGlobalLeaderboard = (newScore: number) => {
-    if (gameMode !== 'timer' || !userEmail) return
+    if (!userEmail) return
 
     setGlobalLeaderboard((currentLeaderboard) => {
       if (!currentLeaderboard) {
@@ -282,17 +265,15 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
     
     setTimeout(() => spawnTarget(), 500)
 
-    if (gameMode === 'timer') {
-      timerIntervalRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            endGame()
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-    }
+    timerIntervalRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          endGame()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
   }
 
   const endGame = () => {
@@ -305,10 +286,6 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
     setTarget(null)
     
     setScore((finalScore) => {
-      const currentHighScore = getCurrentHighScore()
-      if (finalScore > currentHighScore) {
-        updateHighScore(finalScore)
-      }
       updateGlobalLeaderboard(finalScore)
       return finalScore
     })
@@ -349,42 +326,21 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
               </p>
             </div>
           </div>
-          {gameMode === 'timer' && (
-            <div className="flex items-center gap-4">
-              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-accent/10 to-primary/10 border border-accent/20">
-                <div className="text-sm text-muted-foreground font-semibold">
-                  {language === 'da' ? 'Højeste score' : 'High Score'}
-                </div>
-                <div className="text-2xl font-bold text-primary flex items-center gap-2 justify-center mt-1">
-                  <Trophy size={24} weight="fill" className="text-accent" />
-                  {getCurrentHighScore()}
-                </div>
+          <div className="flex items-center gap-4">
+            <div className="text-center p-4 rounded-lg bg-gradient-to-br from-accent/10 to-primary/10 border border-accent/20">
+              <div className="text-sm text-muted-foreground font-semibold">
+                {language === 'da' ? 'Højeste score' : 'High Score'}
+              </div>
+              <div className="text-2xl font-bold text-primary flex items-center gap-2 justify-center mt-1">
+                <Trophy size={24} weight="fill" className="text-accent" />
+                {getCurrentHighScore()}
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {gameState === 'menu' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-center gap-4">
-              <Button 
-                onClick={() => setGameMode('practice')}
-                variant={gameMode === 'practice' ? 'default' : 'outline'}
-                className="flex items-center gap-2 min-w-[140px]"
-              >
-                <GraduationCap size={20} weight="bold" />
-                {language === 'da' ? 'Øvelse' : 'Practice'}
-              </Button>
-              <Button 
-                onClick={() => setGameMode('timer')}
-                variant={gameMode === 'timer' ? 'default' : 'outline'}
-                className="flex items-center gap-2 min-w-[140px]"
-              >
-                <Timer size={20} weight="bold" />
-                {language === 'da' ? '30 sekunder' : '30 seconds'}
-              </Button>
-            </div>
-
             <div className="space-y-3">
               <div className="text-center">
                 <p className="text-sm font-semibold text-muted-foreground mb-3">
@@ -433,13 +389,9 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
             
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-4">
-                {gameMode === 'practice' 
-                  ? (language === 'da' 
-                    ? 'Øv dig uden tidspres. Ingen highscore, kun træning!' 
-                    : 'Practice without time pressure. No highscore, just training!')
-                  : (language === 'da' 
-                    ? 'Du har 30 sekunder! Få den højeste score muligt.' 
-                    : 'You have 30 seconds! Get the highest score possible.')}
+                {language === 'da' 
+                  ? 'Du har 30 sekunder! Få den højeste score muligt.' 
+                  : 'You have 30 seconds! Get the highest score possible.'}
               </p>
               <Button onClick={startCountdown} size="lg" className="px-8 bg-gradient-to-r from-primary to-accent hover:opacity-90">
                 {language === 'da' ? 'Start spil' : 'Start Game'}
@@ -513,14 +465,13 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
                   </div>
                 </div>
                 
-                {gameMode === 'timer' && (
-                  <>
-                    <div className="h-14 w-[2px] bg-gradient-to-b from-transparent via-border to-transparent" />
-                    
-                    <div className="relative group">
-                      <div className={`absolute inset-0 blur-lg transition-opacity ${timeLeft <= 5 ? 'bg-destructive opacity-40' : 'bg-primary/20 opacity-20'}`} />
-                      <div className={`relative px-5 py-3 rounded-xl backdrop-blur-sm transition-all ${timeLeft <= 5 ? 'bg-gradient-to-br from-destructive/30 to-red-600/30 border-2 border-destructive shadow-lg shadow-destructive/30' : 'bg-gradient-to-br from-primary/20 to-primary/30 border-2 border-primary/40'}`}>
-                        <div className={`text-[10px] uppercase tracking-widest font-bold mb-1 flex items-center gap-1 ${timeLeft <= 5 ? 'text-destructive-foreground/90' : 'text-primary-foreground/70'}`}>
+                <>
+                  <div className="h-14 w-[2px] bg-gradient-to-b from-transparent via-border to-transparent" />
+                  
+                  <div className="relative group">
+                    <div className={`absolute inset-0 blur-lg transition-opacity ${timeLeft <= 5 ? 'bg-destructive opacity-40' : 'bg-primary/20 opacity-20'}`} />
+                    <div className={`relative px-5 py-3 rounded-xl backdrop-blur-sm transition-all ${timeLeft <= 5 ? 'bg-gradient-to-br from-destructive/30 to-red-600/30 border-2 border-destructive shadow-lg shadow-destructive/30' : 'bg-gradient-to-br from-primary/20 to-primary/30 border-2 border-primary/40'}`}>
+                      <div className={`text-[10px] uppercase tracking-widest font-bold mb-1 flex items-center gap-1 ${timeLeft <= 5 ? 'text-destructive-foreground/90' : 'text-primary-foreground/70'}`}>
                           <Timer size={12} weight="fill" className={timeLeft <= 5 ? 'animate-pulse' : ''} />
                           {language === 'da' ? 'Tid' : 'Time'}
                         </div>
@@ -530,7 +481,6 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
                       </div>
                     </div>
                   </>
-                )}
               </div>
               
               <Button 
@@ -628,7 +578,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
               </div>
             )}
           </div>
-          {gameMode === 'timer' && score > getCurrentHighScore() && (
+          {score > getCurrentHighScore() && (
             <p className="text-sm text-accent font-semibold mt-4 flex items-center gap-2 justify-center">
               <Trophy size={20} weight="fill" />
               {language === 'da' ? '🎉 Ny højeste score!' : '🎉 New high score!'}
