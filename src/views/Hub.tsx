@@ -179,7 +179,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         
         const userEmail = Object.keys(usersData).find(email => usersData[email]?.fullName === assignment.employeeName)
         
-        if (userEmail && (isSickToday(userEmail) || isOnVacationToday(userEmail))) {
+        if (!userEmail) {
+          return
+        }
+        
+        if (isSickToday(userEmail) || isOnVacationToday(userEmail)) {
           return
         }
         
@@ -394,7 +398,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         
         const userEmail = Object.keys(usersData).find(email => usersData[email]?.fullName === assignment.employeeName)
         
-        if (userEmail && (isSickToday(userEmail) || isOnVacationToday(userEmail))) {
+        if (!userEmail) {
+          return
+        }
+        
+        if (isSickToday(userEmail) || isOnVacationToday(userEmail)) {
           return
         }
         
