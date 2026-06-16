@@ -282,18 +282,20 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     const rect = gameAreaRef.current.getBoundingClientRect()
     setPlayerX((rect.width - PLAYER_SIZE) / 2)
     
+    let currentCount = COUNTDOWN_DURATION
+    
     countdownIntervalRef.current = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          if (countdownIntervalRef.current) {
-            clearInterval(countdownIntervalRef.current)
-            countdownIntervalRef.current = null
-          }
-          startGame()
-          return 0
+      currentCount--
+      
+      if (currentCount <= 0) {
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current)
+          countdownIntervalRef.current = null
         }
-        return prev - 1
-      })
+        startGame()
+      } else {
+        setCountdown(currentCount)
+      }
     }, 1000)
   }
 
