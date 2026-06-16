@@ -100,6 +100,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
   const [showWeekAssignmentDialog, setShowWeekAssignmentDialog] = useState(false)
   const [showWeekClearDialog, setShowWeekClearDialog] = useState(false)
   const [showCommentDialog, setShowCommentDialog] = useState(false)
+  const [showDuplicateTaskDialog, setShowDuplicateTaskDialog] = useState(false)
+  const [duplicateTaskInfo, setDuplicateTaskInfo] = useState<{ employeeName: string; roleName: string } | null>(null)
   const [editingRole, setEditingRole] = useState<ShiftRole | null>(null)
   const [editingComment, setEditingComment] = useState<{ employeeId: string; date: string } | null>(null)
   const [commentText, setCommentText] = useState('')
@@ -318,6 +320,20 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
     const employee = (employees || []).find(e => e.id === selectedEmployee)
     if (!employee) return
 
+    const existingTask = (assignments || []).find(
+      a => a.employeeId === selectedEmployee && a.roleId === selectedRole && a.date === selectedDate
+    )
+    
+    if (existingTask) {
+      const role = (roles || []).find(r => r.id === selectedRole)
+      setDuplicateTaskInfo({ 
+        employeeName: employee.name, 
+        roleName: role?.name || 'denne opgave'
+      })
+      setShowDuplicateTaskDialog(true)
+      return
+    }
+
     const newAssignment: ShiftAssignment = {
       id: Date.now().toString(),
       employeeId: selectedEmployee,
@@ -396,6 +412,20 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
       } else {
         toast.error('Kan ikke tildele vagter på weekender eller helligdage')
       }
+      return
+    }
+
+    const existingTask = (assignments || []).find(
+      a => a.employeeId === employeeId && a.roleId === roleId && a.date === dateString
+    )
+    
+    if (existingTask) {
+      const role = (roles || []).find(r => r.id === roleId)
+      setDuplicateTaskInfo({ 
+        employeeName: employee.name, 
+        roleName: role?.name || 'denne opgave'
+      })
+      setShowDuplicateTaskDialog(true)
       return
     }
 
@@ -1839,6 +1869,34 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           </div>
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={showDuplicateTaskDialog} onOpenChange={setShowDuplicateTaskDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Tag size={24} weight="duotone" className="text-amber-600" />
+              Opgave Findes Allerede
+            </AlertDialogTitle>
+            <AlertDialogDescription className="pt-4">
+              {duplicateTaskInfo && (
+                <div className="space-y-2">
+                  <p className="text-base">
+                    <strong>{duplicateTaskInfo.employeeName}</strong> har allerede opgaven <strong>{duplicateTaskInfo.roleName}</strong> tildelt på denne dato.
+                  </p>
+                  <p className="text-sm text-muted-foreground pt-2">
+                    En bruger kan ikke have den samme opgave tildelt flere gange på samme dag.
+                  </p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowDuplicateTaskDialog(false)}>
+              Forstået
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
