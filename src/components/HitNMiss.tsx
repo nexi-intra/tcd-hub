@@ -287,7 +287,6 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
   }
 
   const endGame = () => {
-    setGameState('ended')
     if (targetTimeoutRef.current) {
       clearTimeout(targetTimeoutRef.current)
     }
@@ -296,12 +295,16 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
     }
     setTarget(null)
     
-    const currentHighScore = getCurrentHighScore()
-    if (score > currentHighScore) {
-      updateHighScore(score)
-    }
+    setScore((finalScore) => {
+      const currentHighScore = getCurrentHighScore()
+      if (finalScore > currentHighScore) {
+        updateHighScore(finalScore)
+      }
+      updateGlobalLeaderboard(finalScore)
+      return finalScore
+    })
     
-    updateGlobalLeaderboard(score)
+    setGameState('ended')
   }
 
   useEffect(() => {
@@ -567,17 +570,17 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
             }}
           >
             {showStreakBonus && (
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 animate-in zoom-in-50 fade-in duration-300">
-                <div className="text-center px-8 py-4 rounded-2xl bg-gradient-to-r from-accent via-primary to-accent shadow-2xl border-4 border-accent/30">
-                  <div className="text-sm font-bold text-accent-foreground uppercase tracking-wider flex items-center gap-2 justify-center">
-                    <Flame size={20} weight="fill" />
-                    {language === 'da' ? 'Serie bonus' : 'Streak Bonus'}
+              <div className="absolute top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-300">
+                <div className="text-center px-4 py-2 rounded-lg bg-gradient-to-r from-accent via-primary to-accent shadow-xl border-2 border-accent/30">
+                  <div className="text-xs font-bold text-accent-foreground uppercase tracking-wider flex items-center gap-1.5 justify-center">
+                    <Flame size={16} weight="fill" />
+                    {language === 'da' ? 'Bonus' : 'Bonus'}
                   </div>
-                  <div className="text-5xl font-bold text-accent-foreground mt-1">
+                  <div className="text-3xl font-bold text-accent-foreground">
                     +{showStreakBonus.amount}
                   </div>
-                  <div className="text-sm text-accent-foreground/90 mt-1">
-                    {showStreakBonus.milestone} {language === 'da' ? 'træffere i træk!' : 'hits in a row!'}
+                  <div className="text-xs text-accent-foreground/90">
+                    {showStreakBonus.milestone}x {language === 'da' ? 'serie!' : 'combo!'}
                   </div>
                 </div>
               </div>
