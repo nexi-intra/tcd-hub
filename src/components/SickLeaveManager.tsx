@@ -20,6 +20,7 @@ interface SickLeaveEntry {
   status: 'pending' | 'approved' | 'rejected'
   submittedAt: string
   reportedBy?: string
+  type?: 'self' | 'child'
 }
 
 interface SickLeaveManagerProps {
@@ -124,8 +125,8 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
                         }
                       })()}
                     </div>
-                    <Badge className="bg-red-100 text-red-800 border-red-300">
-                      Sygemeldt
+                    <Badge className={entry.type === 'child' ? "bg-orange-100 text-orange-800 border-orange-300" : "bg-red-100 text-red-800 border-red-300"}>
+                      {entry.type === 'child' ? 'Barn syg' : 'Sygemeldt'}
                     </Badge>
                   </div>
                   {entry.reason && (

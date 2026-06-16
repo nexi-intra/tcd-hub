@@ -27,6 +27,7 @@ interface SickLeaveEntry {
   status: 'pending' | 'approved' | 'rejected'
   submittedAt: string
   reportedBy?: string
+  type?: 'self' | 'child'
 }
 
 interface User {
@@ -41,6 +42,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
   const [selectedUserEmail, setSelectedUserEmail] = useState('')
   const [userName, setUserName] = useState('')
   const [allUsers, setAllUsers] = useState<User[]>([])
+  const [sickLeaveType, setSickLeaveType] = useState<'self' | 'child'>('self')
   const { t } = useLanguage()
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
         setSelectedUserEmail(editEntry.userEmail)
         setUserName(editEntry.userName)
         setReason(editEntry.reason || '')
+        setSickLeaveType(editEntry.type || 'self')
         try {
           const date = new Date(editEntry.startDate)
           if (!isNaN(date.getTime())) {
@@ -76,6 +79,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
       } else {
         setSelectedUserEmail(userEmail)
         setReason('')
+        setSickLeaveType('self')
         setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
       }
     }
@@ -113,7 +117,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
       if (editEntry) {
         const updatedEntries = sickLeaveEntries.map(entry => 
           entry.id === editEntry.id
-            ? { ...entry, startDate: dateToUse.toISOString(), reason, userEmail: selectedUserEmail, userName }
+            ? { ...entry, startDate: dateToUse.toISOString(), reason, userEmail: selectedUserEmail, userName, type: sickLeaveType }
             : entry
         )
         await window.spark.kv.set('sick-leave-entries', updatedEntries)
@@ -141,6 +145,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
         status: 'approved',
         submittedAt: new Date().toISOString(),
         reportedBy: reporterIsSelf ? undefined : userEmail,
+        type: sickLeaveType,
       }
 
       await window.spark.kv.set('sick-leave-entries', [...sickLeaveEntries, newEntry])
@@ -150,19 +155,22 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
       const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
       const reporterName = usersData && usersData[userEmail] ? usersData[userEmail].fullName : userEmail
       
-      const emailSubject = `Sygemelding - ${userName}`
+      const sickTypeText = sickLeaveType === 'child' ? 'Barn syg' : 'Sygemelding'
+      const emailSubject = `${sickTypeText} - ${userName}`
       const emailBody = reporterIsSelf 
         ? `Hej Jacob,
 
-${userName} (${selectedUserEmail}) har meldt sig syg.
+${userName} (${selectedUserEmail}) har meldt ${sickLeaveType === 'child' ? 'barn syg' : 'sig syg'}.
 
+Type: ${sickLeaveType === 'child' ? 'Barn syg' : 'Egen sygdom'}
 Dato: ${dateFormatted}
 
 ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk genereret fra Terminal Configuration & Dispatch Hub.`
         : `Hej Jacob,
 
-${userName} (${selectedUserEmail}) er blevet sygemeldt af ${reporterName} (${userEmail}).
+${userName} (${selectedUserEmail}) ${sickLeaveType === 'child' ? 'har fået barn syg registreret' : 'er blevet sygemeldt'} af ${reporterName} (${userEmail}).
 
+Type: ${sickLeaveType === 'child' ? 'Barn syg' : 'Egen sygdom'}
 Dato: ${dateFormatted}
 
 ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk genereret fra Terminal Configuration & Dispatch Hub.`
@@ -262,6 +270,27 @@ ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk
                   Du anmelder sygemelding på vegne af {userName}
                 </p>
               )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="sickType">Type</Label>
+              <Select
+                value={sickLeaveType}
+                onValueChange={(value: 'self' | 'child') => setSickLeaveType(value)}
+              >
+                <SelectTrigger id="sickType" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="self">Egen sygdom</SelectItem>
+                  <SelectItem value="child">Barn syg</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                {sickLeaveType === 'child' 
+                  ? 'Du melder barn syg' 
+                  : 'Du melder egen sygdom'}
+              </p>
             </div>
 
             <div className="grid gap-2">

@@ -35,6 +35,7 @@ interface SickLeaveEntry {
   reason?: string
   status: 'pending' | 'approved' | 'rejected'
   submittedAt: string
+  type?: 'self' | 'child'
 }
 
 type VacationStatus = 'pending' | 'approved' | 'rejected'
@@ -1081,7 +1082,7 @@ Return ONLY a JSON object with this exact structure:
                 </Badge>
               </div>
 
-              <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {(() => {
                   const employeeStats = new Map<string, { 
                     name: string
@@ -1089,6 +1090,9 @@ Return ONLY a JSON object with this exact structure:
                     count: number
                     lastDate: string 
                   }>()
+
+                  const selfSickEntries = sickLeaveEntries.filter(e => e.type !== 'child')
+                  const childSickEntries = sickLeaveEntries.filter(e => e.type === 'child')
 
                   sickLeaveEntries.forEach((entry) => {
                     const existing = employeeStats.get(entry.userEmail)
@@ -1118,25 +1122,34 @@ Return ONLY a JSON object with this exact structure:
                     <>
                       <Card className="p-4 bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-medium text-muted-foreground">Total Sygemeldinger</div>
+                          <div className="text-sm font-medium text-muted-foreground">Egen Sygdom</div>
                           <FirstAidKit size={20} className="text-destructive" weight="duotone" />
                         </div>
-                        <div className="text-3xl font-bold text-destructive">{totalSickDays}</div>
+                        <div className="text-3xl font-bold text-destructive">{selfSickEntries.length}</div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {employeesWithSickLeave} af {totalEmployees} medarbejdere
+                          sygemeldinger
+                        </div>
+                      </Card>
+
+                      <Card className="p-4 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-medium text-muted-foreground">Barn Syg</div>
+                          <UserIcon size={20} className="text-orange-600" weight="duotone" />
+                        </div>
+                        <div className="text-3xl font-bold text-orange-600">{childSickEntries.length}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          barn syg meldinger
                         </div>
                       </Card>
 
                       <Card className="p-4 bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-medium text-muted-foreground">Gennemsnit pr. Medarbejder</div>
-                          <UserIcon size={20} className="text-accent" weight="duotone" />
+                          <div className="text-sm font-medium text-muted-foreground">Total Sygemeldinger</div>
+                          <FirstAidKit size={20} className="text-accent" weight="duotone" />
                         </div>
-                        <div className="text-3xl font-bold text-accent">
-                          {employeesWithSickLeave > 0 ? (totalSickDays / employeesWithSickLeave).toFixed(1) : '0'}
-                        </div>
+                        <div className="text-3xl font-bold text-accent">{totalSickDays}</div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          dage pr. sygemeldt medarbejder
+                          {employeesWithSickLeave} af {totalEmployees} medarbejdere
                         </div>
                       </Card>
 
@@ -1295,9 +1308,9 @@ Return ONLY a JSON object with this exact structure:
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Badge className="bg-green-500 text-white">
+                          <Badge className={entry.type === 'child' ? "bg-orange-500 text-white" : "bg-green-500 text-white"}>
                             <Check size={14} className="mr-1" />
-                            Registreret
+                            {entry.type === 'child' ? 'Barn syg' : 'Sygemeldt'}
                           </Badge>
                         </div>
                       </div>
