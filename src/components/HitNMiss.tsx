@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Target, Trophy, X, Timer, Infinity } from '@phosphor-icons/react'
+import { Target, Trophy, X, Timer, Infinity, Lightning, Speedometer, Fire } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@github/spark/hooks'
@@ -17,8 +17,32 @@ interface TargetData {
 }
 
 type GameMode = 'endless' | 'timer'
+type Difficulty = 'easy' | 'medium' | 'hard'
 
-const TARGET_LIFETIME = 2000
+const DIFFICULTY_SETTINGS = {
+  easy: {
+    lifetime: 3000,
+    label: { en: 'Easy', da: 'Let' },
+    description: { en: '3s per target', da: '3s per mål' },
+    icon: Speedometer,
+    color: 'text-green-500'
+  },
+  medium: {
+    lifetime: 2000,
+    label: { en: 'Medium', da: 'Mellem' },
+    description: { en: '2s per target', da: '2s per mål' },
+    icon: Lightning,
+    color: 'text-yellow-500'
+  },
+  hard: {
+    lifetime: 1000,
+    label: { en: 'Hard', da: 'Svær' },
+    description: { en: '1s per target', da: '1s per mål' },
+    icon: Fire,
+    color: 'text-red-500'
+  }
+}
+
 const MIN_DISTANCE_FROM_EDGE = 80
 const TARGET_SIZE = 80
 const TIMER_DURATION = 30
@@ -26,16 +50,45 @@ const TIMER_DURATION = 30
 export function HitNMiss() {
   const { language } = useLanguage()
   const [gameMode, setGameMode] = useState<GameMode>('endless')
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [isPlaying, setIsPlaying] = useState(false)
   const [score, setScore] = useState(0)
   const [misses, setMisses] = useState(0)
   const [timeLeft, setTimeLeft] = useState(TIMER_DURATION)
   const [target, setTarget] = useState<TargetData | null>(null)
-  const [highScoreEndless, setHighScoreEndless] = useKV<number>('hit-n-miss-highscore-endless', 0)
-  const [highScoreTimer, setHighScoreTimer] = useKV<number>('hit-n-miss-highscore-timer', 0)
+  const [highScoreEndlessEasy, setHighScoreEndlessEasy] = useKV<number>('hit-n-miss-highscore-endless-easy', 0)
+  const [highScoreEndlessMedium, setHighScoreEndlessMedium] = useKV<number>('hit-n-miss-highscore-endless-medium', 0)
+  const [highScoreEndlessHard, setHighScoreEndlessHard] = useKV<number>('hit-n-miss-highscore-endless-hard', 0)
+  const [highScoreTimerEasy, setHighScoreTimerEasy] = useKV<number>('hit-n-miss-highscore-timer-easy', 0)
+  const [highScoreTimerMedium, setHighScoreTimerMedium] = useKV<number>('hit-n-miss-highscore-timer-medium', 0)
+  const [highScoreTimerHard, setHighScoreTimerHard] = useKV<number>('hit-n-miss-highscore-timer-hard', 0)
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const targetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const getCurrentHighScore = () => {
+    if (gameMode === 'endless') {
+      if (difficulty === 'easy') return highScoreEndlessEasy || 0
+      if (difficulty === 'medium') return highScoreEndlessMedium || 0
+      return highScoreEndlessHard || 0
+    } else {
+      if (difficulty === 'easy') return highScoreTimerEasy || 0
+      if (difficulty === 'medium') return highScoreTimerMedium || 0
+      return highScoreTimerHard || 0
+    }
+  }
+
+  const updateHighScore = (newScore: number) => {
+    if (gameMode === 'endless') {
+      if (difficulty === 'easy') setHighScoreEndlessEasy(newScore)
+      else if (difficulty === 'medium') setHighScoreEndlessMedium(newScore)
+      else setHighScoreEndlessHard(newScore)
+    } else {
+      if (difficulty === 'easy') setHighScoreTimerEasy(newScore)
+      else if (difficulty === 'medium') setHighScoreTimerMedium(newScore)
+      else setHighScoreTimerHard(newScore)
+    }
+  }
 
   const spawnTarget = () => {
     if (!gameAreaRef.current) return
@@ -56,12 +109,14 @@ export function HitNMiss() {
     console.log('Spawn target at:', newTarget.position)
     setTarget(newTarget)
 
+    const targetLifetime = DIFFICULTY_SETTINGS[difficulty].lifetime
+
     targetTimeoutRef.current = setTimeout(() => {
       console.log('Target expired - miss!')
       setMisses(prev => prev + 1)
       setScore(prev => Math.max(0, prev - 1))
       spawnTarget()
-    }, TARGET_LIFETIME)
+    }, targetLifetime)
   }
 
   const handleTargetClick = () => {
@@ -111,13 +166,9 @@ export function HitNMiss() {
     }
     setTarget(null)
     
-    const currentHighScore = gameMode === 'endless' ? highScoreEndless : highScoreTimer
-    if (score > (currentHighScore || 0)) {
-      if (gameMode === 'endless') {
-        setHighScoreEndless(score)
-      } else {
-        setHighScoreTimer(score)
-      }
+    const currentHighScore = getCurrentHighScore()
+    if (score > currentHighScore) {
+      updateHighScore(score)
     }
   }
 
@@ -158,7 +209,7 @@ export function HitNMiss() {
               </div>
               <div className="text-2xl font-bold text-primary flex items-center gap-2">
                 <Trophy size={24} weight="fill" />
-                {gameMode === 'endless' ? (highScoreEndless || 0) : (highScoreTimer || 0)}
+                {getCurrentHighScore()}
               </div>
             </div>
           </div>
@@ -183,6 +234,38 @@ export function HitNMiss() {
                 <Timer size={20} weight="bold" />
                 {language === 'da' ? '30 sekunder' : '30 seconds'}
               </Button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="text-center">
+                <p className="text-sm font-semibold text-muted-foreground mb-3">
+                  {language === 'da' ? 'Vælg sværhedsgrad' : 'Select Difficulty'}
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
+                  const setting = DIFFICULTY_SETTINGS[diff]
+                  const Icon = setting.icon
+                  return (
+                    <Button
+                      key={diff}
+                      onClick={() => setDifficulty(diff)}
+                      variant={difficulty === diff ? 'default' : 'outline'}
+                      className="flex flex-col items-center gap-2 h-auto py-3 px-4 min-w-[110px]"
+                    >
+                      <Icon size={24} weight="duotone" className={difficulty === diff ? '' : setting.color} />
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="font-semibold text-sm">
+                          {setting.label[language as 'en' | 'da']}
+                        </span>
+                        <span className="text-xs opacity-80">
+                          {setting.description[language as 'en' | 'da']}
+                        </span>
+                      </div>
+                    </Button>
+                  )
+                })}
+              </div>
             </div>
             
             <div className="text-center">
@@ -303,7 +386,7 @@ export function HitNMiss() {
           <p className="text-muted-foreground mb-4">
             {language === 'da' ? 'Din sidste score' : 'Your final score'}: <span className="text-2xl font-bold text-primary">{score}</span>
           </p>
-          {score > ((gameMode === 'endless' ? highScoreEndless : highScoreTimer) || 0) && (
+          {score > getCurrentHighScore() && (
             <p className="text-sm text-accent font-semibold">
               {language === 'da' ? '🎉 Ny højeste score!' : '🎉 New high score!'}
             </p>
