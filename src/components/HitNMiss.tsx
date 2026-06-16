@@ -26,9 +26,10 @@ interface GlobalLeaderboard {
   easy: LeaderboardEntry[]
   medium: LeaderboardEntry[]
   hard: LeaderboardEntry[]
+  expert: LeaderboardEntry[]
 }
 
-type Difficulty = 'easy' | 'medium' | 'hard'
+type Difficulty = 'easy' | 'medium' | 'hard' | 'expert'
 type GameState = 'menu' | 'countdown' | 'playing' | 'ended'
 
 const DIFFICULTY_SETTINGS = {
@@ -67,6 +68,18 @@ const DIFFICULTY_SETTINGS = {
     borderColor: 'border-red-500/30',
     glowColor: 'shadow-red-500/20',
     missPenalty: 50
+  },
+  expert: {
+    lifetime: 700,
+    targetSize: 35,
+    label: { en: 'Expert', da: 'Ekspert' },
+    description: { en: '0.7s per target', da: '0.7s per mål' },
+    icon: Flame,
+    color: 'text-purple-500',
+    bgGradient: 'from-purple-500/20 to-purple-600/20',
+    borderColor: 'border-purple-500/30',
+    glowColor: 'shadow-purple-500/20',
+    missPenalty: 75
   }
 }
 
@@ -104,7 +117,8 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('hit-n-miss-global-leaderboard', {
     easy: [],
     medium: [],
-    hard: []
+    hard: [],
+    expert: []
   })
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const targetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -144,13 +158,14 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
 
     setGlobalLeaderboard((currentLeaderboard) => {
       if (!currentLeaderboard) {
-        currentLeaderboard = { easy: [], medium: [], hard: [] }
+        currentLeaderboard = { easy: [], medium: [], hard: [], expert: [] }
       }
       
       const updated: GlobalLeaderboard = {
         easy: [...(currentLeaderboard.easy || [])],
         medium: [...(currentLeaderboard.medium || [])],
-        hard: [...(currentLeaderboard.hard || [])]
+        hard: [...(currentLeaderboard.hard || [])],
+        expert: [...(currentLeaderboard.expert || [])]
       }
       
       const difficultyBoard = updated[difficulty]
@@ -337,7 +352,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
       const gameStats = await window.spark.kv.get<Record<string, Record<Difficulty, number>>>('hit-n-miss-play-counts') || {}
       
       if (!gameStats[userEmail]) {
-        gameStats[userEmail] = { easy: 0, medium: 0, hard: 0 }
+        gameStats[userEmail] = { easy: 0, medium: 0, hard: 0, expert: 0 }
       }
       
       gameStats[userEmail][gameDifficulty] = (gameStats[userEmail][gameDifficulty] || 0) + 1
@@ -434,6 +449,32 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
                           <span className="text-xs text-muted-foreground">
                             {setting.description[language as 'en' | 'da']}
                           </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-center mt-2 h-[60px]">
+                          <div 
+                            className={`rounded-full transition-all duration-300 ${
+                              isSelected 
+                                ? `bg-gradient-to-br from-destructive via-red-500 to-destructive/90 shadow-lg ${setting.glowColor}` 
+                                : 'bg-gradient-to-br from-destructive/60 via-red-400/60 to-destructive/50'
+                            } flex items-center justify-center`}
+                            style={{
+                              width: `${displaySize}px`,
+                              height: `${displaySize}px`
+                            }}
+                          >
+                            <div 
+                              className="rounded-full bg-white"
+                              style={{
+                                width: `${displaySize * 0.12}px`,
+                                height: `${displaySize * 0.12}px`
+                              }}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="text-[10px] text-muted-foreground font-medium mt-1">
+                          {language === 'da' ? 'Målstørrelse' : 'Target Size'}
                         </div>
                       </div>
                     </div>
@@ -671,7 +712,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-4 md:grid-cols-2">
           {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
             const setting = DIFFICULTY_SETTINGS[diff]
             const Icon = setting.icon
@@ -801,7 +842,8 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
 
         {(globalLeaderboard?.easy?.length || 0) === 0 && 
          (globalLeaderboard?.medium?.length || 0) === 0 && 
-         (globalLeaderboard?.hard?.length || 0) === 0 && (
+         (globalLeaderboard?.hard?.length || 0) === 0 &&
+         (globalLeaderboard?.expert?.length || 0) === 0 && (
           <div className="mt-6 text-center p-6 rounded-lg bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border border-primary/10">
             <div className="flex items-center justify-center gap-2 mb-2">
               <Crown size={24} weight="duotone" className="text-primary" />
