@@ -34,10 +34,10 @@ type GameState = 'menu' | 'countdown' | 'playing' | 'ended'
 
 const DIFFICULTY_SETTINGS = {
   easy: {
-    lifetime: 3000,
-    targetSize: 140,
+    lifetime: 2000,
+    targetSize: 100,
     label: { en: 'Easy', da: 'Let' },
-    description: { en: '3s per target', da: '3s per mål' },
+    description: { en: '2s per target', da: '2s per mål' },
     icon: Speedometer,
     color: 'text-green-500',
     bgGradient: 'from-green-500/20 to-green-600/20',
@@ -46,10 +46,10 @@ const DIFFICULTY_SETTINGS = {
     missPenalty: 20
   },
   medium: {
-    lifetime: 2000,
-    targetSize: 90,
+    lifetime: 1400,
+    targetSize: 70,
     label: { en: 'Medium', da: 'Mellem' },
-    description: { en: '2s per target', da: '2s per mål' },
+    description: { en: '1.4s per target', da: '1.4s per mål' },
     icon: Lightning,
     color: 'text-yellow-500',
     bgGradient: 'from-yellow-500/20 to-yellow-600/20',
@@ -58,10 +58,10 @@ const DIFFICULTY_SETTINGS = {
     missPenalty: 30
   },
   hard: {
-    lifetime: 1000,
-    targetSize: 50,
+    lifetime: 800,
+    targetSize: 40,
     label: { en: 'Hard', da: 'Svær' },
-    description: { en: '1s per target', da: '1s per mål' },
+    description: { en: '0.8s per target', da: '0.8s per mål' },
     icon: Fire,
     color: 'text-red-500',
     bgGradient: 'from-red-500/20 to-red-600/20',
@@ -70,10 +70,10 @@ const DIFFICULTY_SETTINGS = {
     missPenalty: 50
   },
   expert: {
-    lifetime: 700,
-    targetSize: 35,
+    lifetime: 500,
+    targetSize: 28,
     label: { en: 'Expert', da: 'Ekspert' },
-    description: { en: '0.7s per target', da: '0.7s per mål' },
+    description: { en: '0.5s per target', da: '0.5s per mål' },
     icon: Flame,
     color: 'text-purple-500',
     bgGradient: 'from-purple-500/20 to-purple-600/20',
