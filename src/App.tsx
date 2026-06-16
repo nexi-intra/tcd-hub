@@ -79,28 +79,12 @@ function App() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
   useEffect(() => {
-    const checkExistingSession = async () => {
-      const lastSessionToken = await window.spark.kv.get<string>('last-session-token')
-      
-      if (lastSessionToken) {
-        const { valid, session } = await validateSession(lastSessionToken)
-        
-        if (valid && session) {
-          setUserSession({
-            userId: session.userId,
-            email: session.email,
-            token: session.token,
-            expiresAt: session.expiresAt
-          })
-        } else {
-          await window.spark.kv.delete('last-session-token')
-        }
-      }
-      
+    const clearSessionOnLoad = async () => {
+      await window.spark.kv.delete('last-session-token')
       setIsCheckingAuth(false)
     }
     
-    checkExistingSession()
+    clearSessionOnLoad()
   }, [])
 
   const handleAuthenticated = async (userId: string, email: string, rememberMe: boolean) => {
