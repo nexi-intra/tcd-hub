@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useKV } from '@github/spark/hooks'
 import { UserProfile } from '@/components/UserProfile'
-import { VacationRequestDialog } from '@/components/VacationRequestDialog'
 import { SingleDayOffDialog } from '@/components/SingleDayOffDialog'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -546,7 +545,6 @@ Return ONLY a JSON object with this exact structure:
                 </Button>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
-                <VacationRequestDialog userEmail={userEmail} />
                 <SingleDayOffDialog userEmail={userEmail} />
               </div>
             </div>
