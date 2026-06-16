@@ -60,12 +60,17 @@ export function EndlessRunner({ userEmail, playerName }: EndlessRunnerProps) {
   } | null>(null)
 
   const startGame = () => {
+    console.log('🎮 Game started')
     setGameState('playing')
     setScore(0)
     setDistance(0)
     
-    if (!gameRef.current) return
+    if (!gameRef.current) {
+      console.error('❌ gameRef.current is null')
+      return
+    }
     
+    console.log('✅ Setting game to playing state')
     gameRef.current.isPlaying = true
     gameRef.current.score = 0
     gameRef.current.distance = 0
@@ -77,6 +82,7 @@ export function EndlessRunner({ userEmail, playerName }: EndlessRunnerProps) {
     gameRef.current.cameraShake = 0
     gameRef.current.speedIncreaseTimer = 0
     
+    console.log('🔄 Clearing existing track segments and obstacles')
     gameRef.current.trackSegments.forEach(segment => {
       gameRef.current!.scene.remove(segment)
     })
@@ -86,9 +92,13 @@ export function EndlessRunner({ userEmail, playerName }: EndlessRunnerProps) {
     gameRef.current.trackSegments = []
     gameRef.current.obstacles = []
     
+    console.log('🛤️ Creating initial track segments')
     for (let i = 0; i < 35; i++) {
       createTrackSegment(-i * 10)
     }
+    
+    console.log('🏁 Game initialization complete. Speed:', gameRef.current.speed)
+    console.log('📍 Initial ball position:', gameRef.current.ballPosition)
   }
 
   const endGame = () => {
@@ -331,17 +341,37 @@ export function EndlessRunner({ userEmail, playerName }: EndlessRunnerProps) {
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
 
+    let frameCount = 0
     const animate = () => {
       if (!gameRef.current) return
       
       gameRef.current.animationId = requestAnimationFrame(animate)
       
       if (gameRef.current.isPlaying) {
+        frameCount++
+        
+        if (frameCount === 1) {
+          console.log('🔄 Game loop running')
+          console.log('📍 Ball position:', gameRef.current.ballPosition)
+          console.log('⚡ Speed:', gameRef.current.speed)
+        }
+        
+        if (frameCount % 60 === 0) {
+          console.log(`📍 Ball position (frame ${frameCount}):`, {
+            x: gameRef.current.ballPosition.x.toFixed(2),
+            y: gameRef.current.ballPosition.y.toFixed(2),
+            z: gameRef.current.ballPosition.z.toFixed(2)
+          })
+          console.log('⚡ Current speed:', gameRef.current.speed.toFixed(3))
+          console.log('🎯 Score:', gameRef.current.score)
+        }
+        
         gameRef.current.speedIncreaseTimer += 1
         if (gameRef.current.speedIncreaseTimer >= 300) {
           gameRef.current.speed += 0.01
           gameRef.current.speedIncreaseTimer = 0
           gameRef.current.cameraShake = Math.min(gameRef.current.cameraShake + 0.001, 0.03)
+          console.log('🚀 Speed increased to:', gameRef.current.speed.toFixed(3))
         }
 
         if (gameRef.current.keys.left) {
