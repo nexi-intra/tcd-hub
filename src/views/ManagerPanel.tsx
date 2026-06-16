@@ -1314,7 +1314,12 @@ Return ONLY a JSON object with this exact structure:
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {vacationEntries.map((vacation) => (
+                  {vacationEntries.map((vacation) => {
+                    const requestingUser = users.find(u => u.email.toLowerCase() === vacation.userEmail.toLowerCase())
+                    const displayName = requestingUser?.fullName || vacation.userEmail
+                    const firstLetter = requestingUser?.fullName?.charAt(0).toUpperCase() || vacation.userEmail.charAt(0).toUpperCase()
+                    
+                    return (
                     <motion.div
                       key={vacation.id}
                       initial={{ opacity: 0, y: 10 }}
@@ -1324,10 +1329,10 @@ Return ONLY a JSON object with this exact structure:
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-4 flex-1">
                           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                            {vacation.userEmail.charAt(0).toUpperCase()}
+                            {firstLetter}
                           </div>
                           <div className="flex-1">
-                            <div className="font-bold text-lg mb-1">{vacation.userEmail}</div>
+                            <div className="font-bold text-lg mb-1">{displayName}</div>
                             <div className="flex flex-col gap-1 text-sm">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-muted-foreground">Fra:</span>
@@ -1406,7 +1411,7 @@ Return ONLY a JSON object with this exact structure:
                         </Button>
                       </div>
                     </motion.div>
-                  ))}
+                  )})}
                 </div>
               )}
             </Card>
