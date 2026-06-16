@@ -10,6 +10,7 @@ export const translations = {
         manager: "Manager Panel",
         email: "Email System",
         meals: "Madplan",
+        games: "Spil Hjørnet",
         documents: "Dokumenter",
         projects: "Projekter",
         chat: "Team Chat"
@@ -21,6 +22,7 @@ export const translations = {
         team: "Kontaktoplysninger og teammedlemmer",
         email: "Send og modtag beskeder internt",
         guides: "Søg og administrer afdelingens guides og procedurer",
+        games: "Sjove spil til pause og afslapning",
         documents: "Fælles dokumenter og filer",
         projects: "Projektadministration og opgaver",
         chat: "Intern kommunikation og beskeder",
@@ -560,6 +562,7 @@ export const translations = {
         manager: "Manager Panel",
         email: "Email System",
         meals: "Meal Plan",
+        games: "Game Corner",
         documents: "Documents",
         projects: "Projects",
         chat: "Team Chat"
@@ -571,6 +574,7 @@ export const translations = {
         team: "Contact information and team members",
         email: "Send and receive messages internally",
         guides: "Search and manage department guides and procedures",
+        games: "Fun games for breaks and relaxation",
         documents: "Shared documents and files",
         projects: "Project management and tasks",
         chat: "Internal communication and messages",

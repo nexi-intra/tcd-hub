@@ -8,11 +8,12 @@ import { ManagerPanel } from '@/views/ManagerPanel'
 import { TeamOverview } from '@/views/TeamOverview'
 import { EmailSystem } from '@/views/EmailSystem'
 import { MealPlan } from '@/views/MealPlan'
+import { GameCorner } from '@/views/GameCorner'
 import { Auth } from '@/views/Auth'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 
-type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals'
+type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games'
 
 interface UserSession {
   userId: string
@@ -138,6 +139,8 @@ function App() {
       setCurrentView('email')
     } else if (moduleId === 'meals') {
       setCurrentView('meals')
+    } else if (moduleId === 'games') {
+      setCurrentView('games')
     }
   }
 
@@ -171,6 +174,7 @@ function App() {
         {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
         {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} />}
+        {currentView === 'games' && <GameCorner onNavigateBack={handleNavigateBack} />}
       </LanguageProvider>
     </ThemeProvider>
   )

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -301,6 +301,16 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
       available: isAdminOrManager,
       category: 'admin',
+    },
+    {
+      id: 'games',
+      title: t.hub.modules.games,
+      description: t.hub.descriptions.games,
+      icon: <GameController size={48} weight="duotone" />,
+      color: 'oklch(0.72 0.20 310)',
+      gradient: 'from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)]',
+      available: true,
+      category: 'leisure',
     },
   ]
 
