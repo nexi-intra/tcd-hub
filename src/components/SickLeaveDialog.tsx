@@ -3,16 +3,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FirstAidKit, X, CalendarBlank } from '@phosphor-icons/react'
+import { FirstAidKit, X } from '@phosphor-icons/react'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
-import { cn } from '@/lib/utils'
 
 interface SickLeaveDialogProps {
   open: boolean
@@ -325,30 +323,19 @@ ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk
 
             <div className="grid gap-2">
               <Label htmlFor="sickDate">{t.sickLeaveDialog.date}</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarBlank size={16} weight="bold" className="mr-2" />
-                    {selectedDate ? format(selectedDate, 'PPP', { locale: da }) : <span>Vælg dato</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    showWeekNumber
-                    locale={da}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                id="sickDate"
+                type="date"
+                value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setSelectedDate(new Date(e.target.value))
+                  } else {
+                    setSelectedDate(undefined)
+                  }
+                }}
+                className="w-full"
+              />
               <p className="text-sm text-muted-foreground">
                 {editEntry ? t.sickLeaveDialog.editDate : t.sickLeaveDialog.selectDate}
               </p>
