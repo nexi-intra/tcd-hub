@@ -235,6 +235,12 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     return xOverlap && yOverlap
   }
 
+  const getPlayerY = (): number => {
+    if (!gameAreaRef.current) return 0
+    const rect = gameAreaRef.current.getBoundingClientRect()
+    return rect.height - PLAYER_SIZE - 20
+  }
+
   const startGame = () => {
     setScore(0)
     setObjects([])
@@ -544,9 +550,10 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           className="relative h-[600px] bg-gradient-to-b from-background to-muted/30 rounded-xl border-2 border-primary/20 overflow-hidden shadow-2xl"
         >
           <div
-            className="absolute bottom-5 bg-gradient-to-r from-primary via-accent to-primary rounded-full shadow-2xl transition-all duration-100"
+            className="absolute bg-gradient-to-r from-primary via-accent to-primary rounded-full shadow-2xl transition-all duration-100"
             style={{
               left: `${playerX}px`,
+              top: `${getPlayerY()}px`,
               width: `${PLAYER_SIZE}px`,
               height: `${PLAYER_SIZE}px`,
             }}
