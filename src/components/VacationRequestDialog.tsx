@@ -1,14 +1,17 @@
 import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Calendar } from '@/components/ui/calendar'
 import { PaperPlaneTilt, Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
+import { DateRange } from 'react-day-picker'
+import { format } from 'date-fns'
+import { da } from 'date-fns/locale'
 
 interface VacationEntry {
   id: string
@@ -28,22 +31,20 @@ interface VacationRequestDialogProps {
 
 export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps) {
   const [open, setOpen] = useState(false)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
   const { t } = useLanguage()
 
   const hasUnsavedChanges = useMemo(() => {
-    return startDate !== '' || endDate !== '' || notes.trim() !== ''
-  }, [startDate, endDate, notes])
+    return dateRange !== undefined || notes.trim() !== ''
+  }, [dateRange, notes])
 
   useUnsavedChanges({
     hasUnsavedChanges,
     onConfirmedExit: () => {
-      setStartDate('')
-      setEndDate('')
+      setDateRange(undefined)
       setNotes('')
       setOpen(false)
     },
@@ -53,13 +54,13 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!startDate || !endDate) {
+    if (!dateRange?.from || !dateRange?.to) {
       toast.error(t.vacationRequestDialog.selectStartEndDate)
       return
     }
 
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = dateRange.from
+    const end = dateRange.to
 
     if (end < start) {
       toast.error(t.vacationRequestDialog.endDateAfterStart)
@@ -69,6 +70,9 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
     setIsSubmitting(true)
 
     try {
+      const startDate = format(start, 'yyyy-MM-dd')
+      const endDate = format(end, 'yyyy-MM-dd')
+
       const newVacation: VacationEntry = {
         id: Date.now().toString(),
         userId: userEmail,
@@ -84,12 +88,12 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
       const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
       const managers = Object.values(usersData || {}).filter(user => user.isManager)
 
-      const startDateFormatted = new Date(startDate).toLocaleDateString('da-DK', {
+      const startDateFormatted = start.toLocaleDateString('da-DK', {
         day: 'numeric',
         month: 'long',
         year: 'numeric'
       })
-      const endDateFormatted = new Date(endDate).toLocaleDateString('da-DK', {
+      const endDateFormatted = end.toLocaleDateString('da-DK', {
         day: 'numeric',
         month: 'long',
         year: 'numeric'
@@ -229,8 +233,7 @@ Return ONLY a JSON object with this exact structure:
       }
 
       toast.success(t.vacationRequestDialog.requestSent)
-      setStartDate('')
-      setEndDate('')
+      setDateRange(undefined)
       setNotes('')
       setOpen(false)
     } catch (error) {
@@ -249,31 +252,30 @@ Return ONLY a JSON object with this exact structure:
           {t.vacationRequestDialog.requestVacation}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">{t.vacationRequestDialog.title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="start-date">{t.vacationRequestDialog.startDate}</Label>
-            <Input
-              id="start-date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="end-date">{t.vacationRequestDialog.endDate}</Label>
-            <Input
-              id="end-date"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              required
-            />
+            <Label>{'Vælg datoer'}</Label>
+            <div className="border border-input rounded-md">
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={1}
+                showWeekNumber
+                locale={da}
+              />
+            </div>
+            {dateRange?.from && (
+              <p className="text-sm text-muted-foreground">
+                {dateRange.to
+                  ? `${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`
+                  : format(dateRange.from, 'dd/MM/yyyy')}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
