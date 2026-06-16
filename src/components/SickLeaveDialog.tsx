@@ -1,16 +1,18 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FirstAidKit, X } from '@phosphor-icons/react'
+import { FirstAidKit, X, CalendarBlank } from '@phosphor-icons/react'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
+import { cn } from '@/lib/utils'
 
 interface SickLeaveDialogProps {
   open: boolean
@@ -38,7 +40,7 @@ interface User {
 
 export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = null }: SickLeaveDialogProps) {
   const [reason, setReason] = useState('')
-  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedUserEmail, setSelectedUserEmail] = useState('')
   const [userName, setUserName] = useState('')
@@ -47,7 +49,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
   const { t } = useLanguage()
 
   const initialReason = editEntry?.reason || ''
-  const initialDate = editEntry ? format(new Date(editEntry.startDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+  const initialDate = editEntry ? new Date(editEntry.startDate) : new Date()
   const initialEmail = editEntry?.userEmail || userEmail
   const initialType = editEntry?.type || 'self'
 
@@ -55,7 +57,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
     if (!open) return false
     return (
       reason !== initialReason ||
-      selectedDate !== initialDate ||
+      selectedDate?.getTime() !== initialDate?.getTime() ||
       selectedUserEmail !== initialEmail ||
       sickLeaveType !== initialType
     )
@@ -65,7 +67,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
     hasUnsavedChanges,
     onConfirmedExit: () => {
       setReason('')
-      setSelectedDate('')
+      setSelectedDate(undefined)
       setSelectedUserEmail('')
       setSickLeaveType('self')
       onOpenChange(false)
@@ -96,19 +98,19 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
         try {
           const date = new Date(editEntry.startDate)
           if (!isNaN(date.getTime())) {
-            setSelectedDate(format(date, 'yyyy-MM-dd'))
+            setSelectedDate(date)
           } else {
-            setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
+            setSelectedDate(new Date())
           }
         } catch (error) {
           console.error('Error parsing date:', error)
-          setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
+          setSelectedDate(new Date())
         }
       } else {
         setSelectedUserEmail(userEmail)
         setReason('')
         setSickLeaveType('self')
-        setSelectedDate(format(new Date(), 'yyyy-MM-dd'))
+        setSelectedDate(new Date())
       }
     }
   }, [open, userEmail, editEntry])
@@ -137,7 +139,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
     }
 
     setIsSubmitting(true)
-    const dateToUse = new Date(selectedDate)
+    const dateToUse = selectedDate
     
     try {
       const sickLeaveEntries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
@@ -156,7 +158,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
         })
 
         setReason('')
-        setSelectedDate('')
+        setSelectedDate(undefined)
         onOpenChange(false)
         setIsSubmitting(false)
         return
@@ -237,7 +239,7 @@ ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk
       }
 
       setReason('')
-      setSelectedDate('')
+      setSelectedDate(undefined)
       onOpenChange(false)
     } catch (error) {
       console.error('Error submitting sick leave:', error)
@@ -323,13 +325,30 @@ ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk
 
             <div className="grid gap-2">
               <Label htmlFor="sickDate">{t.sickLeaveDialog.date}</Label>
-              <Input
-                id="sickDate"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarBlank size={16} weight="bold" className="mr-2" />
+                    {selectedDate ? format(selectedDate, 'PPP', { locale: da }) : <span>Vælg dato</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    showWeekNumber
+                    locale={da}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
               <p className="text-sm text-muted-foreground">
                 {editEntry ? t.sickLeaveDialog.editDate : t.sickLeaveDialog.selectDate}
               </p>
