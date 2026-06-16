@@ -147,12 +147,24 @@ export function EndlessDodger({ userEmail }: { userEmail?: string }) {
   const checkCollisions = () => {
     setFallingObjects(prev => {
       for (const obj of prev) {
-        if (
-          obj.y + obj.size > GAME_HEIGHT - PLAYER_HEIGHT &&
-          obj.y < GAME_HEIGHT &&
-          obj.x + obj.size > playerX &&
-          obj.x < playerX + PLAYER_WIDTH
-        ) {
+        const playerTop = GAME_HEIGHT - PLAYER_HEIGHT
+        const playerBottom = GAME_HEIGHT
+        const playerLeft = playerX
+        const playerRight = playerX + PLAYER_WIDTH
+        
+        const objTop = obj.y
+        const objBottom = obj.y + obj.size
+        const objLeft = obj.x
+        const objRight = obj.x + obj.size
+        
+        const isOverlapping = !(
+          objBottom < playerTop ||
+          objTop > playerBottom ||
+          objRight < playerLeft ||
+          objLeft > playerRight
+        )
+        
+        if (isOverlapping) {
           handleGameOver()
           return prev
         }
