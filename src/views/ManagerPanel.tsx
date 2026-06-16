@@ -94,6 +94,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [editingScore, setEditingScore] = useState<{ difficulty: 'easy' | 'medium' | 'hard'; email: string; score: number } | null>(null)
   const [isEditScoreDialogOpen, setIsEditScoreDialogOpen] = useState(false)
   const [newScore, setNewScore] = useState('')
+  const [gamePlayCounts, setGamePlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard', number>> | null>(null)
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -753,6 +754,9 @@ Return ONLY a JSON object with this exact structure:
     }>('hit-n-miss-global-leaderboard')
     
     setGameLeaderboard(leaderboard || { easy: [], medium: [], hard: [] })
+    
+    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard', number>>>('hit-n-miss-play-counts')
+    setGamePlayCounts(playCounts || {})
   }
 
   const openEditScoreDialog = (difficulty: 'easy' | 'medium' | 'hard', email: string, score: number) => {
@@ -1663,6 +1667,68 @@ Return ONLY a JSON object with this exact structure:
                   Her kan du redigere og slette highscores fra Hit N Miss spillet. Du kan ændre score værdier eller fjerne hele entries.
                 </p>
               </div>
+
+              {gamePlayCounts && Object.keys(gamePlayCounts).length > 0 && (
+                <Card className="p-6 border-2 mb-6 bg-gradient-to-br from-primary/5 to-accent/5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Target size={24} className="text-primary" weight="duotone" />
+                    <h3 className="text-xl font-bold">Spil Statistik</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Oversigt over hvor mange gange hver bruger har spillet Hit N Miss.
+                  </p>
+                  <div className="space-y-3">
+                    {Object.entries(gamePlayCounts)
+                      .sort((a, b) => {
+                        const totalA = (a[1].easy || 0) + (a[1].medium || 0) + (a[1].hard || 0)
+                        const totalB = (b[1].easy || 0) + (b[1].medium || 0) + (b[1].hard || 0)
+                        return totalB - totalA
+                      })
+                      .map(([email, counts]) => {
+                        const getUserName = () => {
+                          const user = users.find(u => u.email === email)
+                          return user ? user.fullName : email
+                        }
+                        const totalPlays = (counts.easy || 0) + (counts.medium || 0) + (counts.hard || 0)
+                        
+                        return (
+                          <motion.div
+                            key={email}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-4 rounded-lg border bg-card hover:shadow-md transition-all"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="font-semibold text-lg">{getUserName()}</div>
+                                <div className="text-xs text-muted-foreground">{email}</div>
+                              </div>
+                              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                                <Trophy size={18} weight="fill" className="text-primary" />
+                                <span className="font-bold text-lg text-primary">{totalPlays}</span>
+                                <span className="text-xs text-muted-foreground">spil</span>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div className="p-2 rounded bg-green-500/10 border border-green-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Let</div>
+                                <div className="font-bold text-green-600">{counts.easy || 0}</div>
+                              </div>
+                              <div className="p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Mellem</div>
+                                <div className="font-bold text-yellow-600">{counts.medium || 0}</div>
+                              </div>
+                              <div className="p-2 rounded bg-red-500/10 border border-red-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Svær</div>
+                                <div className="font-bold text-red-600">{counts.hard || 0}</div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                  </div>
+                </Card>
+              )}
 
               {!gameLeaderboard ? (
                 <div className="text-center py-12">

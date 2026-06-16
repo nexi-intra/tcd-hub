@@ -311,7 +311,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
     }, 1000)
   }
 
-  const endGame = () => {
+  const endGame = async () => {
     if (targetTimeoutRef.current) {
       clearTimeout(targetTimeoutRef.current)
     }
@@ -325,7 +325,27 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
       return finalScore
     })
     
+    await trackGamePlay(difficulty)
+    
     setGameState('ended')
+  }
+
+  const trackGamePlay = async (gameDifficulty: Difficulty) => {
+    if (!userEmail) return
+
+    try {
+      const gameStats = await window.spark.kv.get<Record<string, Record<Difficulty, number>>>('hit-n-miss-play-counts') || {}
+      
+      if (!gameStats[userEmail]) {
+        gameStats[userEmail] = { easy: 0, medium: 0, hard: 0 }
+      }
+      
+      gameStats[userEmail][gameDifficulty] = (gameStats[userEmail][gameDifficulty] || 0) + 1
+      
+      await window.spark.kv.set('hit-n-miss-play-counts', gameStats)
+    } catch (error) {
+      console.error('Error tracking game play:', error)
+    }
   }
 
   useEffect(() => {
