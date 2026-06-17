@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { RocketLaunch, Trophy, X, Lightning, Speedometer, Fire, Flame, Crown } from '@phosphor-icons/react'
+import { RocketLaunch, Trophy, X, Lightning, Speedometer, Fire, Flame, Crown, Medal, Star } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@github/spark/hooks'
@@ -444,342 +444,419 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     }
   }, [gameState, difficulty])
 
-  if (gameState === 'menu') {
-    return (
-      <div className="space-y-8">
-        <Card className="p-8 bg-gradient-to-br from-card via-card to-muted/30 border-2 shadow-xl">
-          <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-            {language === 'da' ? 'Vælg sværhedsgrad' : 'Select Difficulty'}
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
-              const settings = DIFFICULTY_SETTINGS[diff]
-              const Icon = settings.icon
-              const topScore = getTopScoreForDifficulty(diff)
-              const userRank = getUserRankForDifficulty(diff)
-              const isSelected = difficulty === diff
-
-              return (
-                <button
-                  key={diff}
-                  onClick={() => setDifficulty(diff)}
-                  className={`
-                    relative p-6 rounded-2xl border-2 transition-all duration-300
-                    ${isSelected 
-                      ? `${settings.borderColor} bg-gradient-to-br ${settings.bgGradient} scale-105 shadow-2xl ${settings.glowColor}` 
-                      : 'border-border hover:border-primary/30 hover:scale-102 bg-card/50'
-                    }
-                  `}
-                >
-                  <div className="flex flex-col items-center gap-3">
-                    <div className={`p-3 rounded-xl bg-gradient-to-br ${settings.bgGradient}`}>
-                      <Icon size={32} weight="duotone" className={settings.color} />
-                    </div>
-                    <div className="text-center">
-                      <h3 className="font-bold text-lg mb-1">
-                        {settings.label[language]}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {settings.description[language]}
-                      </p>
-                      {topScore > 0 && (
-                        <div className="text-xs space-y-1">
-                          <div className="flex items-center justify-center gap-1 text-yellow-600 dark:text-yellow-400">
-                            <Crown size={14} weight="fill" />
-                            <span className="font-semibold">{topScore}</span>
-                          </div>
-                          {userRank && (
-                            <div className="text-muted-foreground">
-                              {language === 'da' ? `Din rang: #${userRank}` : `Your rank: #${userRank}`}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {isSelected && (
-                    <div className="absolute top-2 right-2">
-                      <div className={`w-3 h-3 rounded-full ${settings.color.replace('text-', 'bg-')} animate-pulse`} />
-                    </div>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="flex justify-center">
-            <Button
-              onClick={startGame}
-              size="lg"
-              className="text-xl px-12 py-6 bg-gradient-to-r from-primary via-accent to-primary hover:shadow-2xl hover:scale-105 transition-all duration-300 font-bold"
-            >
-              <RocketLaunch size={28} weight="duotone" className="mr-3" />
-              {language === 'da' ? 'Start spil' : 'Start Game'}
-            </Button>
-          </div>
-        </Card>
-
-        <Card className="p-8 bg-gradient-to-br from-card via-card to-muted/30 border-2 shadow-xl">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <Trophy size={32} weight="duotone" className="text-yellow-500" />
-            <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-500 bg-clip-text text-transparent">
-              {language === 'da' ? 'Global Highscore' : 'Global Leaderboard'}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
-              const settings = DIFFICULTY_SETTINGS[diff]
-              const Icon = settings.icon
-              const board = globalLeaderboard?.[diff] || []
-
-              return (
-                <div key={diff} className="space-y-3">
-                  <div className={`flex items-center gap-2 p-3 rounded-xl bg-gradient-to-br ${settings.bgGradient} border ${settings.borderColor}`}>
-                    <Icon size={24} weight="duotone" className={settings.color} />
-                    <h3 className="font-bold text-lg">{settings.label[language]}</h3>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {board.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground text-sm">
-                        {language === 'da' ? 'Ingen scores endnu' : 'No scores yet'}
-                      </div>
-                    ) : (
-                      board.slice(0, 10).map((entry, index) => (
-                        <div
-                          key={entry.email + entry.timestamp}
-                          className={`
-                            flex items-center justify-between p-3 rounded-lg
-                            ${entry.email === userEmail 
-                              ? 'bg-primary/10 border-2 border-primary/30 font-semibold' 
-                              : 'bg-muted/50'
-                            }
-                            ${index === 0 ? 'ring-2 ring-yellow-500/50' : ''}
-                          `}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className={`
-                              font-bold w-6 text-center
-                              ${index === 0 ? 'text-yellow-500' : ''}
-                              ${index === 1 ? 'text-gray-400' : ''}
-                              ${index === 2 ? 'text-orange-600' : ''}
-                            `}>
-                              #{index + 1}
-                            </span>
-                            <span className="truncate max-w-[120px]">
-                              {getDisplayName(entry.email)}
-                            </span>
-                          </div>
-                          <span className="font-bold text-primary">
-                            {entry.score}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
-  if (gameState === 'playing') {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 rounded-xl border-2 border-primary/20">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="text-center px-4 py-2 bg-card/80 backdrop-blur rounded-lg border shadow-lg">
-              <div className="text-xs text-muted-foreground mb-1">
-                {language === 'da' ? 'Score' : 'Score'}
-              </div>
-              <div className="text-2xl font-bold text-primary">
-                {Math.floor(score / 10)}
-              </div>
+  return (
+    <div className="space-y-6">
+      <Card className="p-6 bg-gradient-to-br from-card via-primary/5 to-accent/5 border-2">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-full bg-gradient-to-br from-primary to-accent shadow-lg">
+              <RocketLaunch size={32} weight="duotone" className="text-primary-foreground" />
             </div>
-            
-            <div className="text-center px-4 py-2 bg-card/80 backdrop-blur rounded-lg border shadow-lg">
-              <div className="text-xs text-muted-foreground mb-1">
-                {language === 'da' ? 'Highscore' : 'High Score'}
+            <div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Endless Dodger
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {language === 'da' 
+                  ? 'Undgå meteoritter så længe som muligt!' 
+                  : 'Avoid meteorites for as long as you can!'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-center p-4 rounded-lg bg-gradient-to-br from-accent/10 to-primary/10 border border-accent/20">
+              <div className="text-sm text-muted-foreground font-semibold">
+                {language === 'da' ? 'Højeste score' : 'High Score'}
               </div>
-              <div className="text-xl font-bold text-yellow-500">
+              <div className="text-2xl font-bold text-primary flex items-center gap-2 justify-center mt-1">
+                <Trophy size={24} weight="fill" className="text-accent" />
                 {getCurrentHighScore()}
               </div>
             </div>
           </div>
-
-          <Button
-            onClick={resetGame}
-            variant="destructive"
-            size="lg"
-            className="gap-2"
-          >
-            <X size={20} weight="bold" />
-            {language === 'da' ? 'Afslut' : 'End Game'}
-          </Button>
         </div>
 
-        <div
-          ref={gameAreaRef}
-          className="relative bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 rounded-xl border-2 border-primary/20 overflow-hidden shadow-2xl"
-          style={{ height: `${GAME_AREA_HEIGHT}px` }}
-        >
-          <div
-            className="absolute"
-            style={{
-              left: `${spaceshipX}px`,
-              bottom: '10px',
-              width: `${SPACESHIP_SIZE}px`,
-              height: `${SPACESHIP_SIZE}px`,
-            }}
-          >
-            <svg
-              width={SPACESHIP_SIZE}
-              height={SPACESHIP_SIZE}
-              viewBox="0 0 50 50"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M25 10 L40 42 L25 38 L10 42 Z"
-                fill="url(#spaceshipGradient)"
-                stroke="#ffffff"
-                strokeWidth="2"
-              />
-              <circle cx="25" cy="28" r="4" fill="#00ffff" opacity="0.8" />
-              <defs>
-                <linearGradient id="spaceshipGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#3b82f6" />
-                  <stop offset="100%" stopColor="#8b5cf6" />
-                </linearGradient>
-              </defs>
-            </svg>
+        {gameState === 'menu' && (
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <div className="text-center">
+                <p className="text-sm font-semibold text-muted-foreground mb-3">
+                  {language === 'da' ? 'Vælg sværhedsgrad' : 'Select Difficulty'}
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-4">
+                {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
+                  const setting = DIFFICULTY_SETTINGS[diff]
+                  const Icon = setting.icon
+                  const isSelected = difficulty === diff
+                  
+                  return (
+                    <div
+                      key={diff}
+                      onClick={() => setDifficulty(diff)}
+                      className={`group relative cursor-pointer rounded-xl p-6 transition-all duration-300 min-w-[140px] ${
+                        isSelected 
+                          ? `bg-gradient-to-br ${setting.bgGradient} border-2 ${setting.borderColor} shadow-lg ${setting.glowColor}` 
+                          : 'bg-card border-2 border-border hover:border-border/60 hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-3">
+                        <Icon 
+                          size={28} 
+                          weight="duotone" 
+                          className={isSelected ? setting.color : `${setting.color} opacity-60 group-hover:opacity-100`} 
+                        />
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`font-bold text-base ${isSelected ? setting.color : 'text-foreground'}`}>
+                            {setting.label[language as 'en' | 'da']}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {setting.description[language as 'en' | 'da']}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-4">
+                {language === 'da' 
+                  ? 'Overlev så længe som muligt! Undgå meteoritter der falder fra toppen.' 
+                  : 'Survive as long as possible! Avoid meteorites falling from the top.'}
+              </p>
+              <Button onClick={startGame} size="lg" className="px-8 bg-gradient-to-r from-primary to-accent hover:opacity-90">
+                {language === 'da' ? 'Start spil' : 'Start Game'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {gameState === 'playing' && (
+        <Card className="p-0 overflow-hidden border-2 border-primary/30 shadow-2xl">
+          <div className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 border-b-2 border-primary/30">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/10 to-primary/5" />
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-8">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent blur-xl opacity-30 group-hover:opacity-50 transition-opacity" />
+                  <div className="relative px-6 py-3 rounded-xl bg-gradient-to-br from-primary/20 to-accent/30 border-2 border-primary/40 backdrop-blur-sm">
+                    <div className="text-[10px] text-primary-foreground/70 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                      <Trophy size={12} weight="fill" />
+                      {language === 'da' ? 'Point' : 'Score'}
+                    </div>
+                    <div className="text-4xl font-black bg-gradient-to-br from-white to-primary-foreground bg-clip-text text-transparent drop-shadow-lg">
+                      {Math.floor(score / 10)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <Button 
+                onClick={resetGame} 
+                variant="destructive" 
+                size="lg"
+                className="shadow-xl hover:shadow-2xl transition-shadow font-bold"
+              >
+                <X size={20} weight="bold" className="mr-2" />
+                {language === 'da' ? 'Stop' : 'Quit'}
+              </Button>
+            </div>
           </div>
 
-          {meteorites.map(meteorite => (
+          <div
+            ref={gameAreaRef}
+            className="relative"
+            style={{ 
+              height: '600px',
+              cursor: 'crosshair',
+              background: `
+                repeating-linear-gradient(
+                  0deg,
+                  transparent,
+                  transparent 50px,
+                  oklch(0.9 0.01 250 / 0.15) 50px,
+                  oklch(0.9 0.01 250 / 0.15) 51px
+                ),
+                repeating-linear-gradient(
+                  90deg,
+                  transparent,
+                  transparent 50px,
+                  oklch(0.9 0.01 250 / 0.15) 50px,
+                  oklch(0.9 0.01 250 / 0.15) 51px
+                ),
+                linear-gradient(
+                  135deg,
+                  oklch(0.98 0.02 250) 0%,
+                  oklch(0.96 0.03 280) 25%,
+                  oklch(0.97 0.02 210) 50%,
+                  oklch(0.96 0.03 240) 75%,
+                  oklch(0.98 0.02 250) 100%
+                )
+              `
+            }}
+          >
             <div
-              key={meteorite.id}
               className="absolute"
               style={{
-                left: `${meteorite.x}px`,
-                top: `${meteorite.y}px`,
-                width: `${METEORITE_SIZE}px`,
-                height: `${METEORITE_SIZE}px`,
+                left: `${spaceshipX}px`,
+                bottom: '10px',
+                width: `${SPACESHIP_SIZE}px`,
+                height: `${SPACESHIP_SIZE}px`,
               }}
             >
               <svg
-                width={METEORITE_SIZE}
-                height={METEORITE_SIZE}
-                viewBox="0 0 45 45"
+                width={SPACESHIP_SIZE}
+                height={SPACESHIP_SIZE}
+                viewBox="0 0 50 50"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <circle cx="22.5" cy="22.5" r="19" fill="url(#meteoriteGradient)" />
-                <circle cx="16" cy="18" r="3.5" fill="#8b4513" opacity="0.5" />
-                <circle cx="28" cy="24" r="2.5" fill="#654321" opacity="0.5" />
-                <circle cx="22" cy="28" r="2.5" fill="#5a3a1a" opacity="0.5" />
+                <path
+                  d="M25 10 L40 42 L25 38 L10 42 Z"
+                  fill="url(#spaceshipGradient)"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                />
+                <circle cx="25" cy="28" r="4" fill="#00ffff" opacity="0.8" />
                 <defs>
-                  <radialGradient id="meteoriteGradient">
-                    <stop offset="0%" stopColor="#ff6b35" />
-                    <stop offset="50%" stopColor="#d64933" />
-                    <stop offset="100%" stopColor="#8b2e1f" />
-                  </radialGradient>
+                  <linearGradient id="spaceshipGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#8b5cf6" />
+                  </linearGradient>
                 </defs>
               </svg>
             </div>
-          ))}
 
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-xs text-white/80 bg-black/50 backdrop-blur px-4 py-2 rounded-full border border-white/20">
-            {language === 'da' ? '← → eller A D for at flytte rumskibet' : '← → or A D to move spaceship'}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (gameState === 'ended') {
-    const finalScore = Math.floor(score / 10)
-    const highScore = getCurrentHighScore()
-    const isNewRecord = finalScore >= highScore && finalScore > 0
-
-    return (
-      <div className="flex items-center justify-center min-h-[600px]">
-        <Card className="max-w-2xl w-full p-8 bg-gradient-to-br from-card via-card to-muted/30 border-2 shadow-2xl">
-          <div className="text-center space-y-6">
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                {isNewRecord ? (
-                  <div className="p-6 rounded-full bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 border-2 border-yellow-500/50 animate-pulse">
-                    <Crown size={64} weight="fill" className="text-yellow-500" />
-                  </div>
-                ) : (
-                  <div className="p-6 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 border-2 border-primary/30">
-                    <Trophy size={64} weight="duotone" className="text-primary" />
-                  </div>
-                )}
-              </div>
-              
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                {language === 'da' ? 'Spil slut!' : 'Game Over!'}
-              </h2>
-            </div>
-
-            {isNewRecord && (
-              <div className="py-4 px-6 bg-gradient-to-r from-yellow-500/20 via-yellow-400/20 to-yellow-500/20 rounded-xl border-2 border-yellow-500/50 animate-pulse">
-                <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
-                  🎉 {language === 'da' ? 'Ny rekord!' : 'New Record!'} 🎉
-                </p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-6 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/20">
-                <div className="text-sm text-muted-foreground mb-2">
-                  {language === 'da' ? 'Din score' : 'Your Score'}
-                </div>
-                <div className="text-5xl font-bold text-primary">
-                  {finalScore}
-                </div>
-              </div>
-              
-              <div className="p-6 rounded-xl bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border-2 border-yellow-500/20">
-                <div className="text-sm text-muted-foreground mb-2">
-                  {language === 'da' ? 'Highscore' : 'High Score'}
-                </div>
-                <div className="text-5xl font-bold text-yellow-600 dark:text-yellow-400">
-                  {getCurrentHighScore()}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-4 justify-center pt-4">
-              <Button
-                onClick={startGame}
-                size="lg"
-                className="bg-gradient-to-r from-primary via-accent to-primary hover:shadow-2xl hover:scale-105 transition-all duration-300 font-bold px-8"
+            {meteorites.map(meteorite => (
+              <div
+                key={meteorite.id}
+                className="absolute"
+                style={{
+                  left: `${meteorite.x}px`,
+                  top: `${meteorite.y}px`,
+                  width: `${METEORITE_SIZE}px`,
+                  height: `${METEORITE_SIZE}px`,
+                }}
               >
-                <RocketLaunch size={24} weight="duotone" className="mr-2" />
-                {language === 'da' ? 'Spil igen' : 'Play Again'}
-              </Button>
-              
-              <Button
-                onClick={resetGame}
-                variant="outline"
-                size="lg"
-                className="px-8 font-bold"
-              >
-                {language === 'da' ? 'Menu' : 'Menu'}
-              </Button>
-            </div>
+                <svg
+                  width={METEORITE_SIZE}
+                  height={METEORITE_SIZE}
+                  viewBox="0 0 45 45"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle cx="22.5" cy="22.5" r="19" fill="url(#meteoriteGradient)" />
+                  <circle cx="16" cy="18" r="3.5" fill="#8b4513" opacity="0.5" />
+                  <circle cx="28" cy="24" r="2.5" fill="#654321" opacity="0.5" />
+                  <circle cx="22" cy="28" r="2.5" fill="#5a3a1a" opacity="0.5" />
+                  <defs>
+                    <radialGradient id="meteoriteGradient">
+                      <stop offset="0%" stopColor="#ff6b35" />
+                      <stop offset="50%" stopColor="#d64933" />
+                      <stop offset="100%" stopColor="#8b2e1f" />
+                    </radialGradient>
+                  </defs>
+                </svg>
+              </div>
+            ))}
           </div>
         </Card>
-      </div>
-    )
-  }
+      )}
 
-  return null
+      {gameState === 'ended' && (
+        <Card className="p-6 text-center bg-gradient-to-br from-primary/10 via-accent/10 to-background border-2 border-primary/20">
+          <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            {language === 'da' ? 'Spil slut!' : 'Game Over!'}
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <p className="text-muted-foreground">
+                {language === 'da' ? 'Din sidste score' : 'Your final score'}
+              </p>
+              <p className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                {Math.floor(score / 10)}
+              </p>
+            </div>
+          </div>
+          {Math.floor(score / 10) > getCurrentHighScore() && Math.floor(score / 10) > 0 && (
+            <p className="text-sm text-accent font-semibold mt-4 flex items-center gap-2 justify-center">
+              <Trophy size={20} weight="fill" />
+              {language === 'da' ? '🎉 Ny højeste score!' : '🎉 New high score!'}
+            </p>
+          )}
+          <Button onClick={() => setGameState('menu')} className="mt-6" size="lg">
+            {language === 'da' ? 'Tilbage til menu' : 'Back to Menu'}
+          </Button>
+        </Card>
+      )}
+
+      <Card className="p-6 bg-gradient-to-br from-accent/5 via-primary/5 to-card border-2 border-accent/20">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 rounded-full bg-gradient-to-br from-accent to-primary shadow-lg">
+            <Crown size={28} weight="duotone" className="text-accent-foreground" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+              {language === 'da' ? 'Global resultattavle' : 'Global Leaderboard'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {language === 'da' ? 'Konkurer med andre medarbejdere!' : 'Compete with other employees!'}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-4 md:grid-cols-2">
+          {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
+            const setting = DIFFICULTY_SETTINGS[diff]
+            const Icon = setting.icon
+            const leaderboard = globalLeaderboard?.[diff] || []
+            const topScore = getTopScoreForDifficulty(diff)
+            const userRank = getUserRankForDifficulty(diff)
+            const userEntry = leaderboard.find(entry => entry.email === userEmail)
+
+            return (
+              <div key={diff} className="space-y-3">
+                <div className={`p-4 rounded-lg border-2 transition-all ${
+                  userRank === 1
+                    ? 'border-accent bg-gradient-to-br from-accent/10 to-primary/10 shadow-lg'
+                    : 'border-border bg-gradient-to-br from-card to-muted/20'
+                }`}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`p-2 rounded-lg ${
+                      diff === 'easy' ? 'bg-gradient-to-br from-green-500/20 to-green-600/20' :
+                      diff === 'medium' ? 'bg-gradient-to-br from-yellow-500/20 to-yellow-600/20' :
+                      diff === 'hard' ? 'bg-gradient-to-br from-red-500/20 to-red-600/20' :
+                      'bg-gradient-to-br from-purple-500/20 to-purple-600/20'
+                    }`}>
+                      <Icon size={24} weight="duotone" className={setting.color} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold">
+                        {setting.label[language as 'en' | 'da']}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {setting.description[language as 'en' | 'da']}
+                      </div>
+                    </div>
+                  </div>
+
+                  {leaderboard.length > 0 ? (
+                    <div className="space-y-2">
+                      {leaderboard.slice(0, 10).map((entry, index) => {
+                        const isCurrentUser = entry.email === userEmail
+                        const rankColors = [
+                          'text-yellow-500',
+                          'text-gray-400',
+                          'text-amber-600'
+                        ]
+                        const rankIcons = [Crown, Medal, Star]
+                        const RankIcon = index < 3 ? rankIcons[index] : null
+
+                        return (
+                          <div
+                            key={entry.email}
+                            className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+                              isCurrentUser
+                                ? 'bg-primary/10 border border-primary/30 shadow-md'
+                                : 'bg-muted/30'
+                            }`}
+                          >
+                            <div className="flex items-center justify-center w-8 h-8">
+                              {RankIcon ? (
+                                <RankIcon 
+                                  size={20} 
+                                  weight="fill" 
+                                  className={rankColors[index]} 
+                                />
+                              ) : (
+                                <span className="text-sm font-bold text-muted-foreground">
+                                  #{index + 1}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className={`text-sm font-medium truncate ${
+                                isCurrentUser ? 'text-primary font-bold' : 'text-foreground'
+                              }`}>
+                                {getDisplayName(entry.email)}
+                              </div>
+                            </div>
+                            <div className={`text-lg font-bold ${
+                              isCurrentUser ? 'text-primary' : 'text-muted-foreground'
+                            }`}>
+                              {entry.score}
+                            </div>
+                          </div>
+                        )
+                      })}
+
+                      {userEntry && userRank && userRank > 10 && (
+                        <>
+                          <div className="text-center py-1">
+                            <span className="text-xs text-muted-foreground">...</span>
+                          </div>
+                          <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/30 shadow-md">
+                            <div className="flex items-center justify-center w-8 h-8">
+                              <span className="text-sm font-bold text-primary">
+                                #{userRank}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-bold text-primary truncate">
+                                {getDisplayName(userEmail)}
+                              </div>
+                            </div>
+                            <div className="text-lg font-bold text-primary">
+                              {userEntry.score}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <Trophy size={32} className="text-muted-foreground/30 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {language === 'da'
+                          ? 'Ingen scores endnu'
+                          : 'No scores yet'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {language === 'da'
+                          ? 'Vær den første!'
+                          : 'Be the first!'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {(globalLeaderboard?.easy?.length || 0) === 0 && 
+         (globalLeaderboard?.medium?.length || 0) === 0 && 
+         (globalLeaderboard?.hard?.length || 0) === 0 &&
+         (globalLeaderboard?.expert?.length || 0) === 0 && (
+          <div className="mt-6 text-center p-6 rounded-lg bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border border-primary/10">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Crown size={24} weight="duotone" className="text-primary" />
+              <h4 className="text-lg font-bold text-primary">
+                {language === 'da' ? 'Start konkurrencen!' : 'Start the Competition!'}
+              </h4>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {language === 'da'
+                ? 'Spil for at tilføje din score til resultattavlen og konkurrere med andre medarbejdere!'
+                : 'Play to add your score to the leaderboard and compete with other employees!'}
+            </p>
+          </div>
+        )}
+      </Card>
+    </div>
+  )
 }
