@@ -13,7 +13,8 @@ export const translations = {
         games: "Spil Hjørnet",
         documents: "Dokumenter",
         projects: "Projekter",
-        chat: "Team Chat"
+        chat: "Team Chat",
+        notebook: "Virtuel Notesbog"
       },
       descriptions: {
         shifts: "Administrer vagter og roller for teamet",
@@ -27,7 +28,8 @@ export const translations = {
         projects: "Projektadministration og opgaver",
         chat: "Intern kommunikation og beskeder",
         manager: "Administrer rettigheder og håndter sygemeldinger",
-        managerLocked: "Kun tilgængelig for managere og administratorer"
+        managerLocked: "Kun tilgængelig for managere og administratorer",
+        notebook: "Delte og personlige noter for teamet"
       },
       logout: "Log ud",
       openModule: "Åbn modul",
@@ -550,6 +552,36 @@ export const translations = {
       weekendError: "Du kan ikke anmode om fridag i weekenden",
       requestSent: "Fridag anmodning sendt",
       requestError: "Kunne ikke oprette fridag anmodning"
+    },
+    notebook: {
+      title: "Virtuel Notesbog",
+      sharedNotes: "Delte Noter",
+      personalNotes: "Personlige Noter",
+      addNote: "Tilføj Note",
+      editNote: "Rediger Note",
+      deleteNote: "Slet Note",
+      noteTitle: "Note Titel",
+      noteContent: "Indhold",
+      search: "Søg i noter...",
+      searchPlaceholder: "Søg efter titel eller indhold...",
+      noNotes: "Ingen noter endnu",
+      noSharedNotes: "Ingen delte noter endnu. Opret den første!",
+      noPersonalNotes: "Ingen personlige noter endnu. Opret din første!",
+      noSearchResults: "Ingen noter matchede din søgning",
+      createdBy: "Oprettet af",
+      lastEdited: "Sidst redigeret",
+      cancel: "Annuller",
+      save: "Gem",
+      create: "Opret",
+      titleRequired: "Titel er påkrævet",
+      contentRequired: "Indhold er påkrævet",
+      noteCreated: "Note oprettet",
+      noteUpdated: "Note opdateret",
+      noteDeleted: "Note slettet",
+      deleteConfirm: "Er du sikker på at du vil slette denne note? Denne handling kan ikke fortrydes.",
+      onlyCreatorCanEdit: "Kun skaberen af denne note kan redigere eller slette den",
+      enterTitle: "Indtast titel...",
+      enterContent: "Skriv notens indhold..."
     }
   },
   en: {
@@ -566,7 +598,8 @@ export const translations = {
         games: "Game Corner",
         documents: "Documents",
         projects: "Projects",
-        chat: "Team Chat"
+        chat: "Team Chat",
+        notebook: "Virtual Notebook"
       },
       descriptions: {
         shifts: "Manage shifts and roles for the team",
@@ -580,7 +613,8 @@ export const translations = {
         projects: "Project management and tasks",
         chat: "Internal communication and messages",
         manager: "Manage permissions and handle sick leave reports",
-        managerLocked: "Only available for managers and administrators"
+        managerLocked: "Only available for managers and administrators",
+        notebook: "Shared and personal notes for the team"
       },
       logout: "Logout",
       openModule: "Open module",
@@ -1103,6 +1137,36 @@ export const translations = {
       weekendError: "You cannot request a day off on weekends",
       requestSent: "Day off request sent",
       requestError: "Could not create day off request"
+    },
+    notebook: {
+      title: "Virtual Notebook",
+      sharedNotes: "Shared Notes",
+      personalNotes: "Personal Notes",
+      addNote: "Add Note",
+      editNote: "Edit Note",
+      deleteNote: "Delete Note",
+      noteTitle: "Note Title",
+      noteContent: "Content",
+      search: "Search notes...",
+      searchPlaceholder: "Search by title or content...",
+      noNotes: "No notes yet",
+      noSharedNotes: "No shared notes yet. Create the first one!",
+      noPersonalNotes: "No personal notes yet. Create your first!",
+      noSearchResults: "No notes matched your search",
+      createdBy: "Created by",
+      lastEdited: "Last edited",
+      cancel: "Cancel",
+      save: "Save",
+      create: "Create",
+      titleRequired: "Title is required",
+      contentRequired: "Content is required",
+      noteCreated: "Note created",
+      noteUpdated: "Note updated",
+      noteDeleted: "Note deleted",
+      deleteConfirm: "Are you sure you want to delete this note? This action cannot be undone.",
+      onlyCreatorCanEdit: "Only the creator of this note can edit or delete it",
+      enterTitle: "Enter title...",
+      enterContent: "Write note content..."
     }
   }
 }

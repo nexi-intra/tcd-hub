@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus, ChatText } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus, ChatText, Notebook } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -519,6 +519,16 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       icon: <Folder size={48} weight="duotone" />,
       color: 'oklch(0.75 0.15 60)',
       gradient: 'from-[oklch(0.75_0.15_60)] via-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]',
+      available: true,
+      category: 'work',
+    },
+    {
+      id: 'notebook',
+      title: t.hub.modules.notebook,
+      description: t.hub.descriptions.notebook,
+      icon: <Notebook size={48} weight="duotone" />,
+      color: 'oklch(0.68 0.18 150)',
+      gradient: 'from-[oklch(0.68_0.18_150)] via-[oklch(0.72_0.16_180)] to-[oklch(0.68_0.18_150)]',
       available: true,
       category: 'work',
     },
