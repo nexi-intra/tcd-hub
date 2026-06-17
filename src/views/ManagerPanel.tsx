@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target, RocketLaunch } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -96,6 +96,16 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [isEditScoreDialogOpen, setIsEditScoreDialogOpen] = useState(false)
   const [newScore, setNewScore] = useState('')
   const [gamePlayCounts, setGamePlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
+  const [endlessDodgerLeaderboard, setEndlessDodgerLeaderboard] = useState<{
+    easy: Array<{ email: string; score: number; timestamp: number }>
+    medium: Array<{ email: string; score: number; timestamp: number }>
+    hard: Array<{ email: string; score: number; timestamp: number }>
+    expert: Array<{ email: string; score: number; timestamp: number }>
+  } | null>(null)
+  const [editingDodgerScore, setEditingDodgerScore] = useState<{ difficulty: 'easy' | 'medium' | 'hard' | 'expert'; email: string; score: number } | null>(null)
+  const [isEditDodgerScoreDialogOpen, setIsEditDodgerScoreDialogOpen] = useState(false)
+  const [newDodgerScore, setNewDodgerScore] = useState('')
+  const [dodgerPlayCounts, setDodgerPlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -106,6 +116,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         loadSickLeaveEntries()
         loadVacationEntries()
         loadGameLeaderboard()
+        loadEndlessDodgerLeaderboard()
       }
     }
     checkAccess()
@@ -761,6 +772,20 @@ Return ONLY a JSON object with this exact structure:
     setGamePlayCounts(playCounts || {})
   }
 
+  const loadEndlessDodgerLeaderboard = async () => {
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; timestamp: number }>
+    }>('endless-dodger-global-leaderboard')
+    
+    setEndlessDodgerLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
+    
+    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('endless-dodger-play-counts')
+    setDodgerPlayCounts(playCounts || {})
+  }
+
   const openEditScoreDialog = (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string, score: number) => {
     setEditingScore({ difficulty, email, score })
     setNewScore(score.toString())
@@ -831,6 +856,79 @@ Return ONLY a JSON object with this exact structure:
     
     await window.spark.kv.set('hit-n-miss-global-leaderboard', leaderboard)
     await loadGameLeaderboard()
+    toast.success('Score slettet')
+  }
+
+  const openEditDodgerScoreDialog = (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string, score: number) => {
+    setEditingDodgerScore({ difficulty, email, score })
+    setNewDodgerScore(score.toString())
+    setIsEditDodgerScoreDialogOpen(true)
+  }
+
+  const handleSaveDodgerScore = async () => {
+    if (!editingDodgerScore) return
+
+    const scoreValue = parseInt(newDodgerScore)
+    if (isNaN(scoreValue) || scoreValue < 0) {
+      toast.error('Ugyldig score')
+      return
+    }
+
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; timestamp: number }>
+    }>('endless-dodger-global-leaderboard')
+
+    if (!leaderboard) {
+      toast.error('Leaderboard ikke fundet')
+      return
+    }
+
+    const board = leaderboard[editingDodgerScore.difficulty]
+    const entryIndex = board.findIndex((entry: { email: string; score: number; timestamp: number }) => entry.email === editingDodgerScore.email)
+    
+    if (entryIndex !== -1) {
+      board[entryIndex] = {
+        ...board[entryIndex],
+        score: scoreValue,
+        timestamp: Date.now()
+      }
+      
+      board.sort((a: { score: number }, b: { score: number }) => b.score - a.score)
+      
+      const updatedLeaderboard = {
+        ...leaderboard,
+        [editingDodgerScore.difficulty]: board
+      }
+      
+      await window.spark.kv.set('endless-dodger-global-leaderboard', updatedLeaderboard)
+      await loadEndlessDodgerLeaderboard()
+      
+      setIsEditDodgerScoreDialogOpen(false)
+      setEditingDodgerScore(null)
+      setNewDodgerScore('')
+      toast.success('Score opdateret')
+    } else {
+      toast.error('Score entry ikke fundet')
+    }
+  }
+
+  const deleteDodgerScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; timestamp: number }>
+    }>('endless-dodger-global-leaderboard')
+
+    if (!leaderboard) return
+
+    leaderboard[difficulty] = leaderboard[difficulty].filter((entry: { email: string }) => entry.email !== email)
+    
+    await window.spark.kv.set('endless-dodger-global-leaderboard', leaderboard)
+    await loadEndlessDodgerLeaderboard()
     toast.success('Score slettet')
   }
 
@@ -924,7 +1022,7 @@ Return ONLY a JSON object with this exact structure:
         </motion.div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 max-w-6xl">
+          <TabsList className="grid w-full grid-cols-6 max-w-7xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
@@ -949,6 +1047,10 @@ Return ONLY a JSON object with this exact structure:
             <TabsTrigger value="game-scores" className="gap-2">
               <Trophy size={18} />
               Hit N Miss
+            </TabsTrigger>
+            <TabsTrigger value="dodger-scores" className="gap-2">
+              <RocketLaunch size={18} />
+              Endless Dodger
             </TabsTrigger>
           </TabsList>
 

@@ -262,7 +262,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     }
   }
 
-  const endGame = () => {
+  const endGame = async () => {
     setGameState('ended')
     
     if (animationFrameRef.current) {
@@ -277,6 +277,26 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
     const finalScore = Math.floor(score / 10)
     updateGlobalLeaderboard(finalScore)
+    
+    await trackGamePlay(difficulty)
+  }
+
+  const trackGamePlay = async (gameDifficulty: Difficulty) => {
+    if (!userEmail) return
+
+    try {
+      const gameStats = await window.spark.kv.get<Record<string, Record<Difficulty, number>>>('endless-dodger-play-counts') || {}
+      
+      if (!gameStats[userEmail]) {
+        gameStats[userEmail] = { easy: 0, medium: 0, hard: 0, expert: 0 }
+      }
+      
+      gameStats[userEmail][gameDifficulty] = (gameStats[userEmail][gameDifficulty] || 0) + 1
+      
+      await window.spark.kv.set('endless-dodger-play-counts', gameStats)
+    } catch (error) {
+      console.error('Error tracking game play:', error)
+    }
   }
 
   const resetGame = () => {
