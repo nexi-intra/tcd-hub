@@ -1025,6 +1025,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                       const today = new Date()
                       setSelectedMonth(today.getMonth())
                       setSelectedYear(today.getFullYear())
+                      hasScrolledToToday.current = false
                       toast.success('Navigeret til i dag')
                     }}
                     variant="outline"
