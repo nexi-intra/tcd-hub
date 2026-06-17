@@ -75,12 +75,12 @@ const DIFFICULTY_SETTINGS = {
   }
 }
 
-const SPACESHIP_SIZE = 60
-const METEORITE_SIZE = 50
+const SPACESHIP_SIZE = 50
+const METEORITE_SIZE = 45
 const GAME_AREA_HEIGHT = 600
 
-const SPACESHIP_HITBOX_SIZE = 40
-const METEORITE_HITBOX_SIZE = 44
+const SPACESHIP_HITBOX_SIZE = 35
+const METEORITE_HITBOX_SIZE = 38
 
 interface User {
   email: string
@@ -217,22 +217,17 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
     const spaceshipCenterX = spaceshipX + (SPACESHIP_SIZE / 2)
     const spaceshipCenterY = spaceshipY + (SPACESHIP_SIZE / 2)
-    const spaceshipLeft = spaceshipCenterX - (SPACESHIP_HITBOX_SIZE / 2)
-    const spaceshipRight = spaceshipCenterX + (SPACESHIP_HITBOX_SIZE / 2)
-    const spaceshipTop = spaceshipCenterY - (SPACESHIP_HITBOX_SIZE / 2)
-    const spaceshipBottom = spaceshipCenterY + (SPACESHIP_HITBOX_SIZE / 2)
-
+    
     const meteoriteCenterX = meteoriteX + (METEORITE_SIZE / 2)
     const meteoriteCenterY = meteoriteY + (METEORITE_SIZE / 2)
-    const meteoriteLeft = meteoriteCenterX - (METEORITE_HITBOX_SIZE / 2)
-    const meteoriteRight = meteoriteCenterX + (METEORITE_HITBOX_SIZE / 2)
-    const meteoriteTop = meteoriteCenterY - (METEORITE_HITBOX_SIZE / 2)
-    const meteoriteBottom = meteoriteCenterY + (METEORITE_HITBOX_SIZE / 2)
+    
+    const distanceX = Math.abs(spaceshipCenterX - meteoriteCenterX)
+    const distanceY = Math.abs(spaceshipCenterY - meteoriteCenterY)
+    
+    const collisionThresholdX = (SPACESHIP_HITBOX_SIZE + METEORITE_HITBOX_SIZE) / 2
+    const collisionThresholdY = (SPACESHIP_HITBOX_SIZE + METEORITE_HITBOX_SIZE) / 2
 
-    const horizontalOverlap = spaceshipLeft < meteoriteRight && spaceshipRight > meteoriteLeft
-    const verticalOverlap = spaceshipTop < meteoriteBottom && spaceshipBottom > meteoriteTop
-
-    return horizontalOverlap && verticalOverlap
+    return distanceX < collisionThresholdX && distanceY < collisionThresholdY
   }
 
   const startGame = () => {
@@ -562,17 +557,17 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
             <svg
               width={SPACESHIP_SIZE}
               height={SPACESHIP_SIZE}
-              viewBox="0 0 60 60"
+              viewBox="0 0 50 50"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
               <path
-                d="M30 5 L50 50 L30 45 L10 50 Z"
+                d="M25 10 L40 42 L25 38 L10 42 Z"
                 fill="url(#spaceshipGradient)"
                 stroke="#ffffff"
                 strokeWidth="2"
               />
-              <circle cx="30" cy="30" r="5" fill="#00ffff" opacity="0.8" />
+              <circle cx="25" cy="28" r="4" fill="#00ffff" opacity="0.8" />
               <defs>
                 <linearGradient id="spaceshipGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" stopColor="#3b82f6" />
@@ -596,14 +591,14 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
               <svg
                 width={METEORITE_SIZE}
                 height={METEORITE_SIZE}
-                viewBox="0 0 50 50"
+                viewBox="0 0 45 45"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <circle cx="25" cy="25" r="22" fill="url(#meteoriteGradient)" />
-                <circle cx="18" cy="20" r="4" fill="#8b4513" opacity="0.5" />
-                <circle cx="32" cy="28" r="3" fill="#654321" opacity="0.5" />
-                <circle cx="25" cy="32" r="3" fill="#5a3a1a" opacity="0.5" />
+                <circle cx="22.5" cy="22.5" r="19" fill="url(#meteoriteGradient)" />
+                <circle cx="16" cy="18" r="3.5" fill="#8b4513" opacity="0.5" />
+                <circle cx="28" cy="24" r="2.5" fill="#654321" opacity="0.5" />
+                <circle cx="22" cy="28" r="2.5" fill="#5a3a1a" opacity="0.5" />
                 <defs>
                   <radialGradient id="meteoriteGradient">
                     <stop offset="0%" stopColor="#ff6b35" />
