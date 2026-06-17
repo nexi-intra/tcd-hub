@@ -142,6 +142,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
   const contentScrollRef = useRef<HTMLDivElement>(null)
   const scheduleScrollRef = useRef<HTMLDivElement>(null)
   const hasScrolledToToday = useRef(false)
+  const [scrollToToday, setScrollToToday] = useState(false)
 
   const syncScroll = (source: 'date' | 'content') => {
     if (source === 'date' && dateScrollRef.current && contentScrollRef.current) {
@@ -174,7 +175,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
 
   const loadEmployees = async () => {
     const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: string; phone?: string }>>('users')
-    const userSettings = await window.spark.kv.get<Record<string, { phoneNumber?: string }>>('user-settings') || {}
+    const userSettings = (await window.spark.kv.get<Record<string, { phoneNumber?: string }>>('user-settings')) || {}
     
     if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
       const userList: TeamEmployee[] = Object.values(usersData).map(user => {
@@ -209,10 +210,18 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
   }, [onNavigateBack])
 
   useEffect(() => {
-    if (activeTab === 'schedule' && scheduleScrollRef.current && !hasScrolledToToday.current) {
+    if (activeTab === 'schedule' && scheduleScrollRef.current && (!hasScrolledToToday.current || scrollToToday)) {
       const scrollToCurrentWeek = () => {
         const today = new Date()
         const currentWeekNumber = getWeekNumber(today)
+        const currentMonth = today.getMonth()
+        const currentYear = today.getFullYear()
+        
+        if (selectedMonth !== currentMonth || selectedYear !== currentYear) {
+          hasScrolledToToday.current = true
+          setScrollToToday(false)
+          return
+        }
         
         const daysInMonth = getDaysInMonth(selectedMonth, selectedYear)
         let targetDay = 1
@@ -240,11 +249,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
         }
         
         hasScrolledToToday.current = true
+        setScrollToToday(false)
       }
 
       setTimeout(scrollToCurrentWeek, 300)
     }
-  }, [activeTab, selectedMonth, selectedYear])
+  }, [activeTab, selectedMonth, selectedYear, scrollToToday])
 
   const isWeekend = (date: Date) => {
     const day = date.getDay()
@@ -937,7 +947,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           </div>
         </div>
       </div>
-      
       <div className="w-full px-4 sm:px-6 pt-56 sm:pt-60 pb-12 sm:pb-20 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -945,9 +954,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           className="mb-6"
         >
           <div className="flex items-center gap-6 mb-8">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
-              Vagtplan
-            </h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">Vagtplan</h1>
           </div>
         </motion.div>
 
@@ -1026,7 +1033,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                       setSelectedMonth(today.getMonth())
                       setSelectedYear(today.getFullYear())
                       hasScrolledToToday.current = false
-                      toast.success('Navigeret til i dag')
+                      setScrollToToday(true)
                     }}
                     variant="outline"
                     className="gap-2"
@@ -1845,7 +1852,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           </div>
         </DialogContent>
       </Dialog>
-      
       <AlertDialog open={showDuplicateTaskDialog} onOpenChange={setShowDuplicateTaskDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
