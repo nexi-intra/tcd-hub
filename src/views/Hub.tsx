@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus, ChatText } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -81,7 +81,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [unreadInboxCount, setUnreadInboxCount] = useState(0)
   const [pendingVacationRequests, setPendingVacationRequests] = useState(0)
   
-  const [teamTasks, setTeamTasks] = useState<Array<{ taskName: string; taskColor: string; people: string[]; roleId: string }>>([])
+  const [teamTasks, setTeamTasks] = useState<Array<{ taskName: string; taskColor: string; people: Array<{ name: string; comment?: string }>; roleId: string }>>([])
   const [peopleOff, setPeopleOff] = useState<Array<{ name: string; type: 'vacation' | 'single' }>>([])
   const [peopleSick, setPeopleSick] = useState<string[]>([])
   const [todaysMeal, setTodaysMeal] = useState<string>('')
@@ -163,7 +163,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       
       const todaysAssignments = assignments.filter(a => a.date === today)
       
-      const taskPeopleMap: Record<string, { color: string; people: string[]; roleId: string }> = {}
+      const taskPeopleMap: Record<string, { color: string; people: Array<{ name: string; comment?: string }>; roleId: string }> = {}
       
       roles.forEach(role => {
         taskPeopleMap[role.name] = {
@@ -187,8 +187,14 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           return
         }
         
-        if (taskPeopleMap[roleName] && !taskPeopleMap[roleName].people.includes(assignment.employeeName)) {
-          taskPeopleMap[roleName].people.push(assignment.employeeName)
+        if (taskPeopleMap[roleName]) {
+          const existingPerson = taskPeopleMap[roleName].people.find(p => p.name === assignment.employeeName)
+          if (!existingPerson) {
+            taskPeopleMap[roleName].people.push({
+              name: assignment.employeeName,
+              comment: assignment.comment
+            })
+          }
         }
       })
       
@@ -382,7 +388,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       
       const todaysAssignments = assignments.filter(a => a.date === today)
       
-      const taskPeopleMap: Record<string, { color: string; people: string[]; roleId: string }> = {}
+      const taskPeopleMap: Record<string, { color: string; people: Array<{ name: string; comment?: string }>; roleId: string }> = {}
       
       roles.forEach(role => {
         taskPeopleMap[role.name] = {
@@ -406,8 +412,14 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           return
         }
         
-        if (taskPeopleMap[roleName] && !taskPeopleMap[roleName].people.includes(assignment.employeeName)) {
-          taskPeopleMap[roleName].people.push(assignment.employeeName)
+        if (taskPeopleMap[roleName]) {
+          const existingPerson = taskPeopleMap[roleName].people.find(p => p.name === assignment.employeeName)
+          if (!existingPerson) {
+            taskPeopleMap[roleName].people.push({
+              name: assignment.employeeName,
+              comment: assignment.comment
+            })
+          }
         }
       })
       
@@ -926,15 +938,25 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.1 + personIdx * 0.05 }}
-                            className="flex items-center gap-2 p-2 rounded-lg bg-background/60 hover:bg-background transition-colors duration-200"
+                            className="flex flex-col gap-1"
                           >
-                            <div 
-                              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                              style={{ backgroundColor: task.taskColor }}
-                            >
-                              {person.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            <div className="flex items-center gap-2 p-2 rounded-lg bg-background/60 hover:bg-background transition-colors duration-200">
+                              <div 
+                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                                style={{ backgroundColor: task.taskColor }}
+                              >
+                                {person.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                              </div>
+                              <span className="text-xs md:text-sm text-foreground font-medium truncate flex-1">{person.name}</span>
+                              {person.comment && (
+                                <ChatText size={16} weight="fill" className="text-primary flex-shrink-0" />
+                              )}
                             </div>
-                            <span className="text-xs md:text-sm text-foreground font-medium truncate">{person}</span>
+                            {person.comment && (
+                              <div className="ml-9 px-2 py-1 rounded bg-muted text-xs text-muted-foreground italic">
+                                {person.comment}
+                              </div>
+                            )}
                           </motion.div>
                         ))}
                         <Button
