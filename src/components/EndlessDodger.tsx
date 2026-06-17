@@ -77,6 +77,8 @@ const DIFFICULTY_SETTINGS = {
 
 const PLAYER_SIZE = 50
 const OBJECT_SIZE = 40
+const PLAYER_HITBOX_SIZE = 40
+const OBJECT_HITBOX_SIZE = 35
 
 interface User {
   email: string
@@ -212,22 +214,19 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     const rect = gameAreaRef.current.getBoundingClientRect()
     const playerY = rect.height - PLAYER_SIZE - 20
 
-    const collisionMargin = 5
+    const playerCenterX = playerX + PLAYER_SIZE / 2
+    const playerCenterY = playerY + PLAYER_SIZE / 2
+    const objCenterX = objX + OBJECT_SIZE / 2
+    const objCenterY = objY + OBJECT_SIZE / 2
 
-    const playerLeft = playerX + collisionMargin
-    const playerRight = playerX + PLAYER_SIZE - collisionMargin
-    const playerTop = playerY + collisionMargin
-    const playerBottom = playerY + PLAYER_SIZE - collisionMargin
+    const playerHitboxRadius = PLAYER_HITBOX_SIZE / 2
+    const objHitboxRadius = OBJECT_HITBOX_SIZE / 2
 
-    const objLeft = objX + collisionMargin
-    const objRight = objX + OBJECT_SIZE - collisionMargin
-    const objTop = objY + collisionMargin
-    const objBottom = objY + OBJECT_SIZE - collisionMargin
+    const distanceX = playerCenterX - objCenterX
+    const distanceY = playerCenterY - objCenterY
+    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY)
 
-    const xOverlap = playerRight >= objLeft && playerLeft <= objRight
-    const yOverlap = playerBottom >= objTop && playerTop <= objBottom
-
-    return xOverlap && yOverlap
+    return distance < (playerHitboxRadius + objHitboxRadius)
   }
 
   const getPlayerY = (): number => {
@@ -287,12 +286,23 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       keysPressed.current.delete(e.key)
     }
 
+    const handleMouseMove = (e: MouseEvent) => {
+      if (gameState === 'playing' && gameAreaRef.current) {
+        const rect = gameAreaRef.current.getBoundingClientRect()
+        const mouseX = e.clientX - rect.left
+        const clampedX = Math.max(0, Math.min(mouseX - PLAYER_SIZE / 2, rect.width - PLAYER_SIZE))
+        setPlayerX(clampedX)
+      }
+    }
+
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('mousemove', handleMouseMove)
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('mousemove', handleMouseMove)
       
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
@@ -301,7 +311,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
         clearInterval(spawnIntervalRef.current)
       }
     }
-  }, [])
+  }, [gameState])
 
   useEffect(() => {
     if (gameState === 'playing' && gameAreaRef.current) {
@@ -576,7 +586,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           ))}
 
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-xs text-muted-foreground bg-card/80 backdrop-blur px-4 py-2 rounded-full border">
-            {language === 'da' ? '← → eller A D for at flytte' : '← → or A D to move'}
+            {language === 'da' ? 'Mus eller ← → / A D for at flytte' : 'Mouse or ← → / A D to move'}
           </div>
         </div>
       </div>
