@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus, ChatText, Notebook } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus, ChatText, Notebook, X } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -359,6 +359,94 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     setSelectedTaskForAssign(null)
     setSelectedEmployeeForAssign('')
 
+    const loadOverviewData = async () => {
+      const today = format(new Date(), 'yyyy-MM-dd')
+      const currentDate = new Date()
+      
+      const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+      const roles = (await window.spark.kv.get<ShiftRole[]>('shift-roles')) || []
+      const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+      const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
+      const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
+      
+      const isSickToday = (userEmail: string) => {
+        return sickLeave.some(s => 
+          s.userEmail === userEmail && 
+          s.status === 'approved' && 
+          isSameDay(parseISO(s.startDate), currentDate)
+        )
+      }
+      
+      const isOnVacationToday = (userEmail: string) => {
+        return vacations.some(v => {
+          if (v.userEmail !== userEmail || v.status !== 'approved') return false
+          const start = parseISO(v.startDate)
+          const end = parseISO(v.endDate)
+          return (isSameDay(start, currentDate) || isSameDay(end, currentDate) || (start < currentDate && end > currentDate))
+        })
+      }
+      
+      const todaysAssignments = assignments.filter(a => a.date === today)
+      
+      const taskPeopleMap: Record<string, { color: string; people: Array<{ name: string; comment?: string }>; roleId: string }> = {}
+      
+      roles.forEach(role => {
+        taskPeopleMap[role.name] = {
+          color: role.color,
+          people: [],
+          roleId: role.id
+        }
+      })
+      
+      todaysAssignments.forEach(assignment => {
+        const role = roles.find(r => r.id === assignment.roleId)
+        const roleName = role?.name || 'Unknown'
+        
+        const userEmail = Object.keys(usersData).find(email => usersData[email]?.fullName === assignment.employeeName)
+        
+        if (!userEmail) {
+          return
+        }
+        
+        if (isSickToday(userEmail) || isOnVacationToday(userEmail)) {
+          return
+        }
+        
+        if (taskPeopleMap[roleName]) {
+          const existingPerson = taskPeopleMap[roleName].people.find(p => p.name === assignment.employeeName)
+          if (!existingPerson) {
+            taskPeopleMap[roleName].people.push({
+              name: assignment.employeeName,
+              comment: assignment.comment
+            })
+          }
+        }
+      })
+      
+      const teamTasksList = Object.entries(taskPeopleMap).map(([taskName, data]) => ({
+        taskName,
+        taskColor: data.color,
+        people: data.people,
+        roleId: data.roleId
+      }))
+      
+      setTeamTasks(teamTasksList)
+    }
+    loadOverviewData()
+  }
+
+  const handleRemoveUserFromTask = async (employeeName: string, roleId: string) => {
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+    
+    const updatedAssignments = assignments.filter(
+      a => !(a.date === today && a.employeeName === employeeName && a.roleId === roleId)
+    )
+    
+    await window.spark.kv.set('shift-assignments', updatedAssignments)
+    
+    toast.success(language === 'da' ? `${employeeName} fjernet fra opgaven` : `${employeeName} removed from task`)
+    
     const loadOverviewData = async () => {
       const today = format(new Date(), 'yyyy-MM-dd')
       const currentDate = new Date()
@@ -961,6 +1049,17 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                               {person.comment && (
                                 <ChatText size={16} weight="fill" className="text-primary flex-shrink-0" />
                               )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0 flex-shrink-0 hover:bg-destructive/20 hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRemoveUserFromTask(person.name, task.roleId)
+                                }}
+                              >
+                                <X size={14} weight="bold" />
+                              </Button>
                             </div>
                             {person.comment && (
                               <div className="ml-9 px-2 py-1 rounded bg-muted text-xs text-muted-foreground italic">
