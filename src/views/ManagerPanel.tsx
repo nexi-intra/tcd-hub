@@ -2032,8 +2032,9 @@ Return ONLY a JSON object with this exact structure:
                     <p className="text-sm text-muted-foreground mt-2">Statistik vil vises når brugere begynder at spille Endless Dodger</p>
                   </div>
                 )}
-              </Card>
+            </Card>
 
+            <Card className="p-6 border-2">
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
                   Her kan du redigere og slette highscores fra Endless Dodger spillet. Du kan ændre score værdier eller fjerne hele entries.
