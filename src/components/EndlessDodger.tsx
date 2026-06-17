@@ -31,7 +31,7 @@ type GameState = 'menu' | 'playing' | 'ended'
 const DIFFICULTY_SETTINGS = {
   easy: {
     meteoriteSpeed: 3.5,
-    spawnRate: 900,
+    spawnRate: 600,
     label: { en: 'Easy', da: 'Let' },
     description: { en: 'Slow meteorites', da: 'Langsomme meteoritter' },
     icon: Speedometer,
@@ -42,7 +42,7 @@ const DIFFICULTY_SETTINGS = {
   },
   medium: {
     meteoriteSpeed: 5,
-    spawnRate: 650,
+    spawnRate: 450,
     label: { en: 'Medium', da: 'Mellem' },
     description: { en: 'Medium speed', da: 'Mellem hastighed' },
     icon: Lightning,
@@ -53,7 +53,7 @@ const DIFFICULTY_SETTINGS = {
   },
   hard: {
     meteoriteSpeed: 7,
-    spawnRate: 450,
+    spawnRate: 350,
     label: { en: 'Hard', da: 'Svær' },
     description: { en: 'Fast meteorites', da: 'Hurtige meteoritter' },
     icon: Fire,
@@ -64,7 +64,7 @@ const DIFFICULTY_SETTINGS = {
   },
   expert: {
     meteoriteSpeed: 9,
-    spawnRate: 300,
+    spawnRate: 250,
     label: { en: 'Expert', da: 'Ekspert' },
     description: { en: 'Very fast!', da: 'Meget hurtigt!' },
     icon: Flame,
@@ -212,14 +212,23 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
   const getSpawnRate = (currentScore: number): number => {
     const baseRate = DIFFICULTY_SETTINGS[difficulty].spawnRate
-    const scoreThreshold = 100
-    const reductionPerThreshold = 50
-    const minRate = 200
+    const scoreThreshold = 50
+    const reductionPerThreshold = 40
+    const minRate = 100
     
     const reductions = Math.floor(currentScore / scoreThreshold)
     const newRate = Math.max(minRate, baseRate - (reductions * reductionPerThreshold))
     
     return newRate
+  }
+
+  const getMeteoritesPerSpawn = (currentScore: number): number => {
+    const baseCount = 1
+    const scoreThreshold = 30
+    const maxCount = 4
+    
+    const additionalMeteorites = Math.floor(currentScore / scoreThreshold)
+    return Math.min(maxCount, baseCount + additionalMeteorites)
   }
 
   const checkCollision = (meteoriteX: number, meteoriteY: number, currentSpaceshipX: number): boolean => {
@@ -379,10 +388,13 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
         }
         
         const currentSpawnRate = getSpawnRate(Math.floor(currentScore / 10))
+        const meteoritesPerSpawn = getMeteoritesPerSpawn(Math.floor(currentScore / 10))
         
         spawnIntervalRef.current = setInterval(() => {
           if (!gameEnded) {
-            spawnMeteorite()
+            for (let i = 0; i < meteoritesPerSpawn; i++) {
+              spawnMeteorite()
+            }
           }
         }, currentSpawnRate)
       }
@@ -393,7 +405,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
         if (!gameEnded) {
           updateSpawnInterval()
         }
-      }, 2000)
+      }, 1000)
       
       return () => {
         clearInterval(adjustDifficultyInterval)
