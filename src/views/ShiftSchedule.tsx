@@ -1146,14 +1146,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                   <td
                                     key={employee.id}
                                     className={cn(
-                                      "border-x-2 border-border p-2 text-center transition-all",
-                                      isLocked && "bg-muted/20",
-                                      sickLeave && "bg-red-50",
-                                      vacation && "bg-blue-50",
-                                      currentWeek && !sickLeave && !vacation && "ring-1 ring-inset",
-                                      todayDate && !sickLeave && !vacation && "ring-2 ring-inset",
-                                      todayDate && sickLeave && "bg-red-100 ring-2 ring-red-300",
-                                      todayDate && vacation && "bg-blue-100 ring-2 ring-blue-300"
+                                      "border-x border-border p-2 text-center transition-all bg-card",
+                                      isLocked && "bg-muted/10",
+                                      sickLeave && "bg-card",
+                                      vacation && "bg-card",
+                                      currentWeek && !sickLeave && !vacation && "ring-1 ring-inset ring-border",
+                                      todayDate && !sickLeave && !vacation && "ring-2 ring-inset ring-primary/30",
+                                      todayDate && sickLeave && "bg-card ring-1 ring-border",
+                                      todayDate && vacation && "bg-card ring-1 ring-border"
                                     )}
                                     style={{
                                       width: '120px',
@@ -1165,10 +1165,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                       {vacation && (
                                         <div className="relative group">
                                           <div
-                                            className="px-1 py-1 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-400 flex items-center gap-1 cursor-pointer justify-center"
+                                            className="px-1.5 py-1 rounded text-[10px] font-semibold bg-card text-foreground border border-border flex items-center gap-1 cursor-pointer justify-center"
                                             title={vacation.notes || 'På ferie'}
                                           >
-                                            <Airplane size={12} weight="fill" />
+                                            <Airplane size={12} weight="duotone" className="text-muted-foreground" />
                                             <span className="truncate">Ferie</span>
                                           </div>
                                         </div>
@@ -1176,10 +1176,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                       {sickLeave && (
                                         <div className="relative group">
                                           <div
-                                            className="px-1 py-1 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-400 flex items-center gap-1 cursor-pointer justify-center"
+                                            className="px-1.5 py-1 rounded text-[10px] font-semibold bg-card text-foreground border border-border flex items-center gap-1 cursor-pointer justify-center"
                                             title={sickLeave.reason || 'Sygemeldt'}
                                           >
-                                            <FirstAidKit size={12} weight="fill" />
+                                            <FirstAidKit size={12} weight="duotone" className="text-muted-foreground" />
                                             <span className="truncate">Syg</span>
                                           </div>
                                         </div>
@@ -1187,11 +1187,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                       {cellComment && (
                                         <div className="relative group">
                                           <div
-                                            className="px-1 py-1 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-400 flex items-center gap-1 cursor-pointer hover:bg-amber-200 transition-all justify-center"
+                                            className="px-1.5 py-1 rounded text-[10px] font-medium bg-muted/50 text-foreground border border-border flex items-center gap-1 cursor-pointer hover:bg-muted transition-all justify-center"
                                             onClick={() => openCommentDialog(employee.id, dateString)}
                                             title={cellComment}
                                           >
-                                            <ChatText size={11} weight="fill" />
+                                            <ChatText size={11} weight="duotone" className="text-muted-foreground" />
                                             <span className="truncate flex-1">{cellComment}</span>
                                           </div>
                                           <Button
@@ -1216,12 +1216,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                             return (
                                               <div key={assignment.id} className="group relative">
                                                 <div
-                                                  className="px-1 py-1 rounded text-[10px] font-semibold truncate"
-                                                  style={{ 
-                                                    backgroundColor: `${role.color}30`,
-                                                    color: role.color,
-                                                    border: `1px solid ${role.color}`
-                                                  }}
+                                                  className="px-1.5 py-1.5 rounded text-[11px] font-medium truncate bg-muted/70 text-foreground border border-border hover:bg-muted transition-colors"
                                                   title={role.name}
                                                 >
                                                   {role.name}
@@ -1243,9 +1238,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                           {!isEmployeeCellLocked && (roles || []).length > 0 && (
                                             <Popover>
                                               <PopoverTrigger asChild>
-                                                <button className="w-full h-full min-h-[24px] text-primary/80 hover:text-primary hover:bg-primary/10 rounded-md transition-all flex items-center justify-center gap-1 border-2 border-primary/40 hover:border-primary/60 font-semibold">
-                                                  <Plus size={13} weight="bold" />
-                                                  <span className="text-[10px]">Opgave</span>
+                                                <button className="w-full h-full min-h-[24px] text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 rounded text-[10px] transition-colors flex items-center justify-center gap-1 border border-border/50 hover:border-border font-medium">
+                                                  <Plus size={12} weight="regular" />
+                                                  <span>Tilføj</span>
                                                 </button>
                                               </PopoverTrigger>
                                               <PopoverContent className="w-64 p-2" align="center">
@@ -1273,9 +1268,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                         !isEmployeeCellLocked && (roles || []).length > 0 ? (
                                           <Popover>
                                             <PopoverTrigger asChild>
-                                              <button className="w-full h-full min-h-[28px] text-primary/80 hover:text-primary hover:bg-primary/10 rounded-md transition-all flex items-center justify-center gap-1.5 border-2 border-primary/40 hover:border-primary/60 font-semibold">
-                                                <Plus size={14} weight="bold" />
-                                                <span className="text-[11px]">Opgave</span>
+                                              <button className="w-full h-full min-h-[28px] text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 rounded text-[11px] transition-colors flex items-center justify-center gap-1.5 border border-border/50 hover:border-border font-medium">
+                                                <Plus size={13} weight="regular" />
+                                                <span>Tilføj opgave</span>
                                               </button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-64 p-2" align="center">
@@ -1307,15 +1302,15 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                         <button
                                           onClick={() => openCommentDialog(employee.id, dateString)}
                                           className={cn(
-                                            "w-full h-full min-h-[24px] rounded-md transition-all flex items-center justify-center gap-1 text-[10px] font-semibold border-2",
+                                            "w-full h-full min-h-[24px] rounded text-[10px] font-medium border transition-colors flex items-center justify-center gap-1",
                                             cellComment 
-                                              ? "text-amber-700 hover:text-amber-800 hover:bg-amber-50 bg-amber-50/50 border-amber-400/60 hover:border-amber-500" 
-                                              : "text-amber-600/70 hover:text-amber-700 hover:bg-amber-50/50 border-amber-400/40 hover:border-amber-500/60"
+                                              ? "text-foreground/80 hover:text-foreground bg-muted/50 hover:bg-muted border-border" 
+                                              : "text-muted-foreground/70 hover:text-foreground bg-card hover:bg-muted/30 border-border/50 hover:border-border"
                                           )}
                                           title={cellComment ? "Rediger kommentar" : "Tilføj kommentar"}
                                         >
-                                          <ChatText size={12} weight={cellComment ? "fill" : "bold"} />
-                                          <span>Kommentar</span>
+                                          <ChatText size={11} weight={cellComment ? "duotone" : "regular"} />
+                                          <span>Note</span>
                                         </button>
                                       )}
                                     </div>
