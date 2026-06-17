@@ -79,6 +79,9 @@ const SPACESHIP_SIZE = 60
 const METEORITE_SIZE = 50
 const GAME_AREA_HEIGHT = 600
 
+const SPACESHIP_HITBOX_SIZE = 40
+const METEORITE_HITBOX_SIZE = 44
+
 interface User {
   email: string
   fullName: string
@@ -212,15 +215,19 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
     const spaceshipY = GAME_AREA_HEIGHT - SPACESHIP_SIZE - 10
 
-    const spaceshipLeft = spaceshipX
-    const spaceshipRight = spaceshipX + SPACESHIP_SIZE
-    const spaceshipTop = spaceshipY
-    const spaceshipBottom = spaceshipY + SPACESHIP_SIZE
+    const spaceshipCenterX = spaceshipX + (SPACESHIP_SIZE / 2)
+    const spaceshipCenterY = spaceshipY + (SPACESHIP_SIZE / 2)
+    const spaceshipLeft = spaceshipCenterX - (SPACESHIP_HITBOX_SIZE / 2)
+    const spaceshipRight = spaceshipCenterX + (SPACESHIP_HITBOX_SIZE / 2)
+    const spaceshipTop = spaceshipCenterY - (SPACESHIP_HITBOX_SIZE / 2)
+    const spaceshipBottom = spaceshipCenterY + (SPACESHIP_HITBOX_SIZE / 2)
 
-    const meteoriteLeft = meteoriteX
-    const meteoriteRight = meteoriteX + METEORITE_SIZE
-    const meteoriteTop = meteoriteY
-    const meteoriteBottom = meteoriteY + METEORITE_SIZE
+    const meteoriteCenterX = meteoriteX + (METEORITE_SIZE / 2)
+    const meteoriteCenterY = meteoriteY + (METEORITE_SIZE / 2)
+    const meteoriteLeft = meteoriteCenterX - (METEORITE_HITBOX_SIZE / 2)
+    const meteoriteRight = meteoriteCenterX + (METEORITE_HITBOX_SIZE / 2)
+    const meteoriteTop = meteoriteCenterY - (METEORITE_HITBOX_SIZE / 2)
+    const meteoriteBottom = meteoriteCenterY + (METEORITE_HITBOX_SIZE / 2)
 
     const horizontalOverlap = spaceshipLeft < meteoriteRight && spaceshipRight > meteoriteLeft
     const verticalOverlap = spaceshipTop < meteoriteBottom && spaceshipBottom > meteoriteTop
