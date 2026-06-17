@@ -30,8 +30,8 @@ type GameState = 'menu' | 'playing' | 'ended'
 
 const DIFFICULTY_SETTINGS = {
   easy: {
-    meteoriteSpeed: 2,
-    spawnRate: 1500,
+    meteoriteSpeed: 3.5,
+    spawnRate: 900,
     label: { en: 'Easy', da: 'Let' },
     description: { en: 'Slow meteorites', da: 'Langsomme meteoritter' },
     icon: Speedometer,
@@ -41,8 +41,8 @@ const DIFFICULTY_SETTINGS = {
     glowColor: 'shadow-green-500/20',
   },
   medium: {
-    meteoriteSpeed: 3.5,
-    spawnRate: 1100,
+    meteoriteSpeed: 5,
+    spawnRate: 650,
     label: { en: 'Medium', da: 'Mellem' },
     description: { en: 'Medium speed', da: 'Mellem hastighed' },
     icon: Lightning,
@@ -52,8 +52,8 @@ const DIFFICULTY_SETTINGS = {
     glowColor: 'shadow-yellow-500/20',
   },
   hard: {
-    meteoriteSpeed: 5,
-    spawnRate: 800,
+    meteoriteSpeed: 7,
+    spawnRate: 450,
     label: { en: 'Hard', da: 'Svær' },
     description: { en: 'Fast meteorites', da: 'Hurtige meteoritter' },
     icon: Fire,
@@ -63,8 +63,8 @@ const DIFFICULTY_SETTINGS = {
     glowColor: 'shadow-red-500/20',
   },
   expert: {
-    meteoriteSpeed: 7,
-    spawnRate: 600,
+    meteoriteSpeed: 9,
+    spawnRate: 300,
     label: { en: 'Expert', da: 'Ekspert' },
     description: { en: 'Very fast!', da: 'Meget hurtigt!' },
     icon: Flame,
