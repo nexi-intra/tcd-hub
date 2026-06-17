@@ -210,6 +210,18 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     setMeteorites(prev => [...prev, newMeteorite])
   }
 
+  const getSpawnRate = (currentScore: number): number => {
+    const baseRate = DIFFICULTY_SETTINGS[difficulty].spawnRate
+    const scoreThreshold = 100
+    const reductionPerThreshold = 50
+    const minRate = 200
+    
+    const reductions = Math.floor(currentScore / scoreThreshold)
+    const newRate = Math.max(minRate, baseRate - (reductions * reductionPerThreshold))
+    
+    return newRate
+  }
+
   const checkCollision = (meteoriteX: number, meteoriteY: number, currentSpaceshipX: number): boolean => {
     if (!gameAreaRef.current) return false
 
@@ -309,6 +321,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       const rect = gameAreaRef.current.getBoundingClientRect()
       let currentSpaceshipX = spaceshipX
       let gameEnded = false
+      let currentScore = 0
       
       const runGameLoop = () => {
         if (!gameAreaRef.current || gameEnded) return
@@ -333,7 +346,10 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
         })
 
         if (!gameEnded) {
-          setScore(prev => prev + 1)
+          setScore(prev => {
+            currentScore = prev + 1
+            return currentScore
+          })
 
           const moveSpeed = 10
           if (keysPressed.current.has('arrowleft') || keysPressed.current.has('a')) {
@@ -357,9 +373,31 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       
       animationFrameRef.current = requestAnimationFrame(runGameLoop)
       
-      spawnIntervalRef.current = setInterval(() => {
-        spawnMeteorite()
-      }, DIFFICULTY_SETTINGS[difficulty].spawnRate)
+      const updateSpawnInterval = () => {
+        if (spawnIntervalRef.current) {
+          clearInterval(spawnIntervalRef.current)
+        }
+        
+        const currentSpawnRate = getSpawnRate(Math.floor(currentScore / 10))
+        
+        spawnIntervalRef.current = setInterval(() => {
+          if (!gameEnded) {
+            spawnMeteorite()
+          }
+        }, currentSpawnRate)
+      }
+      
+      updateSpawnInterval()
+      
+      const adjustDifficultyInterval = setInterval(() => {
+        if (!gameEnded) {
+          updateSpawnInterval()
+        }
+      }, 2000)
+      
+      return () => {
+        clearInterval(adjustDifficultyInterval)
+      }
     }
     
     return () => {
