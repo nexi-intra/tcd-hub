@@ -77,8 +77,7 @@ const DIFFICULTY_SETTINGS = {
 
 const PLAYER_SIZE = 50
 const OBJECT_SIZE = 40
-const PLAYER_HITBOX_SIZE = 40
-const OBJECT_HITBOX_SIZE = 35
+const DEBUG_MODE = false
 
 interface User {
   email: string
@@ -214,19 +213,20 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     const rect = gameAreaRef.current.getBoundingClientRect()
     const playerY = rect.height - PLAYER_SIZE - 20
 
-    const playerCenterX = playerX + PLAYER_SIZE / 2
-    const playerCenterY = playerY + PLAYER_SIZE / 2
-    const objCenterX = objX + OBJECT_SIZE / 2
-    const objCenterY = objY + OBJECT_SIZE / 2
+    const playerLeft = playerX
+    const playerRight = playerX + PLAYER_SIZE
+    const playerTop = playerY
+    const playerBottom = playerY + PLAYER_SIZE
 
-    const playerHitboxRadius = PLAYER_HITBOX_SIZE / 2
-    const objHitboxRadius = OBJECT_HITBOX_SIZE / 2
+    const objLeft = objX
+    const objRight = objX + OBJECT_SIZE
+    const objTop = objY
+    const objBottom = objY + OBJECT_SIZE
 
-    const distanceX = playerCenterX - objCenterX
-    const distanceY = playerCenterY - objCenterY
-    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY)
+    const horizontalOverlap = playerLeft < objRight && playerRight > objLeft
+    const verticalOverlap = playerTop < objBottom && playerBottom > objTop
 
-    return distance < (playerHitboxRadius + objHitboxRadius)
+    return horizontalOverlap && verticalOverlap
   }
 
   const getPlayerY = (): number => {
@@ -561,6 +561,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
               top: `${getPlayerY()}px`,
               width: `${PLAYER_SIZE}px`,
               height: `${PLAYER_SIZE}px`,
+              border: DEBUG_MODE ? '2px solid red' : 'none',
             }}
           >
             <div className="w-full h-full flex items-center justify-center">
@@ -577,6 +578,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
                 top: `${obj.y}px`,
                 width: `${OBJECT_SIZE}px`,
                 height: `${OBJECT_SIZE}px`,
+                border: DEBUG_MODE ? '2px solid blue' : 'none',
               }}
             >
               <div className="w-full h-full flex items-center justify-center">
