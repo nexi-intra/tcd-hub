@@ -210,12 +210,12 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     setMeteorites(prev => [...prev, newMeteorite])
   }
 
-  const checkCollision = (meteoriteX: number, meteoriteY: number): boolean => {
+  const checkCollision = (meteoriteX: number, meteoriteY: number, currentSpaceshipX: number): boolean => {
     if (!gameAreaRef.current) return false
 
     const spaceshipY = GAME_AREA_HEIGHT - SPACESHIP_SIZE - 10
 
-    const spaceshipCenterX = spaceshipX + (SPACESHIP_SIZE / 2)
+    const spaceshipCenterX = currentSpaceshipX + (SPACESHIP_SIZE / 2)
     const spaceshipCenterY = spaceshipY + (SPACESHIP_SIZE / 2)
     
     const meteoriteCenterX = meteoriteX + (METEORITE_SIZE / 2)
@@ -307,9 +307,11 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   useEffect(() => {
     if (gameState === 'playing' && gameAreaRef.current) {
       const rect = gameAreaRef.current.getBoundingClientRect()
+      let currentSpaceshipX = spaceshipX
+      let gameEnded = false
       
       const runGameLoop = () => {
-        if (!gameAreaRef.current) return
+        if (!gameAreaRef.current || gameEnded) return
 
         const rect = gameAreaRef.current.getBoundingClientRect()
 
@@ -320,7 +322,8 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           })).filter(meteorite => meteorite.y < GAME_AREA_HEIGHT + METEORITE_SIZE)
 
           for (const meteorite of updated) {
-            if (checkCollision(meteorite.x, meteorite.y)) {
+            if (checkCollision(meteorite.x, meteorite.y, currentSpaceshipX)) {
+              gameEnded = true
               endGame()
               return prev
             }
@@ -329,17 +332,27 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           return updated
         })
 
-        setScore(prev => prev + 1)
+        if (!gameEnded) {
+          setScore(prev => prev + 1)
 
-        const moveSpeed = 10
-        if (keysPressed.current.has('arrowleft') || keysPressed.current.has('a')) {
-          setSpaceshipX(prev => Math.max(0, prev - moveSpeed))
-        }
-        if (keysPressed.current.has('arrowright') || keysPressed.current.has('d')) {
-          setSpaceshipX(prev => Math.min(rect.width - SPACESHIP_SIZE, prev + moveSpeed))
-        }
+          const moveSpeed = 10
+          if (keysPressed.current.has('arrowleft') || keysPressed.current.has('a')) {
+            setSpaceshipX(prev => {
+              const newX = Math.max(0, prev - moveSpeed)
+              currentSpaceshipX = newX
+              return newX
+            })
+          }
+          if (keysPressed.current.has('arrowright') || keysPressed.current.has('d')) {
+            setSpaceshipX(prev => {
+              const newX = Math.min(rect.width - SPACESHIP_SIZE, prev + moveSpeed)
+              currentSpaceshipX = newX
+              return newX
+            })
+          }
 
-        animationFrameRef.current = requestAnimationFrame(runGameLoop)
+          animationFrameRef.current = requestAnimationFrame(runGameLoop)
+        }
       }
       
       animationFrameRef.current = requestAnimationFrame(runGameLoop)
