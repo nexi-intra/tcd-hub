@@ -262,7 +262,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     }
   }
 
-  const endGame = async () => {
+  const endGame = async (finalScore?: number) => {
     setGameState('ended')
     
     if (animationFrameRef.current) {
@@ -275,8 +275,8 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       spawnIntervalRef.current = null
     }
 
-    const finalScore = Math.floor(score / 10)
-    updateGlobalLeaderboard(finalScore)
+    const scoreToSave = finalScore !== undefined ? Math.floor(finalScore / 10) : Math.floor(score / 10)
+    updateGlobalLeaderboard(scoreToSave)
     
     await trackGamePlay(difficulty)
   }
@@ -366,7 +366,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           for (const meteorite of updated) {
             if (checkCollision(meteorite.x, meteorite.y, currentSpaceshipX)) {
               gameEnded = true
-              endGame()
+              endGame(currentScore)
               return prev
             }
           }
