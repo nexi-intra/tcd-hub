@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 import { useKV } from '@github/spark/hooks'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-interface FallingObject {
+interface Meteorite {
   id: number
   x: number
   y: number
@@ -30,10 +30,10 @@ type GameState = 'menu' | 'playing' | 'ended'
 
 const DIFFICULTY_SETTINGS = {
   easy: {
-    objectSpeed: 2,
+    meteoriteSpeed: 2,
     spawnRate: 1500,
     label: { en: 'Easy', da: 'Let' },
-    description: { en: 'Slow objects', da: 'Langsomme objekter' },
+    description: { en: 'Slow meteorites', da: 'Langsomme meteoritter' },
     icon: Speedometer,
     color: 'text-green-500',
     bgGradient: 'from-green-500/20 to-green-600/20',
@@ -41,7 +41,7 @@ const DIFFICULTY_SETTINGS = {
     glowColor: 'shadow-green-500/20',
   },
   medium: {
-    objectSpeed: 3.5,
+    meteoriteSpeed: 3.5,
     spawnRate: 1100,
     label: { en: 'Medium', da: 'Mellem' },
     description: { en: 'Medium speed', da: 'Mellem hastighed' },
@@ -52,10 +52,10 @@ const DIFFICULTY_SETTINGS = {
     glowColor: 'shadow-yellow-500/20',
   },
   hard: {
-    objectSpeed: 5,
+    meteoriteSpeed: 5,
     spawnRate: 800,
     label: { en: 'Hard', da: 'Svær' },
-    description: { en: 'Fast objects', da: 'Hurtige objekter' },
+    description: { en: 'Fast meteorites', da: 'Hurtige meteoritter' },
     icon: Fire,
     color: 'text-red-500',
     bgGradient: 'from-red-500/20 to-red-600/20',
@@ -63,7 +63,7 @@ const DIFFICULTY_SETTINGS = {
     glowColor: 'shadow-red-500/20',
   },
   expert: {
-    objectSpeed: 7,
+    meteoriteSpeed: 7,
     spawnRate: 600,
     label: { en: 'Expert', da: 'Ekspert' },
     description: { en: 'Very fast!', da: 'Meget hurtigt!' },
@@ -75,9 +75,9 @@ const DIFFICULTY_SETTINGS = {
   }
 }
 
-const PLAYER_SIZE = 50
-const OBJECT_SIZE = 40
-const DEBUG_MODE = false
+const SPACESHIP_SIZE = 60
+const METEORITE_SIZE = 50
+const GAME_AREA_HEIGHT = 600
 
 interface User {
   email: string
@@ -95,8 +95,8 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [gameState, setGameState] = useState<GameState>('menu')
   const [score, setScore] = useState(0)
-  const [playerX, setPlayerX] = useState(0)
-  const [objects, setObjects] = useState<FallingObject[]>([])
+  const [spaceshipX, setSpaceshipX] = useState(0)
+  const [meteorites, setMeteorites] = useState<Meteorite[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('endless-dodger-global-leaderboard', {
     easy: [],
@@ -191,54 +191,52 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     return index !== -1 ? index + 1 : null
   }
 
-  const spawnObject = () => {
+  const spawnMeteorite = () => {
     if (!gameAreaRef.current) return
 
     const rect = gameAreaRef.current.getBoundingClientRect()
-    const x = Math.random() * (rect.width - OBJECT_SIZE)
+    const x = Math.random() * (rect.width - METEORITE_SIZE)
 
-    const newObject: FallingObject = {
+    const newMeteorite: Meteorite = {
       id: Date.now() + Math.random(),
       x,
-      y: -OBJECT_SIZE,
-      speed: DIFFICULTY_SETTINGS[difficulty].objectSpeed
+      y: 0,
+      speed: DIFFICULTY_SETTINGS[difficulty].meteoriteSpeed
     }
 
-    setObjects(prev => [...prev, newObject])
+    setMeteorites(prev => [...prev, newMeteorite])
   }
 
-  const checkCollision = (objX: number, objY: number): boolean => {
+  const checkCollision = (meteoriteX: number, meteoriteY: number): boolean => {
     if (!gameAreaRef.current) return false
 
-    const rect = gameAreaRef.current.getBoundingClientRect()
-    const playerY = rect.height - PLAYER_SIZE - 20
+    const spaceshipY = GAME_AREA_HEIGHT - SPACESHIP_SIZE - 10
 
-    const playerLeft = playerX
-    const playerRight = playerX + PLAYER_SIZE
-    const playerTop = playerY
-    const playerBottom = playerY + PLAYER_SIZE
+    const spaceshipLeft = spaceshipX
+    const spaceshipRight = spaceshipX + SPACESHIP_SIZE
+    const spaceshipTop = spaceshipY
+    const spaceshipBottom = spaceshipY + SPACESHIP_SIZE
 
-    const objLeft = objX
-    const objRight = objX + OBJECT_SIZE
-    const objTop = objY
-    const objBottom = objY + OBJECT_SIZE
+    const meteoriteLeft = meteoriteX
+    const meteoriteRight = meteoriteX + METEORITE_SIZE
+    const meteoriteTop = meteoriteY
+    const meteoriteBottom = meteoriteY + METEORITE_SIZE
 
-    const horizontalOverlap = playerLeft < objRight && playerRight > objLeft
-    const verticalOverlap = playerTop < objBottom && playerBottom > objTop
+    const horizontalOverlap = spaceshipLeft < meteoriteRight && spaceshipRight > meteoriteLeft
+    const verticalOverlap = spaceshipTop < meteoriteBottom && spaceshipBottom > meteoriteTop
 
     return horizontalOverlap && verticalOverlap
   }
 
-  const getPlayerY = (): number => {
-    if (!gameAreaRef.current) return 0
-    const rect = gameAreaRef.current.getBoundingClientRect()
-    return rect.height - PLAYER_SIZE - 20
-  }
-
   const startGame = () => {
     setScore(0)
-    setObjects([])
+    setMeteorites([])
     setGameState('playing')
+    
+    if (gameAreaRef.current) {
+      const rect = gameAreaRef.current.getBoundingClientRect()
+      setSpaceshipX((rect.width - SPACESHIP_SIZE) / 2)
+    }
   }
 
   const endGame = () => {
@@ -261,7 +259,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   const resetGame = () => {
     setGameState('menu')
     setScore(0)
-    setObjects([])
+    setMeteorites([])
     
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current)
@@ -276,33 +274,24 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['ArrowLeft', 'ArrowRight', 'a', 'd'].includes(e.key)) {
+      const key = e.key.toLowerCase()
+      if (['arrowleft', 'arrowright', 'a', 'd'].includes(key)) {
         e.preventDefault()
-        keysPressed.current.add(e.key)
+        keysPressed.current.add(key)
       }
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      keysPressed.current.delete(e.key)
-    }
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (gameState === 'playing' && gameAreaRef.current) {
-        const rect = gameAreaRef.current.getBoundingClientRect()
-        const mouseX = e.clientX - rect.left
-        const clampedX = Math.max(0, Math.min(mouseX - PLAYER_SIZE / 2, rect.width - PLAYER_SIZE))
-        setPlayerX(clampedX)
-      }
+      const key = e.key.toLowerCase()
+      keysPressed.current.delete(key)
     }
 
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
-    window.addEventListener('mousemove', handleMouseMove)
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
-      window.removeEventListener('mousemove', handleMouseMove)
       
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
@@ -311,26 +300,25 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
         clearInterval(spawnIntervalRef.current)
       }
     }
-  }, [gameState])
+  }, [])
 
   useEffect(() => {
     if (gameState === 'playing' && gameAreaRef.current) {
       const rect = gameAreaRef.current.getBoundingClientRect()
-      setPlayerX((rect.width - PLAYER_SIZE) / 2)
       
       const runGameLoop = () => {
         if (!gameAreaRef.current) return
 
         const rect = gameAreaRef.current.getBoundingClientRect()
 
-        setObjects(prev => {
-          const updated = prev.map(obj => ({
-            ...obj,
-            y: obj.y + obj.speed
-          })).filter(obj => obj.y < rect.height)
+        setMeteorites(prev => {
+          const updated = prev.map(meteorite => ({
+            ...meteorite,
+            y: meteorite.y + meteorite.speed
+          })).filter(meteorite => meteorite.y < GAME_AREA_HEIGHT + METEORITE_SIZE)
 
-          for (const obj of updated) {
-            if (checkCollision(obj.x, obj.y)) {
+          for (const meteorite of updated) {
+            if (checkCollision(meteorite.x, meteorite.y)) {
               endGame()
               return prev
             }
@@ -341,12 +329,12 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
         setScore(prev => prev + 1)
 
-        const moveSpeed = 8
-        if (keysPressed.current.has('ArrowLeft') || keysPressed.current.has('a')) {
-          setPlayerX(prev => Math.max(0, prev - moveSpeed))
+        const moveSpeed = 10
+        if (keysPressed.current.has('arrowleft') || keysPressed.current.has('a')) {
+          setSpaceshipX(prev => Math.max(0, prev - moveSpeed))
         }
-        if (keysPressed.current.has('ArrowRight') || keysPressed.current.has('d')) {
-          setPlayerX(prev => Math.min(rect.width - PLAYER_SIZE, prev + moveSpeed))
+        if (keysPressed.current.has('arrowright') || keysPressed.current.has('d')) {
+          setSpaceshipX(prev => Math.min(rect.width - SPACESHIP_SIZE, prev + moveSpeed))
         }
 
         animationFrameRef.current = requestAnimationFrame(runGameLoop)
@@ -355,7 +343,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       animationFrameRef.current = requestAnimationFrame(runGameLoop)
       
       spawnIntervalRef.current = setInterval(() => {
-        spawnObject()
+        spawnMeteorite()
       }, DIFFICULTY_SETTINGS[difficulty].spawnRate)
     }
     
@@ -369,7 +357,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
         spawnIntervalRef.current = null
       }
     }
-  }, [gameState])
+  }, [gameState, difficulty])
 
   if (gameState === 'menu') {
     return (
@@ -552,43 +540,76 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
         <div
           ref={gameAreaRef}
-          className="relative h-[600px] bg-gradient-to-b from-background to-muted/30 rounded-xl border-2 border-primary/20 overflow-hidden shadow-2xl"
+          className="relative bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 rounded-xl border-2 border-primary/20 overflow-hidden shadow-2xl"
+          style={{ height: `${GAME_AREA_HEIGHT}px` }}
         >
           <div
-            className="absolute rounded-full shadow-2xl transition-all duration-100 bg-gradient-to-r from-primary via-accent to-primary"
+            className="absolute"
             style={{
-              left: `${playerX}px`,
-              top: `${getPlayerY()}px`,
-              width: `${PLAYER_SIZE}px`,
-              height: `${PLAYER_SIZE}px`,
-              border: DEBUG_MODE ? '2px solid red' : 'none',
+              left: `${spaceshipX}px`,
+              bottom: '10px',
+              width: `${SPACESHIP_SIZE}px`,
+              height: `${SPACESHIP_SIZE}px`,
             }}
           >
-            <div className="w-full h-full flex items-center justify-center">
-              <RocketLaunch size={32} weight="fill" className="text-white" />
-            </div>
+            <svg
+              width={SPACESHIP_SIZE}
+              height={SPACESHIP_SIZE}
+              viewBox="0 0 60 60"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M30 5 L50 50 L30 45 L10 50 Z"
+                fill="url(#spaceshipGradient)"
+                stroke="#ffffff"
+                strokeWidth="2"
+              />
+              <circle cx="30" cy="30" r="5" fill="#00ffff" opacity="0.8" />
+              <defs>
+                <linearGradient id="spaceshipGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#3b82f6" />
+                  <stop offset="100%" stopColor="#8b5cf6" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
 
-          {objects.map(obj => (
+          {meteorites.map(meteorite => (
             <div
-              key={obj.id}
-              className="absolute bg-gradient-to-br from-destructive to-destructive/70 rounded-lg shadow-xl"
+              key={meteorite.id}
+              className="absolute"
               style={{
-                left: `${obj.x}px`,
-                top: `${obj.y}px`,
-                width: `${OBJECT_SIZE}px`,
-                height: `${OBJECT_SIZE}px`,
-                border: DEBUG_MODE ? '2px solid blue' : 'none',
+                left: `${meteorite.x}px`,
+                top: `${meteorite.y}px`,
+                width: `${METEORITE_SIZE}px`,
+                height: `${METEORITE_SIZE}px`,
               }}
             >
-              <div className="w-full h-full flex items-center justify-center">
-                <X size={24} weight="bold" className="text-white" />
-              </div>
+              <svg
+                width={METEORITE_SIZE}
+                height={METEORITE_SIZE}
+                viewBox="0 0 50 50"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="25" cy="25" r="22" fill="url(#meteoriteGradient)" />
+                <circle cx="18" cy="20" r="4" fill="#8b4513" opacity="0.5" />
+                <circle cx="32" cy="28" r="3" fill="#654321" opacity="0.5" />
+                <circle cx="25" cy="32" r="3" fill="#5a3a1a" opacity="0.5" />
+                <defs>
+                  <radialGradient id="meteoriteGradient">
+                    <stop offset="0%" stopColor="#ff6b35" />
+                    <stop offset="50%" stopColor="#d64933" />
+                    <stop offset="100%" stopColor="#8b2e1f" />
+                  </radialGradient>
+                </defs>
+              </svg>
             </div>
           ))}
 
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-xs text-muted-foreground bg-card/80 backdrop-blur px-4 py-2 rounded-full border">
-            {language === 'da' ? 'Mus eller ← → / A D for at flytte' : 'Mouse or ← → / A D to move'}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-xs text-white/80 bg-black/50 backdrop-blur px-4 py-2 rounded-full border border-white/20">
+            {language === 'da' ? '← → eller A D for at flytte rumskibet' : '← → or A D to move spaceship'}
           </div>
         </div>
       </div>
@@ -598,7 +619,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   if (gameState === 'ended') {
     const finalScore = Math.floor(score / 10)
     const highScore = getCurrentHighScore()
-    const isNewRecord = finalScore > highScore
+    const isNewRecord = finalScore >= highScore && finalScore > 0
 
     return (
       <div className="flex items-center justify-center min-h-[600px]">
