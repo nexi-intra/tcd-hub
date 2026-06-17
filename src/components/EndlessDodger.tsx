@@ -141,47 +141,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     return board.length > 0 ? board[0].score : 0
   }
 
-  const updateGlobalLeaderboard = (newScore: number) => {
-    if (!userEmail) return
 
-    setGlobalLeaderboard((currentLeaderboard) => {
-      if (!currentLeaderboard) {
-        currentLeaderboard = { easy: [], medium: [], hard: [], expert: [] }
-      }
-      
-      const updated: GlobalLeaderboard = {
-        easy: [...(currentLeaderboard.easy || [])],
-        medium: [...(currentLeaderboard.medium || [])],
-        hard: [...(currentLeaderboard.hard || [])],
-        expert: [...(currentLeaderboard.expert || [])]
-      }
-      
-      const difficultyBoard = updated[difficulty]
-      
-      const existingEntryIndex = difficultyBoard.findIndex(entry => entry.email === userEmail)
-      
-      if (existingEntryIndex !== -1) {
-        if (newScore > difficultyBoard[existingEntryIndex].score) {
-          difficultyBoard[existingEntryIndex] = {
-            email: userEmail,
-            score: newScore,
-            timestamp: Date.now()
-          }
-        }
-      } else {
-        difficultyBoard.push({
-          email: userEmail,
-          score: newScore,
-          timestamp: Date.now()
-        })
-      }
-      
-      difficultyBoard.sort((a, b) => b.score - a.score)
-      updated[difficulty] = difficultyBoard.slice(0, 10)
-      
-      return updated
-    })
-  }
 
   const getTopScoreForDifficulty = (diff: Difficulty): number => {
     const board = globalLeaderboard?.[diff] || []
@@ -262,8 +222,9 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     }
   }
 
-  const endGame = async (finalScore?: number) => {
+  const endGame = async (finalScore: number) => {
     setGameState('ended')
+    setScore(finalScore)
     
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current)
@@ -275,8 +236,55 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       spawnIntervalRef.current = null
     }
 
-    const scoreToSave = finalScore !== undefined ? Math.floor(finalScore / 10) : Math.floor(score / 10)
-    updateGlobalLeaderboard(scoreToSave)
+    const scoreToSave = Math.floor(finalScore / 10)
+    
+    if (!userEmail) {
+      console.error('No user email for saving score')
+      await trackGamePlay(difficulty)
+      return
+    }
+
+    try {
+      const currentLeaderboard = await window.spark.kv.get<GlobalLeaderboard>('endless-dodger-global-leaderboard') || {
+        easy: [],
+        medium: [],
+        hard: [],
+        expert: []
+      }
+      
+      const difficultyBoard = [...(currentLeaderboard[difficulty] || [])]
+      
+      const existingEntryIndex = difficultyBoard.findIndex(entry => entry.email === userEmail)
+      
+      if (existingEntryIndex !== -1) {
+        if (scoreToSave > difficultyBoard[existingEntryIndex].score) {
+          difficultyBoard[existingEntryIndex] = {
+            email: userEmail,
+            score: scoreToSave,
+            timestamp: Date.now()
+          }
+        }
+      } else {
+        difficultyBoard.push({
+          email: userEmail,
+          score: scoreToSave,
+          timestamp: Date.now()
+        })
+      }
+      
+      difficultyBoard.sort((a, b) => b.score - a.score)
+      
+      const updatedLeaderboard = {
+        ...currentLeaderboard,
+        [difficulty]: difficultyBoard.slice(0, 10)
+      }
+      
+      await window.spark.kv.set('endless-dodger-global-leaderboard', updatedLeaderboard)
+      
+      setGlobalLeaderboard(updatedLeaderboard)
+    } catch (error) {
+      console.error('Error saving score to leaderboard:', error)
+    }
     
     await trackGamePlay(difficulty)
   }
