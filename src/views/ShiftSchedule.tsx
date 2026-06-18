@@ -815,11 +815,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                         return (
                           <div key={assignment.id} className="group relative">
                             <div
-                              className="px-3 py-2 rounded-lg text-sm font-bold truncate border-2 transition-all hover:scale-105"
+                              className="task-badge-colored px-3 py-2 rounded-lg text-sm font-bold truncate transition-all hover:scale-105"
                               style={{ 
-                                backgroundColor: bgColor,
-                                borderColor: bgColor,
-                                color: '#ffffff',
+                                ['--task-color' as any]: bgColor,
                                 boxShadow: `0 4px 12px ${bgColor}50`
                               }}
                               title={role.name}
