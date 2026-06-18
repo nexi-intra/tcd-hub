@@ -1031,7 +1031,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           </div>
         </div>
       </div>
-      <div className="w-full px-4 sm:px-6 pt-32 pb-12 sm:pb-20 relative z-10">
+      <div className="w-full px-4 sm:px-6 pt-40 pb-12 sm:pb-20 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
