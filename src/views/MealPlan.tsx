@@ -204,19 +204,19 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
         </div>
       </div>
       
-      <div className="container mx-auto px-4 sm:px-6 pt-32 pb-12 sm:pb-20 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 pt-36 pb-12 sm:pb-20 max-w-7xl">
         <motion.header
-          className="mb-8 flex items-center gap-6"
+          className="mb-10 text-center"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <div>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent flex items-center gap-3">
+          <div className="flex flex-col items-center">
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent flex items-center gap-3 justify-center">
               <ForkKnife size={40} weight="duotone" className="text-primary" />
               Madplan
             </h1>
-            <p className="text-muted-foreground mt-2">
+            <p className="text-muted-foreground mt-3">
               Planlæg ugens menuer for mandag til fredag
             </p>
           </div>

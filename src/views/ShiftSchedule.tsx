@@ -1015,13 +1015,13 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           </div>
         </div>
       </div>
-      <div className="w-full px-4 sm:px-6 pt-52 pb-12 sm:pb-20 relative z-10">
+      <div className="w-full px-4 sm:px-6 pt-40 pb-12 sm:pb-20 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-10 text-center"
         >
-          <div className="flex items-center justify-center gap-6">
+          <div className="flex flex-col items-center gap-6">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">Vagtplan</h1>
           </div>
         </motion.div>

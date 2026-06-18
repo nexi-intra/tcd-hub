@@ -185,7 +185,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4 mb-8"
+          className="flex flex-col items-center gap-4 mb-10 text-center"
         >
           <Button
             onClick={onNavigateBack}

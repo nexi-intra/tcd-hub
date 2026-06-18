@@ -174,10 +174,10 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
         </div>
       </div>
       
-      <div className="container mx-auto px-4 sm:px-6 pt-32 pb-12 sm:pb-20 max-w-7xl relative z-10">
-        <header className="mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="flex items-center gap-4 min-w-0 flex-1">
+      <div className="container mx-auto px-4 sm:px-6 pt-36 pb-12 sm:pb-20 max-w-7xl relative z-10">
+        <header className="mb-10">
+          <div className="flex flex-col items-center justify-center gap-6 text-center">
+            <div className="flex flex-col items-center gap-4">
               <motion.div 
                 className="h-16 w-16 flex-shrink-0 rounded-3xl bg-gradient-to-br from-primary via-secondary to-accent shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden"
                 whileHover={{ scale: 1.08, rotate: 5 }}
@@ -190,7 +190,7 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
                   Guide Bibliotek
                 </h1>
-                <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1.5 flex items-center gap-2">
+                <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-2 flex items-center justify-center gap-2">
                   <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-gradient-to-r from-primary/15 to-secondary/15 text-primary font-semibold border border-primary/20 text-xs sm:text-sm">
                     {guides?.length || 0}
                   </span>

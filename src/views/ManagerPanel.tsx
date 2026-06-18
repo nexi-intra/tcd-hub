@@ -1019,14 +1019,14 @@ Return ONLY a JSON object with this exact structure:
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-12 sm:pb-20 max-w-5xl relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-36 pb-12 sm:pb-20 max-w-5xl relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mb-8"
+          className="mb-10 text-center"
         >
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col items-center gap-6">
             <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
               Manager Panel
             </h1>

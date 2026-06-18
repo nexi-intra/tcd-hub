@@ -380,27 +380,27 @@ export function ProjectBoard({ onNavigateBack, onLogout, userEmail }: ProjectBoa
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={onNavigateBack} className="shrink-0">
+        <div className="container mx-auto px-4 sm:px-6 py-6">
+          <div className="flex flex-col items-center justify-center gap-4 text-center">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={onNavigateBack} className="shrink-0 absolute left-4">
                 <ArrowLeft size={24} weight="bold" />
               </Button>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3 justify-center">
                   <FolderOpen size={32} weight="duotone" className="text-primary" />
                   {language === 'da' ? 'Projekt Tavle' : 'Project Board'}
                 </h1>
               </div>
+              <Button variant="ghost" onClick={onLogout} className="shrink-0 absolute right-4">
+                {language === 'da' ? 'Log ud' : 'Logout'}
+              </Button>
             </div>
-            <Button variant="ghost" onClick={onLogout} className="shrink-0">
-              {language === 'da' ? 'Log ud' : 'Logout'}
-            </Button>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 py-8">
+      <div className="container mx-auto px-4 sm:px-6 py-10">
         <div className="mb-6 flex flex-col sm:flex-row gap-4">
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>

@@ -756,18 +756,18 @@ Return ONLY a JSON object with this exact structure:
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 pt-32 pb-12 sm:pb-20 max-w-7xl relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 pt-36 pb-12 sm:pb-20 max-w-7xl relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-10 text-center"
         >
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col items-center gap-6">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
                 Email System
               </h1>
-              <p className="text-muted-foreground mt-1">Send og modtag beskeder</p>
+              <p className="text-muted-foreground mt-2">Send og modtag beskeder</p>
             </div>
           </div>
         </motion.div>
