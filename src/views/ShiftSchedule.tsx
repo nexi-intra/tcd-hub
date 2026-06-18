@@ -813,11 +813,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                         return (
                           <div key={assignment.id} className="group relative">
                             <div
-                              className="px-2 py-1.5 rounded-md text-xs font-semibold truncate"
+                              className="px-2 py-1.5 rounded-md text-xs font-bold truncate shadow-sm"
                               style={{ 
-                                backgroundColor: `${role.color}30`,
+                                backgroundColor: `${role.color}25`,
                                 color: role.color,
-                                border: `2px solid ${role.color}`
+                                border: `2px solid ${role.color}`,
+                                boxShadow: `0 2px 4px ${role.color}15`
                               }}
                               title={role.name}
                             >
@@ -840,8 +841,27 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                       {!isEmployeeCellLocked && (roles || []).length > 0 && (
                         <Popover>
                           <PopoverTrigger asChild>
-                            <button className="w-full h-full min-h-[28px] text-primary hover:text-primary-foreground bg-primary/10 hover:bg-primary rounded-md transition-all flex items-center justify-center border-2 border-dashed border-primary/30 hover:border-primary font-semibold shadow-sm hover:shadow-md">
+                            <button 
+                              className="w-full h-full min-h-[28px] rounded-md transition-all flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm hover:shadow-lg border-2"
+                              style={{
+                                backgroundColor: 'oklch(0.85 0.08 150)',
+                                color: 'oklch(0.35 0.10 150)',
+                                borderColor: 'oklch(0.50 0.12 150)',
+                                borderStyle: 'dashed'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = 'oklch(0.55 0.12 150)'
+                                e.currentTarget.style.color = 'oklch(1.00 0 0)'
+                                e.currentTarget.style.borderStyle = 'solid'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'oklch(0.85 0.08 150)'
+                                e.currentTarget.style.color = 'oklch(0.35 0.10 150)'
+                                e.currentTarget.style.borderStyle = 'dashed'
+                              }}
+                            >
                               <Plus size={14} weight="bold" />
+                              <span className="text-[10px]">Opgave</span>
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-64 p-2" align="center">
@@ -854,8 +874,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                   className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-all flex items-center gap-3"
                                 >
                                   <div
-                                    className="w-4 h-4 rounded-full"
-                                    style={{ backgroundColor: r.color }}
+                                    className="w-4 h-4 rounded-full shadow-sm"
+                                    style={{ 
+                                      backgroundColor: r.color,
+                                      border: `2px solid ${r.color}`,
+                                      boxShadow: `0 2px 4px ${r.color}30`
+                                    }}
                                   />
                                   <span className="text-sm font-medium">{r.name}</span>
                                 </button>
@@ -869,8 +893,27 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                     !isEmployeeCellLocked && (roles || []).length > 0 ? (
                       <Popover>
                         <PopoverTrigger asChild>
-                          <button className="w-full h-full min-h-[32px] text-primary hover:text-primary-foreground bg-primary/10 hover:bg-primary rounded-md transition-all flex items-center justify-center border-2 border-dashed border-primary/30 hover:border-primary font-semibold shadow-sm hover:shadow-md">
+                          <button 
+                            className="w-full h-full min-h-[32px] rounded-md transition-all flex items-center justify-center gap-2 text-xs font-bold shadow-sm hover:shadow-lg border-2"
+                            style={{
+                              backgroundColor: 'oklch(0.85 0.08 150)',
+                              color: 'oklch(0.35 0.10 150)',
+                              borderColor: 'oklch(0.50 0.12 150)',
+                              borderStyle: 'dashed'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = 'oklch(0.55 0.12 150)'
+                              e.currentTarget.style.color = 'oklch(1.00 0 0)'
+                              e.currentTarget.style.borderStyle = 'solid'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'oklch(0.85 0.08 150)'
+                              e.currentTarget.style.color = 'oklch(0.35 0.10 150)'
+                              e.currentTarget.style.borderStyle = 'dashed'
+                            }}
+                          >
                             <Plus size={16} weight="bold" />
+                            <span className="text-[11px]">Tilføj Opgave</span>
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-64 p-2" align="center">
@@ -883,8 +926,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                 className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-all flex items-center gap-3"
                               >
                                 <div
-                                  className="w-4 h-4 rounded-full"
-                                  style={{ backgroundColor: r.color }}
+                                  className="w-4 h-4 rounded-full shadow-sm"
+                                  style={{ 
+                                    backgroundColor: r.color,
+                                    border: `2px solid ${r.color}`,
+                                    boxShadow: `0 2px 4px ${r.color}30`
+                                  }}
                                 />
                                 <span className="text-sm font-medium">{r.name}</span>
                               </button>
@@ -901,12 +948,38 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                   {!isLocked && (
                     <button
                       onClick={() => openCommentDialog(employee.id, dateString)}
-                      className={cn(
-                        "w-full h-full min-h-[28px] rounded-md transition-all flex items-center justify-center gap-1.5 text-xs font-semibold shadow-sm hover:shadow-md border-2",
-                        cellComment 
-                          ? "text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-300 hover:border-amber-400" 
-                          : "text-accent hover:text-accent-foreground bg-accent/10 hover:bg-accent border-dashed border-accent/30 hover:border-accent"
-                      )}
+                      className="w-full h-full min-h-[28px] rounded-md transition-all flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm hover:shadow-lg border-2"
+                      style={cellComment ? {
+                        backgroundColor: 'oklch(0.85 0.12 60)',
+                        color: 'oklch(0.40 0.15 60)',
+                        borderColor: 'oklch(0.50 0.18 60)',
+                        borderStyle: 'solid'
+                      } : {
+                        backgroundColor: 'oklch(0.88 0.08 60)',
+                        color: 'oklch(0.45 0.12 60)',
+                        borderColor: 'oklch(0.60 0.12 60)',
+                        borderStyle: 'dashed'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (cellComment) {
+                          e.currentTarget.style.backgroundColor = 'oklch(0.80 0.14 60)'
+                          e.currentTarget.style.color = 'oklch(0.35 0.18 60)'
+                        } else {
+                          e.currentTarget.style.backgroundColor = 'oklch(0.60 0.12 60)'
+                          e.currentTarget.style.color = 'oklch(1.00 0 0)'
+                          e.currentTarget.style.borderStyle = 'solid'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (cellComment) {
+                          e.currentTarget.style.backgroundColor = 'oklch(0.85 0.12 60)'
+                          e.currentTarget.style.color = 'oklch(0.40 0.15 60)'
+                        } else {
+                          e.currentTarget.style.backgroundColor = 'oklch(0.88 0.08 60)'
+                          e.currentTarget.style.color = 'oklch(0.45 0.12 60)'
+                          e.currentTarget.style.borderStyle = 'dashed'
+                        }
+                      }}
                       title={cellComment ? "Rediger kommentar" : "Tilføj kommentar"}
                     >
                       <ChatText size={14} weight={cellComment ? "fill" : "bold"} />
