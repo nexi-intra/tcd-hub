@@ -207,8 +207,8 @@ function App() {
   }
 
   return (
-    <ThemeProvider>
-      <LanguageProvider>
+    <ThemeProvider userId={userSession.userId}>
+      <LanguageProvider userId={userSession.userId}>
         <AnimatedBackground />
         {currentView === 'hub' && <Hub onNavigate={handleNavigate} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}

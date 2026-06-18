@@ -10,8 +10,9 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useKV<Language>('app-language', 'da')
+export function LanguageProvider({ children, userId }: { children: ReactNode; userId?: string }) {
+  const languageKey = userId ? `app-language-${userId}` : 'app-language-guest'
+  const [language, setLanguage] = useKV<Language>(languageKey, 'da')
 
   const t = translations[language || 'da']
 

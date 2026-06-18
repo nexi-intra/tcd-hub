@@ -11,8 +11,9 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useKV<Theme>('user-theme', 'light')
+export function ThemeProvider({ children, userId }: { children: ReactNode; userId?: string }) {
+  const themeKey = userId ? `user-theme-${userId}` : 'user-theme-guest'
+  const [theme, setTheme] = useKV<Theme>(themeKey, 'light')
 
   useEffect(() => {
     const root = document.documentElement
