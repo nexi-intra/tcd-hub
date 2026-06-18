@@ -3,8 +3,6 @@ import { motion } from 'framer-motion'
 import { ArrowLeft } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { UserProfile } from '@/components/UserProfile'
-import { LanguageToggle } from '@/components/LanguageToggle'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { hasManagerAccess } from '@/lib/userRoles'
 import { useState, useEffect } from 'react'
 
@@ -77,11 +75,6 @@ export function PageHeader({
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {actions}
-            
-            <div className="hidden sm:flex items-center gap-2">
-              <ThemeToggle />
-              <LanguageToggle />
-            </div>
             
             {onLogout && userEmail && (
               <UserProfile 

@@ -114,20 +114,6 @@ export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <ThemeToggle />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
-            >
-              <LanguageToggle />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
               <UserProfile userEmail="" onLogout={onLogout} />
             </motion.div>
           </div>
