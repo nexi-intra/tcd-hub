@@ -220,7 +220,7 @@ function App() {
         {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} />}
         {currentView === 'games' && <GameCorner onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
-        {currentView === 'projects' && <ProjectBoard onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
+        {currentView === 'projects' && <ProjectBoard onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
         {currentView === 'notebook' && <VirtualNotebook onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
       </LanguageProvider>
     </ThemeProvider>

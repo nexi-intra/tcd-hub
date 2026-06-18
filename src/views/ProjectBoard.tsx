@@ -18,7 +18,6 @@ import { da, enUS } from 'date-fns/locale'
 
 interface ProjectBoardProps {
   onNavigateBack: () => void
-  onLogout: () => void
   userEmail: string
 }
 
@@ -42,7 +41,7 @@ export interface Project {
   completedAt?: string
 }
 
-export function ProjectBoard({ onNavigateBack, onLogout, userEmail }: ProjectBoardProps) {
+export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
   const { t, language } = useLanguage()
   const [projects, setProjects] = useKV<Project[]>('projects', [])
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -392,9 +391,6 @@ export function ProjectBoard({ onNavigateBack, onLogout, userEmail }: ProjectBoa
                   {language === 'da' ? 'Projekt Tavle' : 'Project Board'}
                 </h1>
               </div>
-              <Button variant="ghost" onClick={onLogout} className="shrink-0 absolute right-4">
-                {language === 'da' ? 'Log ud' : 'Logout'}
-              </Button>
             </div>
           </div>
         </div>
