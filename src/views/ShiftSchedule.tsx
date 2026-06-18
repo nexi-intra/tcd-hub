@@ -988,7 +988,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
   return (
     <div className="min-h-screen w-full relative overflow-hidden">
       <div className="absolute top-6 right-6 left-6 z-20">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-24">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-16">
           <div className="flex items-center gap-3">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -1006,15 +1006,38 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
               </Button>
             </motion.div>
           </div>
+          <div className="flex items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <ThemeToggle />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <LanguageToggle />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <UserProfile userEmail={userEmail} onLogout={onLogout} />
+            </motion.div>
+          </div>
         </div>
       </div>
-      <div className="w-full px-4 sm:px-6 pt-32 sm:pt-36 pb-12 sm:pb-20 relative z-10">
+      <div className="w-full px-4 sm:px-6 pt-32 pb-12 sm:pb-20 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
+          className="mb-8"
         >
-          <div className="flex items-center gap-6 mb-8">
+          <div className="flex items-center gap-6">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">Vagtplan</h1>
           </div>
         </motion.div>

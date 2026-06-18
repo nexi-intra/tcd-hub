@@ -183,7 +183,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="absolute top-6 right-6 left-6 z-20">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-12">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-16">
           <div className="flex items-center gap-3">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -220,7 +220,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
         </div>
       </div>
       
-      <div className="container mx-auto px-4 sm:px-6 pt-56 sm:pt-60 pb-12 sm:pb-20 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 pt-32 pb-12 sm:pb-20 max-w-7xl">
         <motion.header
           className="mb-8 flex items-center gap-6"
           initial={{ opacity: 0, y: -20 }}

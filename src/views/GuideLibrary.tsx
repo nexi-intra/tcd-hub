@@ -146,7 +146,7 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
       <Toaster position="top-center" richColors />
       
       <div className="absolute top-6 right-6 left-6 z-20">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-12">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-16">
           <div className="flex items-center gap-3">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -190,9 +190,9 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
         </div>
       </div>
       
-      <div className="container mx-auto px-4 sm:px-6 pt-56 sm:pt-60 pb-12 sm:pb-20 max-w-7xl relative z-10">
-        <header className="mb-12">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
+      <div className="container mx-auto px-4 sm:px-6 pt-32 pb-12 sm:pb-20 max-w-7xl relative z-10">
+        <header className="mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center gap-4 min-w-0 flex-1">
               <motion.div 
                 className="h-16 w-16 flex-shrink-0 rounded-3xl bg-gradient-to-br from-primary via-secondary to-accent shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden"
