@@ -813,10 +813,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                         return (
                           <div key={assignment.id} className="group relative">
                             <div
-                              className="px-3 py-2 rounded-lg text-sm font-bold truncate shadow-md border-2 transition-all hover:scale-105"
+                              className="px-3 py-2 rounded-lg text-sm font-bold truncate border-2 transition-all hover:scale-105 text-white"
                               style={{ 
                                 backgroundColor: role.color || '#8b5cf6',
-                                color: '#ffffff',
                                 borderColor: role.color || '#8b5cf6',
                                 boxShadow: `0 4px 12px ${role.color || '#8b5cf6'}50`
                               }}
@@ -842,19 +841,17 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                         <Popover>
                           <PopoverTrigger asChild>
                             <button 
-                              className="w-full h-full min-h-[32px] rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-md hover:shadow-xl border-2"
+                              className="w-full h-full min-h-[32px] rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-md hover:shadow-xl border-2 text-white"
                               style={{
-                                backgroundColor: 'oklch(0.80 0.12 150)',
-                                color: 'oklch(1.00 0 0)',
-                                borderColor: 'oklch(0.60 0.15 150)',
-                                borderStyle: 'solid'
+                                backgroundColor: '#10b981',
+                                borderColor: '#059669'
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = 'oklch(0.60 0.15 150)'
+                                e.currentTarget.style.backgroundColor = '#059669'
                                 e.currentTarget.style.transform = 'scale(1.05)'
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'oklch(0.80 0.12 150)'
+                                e.currentTarget.style.backgroundColor = '#10b981'
                                 e.currentTarget.style.transform = 'scale(1)'
                               }}
                             >
@@ -892,19 +889,17 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                       <Popover>
                         <PopoverTrigger asChild>
                           <button 
-                            className="w-full h-full min-h-[36px] rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-md hover:shadow-xl border-2"
+                            className="w-full h-full min-h-[36px] rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-md hover:shadow-xl border-2 text-white"
                             style={{
-                              backgroundColor: 'oklch(0.80 0.12 150)',
-                              color: 'oklch(1.00 0 0)',
-                              borderColor: 'oklch(0.60 0.15 150)',
-                              borderStyle: 'solid'
+                              backgroundColor: '#10b981',
+                              borderColor: '#059669'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'oklch(0.60 0.15 150)'
+                              e.currentTarget.style.backgroundColor = '#059669'
                               e.currentTarget.style.transform = 'scale(1.05)'
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'oklch(0.80 0.12 150)'
+                              e.currentTarget.style.backgroundColor = '#10b981'
                               e.currentTarget.style.transform = 'scale(1)'
                             }}
                           >
@@ -944,33 +939,29 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                   {!isLocked && (
                     <button
                       onClick={() => openCommentDialog(employee.id, dateString)}
-                      className="w-full h-full min-h-[32px] rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-md hover:shadow-xl border-2"
+                      className="w-full h-full min-h-[32px] rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-md hover:shadow-xl border-2 text-white"
                       style={cellComment ? {
-                        backgroundColor: 'oklch(0.78 0.15 60)',
-                        color: 'oklch(1.00 0 0)',
-                        borderColor: 'oklch(0.60 0.18 60)',
-                        borderStyle: 'solid'
+                        backgroundColor: '#f59e0b',
+                        borderColor: '#d97706'
                       } : {
-                        backgroundColor: 'oklch(0.78 0.12 40)',
-                        color: 'oklch(1.00 0 0)',
-                        borderColor: 'oklch(0.58 0.15 40)',
-                        borderStyle: 'solid'
+                        backgroundColor: '#06b6d4',
+                        borderColor: '#0891b2'
                       }}
                       onMouseEnter={(e) => {
                         if (cellComment) {
-                          e.currentTarget.style.backgroundColor = 'oklch(0.65 0.18 60)'
+                          e.currentTarget.style.backgroundColor = '#d97706'
                           e.currentTarget.style.transform = 'scale(1.05)'
                         } else {
-                          e.currentTarget.style.backgroundColor = 'oklch(0.65 0.15 40)'
+                          e.currentTarget.style.backgroundColor = '#0891b2'
                           e.currentTarget.style.transform = 'scale(1.05)'
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (cellComment) {
-                          e.currentTarget.style.backgroundColor = 'oklch(0.78 0.15 60)'
+                          e.currentTarget.style.backgroundColor = '#f59e0b'
                           e.currentTarget.style.transform = 'scale(1)'
                         } else {
-                          e.currentTarget.style.backgroundColor = 'oklch(0.78 0.12 40)'
+                          e.currentTarget.style.backgroundColor = '#06b6d4'
                           e.currentTarget.style.transform = 'scale(1)'
                         }
                       }}
