@@ -988,7 +988,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
   return (
     <div className="min-h-screen w-full relative overflow-hidden">
       <div className="absolute top-6 right-6 left-6 z-20">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-12">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-24">
           <div className="flex items-center gap-3">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -1008,7 +1008,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           </div>
         </div>
       </div>
-      <div className="w-full px-4 sm:px-6 pt-56 sm:pt-60 pb-12 sm:pb-20 relative z-10">
+      <div className="w-full px-4 sm:px-6 pt-32 sm:pt-36 pb-12 sm:pb-20 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
