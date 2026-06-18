@@ -1010,7 +1010,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <UserProfile userEmail={userEmail} onLogout={onLogout} />
+              <UserProfile userEmail={userEmail} onLogout={onLogout} hideEmail={true} />
             </motion.div>
           </div>
         </div>

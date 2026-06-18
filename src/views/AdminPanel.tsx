@@ -354,7 +354,7 @@ export function AdminPanel({ onNavigateBack, onLogout }: AdminPanelProps) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <UserProfile userEmail="" onLogout={onLogout} />
+              <UserProfile userEmail="" onLogout={onLogout} hideEmail={true} />
             </motion.div>
           </div>
         </div>

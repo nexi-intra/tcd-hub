@@ -573,7 +573,7 @@ Return ONLY a JSON object with this exact structure:
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <UserProfile userEmail={userEmail} onLogout={onLogout} />
+              <UserProfile userEmail={userEmail} onLogout={onLogout} hideEmail={true} />
             </motion.div>
           </div>
         </div>
