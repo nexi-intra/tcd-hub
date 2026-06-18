@@ -10,6 +10,8 @@ import { GuideDialog } from '@/components/GuideDialog'
 import { GuideViewer } from '@/components/GuideViewer'
 import { CategoryManager } from '@/components/CategoryManager'
 import { UserProfile } from '@/components/UserProfile'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { LanguageToggle } from '@/components/LanguageToggle'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { toast, Toaster } from 'sonner'
@@ -160,6 +162,29 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
                 <ArrowLeft size={20} weight="bold" />
                 Tilbage
               </Button>
+            </motion.div>
+          </div>
+          <div className="flex items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <ThemeToggle />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <LanguageToggle />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <UserProfile userEmail="" onLogout={onLogout} />
             </motion.div>
           </div>
         </div>

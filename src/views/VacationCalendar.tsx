@@ -9,6 +9,8 @@ import { useKV } from '@github/spark/hooks'
 import { UserProfile } from '@/components/UserProfile'
 import { SingleDayOffDialog } from '@/components/SingleDayOffDialog'
 import { VacationRequestDialog } from '@/components/VacationRequestDialog'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { LanguageToggle } from '@/components/LanguageToggle'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
@@ -565,6 +567,29 @@ Return ONLY a JSON object with this exact structure:
                 <ArrowLeft size={20} />
                 {t.common?.back || 'Tilbage'}
               </Button>
+            </motion.div>
+          </div>
+          <div className="flex items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <ThemeToggle />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <LanguageToggle />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <UserProfile userEmail={userEmail} onLogout={onLogout} />
             </motion.div>
           </div>
         </div>

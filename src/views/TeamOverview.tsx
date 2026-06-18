@@ -4,6 +4,8 @@ import { ArrowLeft, UserCircle, EnvelopeSimple, Crown, ShieldCheck, Phone } from
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { LanguageToggle } from '@/components/LanguageToggle'
 import { UserProfile } from '@/components/UserProfile'
 import { UserRole, getRoleDisplayName } from '@/lib/userRoles'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'

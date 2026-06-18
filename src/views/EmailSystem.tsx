@@ -32,6 +32,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useKV } from '@github/spark/hooks'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { LanguageToggle } from '@/components/LanguageToggle'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
