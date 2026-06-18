@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useKV } from '@github/spark/hooks'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageToggle } from '@/components/LanguageToggle'
+import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -78,7 +79,7 @@ interface EmailSystemProps {
   userEmail: string
 }
 
-export function EmailSystem({ onNavigateBack, userEmail: propUserEmail }: EmailSystemProps) {
+export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail }: EmailSystemProps) {
   const { t } = useLanguage()
   const [emails, setEmails] = useKV<Email[]>('emails', [])
   const [folders, setFolders] = useKV<EmailFolder[]>('email-folders', [])
