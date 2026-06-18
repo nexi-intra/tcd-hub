@@ -810,14 +810,17 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                         const role = (roles || []).find(r => r.id === assignment.roleId)
                         if (!role) return null
                         
+                        const bgColor = role.color || '#8b5cf6'
+                        
                         return (
                           <div key={assignment.id} className="group relative">
                             <div
-                              className="px-3 py-2 rounded-lg text-sm font-bold truncate border-2 transition-all hover:scale-105 text-white"
+                              className="px-3 py-2 rounded-lg text-sm font-bold truncate border-2 transition-all hover:scale-105"
                               style={{ 
-                                backgroundColor: role.color || '#8b5cf6',
-                                borderColor: role.color || '#8b5cf6',
-                                boxShadow: `0 4px 12px ${role.color || '#8b5cf6'}50`
+                                backgroundColor: bgColor,
+                                borderColor: bgColor,
+                                color: '#ffffff',
+                                boxShadow: `0 4px 12px ${bgColor}50`
                               }}
                               title={role.name}
                             >
