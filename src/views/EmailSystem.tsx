@@ -744,15 +744,6 @@ Return ONLY a JSON object with this exact structure:
               </Button>
             </motion.div>
           </div>
-          <div className="flex items-center gap-3">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <UserProfile userEmail="" onLogout={onLogout} hideEmail={true} />
-            </motion.div>
-          </div>
         </div>
       </div>
 

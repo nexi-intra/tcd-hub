@@ -1012,15 +1012,6 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
               </Button>
             </motion.div>
           </div>
-          <div className="flex items-center gap-3">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <UserProfile userEmail={userEmail} onLogout={onLogout} hideEmail={true} />
-            </motion.div>
-          </div>
         </div>
       </div>
       <div className="w-full px-4 sm:px-6 pt-40 pb-12 sm:pb-20 relative z-10">
