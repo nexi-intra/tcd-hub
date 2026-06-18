@@ -813,12 +813,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                         return (
                           <div key={assignment.id} className="group relative">
                             <div
-                              className="px-2 py-1.5 rounded-md text-xs font-bold truncate shadow-sm border-2"
+                              className="px-3 py-2 rounded-lg text-sm font-bold truncate shadow-md border-2 transition-all hover:scale-105"
                               style={{ 
-                                backgroundColor: role.color,
+                                backgroundColor: role.color || '#8b5cf6',
                                 color: '#ffffff',
-                                borderColor: role.color,
-                                boxShadow: `0 2px 8px ${role.color}40`
+                                borderColor: role.color || '#8b5cf6',
+                                boxShadow: `0 4px 12px ${role.color || '#8b5cf6'}50`
                               }}
                               title={role.name}
                             >
@@ -842,26 +842,24 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                         <Popover>
                           <PopoverTrigger asChild>
                             <button 
-                              className="w-full h-full min-h-[28px] rounded-md transition-all flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm hover:shadow-lg border-2"
+                              className="w-full h-full min-h-[32px] rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-md hover:shadow-xl border-2"
                               style={{
-                                backgroundColor: 'oklch(0.85 0.08 150)',
-                                color: 'oklch(0.35 0.10 150)',
-                                borderColor: 'oklch(0.50 0.12 150)',
-                                borderStyle: 'dashed'
+                                backgroundColor: 'oklch(0.80 0.12 150)',
+                                color: 'oklch(1.00 0 0)',
+                                borderColor: 'oklch(0.60 0.15 150)',
+                                borderStyle: 'solid'
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = 'oklch(0.55 0.12 150)'
-                                e.currentTarget.style.color = 'oklch(1.00 0 0)'
-                                e.currentTarget.style.borderStyle = 'solid'
+                                e.currentTarget.style.backgroundColor = 'oklch(0.60 0.15 150)'
+                                e.currentTarget.style.transform = 'scale(1.05)'
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'oklch(0.85 0.08 150)'
-                                e.currentTarget.style.color = 'oklch(0.35 0.10 150)'
-                                e.currentTarget.style.borderStyle = 'dashed'
+                                e.currentTarget.style.backgroundColor = 'oklch(0.80 0.12 150)'
+                                e.currentTarget.style.transform = 'scale(1)'
                               }}
                             >
-                              <Plus size={14} weight="bold" />
-                              <span className="text-[10px]">Opgave</span>
+                              <Plus size={16} weight="bold" />
+                              <span className="text-xs">Opgave</span>
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-64 p-2" align="center">
@@ -871,14 +869,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                 <button
                                   key={r.id}
                                   onClick={() => handleAddTaskToCell(employee.id, dateString, r.id)}
-                                  className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-all flex items-center gap-3"
+                                  className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted transition-all flex items-center gap-3"
                                 >
                                   <div
-                                    className="w-4 h-4 rounded-full shadow-sm"
+                                    className="w-5 h-5 rounded-full shadow-md"
                                     style={{ 
-                                      backgroundColor: r.color,
-                                      border: `2px solid ${r.color}`,
-                                      boxShadow: `0 2px 4px ${r.color}30`
+                                      backgroundColor: r.color || '#8b5cf6',
+                                      border: `2px solid ${r.color || '#8b5cf6'}`,
+                                      boxShadow: `0 2px 6px ${r.color || '#8b5cf6'}50`
                                     }}
                                   />
                                   <span className="text-sm font-medium">{r.name}</span>
@@ -894,26 +892,24 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                       <Popover>
                         <PopoverTrigger asChild>
                           <button 
-                            className="w-full h-full min-h-[32px] rounded-md transition-all flex items-center justify-center gap-2 text-xs font-bold shadow-sm hover:shadow-lg border-2"
+                            className="w-full h-full min-h-[36px] rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-md hover:shadow-xl border-2"
                             style={{
-                              backgroundColor: 'oklch(0.85 0.08 150)',
-                              color: 'oklch(0.35 0.10 150)',
-                              borderColor: 'oklch(0.50 0.12 150)',
-                              borderStyle: 'dashed'
+                              backgroundColor: 'oklch(0.80 0.12 150)',
+                              color: 'oklch(1.00 0 0)',
+                              borderColor: 'oklch(0.60 0.15 150)',
+                              borderStyle: 'solid'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'oklch(0.55 0.12 150)'
-                              e.currentTarget.style.color = 'oklch(1.00 0 0)'
-                              e.currentTarget.style.borderStyle = 'solid'
+                              e.currentTarget.style.backgroundColor = 'oklch(0.60 0.15 150)'
+                              e.currentTarget.style.transform = 'scale(1.05)'
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'oklch(0.85 0.08 150)'
-                              e.currentTarget.style.color = 'oklch(0.35 0.10 150)'
-                              e.currentTarget.style.borderStyle = 'dashed'
+                              e.currentTarget.style.backgroundColor = 'oklch(0.80 0.12 150)'
+                              e.currentTarget.style.transform = 'scale(1)'
                             }}
                           >
-                            <Plus size={16} weight="bold" />
-                            <span className="text-[11px]">Tilføj Opgave</span>
+                            <Plus size={18} weight="bold" />
+                            <span className="text-xs">Tilføj Opgave</span>
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-64 p-2" align="center">
@@ -923,14 +919,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                               <button
                                 key={r.id}
                                 onClick={() => handleAddTaskToCell(employee.id, dateString, r.id)}
-                                className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-all flex items-center gap-3"
+                                className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted transition-all flex items-center gap-3"
                               >
                                 <div
-                                  className="w-4 h-4 rounded-full shadow-sm"
+                                  className="w-5 h-5 rounded-full shadow-md"
                                   style={{ 
-                                    backgroundColor: r.color,
-                                    border: `2px solid ${r.color}`,
-                                    boxShadow: `0 2px 4px ${r.color}30`
+                                    backgroundColor: r.color || '#8b5cf6',
+                                    border: `2px solid ${r.color || '#8b5cf6'}`,
+                                    boxShadow: `0 2px 6px ${r.color || '#8b5cf6'}50`
                                   }}
                                 />
                                 <span className="text-sm font-medium">{r.name}</span>
@@ -948,42 +944,40 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                   {!isLocked && (
                     <button
                       onClick={() => openCommentDialog(employee.id, dateString)}
-                      className="w-full h-full min-h-[28px] rounded-md transition-all flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm hover:shadow-lg border-2"
+                      className="w-full h-full min-h-[32px] rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-md hover:shadow-xl border-2"
                       style={cellComment ? {
-                        backgroundColor: 'oklch(0.85 0.12 60)',
-                        color: 'oklch(0.40 0.15 60)',
-                        borderColor: 'oklch(0.50 0.18 60)',
+                        backgroundColor: 'oklch(0.78 0.15 60)',
+                        color: 'oklch(1.00 0 0)',
+                        borderColor: 'oklch(0.60 0.18 60)',
                         borderStyle: 'solid'
                       } : {
-                        backgroundColor: 'oklch(0.88 0.08 60)',
-                        color: 'oklch(0.45 0.12 60)',
-                        borderColor: 'oklch(0.60 0.12 60)',
-                        borderStyle: 'dashed'
+                        backgroundColor: 'oklch(0.78 0.12 40)',
+                        color: 'oklch(1.00 0 0)',
+                        borderColor: 'oklch(0.58 0.15 40)',
+                        borderStyle: 'solid'
                       }}
                       onMouseEnter={(e) => {
                         if (cellComment) {
-                          e.currentTarget.style.backgroundColor = 'oklch(0.80 0.14 60)'
-                          e.currentTarget.style.color = 'oklch(0.35 0.18 60)'
+                          e.currentTarget.style.backgroundColor = 'oklch(0.65 0.18 60)'
+                          e.currentTarget.style.transform = 'scale(1.05)'
                         } else {
-                          e.currentTarget.style.backgroundColor = 'oklch(0.60 0.12 60)'
-                          e.currentTarget.style.color = 'oklch(1.00 0 0)'
-                          e.currentTarget.style.borderStyle = 'solid'
+                          e.currentTarget.style.backgroundColor = 'oklch(0.65 0.15 40)'
+                          e.currentTarget.style.transform = 'scale(1.05)'
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (cellComment) {
-                          e.currentTarget.style.backgroundColor = 'oklch(0.85 0.12 60)'
-                          e.currentTarget.style.color = 'oklch(0.40 0.15 60)'
+                          e.currentTarget.style.backgroundColor = 'oklch(0.78 0.15 60)'
+                          e.currentTarget.style.transform = 'scale(1)'
                         } else {
-                          e.currentTarget.style.backgroundColor = 'oklch(0.88 0.08 60)'
-                          e.currentTarget.style.color = 'oklch(0.45 0.12 60)'
-                          e.currentTarget.style.borderStyle = 'dashed'
+                          e.currentTarget.style.backgroundColor = 'oklch(0.78 0.12 40)'
+                          e.currentTarget.style.transform = 'scale(1)'
                         }
                       }}
                       title={cellComment ? "Rediger kommentar" : "Tilføj kommentar"}
                     >
-                      <ChatText size={14} weight={cellComment ? "fill" : "bold"} />
-                      {!cellComment && <span className="text-[10px]">Kommentar</span>}
+                      <ChatText size={16} weight={cellComment ? "fill" : "bold"} />
+                      {!cellComment && <span className="text-xs">Kommentar</span>}
                     </button>
                   )}
                 </div>
