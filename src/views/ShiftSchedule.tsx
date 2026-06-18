@@ -840,8 +840,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                       {!isEmployeeCellLocked && (roles || []).length > 0 && (
                         <Popover>
                           <PopoverTrigger asChild>
-                            <button className="w-full h-full min-h-[28px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center border-2 border-dashed border-muted-foreground/20">
-                              <Plus size={14} />
+                            <button className="w-full h-full min-h-[28px] text-primary hover:text-primary-foreground bg-primary/10 hover:bg-primary rounded-md transition-all flex items-center justify-center border-2 border-dashed border-primary/30 hover:border-primary font-semibold shadow-sm hover:shadow-md">
+                              <Plus size={14} weight="bold" />
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-64 p-2" align="center">
@@ -869,8 +869,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                     !isEmployeeCellLocked && (roles || []).length > 0 ? (
                       <Popover>
                         <PopoverTrigger asChild>
-                          <button className="w-full h-full min-h-[32px] text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-all flex items-center justify-center">
-                            <Plus size={16} />
+                          <button className="w-full h-full min-h-[32px] text-primary hover:text-primary-foreground bg-primary/10 hover:bg-primary rounded-md transition-all flex items-center justify-center border-2 border-dashed border-primary/30 hover:border-primary font-semibold shadow-sm hover:shadow-md">
+                            <Plus size={16} weight="bold" />
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-64 p-2" align="center">
@@ -902,14 +902,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                     <button
                       onClick={() => openCommentDialog(employee.id, dateString)}
                       className={cn(
-                        "w-full h-full min-h-[28px] rounded-md transition-all flex items-center justify-center gap-1.5 text-xs font-medium",
+                        "w-full h-full min-h-[28px] rounded-md transition-all flex items-center justify-center gap-1.5 text-xs font-semibold shadow-sm hover:shadow-md border-2",
                         cellComment 
-                          ? "text-amber-700 hover:text-amber-800 hover:bg-amber-50" 
-                          : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/30"
+                          ? "text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-300 hover:border-amber-400" 
+                          : "text-accent hover:text-accent-foreground bg-accent/10 hover:bg-accent border-dashed border-accent/30 hover:border-accent"
                       )}
                       title={cellComment ? "Rediger kommentar" : "Tilføj kommentar"}
                     >
-                      <ChatText size={14} weight={cellComment ? "fill" : "regular"} />
+                      <ChatText size={14} weight={cellComment ? "fill" : "bold"} />
                       {!cellComment && <span className="text-[10px]">Kommentar</span>}
                     </button>
                   )}
