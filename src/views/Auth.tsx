@@ -102,22 +102,6 @@ export function Auth({ onAuthenticated }: AuthProps) {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center">
-      <div className="absolute top-6 right-6 z-20 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <LanguageToggle />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.15 }}
-        >
-          <ThemeToggle />
-        </motion.div>
-      </div>
       <div className="container mx-auto px-4 sm:px-6 max-w-md relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
