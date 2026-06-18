@@ -380,18 +380,23 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 py-6">
-          <div className="flex flex-col items-center justify-center gap-4 text-center">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={onNavigateBack} className="shrink-0 absolute left-4">
-                <ArrowLeft size={24} weight="bold" />
-              </Button>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3 justify-center">
-                  <FolderOpen size={32} weight="duotone" className="text-primary" />
-                  {language === 'da' ? 'Projekt Tavle' : 'Project Board'}
-                </h1>
-              </div>
+          <div className="flex items-center justify-between gap-4">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={onNavigateBack}
+              className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
+            >
+              <ArrowLeft size={20} />
+              {language === 'da' ? 'Tilbage til Hub' : 'Back to Hub'}
+            </Button>
+            <div className="flex-1 text-center">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3 justify-center">
+                <FolderOpen size={32} weight="duotone" className="text-primary" />
+                {language === 'da' ? 'Projekt Tavle' : 'Project Board'}
+              </h1>
             </div>
+            <div className="w-[140px]"></div>
           </div>
         </div>
       </div>
