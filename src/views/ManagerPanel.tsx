@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target, RocketLaunch } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target, RocketLaunch, Gift } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +18,7 @@ import { UserRole, ADMIN_EMAIL, hasManagerAccess, getRoleDisplayName, getRoleDes
 import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import React from 'react'
+import { ManualVacationGrant } from '@/components/ManualVacationGrant'
 
 interface User {
   email: string
@@ -106,6 +107,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [isEditDodgerScoreDialogOpen, setIsEditDodgerScoreDialogOpen] = useState(false)
   const [newDodgerScore, setNewDodgerScore] = useState('')
   const [dodgerPlayCounts, setDodgerPlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
+  const [isManualGrantDialogOpen, setIsManualGrantDialogOpen] = useState(false)
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -1621,6 +1623,13 @@ Return ONLY a JSON object with this exact structure:
                   <h2 className="text-2xl font-bold">Ferie Oversigt</h2>
                 </div>
                 <div className="flex items-center gap-3">
+                  <Button 
+                    onClick={() => setIsManualGrantDialogOpen(true)}
+                    className="gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
+                  >
+                    <Gift size={18} weight="bold" />
+                    Giv Ferie/Fridag
+                  </Button>
                   <Select value={vacationFilter} onValueChange={(value: 'all' | 'pending' | 'approved') => setVacationFilter(value)}>
                     <SelectTrigger className="w-40">
                       <SelectValue />
@@ -2703,6 +2712,13 @@ Return ONLY a JSON object with this exact structure:
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ManualVacationGrant 
+        open={isManualGrantDialogOpen}
+        onOpenChange={setIsManualGrantDialogOpen}
+        managerEmail={userEmail}
+        onSuccess={loadVacationEntries}
+      />
     </div>
   )
 }
