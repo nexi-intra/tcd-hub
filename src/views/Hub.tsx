@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus, ChatText, Notebook, X } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus, ChatText, Notebook, X, PencilSimple } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +12,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { hasManagerAccess } from '@/lib/userRoles'
@@ -90,6 +91,10 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [selectedTaskForAssign, setSelectedTaskForAssign] = useState<{ roleId: string; roleName: string } | null>(null)
   const [selectedEmployeeForAssign, setSelectedEmployeeForAssign] = useState<string>('')
   const [allEmployees, setAllEmployees] = useState<Array<{ email: string; name: string }>>([])
+  
+  const [showCommentDialog, setShowCommentDialog] = useState(false)
+  const [selectedUserForComment, setSelectedUserForComment] = useState<{ name: string; roleId: string; currentComment?: string } | null>(null)
+  const [newComment, setNewComment] = useState('')
   
   useEffect(() => {
     const checkUserRole = async () => {
@@ -359,6 +364,103 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     setSelectedTaskForAssign(null)
     setSelectedEmployeeForAssign('')
 
+    const loadOverviewData = async () => {
+      const today = format(new Date(), 'yyyy-MM-dd')
+      const currentDate = new Date()
+      
+      const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+      const roles = (await window.spark.kv.get<ShiftRole[]>('shift-roles')) || []
+      const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+      const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
+      const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
+      
+      const isSickToday = (userEmail: string) => {
+        return sickLeave.some(s => 
+          s.userEmail === userEmail && 
+          s.status === 'approved' && 
+          isSameDay(parseISO(s.startDate), currentDate)
+        )
+      }
+      
+      const isOnVacationToday = (userEmail: string) => {
+        return vacations.some(v => {
+          if (v.userEmail !== userEmail || v.status !== 'approved') return false
+          const start = parseISO(v.startDate)
+          const end = parseISO(v.endDate)
+          return (isSameDay(start, currentDate) || isSameDay(end, currentDate) || (start < currentDate && end > currentDate))
+        })
+      }
+      
+      const todaysAssignments = assignments.filter(a => a.date === today)
+      
+      const taskPeopleMap: Record<string, { color: string; people: Array<{ name: string; comment?: string }>; roleId: string }> = {}
+      
+      roles.forEach(role => {
+        taskPeopleMap[role.name] = {
+          color: role.color,
+          people: [],
+          roleId: role.id
+        }
+      })
+      
+      todaysAssignments.forEach(assignment => {
+        const role = roles.find(r => r.id === assignment.roleId)
+        const roleName = role?.name || 'Unknown'
+        
+        const userEmail = Object.keys(usersData).find(email => usersData[email]?.fullName === assignment.employeeName)
+        
+        if (!userEmail) {
+          return
+        }
+        
+        if (isSickToday(userEmail) || isOnVacationToday(userEmail)) {
+          return
+        }
+        
+        if (taskPeopleMap[roleName]) {
+          const existingPerson = taskPeopleMap[roleName].people.find(p => p.name === assignment.employeeName)
+          if (!existingPerson) {
+            taskPeopleMap[roleName].people.push({
+              name: assignment.employeeName,
+              comment: assignment.comment
+            })
+          }
+        }
+      })
+      
+      const teamTasksList = Object.entries(taskPeopleMap).map(([taskName, data]) => ({
+        taskName,
+        taskColor: data.color,
+        people: data.people,
+        roleId: data.roleId
+      }))
+      
+      setTeamTasks(teamTasksList)
+    }
+    loadOverviewData()
+  }
+
+  const handleAddOrUpdateComment = async () => {
+    if (!selectedUserForComment) return
+
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+    
+    const updatedAssignments = assignments.map(a => {
+      if (a.date === today && a.employeeName === selectedUserForComment.name && a.roleId === selectedUserForComment.roleId) {
+        return { ...a, comment: newComment || undefined }
+      }
+      return a
+    })
+    
+    await window.spark.kv.set('shift-assignments', updatedAssignments)
+    
+    toast.success(language === 'da' ? 'Kommentar opdateret' : 'Comment updated')
+    
+    setShowCommentDialog(false)
+    setSelectedUserForComment(null)
+    setNewComment('')
+    
     const loadOverviewData = async () => {
       const today = format(new Date(), 'yyyy-MM-dd')
       const currentDate = new Date()
@@ -971,18 +1073,18 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="mb-10"
         >
-          <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300 mb-4 md:mb-6">
-            <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
-              <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]">
-                <Users size={20} weight="duotone" className="text-white md:hidden" />
-                <Users size={24} weight="duotone" className="text-white hidden md:block" />
+          <Card className="p-5 md:p-7 bg-card border-2 hover:border-primary/40 transition-all duration-300 mb-4 md:mb-6">
+            <div className="flex items-center gap-3 md:gap-4 mb-5 md:mb-7">
+              <div className="p-2 md:p-2.5 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]">
+                <Users size={24} weight="duotone" className="text-white md:hidden" />
+                <Users size={28} weight="duotone" className="text-white hidden md:block" />
               </div>
-              <h3 className="text-base md:text-lg font-semibold text-foreground text-center flex-1">{t.hub.overview.teamTasks || 'Team opgaver i dag'}</h3>
+              <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-foreground text-center flex-1">{t.hub.overview.teamTasks || 'Team opgaver i dag'}</h3>
             </div>
             {teamTasks.length === 0 ? (
-              <p className="text-muted-foreground text-xs md:text-sm text-center py-1">{t.hub.overview.noTasks}</p>
+              <p className="text-muted-foreground text-sm md:text-base text-center py-2">{t.hub.overview.noTasks}</p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
                 {teamTasks.map((task, idx) => (
                   <motion.div
                     key={idx}
@@ -990,17 +1092,17 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
                     className={cn(
-                      "flex flex-col gap-3 p-4 rounded-xl border-2 shadow-sm transition-all duration-300",
+                      "flex flex-col gap-3 p-5 rounded-xl border-2 shadow-sm transition-all duration-300",
                       task.people.length === 0 
                         ? "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-400 dark:from-amber-950/40 dark:to-amber-900/30 dark:border-amber-600" 
                         : "bg-gradient-to-br from-card to-muted/30 border-border hover:border-primary/30 hover:shadow-md"
                     )}
                   >
-                    <div className="flex items-center justify-center gap-3 pb-2 border-b-2"
+                    <div className="flex items-center justify-center gap-3 pb-3 border-b-2"
                       style={{ borderColor: task.taskColor + '40' }}
                     >
                       <Badge
-                        className="text-white text-xs md:text-sm font-bold px-3 py-1 shadow-sm"
+                        className="text-white text-sm md:text-base font-bold px-4 py-1.5 shadow-sm"
                         style={{ 
                           backgroundColor: task.taskColor,
                           boxShadow: `0 2px 8px ${task.taskColor}40`
@@ -1012,57 +1114,71 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     {task.people.length === 0 ? (
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 py-2 justify-center">
-                          <Warning size={18} weight="fill" />
-                          <span className="text-xs md:text-sm font-semibold">{language === 'da' ? 'Ingen tildelt' : 'No one assigned'}</span>
+                          <Warning size={20} weight="fill" />
+                          <span className="text-sm md:text-base font-semibold">{language === 'da' ? 'Ingen tildelt' : 'No one assigned'}</span>
                         </div>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="w-full text-xs"
+                          className="w-full text-sm"
                           onClick={() => {
                             setSelectedTaskForAssign({ roleId: task.roleId, roleName: task.taskName })
                             setShowQuickAssignDialog(true)
                           }}
                         >
-                          <UserPlus size={16} weight="duotone" className="mr-1" />
+                          <UserPlus size={18} weight="duotone" className="mr-1.5" />
                           {language === 'da' ? 'Tildel' : 'Assign'}
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-3">
                         {task.people.map((person, personIdx) => (
                           <motion.div
                             key={personIdx}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.1 + personIdx * 0.05 }}
-                            className="flex flex-col gap-1"
+                            className="flex flex-col gap-2"
                           >
-                            <div className="flex items-center gap-2 p-2 rounded-lg bg-background/60 hover:bg-background transition-colors duration-200">
+                            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-background/60 hover:bg-background transition-colors duration-200">
                               <div 
-                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                                className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
                                 style={{ backgroundColor: task.taskColor }}
                               >
                                 {person.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                               </div>
-                              <span className="text-xs md:text-sm text-foreground font-medium truncate flex-1">{person.name}</span>
+                              <span className="text-sm md:text-base text-foreground font-semibold truncate flex-1">{person.name}</span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 flex-shrink-0 hover:bg-primary/20 hover:text-primary"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedUserForComment({ name: person.name, roleId: task.roleId, currentComment: person.comment })
+                                  setNewComment(person.comment || '')
+                                  setShowCommentDialog(true)
+                                }}
+                                title={language === 'da' ? 'Tilføj kommentar' : 'Add comment'}
+                              >
+                                <PencilSimple size={16} weight="bold" />
+                              </Button>
                               {person.comment && (
-                                <ChatText size={16} weight="fill" className="text-primary flex-shrink-0" />
+                                <ChatText size={18} weight="fill" className="text-primary flex-shrink-0" />
                               )}
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 w-6 p-0 flex-shrink-0 hover:bg-destructive/20 hover:text-destructive"
+                                className="h-7 w-7 p-0 flex-shrink-0 hover:bg-destructive/20 hover:text-destructive"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleRemoveUserFromTask(person.name, task.roleId)
                                 }}
                               >
-                                <X size={14} weight="bold" />
+                                <X size={16} weight="bold" />
                               </Button>
                             </div>
                             {person.comment && (
-                              <div className="ml-9 px-2 py-1 rounded bg-muted text-xs text-muted-foreground italic">
+                              <div className="ml-11 px-3 py-2 rounded bg-muted text-sm text-muted-foreground italic">
                                 {person.comment}
                               </div>
                             )}
@@ -1071,13 +1187,13 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="w-full text-xs mt-1"
+                          className="w-full text-sm mt-1"
                           onClick={() => {
                             setSelectedTaskForAssign({ roleId: task.roleId, roleName: task.taskName })
                             setShowQuickAssignDialog(true)
                           }}
                         >
-                          <UserPlus size={16} weight="duotone" className="mr-1" />
+                          <UserPlus size={18} weight="duotone" className="mr-1.5" />
                           {language === 'da' ? 'Tilføj' : 'Add'}
                         </Button>
                       </div>
@@ -1271,6 +1387,57 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               className="bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] text-white"
             >
               {language === 'da' ? 'Tildel' : 'Assign'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCommentDialog} onOpenChange={setShowCommentDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-xl font-bold text-center">
+              {language === 'da' ? 'Tilføj eller rediger kommentar' : 'Add or edit comment'}
+              {selectedUserForComment && (
+                <span className="block text-sm text-muted-foreground font-normal mt-1">
+                  {selectedUserForComment.name}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="comment-text">
+                {language === 'da' ? 'Kommentar' : 'Comment'}
+              </Label>
+              <Textarea
+                id="comment-text"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder={language === 'da' ? 'Skriv en kommentar...' : 'Write a comment...'}
+                rows={4}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                {language === 'da' 
+                  ? 'Tilføj information som fx "går tidligt" eller "kommer sent"' 
+                  : 'Add information like "leaving early" or "arriving late"'
+                }
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowCommentDialog(false)
+              setSelectedUserForComment(null)
+              setNewComment('')
+            }}>
+              {language === 'da' ? 'Annuller' : 'Cancel'}
+            </Button>
+            <Button
+              onClick={handleAddOrUpdateComment}
+              className="bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] text-white"
+            >
+              {language === 'da' ? 'Gem' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
