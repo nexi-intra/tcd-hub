@@ -110,11 +110,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
   const [newRoleColor, setNewRoleColor] = useState('#8b5cf6')
 
   const colorPresets = [
-    { name: 'Lilla', value: '#8b5cf6' },
+    { name: 'Lilla', value: '#a855f7' },
     { name: 'Blå', value: '#3b82f6' },
     { name: 'Cyan', value: '#06b6d4' },
     { name: 'Grøn', value: '#10b981' },
-    { name: 'Gul', value: '#f59e0b' },
+    { name: 'Gul', value: '#eab308' },
     { name: 'Orange', value: '#f97316' },
     { name: 'Rød', value: '#ef4444' },
     { name: 'Pink', value: '#ec4899' },
@@ -122,6 +122,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
     { name: 'Teal', value: '#14b8a6' },
     { name: 'Lime', value: '#84cc16' },
     { name: 'Rose', value: '#f43f5e' },
+    { name: 'Emerald', value: '#059669' },
+    { name: 'Sky', value: '#0ea5e9' },
+    { name: 'Violet', value: '#8b5cf6' },
+    { name: 'Amber', value: '#f59e0b' },
   ]
   
   const [selectedEmployee, setSelectedEmployee] = useState('')
@@ -698,9 +702,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           <Badge 
             variant={currentWeek ? "default" : "outline"} 
             className={cn(
-              "text-[11px] px-2 py-0.5 font-bold",
-              currentWeek && "bg-primary text-primary-foreground shadow-lg",
-              todayDate && "ring-2 ring-accent"
+              "text-[11px] px-3 py-1 font-bold shadow-md border-2 transition-all",
+              currentWeek && "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground border-primary/30 shadow-lg shadow-primary/20",
+              !currentWeek && "border-border/40",
+              todayDate && "ring-2 ring-accent ring-offset-1 animate-pulse"
             )}
           >
             U{weekNumber}
@@ -722,16 +727,16 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
 
       rows.push(
         <tr key={day} className={cn(
-          "border-b-2 border-border transition-all",
+          "border-b border-border/40 transition-all hover:bg-muted/20",
           isLocked && "bg-muted/30",
-          currentWeek && "bg-primary/10",
-          todayDate && "bg-accent/20 ring-2 ring-accent/50"
+          currentWeek && "bg-gradient-to-r from-primary/5 via-primary/8 to-primary/5 shadow-sm",
+          todayDate && "bg-gradient-to-r from-accent/15 via-accent/20 to-accent/15 shadow-md ring-2 ring-accent/30"
         )}>
           <td className={cn(
             "sticky left-0 bg-card border-r-2 border-border px-3 py-5 font-semibold transition-all z-40 shadow-[2px_0_8px_rgba(0,0,0,0.15)] w-[200px]",
             isWeekend(date) && "text-destructive",
-            currentWeek && "bg-primary/10",
-            todayDate && "bg-accent/20 ring-2 ring-accent/50"
+            currentWeek && "bg-gradient-to-r from-primary/5 via-primary/8 to-primary/5",
+            todayDate && "bg-gradient-to-r from-accent/15 via-accent/20 to-accent/15 ring-2 ring-accent/30"
           )}>
             {dateCell}
           </td>
@@ -748,14 +753,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
               <td
                 key={employee.id}
                 className={cn(
-                  "border-x-2 border-border p-3 text-center transition-all min-w-[160px]",
+                  "border-x border-border/40 p-3 text-center transition-all min-w-[160px]",
                   isLocked && "bg-muted/20",
-                  sickLeave && "bg-red-50",
-                  vacation && "bg-blue-50",
-                  currentWeek && !sickLeave && !vacation && "ring-1 ring-inset",
-                  todayDate && !sickLeave && !vacation && "ring-2 ring-inset",
-                  todayDate && sickLeave && "bg-red-100 ring-2 ring-red-300",
-                  todayDate && vacation && "bg-blue-100 ring-2 ring-blue-300"
+                  sickLeave && "bg-gradient-to-br from-red-50 to-red-100/80 dark:from-red-950/30 dark:to-red-900/40",
+                  vacation && "bg-gradient-to-br from-blue-50 to-blue-100/80 dark:from-blue-950/30 dark:to-blue-900/40",
+                  currentWeek && !sickLeave && !vacation && "ring-1 ring-inset ring-primary/20",
+                  todayDate && !sickLeave && !vacation && "ring-2 ring-inset ring-accent/40",
+                  todayDate && sickLeave && "bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/50 dark:to-red-800/60 ring-2 ring-red-400/50",
+                  todayDate && vacation && "bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/60 ring-2 ring-blue-400/50"
                 )}
               >
                 <div className="space-y-2">
@@ -815,10 +820,13 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                         return (
                           <div key={assignment.id} className="group relative">
                             <div
-                              className="task-badge-colored px-3 py-2 rounded-lg text-sm font-bold truncate transition-all hover:scale-105"
+                              className="task-badge-colored px-3 py-2.5 rounded-lg text-sm font-bold truncate transition-all hover:scale-105 shadow-lg border-2"
                               style={{ 
                                 ['--task-color' as any]: bgColor,
-                                boxShadow: `0 4px 12px ${bgColor}50`
+                                backgroundColor: bgColor,
+                                borderColor: `${bgColor}CC`,
+                                color: 'white',
+                                boxShadow: `0 6px 16px ${bgColor}60, 0 2px 4px ${bgColor}40`
                               }}
                               title={role.name}
                             >
@@ -1051,12 +1059,16 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                     value={selectedMonth.toString()}
                     onValueChange={(value) => setSelectedMonth(parseInt(value))}
                   >
-                    <SelectTrigger className="w-[150px]">
+                    <SelectTrigger className="w-[160px] font-semibold shadow-sm border-2 hover:border-primary/50 transition-all">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {months.map((month, index) => (
-                        <SelectItem key={index} value={index.toString()}>
+                        <SelectItem 
+                          key={index} 
+                          value={index.toString()}
+                          className="font-medium"
+                        >
                           {month}
                         </SelectItem>
                       ))}
@@ -1067,14 +1079,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                     value={selectedYear.toString()}
                     onValueChange={(value) => setSelectedYear(parseInt(value))}
                   >
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-[130px] font-semibold shadow-sm border-2 hover:border-primary/50 transition-all">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="2024">2024</SelectItem>
-                      <SelectItem value="2025">2025</SelectItem>
-                      <SelectItem value="2026">2026</SelectItem>
-                      <SelectItem value="2027">2027</SelectItem>
+                      <SelectItem value="2024" className="font-medium">2024</SelectItem>
+                      <SelectItem value="2025" className="font-medium">2025</SelectItem>
+                      <SelectItem value="2026" className="font-medium">2026</SelectItem>
+                      <SelectItem value="2027" className="font-medium">2027</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1083,17 +1095,17 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                   <Button
                     onClick={() => setShowWeekAssignmentDialog(true)}
                     variant="default"
-                    className="gap-2"
+                    className="gap-2 shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-primary to-primary/90"
                   >
-                    <Plus size={18} />
+                    <Plus size={18} weight="bold" />
                     Tilføj Opgaver til Hel Uge
                   </Button>
                   <Button
                     onClick={() => setShowWeekClearDialog(true)}
                     variant="destructive"
-                    className="gap-2"
+                    className="gap-2 shadow-md hover:shadow-lg transition-all"
                   >
-                    <Trash size={18} />
+                    <Trash size={18} weight="bold" />
                     Ryd Hel Uge
                   </Button>
                   <Button
@@ -1105,9 +1117,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                       setScrollToToday(true)
                     }}
                     variant="outline"
-                    className="gap-2"
+                    className="gap-2 shadow-md hover:shadow-lg transition-all border-2 hover:border-accent hover:bg-accent/10"
                   >
-                    <CalendarIcon size={18} />
+                    <CalendarIcon size={18} weight="bold" />
                     Gå til i dag
                   </Button>
                 </div>
