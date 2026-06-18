@@ -1021,7 +1021,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center gap-6">
+          <div className="flex items-center justify-center gap-6">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">Vagtplan</h1>
           </div>
         </motion.div>
