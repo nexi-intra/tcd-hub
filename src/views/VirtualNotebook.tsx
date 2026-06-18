@@ -185,7 +185,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center gap-4 mb-10 text-center"
+          className="flex items-center gap-4 mb-10"
         >
           <Button
             onClick={onNavigateBack}
@@ -195,9 +195,10 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
           >
             <ArrowLeft size={20} />
           </Button>
-          <div>
+          <div className="flex-1 text-center">
             <h1 className="text-4xl font-bold">{t.notebook.title}</h1>
           </div>
+          <div className="w-10"></div>
         </motion.div>
 
         <motion.div

@@ -380,7 +380,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 py-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
             <Button
               variant="outline"
               size="lg"
