@@ -201,6 +201,22 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
               </Button>
             </motion.div>
           </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <LanguageToggle />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <ThemeToggle />
+            </motion.div>
+          </div>
         </div>
       </div>
       
