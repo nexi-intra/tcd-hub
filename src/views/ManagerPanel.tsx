@@ -2274,6 +2274,208 @@ Return ONLY a JSON object with this exact structure:
             </Card>
           </TabsContent>
 
+          <TabsContent value="brick-break-scores" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center gap-3 mb-6">
+                <Cube size={28} className="text-primary" weight="duotone" />
+                <h2 className="text-2xl font-bold">Brick Break Spil Statistik</h2>
+              </div>
+
+              {brickBreakPlayCounts && Object.keys(brickBreakPlayCounts).length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    {Object.entries(brickBreakPlayCounts)
+                      .sort(([, countsA], [, countsB]) => {
+                        const totalA = (countsA.easy || 0) + (countsA.medium || 0) + (countsA.hard || 0) + (countsA.expert || 0)
+                        const totalB = (countsB.easy || 0) + (countsB.medium || 0) + (countsB.hard || 0) + (countsB.expert || 0)
+                        return totalB - totalA
+                      })
+                      .map(([email, counts]) => {
+                        const totalPlays = (counts.easy || 0) + (counts.medium || 0) + (counts.hard || 0) + (counts.expert || 0)
+                        
+                        const getUserName = () => {
+                          const user = users.find(u => u.email === email)
+                          return user ? user.fullName : email
+                        }
+
+                        return (
+                          <motion.div
+                            key={email}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-4 rounded-xl border-2 bg-gradient-to-br from-card to-muted/30 hover:shadow-lg transition-all"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="font-semibold text-lg">{getUserName()}</div>
+                                <div className="text-xs text-muted-foreground">{email}</div>
+                              </div>
+                              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                                <Trophy size={18} weight="fill" className="text-primary" />
+                                <span className="font-bold text-lg text-primary">{totalPlays}</span>
+                                <span className="text-xs text-muted-foreground">spil</span>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-2 rounded bg-green-500/10 border border-green-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Let</div>
+                                <div className="font-bold text-green-600">{counts.easy || 0}</div>
+                              </div>
+                              <div className="p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Mellem</div>
+                                <div className="font-bold text-yellow-600">{counts.medium || 0}</div>
+                              </div>
+                              <div className="p-2 rounded bg-red-500/10 border border-red-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Svær</div>
+                                <div className="font-bold text-red-600">{counts.hard || 0}</div>
+                              </div>
+                              <div className="p-2 rounded bg-purple-500/10 border border-purple-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Ekspert</div>
+                                <div className="font-bold text-purple-600">{counts.expert || 0}</div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Trophy size={64} className="text-muted-foreground/30 mx-auto mb-4" weight="duotone" />
+                    <p className="text-muted-foreground">Ingen spil statistik endnu</p>
+                    <p className="text-sm text-muted-foreground mt-2">Statistik vil vises når brugere begynder at spille Brick Break</p>
+                  </div>
+                )}
+            </Card>
+
+            <Card className="p-6 border-2">
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Her kan du redigere og slette highscores fra Brick Break spillet. Du kan ændre score værdier, level nået, eller fjerne hele entries.
+                </p>
+              </div>
+
+              {!brickBreakLeaderboard ? (
+                <div className="text-center py-12">
+                  <Trophy size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
+                  <p className="text-muted-foreground">Indlæser highscores...</p>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {(['easy', 'medium', 'hard', 'expert'] as const).map((difficulty) => {
+                    const board = brickBreakLeaderboard[difficulty] || []
+                    const difficultyLabels = {
+                      easy: { da: 'Let', color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/30' },
+                      medium: { da: 'Mellem', color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
+                      hard: { da: 'Svær', color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/30' },
+                      expert: { da: 'Ekspert', color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/30' }
+                    }
+                    const setting = difficultyLabels[difficulty]
+
+                    return (
+                      <div key={difficulty} className="space-y-3">
+                        <div className={`p-4 rounded-lg ${setting.bg} border ${setting.border}`}>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <Trophy size={24} weight="duotone" className={setting.color} />
+                              <div>
+                                <h3 className="font-bold text-lg">{setting.da}</h3>
+                                <p className="text-xs text-muted-foreground">
+                                  {board.length} {board.length === 1 ? 'score' : 'scores'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {board.length === 0 ? (
+                            <div className="text-center py-6">
+                              <Cube size={32} className="text-muted-foreground/30 mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground">Ingen scores endnu</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {board.map((entry, index) => {
+                                const getUserName = () => {
+                                  const user = users.find(u => u.email === entry.email)
+                                  return user ? user.fullName : entry.email
+                                }
+
+                                return (
+                                  <motion.div
+                                    key={entry.email}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center justify-between p-3 rounded-lg bg-card border hover:shadow-sm transition-all group"
+                                  >
+                                    <div className="flex items-center gap-3 flex-1">
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 font-bold text-sm">
+                                        #{index + 1}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-semibold truncate">{getUserName()}</div>
+                                        <div className="text-xs text-muted-foreground">{entry.email}</div>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <div className="text-right">
+                                          <div className="text-lg font-bold text-primary">
+                                            {entry.score}
+                                          </div>
+                                          <div className="text-xs text-muted-foreground">
+                                            Level {entry.level}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="ml-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => openEditBrickBreakScoreDialog(difficulty, entry.email, entry.score, entry.level)}
+                                        className="hover:bg-primary/10"
+                                      >
+                                        <PencilSimple size={20} />
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                          >
+                                            <Trash size={20} />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Slet score?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Er du sikker på at du vil slette scoren for <strong>{getUserName()}</strong>? Denne handling kan ikke fortrydes.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() => deleteBrickBreakScore(difficulty, entry.email)}
+                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                              Slet score
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </motion.div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
         </Tabs>
       </div>
 
@@ -2814,6 +3016,55 @@ Return ONLY a JSON object with this exact structure:
               Annuller
             </Button>
             <Button onClick={handleSaveDodgerScore} className="gap-2">
+              <Check size={18} weight="bold" />
+              Gem ændringer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditBrickBreakScoreDialogOpen} onOpenChange={setIsEditBrickBreakScoreDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rediger Brick Break score</DialogTitle>
+            <DialogDescription>
+              Rediger scoren og level for {editingBrickBreakScore?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-brick-break-score">Score *</Label>
+              <Input
+                id="edit-brick-break-score"
+                type="number"
+                value={newBrickBreakScore}
+                onChange={(e) => setNewBrickBreakScore(e.target.value)}
+                placeholder="Indtast score"
+                min="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-brick-break-level">Level *</Label>
+              <Input
+                id="edit-brick-break-level"
+                type="number"
+                value={newBrickBreakLevel}
+                onChange={(e) => setNewBrickBreakLevel(e.target.value)}
+                placeholder="Indtast level"
+                min="1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsEditBrickBreakScoreDialogOpen(false)
+              setEditingBrickBreakScore(null)
+              setNewBrickBreakScore('')
+              setNewBrickBreakLevel('')
+            }}>
+              Annuller
+            </Button>
+            <Button onClick={handleSaveBrickBreakScore} className="gap-2">
               <Check size={18} weight="bold" />
               Gem ændringer
             </Button>
