@@ -16,10 +16,6 @@ export function ThemeProvider({ children, userId }: { children: ReactNode; userI
   const [theme, setTheme] = useKV<Theme>(themeKey, 'light')
 
   useEffect(() => {
-    setTheme('light')
-  }, [])
-
-  useEffect(() => {
     const root = document.documentElement
     if (theme === 'dark') {
       root.classList.add('dark')
@@ -29,7 +25,7 @@ export function ThemeProvider({ children, userId }: { children: ReactNode; userI
   }, [theme])
 
   const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
+    setTheme((currentTheme) => currentTheme === 'light' ? 'dark' : 'light')
   }
 
   return (
