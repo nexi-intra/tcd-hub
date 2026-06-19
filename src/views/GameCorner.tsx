@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import { GameController, Target, ArrowLeft, RocketLaunch } from '@phosphor-icons/react'
+import { GameController, Target, ArrowLeft, RocketLaunch, Cube } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { HitNMiss } from '@/components/HitNMiss'
 import { EndlessDodger } from '@/components/EndlessDodger'
+import { BrickBreak } from '@/components/BrickBreak'
 import { cn } from '@/lib/utils'
 
 interface GameCornerProps {
@@ -13,7 +14,7 @@ interface GameCornerProps {
   userEmail?: string
 }
 
-type GameView = 'hub' | 'hitnmiss' | 'endlessdodger'
+type GameView = 'hub' | 'hitnmiss' | 'endlessdodger' | 'brickbreak'
 
 interface GameModule {
   id: string
@@ -50,6 +51,17 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
       icon: <RocketLaunch size={48} weight="duotone" />,
       color: 'oklch(0.65 0.22 280)',
       gradient: 'from-[oklch(0.65_0.22_280)] via-[oklch(0.70_0.20_250)] to-[oklch(0.65_0.22_280)]',
+      available: true,
+    },
+    {
+      id: 'brickbreak',
+      title: language === 'da' ? 'Brick Break' : 'Brick Break',
+      description: language === 'da' 
+        ? 'Ødelæg alle brikkerne og klar så mange levels som muligt. Samle power-ups undervejs!'
+        : 'Destroy all bricks and clear as many levels as possible. Collect power-ups along the way!',
+      icon: <Cube size={48} weight="duotone" />,
+      color: 'oklch(0.68 0.20 340)',
+      gradient: 'from-[oklch(0.68_0.20_340)] via-[oklch(0.70_0.18_310)] to-[oklch(0.68_0.20_340)]',
       available: true,
     },
   ]
@@ -237,6 +249,80 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
 
           <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
             <EndlessDodger userEmail={userEmail} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (currentView === 'brickbreak') {
+    return (
+      <div className="min-h-screen" style={{
+        background: `
+          radial-gradient(circle at 20% 30%, oklch(0.60 0.15 280 / 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 80% 60%, oklch(0.65 0.12 210 / 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 50% 90%, oklch(0.55 0.10 150 / 0.12) 0%, transparent 50%),
+          linear-gradient(
+            135deg,
+            oklch(0.98 0.01 250) 0%,
+            oklch(0.97 0.02 280) 25%,
+            oklch(0.98 0.01 210) 50%,
+            oklch(0.97 0.02 240) 75%,
+            oklch(0.98 0.01 250) 100%
+          )
+        `
+      }}>
+        <div style={{
+          background: `
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              transparent 100px,
+              oklch(0.96 0.01 240 / 0.3) 100px,
+              oklch(0.96 0.01 240 / 0.3) 101px
+            ),
+            repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent 100px,
+              oklch(0.96 0.01 240 / 0.3) 100px,
+              oklch(0.96 0.01 240 / 0.3) 101px
+            )
+          `
+        }}>
+          <div className="relative bg-gradient-to-r from-[oklch(0.68_0.20_340)] via-[oklch(0.70_0.18_310)] to-[oklch(0.68_0.20_340)] py-8 shadow-xl border-b-4 border-white/10">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
+            <div className="container mx-auto px-4 sm:px-6 relative z-10">
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={() => setCurrentView('hub')}
+                  variant="ghost"
+                  size="lg"
+                  className="text-white hover:bg-white/20 transition-colors"
+                >
+                  <ArrowLeft size={24} weight="bold" />
+                </Button>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-sm shadow-xl">
+                    <Cube size={32} weight="duotone" className="text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">
+                      Brick Break
+                    </h1>
+                    <p className="text-white/90 text-sm sm:text-base">
+                      {language === 'da' 
+                        ? 'Ødelæg alle brikker og klar så mange levels som muligt'
+                        : 'Destroy all bricks and clear as many levels as possible'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
+            <BrickBreak userEmail={userEmail} />
           </div>
         </div>
       </div>
