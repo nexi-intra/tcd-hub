@@ -112,6 +112,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   const animationFrameRef = useRef<number | null>(null)
   const spawnIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const keysPressed = useRef<Set<string>>(new Set())
+  const scoreRef = useRef<number>(0)
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -213,6 +214,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
   const startGame = () => {
     setScore(0)
+    scoreRef.current = 0
     setMeteorites([])
     setGameState('playing')
     
@@ -358,7 +360,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       const rect = gameAreaRef.current.getBoundingClientRect()
       let currentSpaceshipX = spaceshipX
       let gameEnded = false
-      let currentScore = 0
       
       const runGameLoop = () => {
         if (!gameAreaRef.current || gameEnded) return
@@ -374,7 +375,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           for (const meteorite of updated) {
             if (checkCollision(meteorite.x, meteorite.y, currentSpaceshipX)) {
               gameEnded = true
-              endGame(currentScore)
+              endGame(scoreRef.current)
               return prev
             }
           }
@@ -384,8 +385,9 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
         if (!gameEnded) {
           setScore(prev => {
-            currentScore = prev + 1
-            return currentScore
+            const newScore = prev + 1
+            scoreRef.current = newScore
+            return newScore
           })
 
           const moveSpeed = 10
@@ -415,8 +417,8 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           clearInterval(spawnIntervalRef.current)
         }
         
-        const currentSpawnRate = getSpawnRate(Math.floor(currentScore / 10))
-        const meteoritesPerSpawn = getMeteoritesPerSpawn(Math.floor(currentScore / 10))
+        const currentSpawnRate = getSpawnRate(Math.floor(scoreRef.current / 10))
+        const meteoritesPerSpawn = getMeteoritesPerSpawn(Math.floor(scoreRef.current / 10))
         
         spawnIntervalRef.current = setInterval(() => {
           if (!gameEnded) {

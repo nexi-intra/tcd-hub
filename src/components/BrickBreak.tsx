@@ -321,13 +321,16 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       const types: PowerUp['type'][] = ['multi-ball', 'large-paddle', 'small-paddle', 'slow-motion', 'extra-life']
       const type = types[Math.floor(Math.random() * types.length)]
       
-      setPowerUps(prev => [...prev, {
-        id: Date.now(),
+      const newPowerUp = {
+        id: Date.now() + Math.random(),
         type,
         x: x,
         y: y,
         speed: POWER_UP_SPEED
-      }])
+      }
+      
+      powerUpsRef.current = [...powerUpsRef.current, newPowerUp]
+      setPowerUps(powerUpsRef.current)
     }
   }
 
