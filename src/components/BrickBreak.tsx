@@ -743,6 +743,56 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   useEffect(() => {
     if (gameState !== 'playing') return
 
+    const pressedKeys = new Set<string>()
+    const PADDLE_SPEED = 8
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['ArrowLeft', 'ArrowRight', 'a', 'A', 'd', 'D'].includes(e.key)) {
+        e.preventDefault()
+        pressedKeys.add(e.key.toLowerCase())
+      }
+    }
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      pressedKeys.delete(e.key.toLowerCase())
+    }
+
+    const updatePaddleFromKeys = () => {
+      if (gameState !== 'playing') return
+
+      const currentPaddle = paddleRef.current
+      let newX = currentPaddle.x
+
+      if (pressedKeys.has('arrowleft') || pressedKeys.has('a')) {
+        newX -= PADDLE_SPEED
+      }
+      if (pressedKeys.has('arrowright') || pressedKeys.has('d')) {
+        newX += PADDLE_SPEED
+      }
+
+      newX = Math.max(0, Math.min(GAME_WIDTH - currentPaddle.width, newX))
+
+      if (newX !== currentPaddle.x) {
+        paddleRef.current = { ...currentPaddle, x: newX }
+        setPaddle({ ...currentPaddle, x: newX })
+      }
+    }
+
+    const keyboardInterval = setInterval(updatePaddleFromKeys, 16)
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+
+    return () => {
+      clearInterval(keyboardInterval)
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [gameState])
+
+  useEffect(() => {
+    if (gameState !== 'playing') return
+
     let animationFrameId: number
 
     const combinedLoop = () => {
@@ -840,8 +890,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-4">
                 {language === 'da' 
-                  ? 'Brug musen til at styre paddlen. Ødelæg alle brikker!'
-                  : 'Use your mouse to control the paddle. Destroy all bricks!'}
+                  ? 'Brug musen eller tasterne (pil venstre/højre eller A/D) til at styre paddlen. Ødelæg alle brikker!'
+                  : 'Use your mouse or keys (arrow left/right or A/D) to control the paddle. Destroy all bricks!'}
               </p>
               <Button onClick={startGame} size="lg" className="px-8 bg-gradient-to-r from-primary to-accent hover:opacity-90 gap-2">
                 <Play size={20} weight="fill" />
