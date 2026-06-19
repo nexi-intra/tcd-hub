@@ -47,7 +47,7 @@
   --muted: oklch(0.95 0.01 250);
   --muted-foreground: oklch(0.50 0.02 250);
   
-  --accent: oklch(0.55 0.10 210);
+  --accent: oklch(52% 0.105 223.128);
   --accent-foreground: oklch(0.99 0 0);
   
   --destructive: oklch(0.55 0.15 25);
@@ -84,6 +84,7 @@
   --font-sans: Quicksand;
   --font-serif: Alegreya;
   --font-mono: JetBrains Mono;
+  --spacing: 0.3rem;
 }
 
 @theme {
