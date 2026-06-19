@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target, RocketLaunch, Gift } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target, RocketLaunch, Cube, Gift } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -108,6 +108,17 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [isEditDodgerScoreDialogOpen, setIsEditDodgerScoreDialogOpen] = useState(false)
   const [newDodgerScore, setNewDodgerScore] = useState('')
   const [dodgerPlayCounts, setDodgerPlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
+  const [brickBreakLeaderboard, setBrickBreakLeaderboard] = useState<{
+    easy: Array<{ email: string; score: number; level: number; timestamp: number }>
+    medium: Array<{ email: string; score: number; level: number; timestamp: number }>
+    hard: Array<{ email: string; score: number; level: number; timestamp: number }>
+    expert: Array<{ email: string; score: number; level: number; timestamp: number }>
+  } | null>(null)
+  const [editingBrickBreakScore, setEditingBrickBreakScore] = useState<{ difficulty: 'easy' | 'medium' | 'hard' | 'expert'; email: string; score: number; level: number } | null>(null)
+  const [isEditBrickBreakScoreDialogOpen, setIsEditBrickBreakScoreDialogOpen] = useState(false)
+  const [newBrickBreakScore, setNewBrickBreakScore] = useState('')
+  const [newBrickBreakLevel, setNewBrickBreakLevel] = useState('')
+  const [brickBreakPlayCounts, setBrickBreakPlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
   const [isManualGrantDialogOpen, setIsManualGrantDialogOpen] = useState(false)
 
   useEffect(() => {
@@ -120,6 +131,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         loadVacationEntries()
         loadGameLeaderboard()
         loadEndlessDodgerLeaderboard()
+        loadBrickBreakLeaderboard()
       }
     }
     checkAccess()
@@ -935,6 +947,97 @@ Return ONLY a JSON object with this exact structure:
     toast.success('Score slettet')
   }
 
+  const loadBrickBreakLeaderboard = async () => {
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; level: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; level: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; level: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; level: number; timestamp: number }>
+    }>('brickbreak-global-leaderboard')
+    
+    setBrickBreakLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
+    
+    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('brickbreak-play-counts')
+    setBrickBreakPlayCounts(playCounts || {})
+  }
+
+  const openEditBrickBreakScoreDialog = (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string, score: number, level: number) => {
+    setEditingBrickBreakScore({ difficulty, email, score, level })
+    setNewBrickBreakScore(score.toString())
+    setNewBrickBreakLevel(level.toString())
+    setIsEditBrickBreakScoreDialogOpen(true)
+  }
+
+  const handleSaveBrickBreakScore = async () => {
+    if (!editingBrickBreakScore) return
+
+    const scoreValue = parseInt(newBrickBreakScore)
+    const levelValue = parseInt(newBrickBreakLevel)
+    if (isNaN(scoreValue) || scoreValue < 0 || isNaN(levelValue) || levelValue < 1) {
+      toast.error('Ugyldig score eller level')
+      return
+    }
+
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; level: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; level: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; level: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; level: number; timestamp: number }>
+    }>('brickbreak-global-leaderboard')
+
+    if (!leaderboard) {
+      toast.error('Leaderboard ikke fundet')
+      return
+    }
+
+    const board = leaderboard[editingBrickBreakScore.difficulty]
+    const entryIndex = board.findIndex((entry: { email: string; score: number; level: number; timestamp: number }) => entry.email === editingBrickBreakScore.email)
+    
+    if (entryIndex !== -1) {
+      board[entryIndex] = {
+        ...board[entryIndex],
+        score: scoreValue,
+        level: levelValue,
+        timestamp: Date.now()
+      }
+      
+      board.sort((a: { score: number }, b: { score: number }) => b.score - a.score)
+      
+      const updatedLeaderboard = {
+        ...leaderboard,
+        [editingBrickBreakScore.difficulty]: board
+      }
+      
+      await window.spark.kv.set('brickbreak-global-leaderboard', updatedLeaderboard)
+      await loadBrickBreakLeaderboard()
+      
+      setIsEditBrickBreakScoreDialogOpen(false)
+      setEditingBrickBreakScore(null)
+      setNewBrickBreakScore('')
+      setNewBrickBreakLevel('')
+      toast.success('Score opdateret')
+    } else {
+      toast.error('Score entry ikke fundet')
+    }
+  }
+
+  const deleteBrickBreakScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; level: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; level: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; level: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; level: number; timestamp: number }>
+    }>('brickbreak-global-leaderboard')
+
+    if (!leaderboard) return
+
+    leaderboard[difficulty] = leaderboard[difficulty].filter((entry: { email: string }) => entry.email !== email)
+    
+    await window.spark.kv.set('brickbreak-global-leaderboard', leaderboard)
+    await loadBrickBreakLeaderboard()
+    toast.success('Score slettet')
+  }
+
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
       case 'admin':
@@ -1025,7 +1128,7 @@ Return ONLY a JSON object with this exact structure:
         </motion.div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 max-w-7xl">
+          <TabsList className="grid w-full grid-cols-7 max-w-7xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
@@ -1054,6 +1157,10 @@ Return ONLY a JSON object with this exact structure:
             <TabsTrigger value="dodger-scores" className="gap-2">
               <RocketLaunch size={18} />
               Endless Dodger
+            </TabsTrigger>
+            <TabsTrigger value="brick-break-scores" className="gap-2">
+              <Cube size={18} />
+              Brick Break
             </TabsTrigger>
           </TabsList>
 

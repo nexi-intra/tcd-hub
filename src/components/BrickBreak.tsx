@@ -297,7 +297,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         break
 
       case 'extra-life':
-        setLives(prev => prev + 1)
+        setLives(prev => Math.min(prev + 1, 3))
         toast.success(language === 'da' ? 'Ekstra liv!' : 'Extra life!')
         break
     }
@@ -350,6 +350,16 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       .slice(0, 10)
 
     await setGlobalLeaderboard(updatedLeaderboard)
+
+    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('brickbreak-play-counts') || {}
+    
+    if (!playCounts[userEmail]) {
+      playCounts[userEmail] = { easy: 0, medium: 0, hard: 0, expert: 0 }
+    }
+    
+    playCounts[userEmail][difficulty] = (playCounts[userEmail][difficulty] || 0) + 1
+    
+    await window.spark.kv.set('brickbreak-play-counts', playCounts)
   }
 
   const gameLoop = () => {
@@ -575,20 +585,24 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   }
 
   useEffect(() => {
-    if (gameState === 'playing') {
-      gameLoopRef.current = requestAnimationFrame(gameLoop)
-      return () => {
-        if (gameLoopRef.current) {
-          cancelAnimationFrame(gameLoopRef.current)
-        }
+    if (gameState !== 'playing') return
+
+    let animationFrameId: number
+
+    const combinedLoop = () => {
+      gameLoop()
+      draw()
+      animationFrameId = requestAnimationFrame(combinedLoop)
+    }
+
+    animationFrameId = requestAnimationFrame(combinedLoop)
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
       }
     }
-  }, [gameState, balls, bricks, paddle, powerUps, lives])
-
-  useEffect(() => {
-    const interval = setInterval(draw, 1000 / 60)
-    return () => clearInterval(interval)
-  }, [balls, bricks, paddle, powerUps, particles])
+  }, [gameState])
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
