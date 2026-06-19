@@ -294,7 +294,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                             )}
                           </div>
                           
-                          <ScrollArea className="h-32 mb-3">
+                          <ScrollArea className="h-48 mb-6">
                             <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                               {note.content}
                             </p>
@@ -361,7 +361,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                             </div>
                           </div>
                           
-                          <ScrollArea className="h-32 mb-3">
+                          <ScrollArea className="h-48 mb-6">
                             <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                               {note.content}
                             </p>
