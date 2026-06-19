@@ -111,8 +111,8 @@ const BRICK_COLS = 10
 const BRICK_PADDING = 5
 const BRICK_OFFSET_TOP = 80
 const BRICK_OFFSET_LEFT = 35
-const POWER_UP_SIZE = 25
-const POWER_UP_SPEED = 2
+const POWER_UP_SIZE = 30
+const POWER_UP_SPEED = 3
 
 const BRICK_COLORS = [
   { color: '#FF6B9D', hits: 3, points: 30 },
@@ -317,14 +317,14 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   }
 
   const spawnPowerUp = (x: number, y: number) => {
-    if (Math.random() < 0.25) {
+    if (Math.random() < 0.35) {
       const types: PowerUp['type'][] = ['multi-ball', 'large-paddle', 'small-paddle', 'slow-motion', 'extra-life']
       const type = types[Math.floor(Math.random() * types.length)]
       
       const newPowerUp = {
         id: Date.now() + Math.random(),
         type,
-        x: x,
+        x: x - POWER_UP_SIZE / 2,
         y: y,
         speed: POWER_UP_SPEED
       }
@@ -580,20 +580,22 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       setScore(scoreRef.current)
     }
 
-    const newPowerUps = currentPowerUps.filter(powerUp => {
-      powerUp.y += powerUp.speed
-
-      if (
-        powerUp.y + POWER_UP_SIZE > currentPaddle.y &&
-        powerUp.y < currentPaddle.y + currentPaddle.height &&
+    const newPowerUps = currentPowerUps.map(powerUp => ({
+      ...powerUp,
+      y: powerUp.y + powerUp.speed * speedMultiplier
+    })).filter(powerUp => {
+      const collision = 
         powerUp.x + POWER_UP_SIZE > currentPaddle.x &&
-        powerUp.x < currentPaddle.x + currentPaddle.width
-      ) {
+        powerUp.x < currentPaddle.x + currentPaddle.width &&
+        powerUp.y + POWER_UP_SIZE > currentPaddle.y &&
+        powerUp.y < currentPaddle.y + currentPaddle.height
+
+      if (collision) {
         activatePowerUp(powerUp.type)
         return false
       }
 
-      return powerUp.y < GAME_HEIGHT
+      return powerUp.y < GAME_HEIGHT + POWER_UP_SIZE
     })
 
     ballsRef.current = newBalls
@@ -680,16 +682,24 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     ctx.shadowBlur = 0
 
     currentPowerUps.forEach(powerUp => {
-      ctx.fillStyle = getPowerUpColor(powerUp.type)
+      const color = getPowerUpColor(powerUp.type)
+      
+      ctx.shadowBlur = 20
+      ctx.shadowColor = color
+      ctx.fillStyle = color
       ctx.fillRect(powerUp.x, powerUp.y, POWER_UP_SIZE, POWER_UP_SIZE)
+      
+      ctx.shadowBlur = 10
       ctx.strokeStyle = '#FFFFFF'
-      ctx.lineWidth = 2
+      ctx.lineWidth = 3
       ctx.strokeRect(powerUp.x, powerUp.y, POWER_UP_SIZE, POWER_UP_SIZE)
       
+      ctx.shadowBlur = 0
       ctx.fillStyle = '#FFFFFF'
-      ctx.font = '14px Arial'
+      ctx.font = 'bold 16px Arial'
       ctx.textAlign = 'center'
-      ctx.fillText(getPowerUpSymbol(powerUp.type), powerUp.x + POWER_UP_SIZE / 2, powerUp.y + POWER_UP_SIZE / 2 + 5)
+      ctx.textBaseline = 'middle'
+      ctx.fillText(getPowerUpSymbol(powerUp.type), powerUp.x + POWER_UP_SIZE / 2, powerUp.y + POWER_UP_SIZE / 2)
     })
 
     particles.forEach(particle => {
