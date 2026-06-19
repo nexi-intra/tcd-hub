@@ -60,7 +60,7 @@ type GameState = 'menu' | 'playing' | 'paused' | 'levelComplete' | 'gameOver'
 
 const DIFFICULTY_SETTINGS = {
   easy: {
-    ballSpeed: 5,
+    ballSpeed: 7,
     label: { en: 'Easy', da: 'Let' },
     description: { en: 'Slow ball', da: 'Langsom bold' },
     icon: Speedometer,
@@ -70,7 +70,7 @@ const DIFFICULTY_SETTINGS = {
     glowColor: 'shadow-green-500/20',
   },
   medium: {
-    ballSpeed: 7,
+    ballSpeed: 9,
     label: { en: 'Medium', da: 'Mellem' },
     description: { en: 'Medium speed', da: 'Mellem hastighed' },
     icon: Lightning,
@@ -80,7 +80,7 @@ const DIFFICULTY_SETTINGS = {
     glowColor: 'shadow-yellow-500/20',
   },
   hard: {
-    ballSpeed: 9,
+    ballSpeed: 11,
     label: { en: 'Hard', da: 'Svær' },
     description: { en: 'Fast ball', da: 'Hurtig bold' },
     icon: Fire,
@@ -90,7 +90,7 @@ const DIFFICULTY_SETTINGS = {
     glowColor: 'shadow-red-500/20',
   },
   expert: {
-    ballSpeed: 11,
+    ballSpeed: 13,
     label: { en: 'Expert', da: 'Ekspert' },
     description: { en: 'Very fast!', da: 'Meget hurtigt!' },
     icon: Flame,
@@ -152,13 +152,13 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [powerUps, setPowerUps] = useState<PowerUp[]>([])
   const [activePowerUps, setActivePowerUps] = useState<{ type: string; endTime: number }[]>([])
   const [particles, setParticles] = useState<{ x: number; y: number; color: string; id: number }[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('brickbreak-global-leaderboard', {
     easy: [],
     medium: [],
     hard: [],
     expert: []
   })
-  const [showLeaderboard, setShowLeaderboard] = useState(false)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameLoopRef = useRef<number>()
@@ -176,6 +176,45 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const powerUpsRef = useRef<PowerUp[]>([])
   const livesRef = useRef<number>(3)
   const scoreRef = useRef<number>(0)
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: string; phone?: string }>>('users')
+      if (usersData) {
+        const userList = Object.values(usersData).map(u => ({
+          email: u.email,
+          fullName: u.fullName,
+          role: u.role || 'user',
+          phone: u.phone
+        }))
+        setUsers(userList)
+      } else {
+        setUsers([])
+      }
+    }
+    loadUsers()
+  }, [])
+
+  const getDisplayName = (email: string) => {
+    const user = users.find(u => u.email === email)
+    return user ? user.fullName : email.split('@')[0]
+  }
+
+  const getCurrentHighScore = () => {
+    const board = globalLeaderboard?.[difficulty] || []
+    return board.length > 0 ? board[0].score : 0
+  }
+
+  const getTopScoreForDifficulty = (diff: Difficulty): number => {
+    const board = globalLeaderboard?.[diff] || []
+    return board.length > 0 ? board[0].score : 0
+  }
+
+  const getUserRankForDifficulty = (diff: Difficulty): number | null => {
+    const board = globalLeaderboard?.[diff] || []
+    const index = board.findIndex(entry => entry.email === userEmail)
+    return index !== -1 ? index + 1 : null
+  }
 
   const createBricks = (levelNum: number) => {
     const newBricks: Brick[] = []
@@ -380,31 +419,75 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   }
 
   const saveScore = async () => {
-    if (!globalLeaderboard) return
-
-    const newEntry: LeaderboardEntry = {
-      email: userEmail,
-      score: score,
-      level: level,
-      timestamp: Date.now()
+    if (!userEmail) {
+      console.error('No user email for saving score')
+      await trackGamePlay(difficulty)
+      return
     }
 
-    const updatedLeaderboard = { ...globalLeaderboard }
-    updatedLeaderboard[difficulty] = [...(updatedLeaderboard[difficulty] || []), newEntry]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10)
-
-    await setGlobalLeaderboard(updatedLeaderboard)
-
-    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('brickbreak-play-counts') || {}
-    
-    if (!playCounts[userEmail]) {
-      playCounts[userEmail] = { easy: 0, medium: 0, hard: 0, expert: 0 }
+    try {
+      const currentLeaderboard = await window.spark.kv.get<GlobalLeaderboard>('brickbreak-global-leaderboard') || {
+        easy: [],
+        medium: [],
+        hard: [],
+        expert: []
+      }
+      
+      const difficultyBoard = [...(currentLeaderboard[difficulty] || [])]
+      
+      const existingEntryIndex = difficultyBoard.findIndex(entry => entry.email === userEmail)
+      
+      if (existingEntryIndex !== -1) {
+        if (score > difficultyBoard[existingEntryIndex].score) {
+          difficultyBoard[existingEntryIndex] = {
+            email: userEmail,
+            score: score,
+            level: level,
+            timestamp: Date.now()
+          }
+        }
+      } else {
+        difficultyBoard.push({
+          email: userEmail,
+          score: score,
+          level: level,
+          timestamp: Date.now()
+        })
+      }
+      
+      difficultyBoard.sort((a, b) => b.score - a.score)
+      
+      const updatedLeaderboard = {
+        ...currentLeaderboard,
+        [difficulty]: difficultyBoard.slice(0, 10)
+      }
+      
+      await window.spark.kv.set('brickbreak-global-leaderboard', updatedLeaderboard)
+      
+      setGlobalLeaderboard(updatedLeaderboard)
+    } catch (error) {
+      console.error('Error saving score to leaderboard:', error)
     }
     
-    playCounts[userEmail][difficulty] = (playCounts[userEmail][difficulty] || 0) + 1
-    
-    await window.spark.kv.set('brickbreak-play-counts', playCounts)
+    await trackGamePlay(difficulty)
+  }
+
+  const trackGamePlay = async (gameDifficulty: Difficulty) => {
+    if (!userEmail) return
+
+    try {
+      const gameStats = await window.spark.kv.get<Record<string, Record<Difficulty, number>>>('brickbreak-play-counts') || {}
+      
+      if (!gameStats[userEmail]) {
+        gameStats[userEmail] = { easy: 0, medium: 0, hard: 0, expert: 0 }
+      }
+      
+      gameStats[userEmail][gameDifficulty] = (gameStats[userEmail][gameDifficulty] || 0) + 1
+      
+      await window.spark.kv.set('brickbreak-play-counts', gameStats)
+    } catch (error) {
+      console.error('Error tracking game play:', error)
+    }
   }
 
   const gameLoop = () => {
@@ -677,137 +760,245 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     }
   }, [gameState])
 
-  if (showLeaderboard) {
-    const leaderboard = globalLeaderboard?.[difficulty] || []
-
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Trophy size={32} weight="duotone" className="text-yellow-500" />
-            {language === 'da' ? 'Global Topscorer' : 'Global Leaderboard'}
-          </h2>
-          <Button onClick={() => setShowLeaderboard(false)} variant="outline">
-            <X size={20} />
-            {language === 'da' ? 'Luk' : 'Close'}
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {(['easy', 'medium', 'hard', 'expert'] as Difficulty[]).map(diff => {
-            const setting = DIFFICULTY_SETTINGS[diff]
-            const Icon = setting.icon
-            return (
-              <button
-                key={diff}
-                onClick={() => setDifficulty(diff)}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  difficulty === diff
-                    ? `${setting.borderColor} bg-gradient-to-br ${setting.bgGradient} shadow-lg`
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                <Icon size={32} className={setting.color} weight="duotone" />
-                <div className="mt-2 font-bold">{setting.label[language]}</div>
-              </button>
-            )
-          })}
-        </div>
-
-        <Card className="p-6">
-          <div className="space-y-2">
-            {leaderboard.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                {language === 'da' ? 'Ingen scores endnu' : 'No scores yet'}
-              </p>
-            ) : (
-              leaderboard.map((entry, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center justify-between p-4 rounded-lg ${
-                    entry.email === userEmail ? 'bg-primary/10 border-2 border-primary' : 'bg-muted/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="text-2xl font-bold w-8">
-                      {index === 0 && <Crown className="text-yellow-500" size={28} weight="fill" />}
-                      {index === 1 && <Medal className="text-gray-400" size={28} weight="fill" />}
-                      {index === 2 && <Star className="text-amber-600" size={28} weight="fill" />}
-                      {index > 2 && <span className="text-muted-foreground">#{index + 1}</span>}
-                    </div>
-                    <div>
-                      <div className="font-semibold">{entry.email.split('@')[0]}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {language === 'da' ? 'Level' : 'Level'} {entry.level}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-xl font-bold">{entry.score}</div>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
   if (gameState === 'menu') {
     return (
-      <div className="space-y-8">
-        <Card className="p-8 text-center">
-          <div className="mb-6">
-            <Cube size={64} weight="duotone" className="mx-auto text-primary mb-4" />
-            <h2 className="text-3xl font-bold mb-2">
-              {language === 'da' ? 'Brick Break' : 'Brick Break'}
-            </h2>
-            <p className="text-muted-foreground">
-              {language === 'da' 
-                ? 'Ødelæg alle brikker og klar så mange levels som muligt!'
-                : 'Destroy all bricks and clear as many levels as possible!'}
-            </p>
+      <div className="space-y-6">
+        <Card className="p-6 bg-gradient-to-br from-card via-primary/5 to-accent/5 border-2">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-full bg-gradient-to-br from-primary to-accent shadow-lg">
+                <Cube size={32} weight="duotone" className="text-primary-foreground" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  Brick Break
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'da' 
+                    ? 'Ødelæg alle brikker og klar så mange levels som muligt!' 
+                    : 'Destroy all bricks and clear as many levels as possible!'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-accent/10 to-primary/10 border border-accent/20">
+                <div className="text-sm text-muted-foreground font-semibold">
+                  {language === 'da' ? 'Højeste score' : 'High Score'}
+                </div>
+                <div className="text-2xl font-bold text-primary flex items-center gap-2 justify-center mt-1">
+                  <Trophy size={24} weight="fill" className="text-accent" />
+                  {getCurrentHighScore()}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">
-                {language === 'da' ? 'Vælg Sværhedsgrad' : 'Select Difficulty'}
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {(['easy', 'medium', 'hard', 'expert'] as Difficulty[]).map(diff => {
+            <div className="space-y-3">
+              <div className="text-center">
+                <p className="text-sm font-semibold text-muted-foreground mb-3">
+                  {language === 'da' ? 'Vælg sværhedsgrad' : 'Select Difficulty'}
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-4">
+                {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
                   const setting = DIFFICULTY_SETTINGS[diff]
                   const Icon = setting.icon
+                  const isSelected = difficulty === diff
+                  
                   return (
-                    <button
+                    <div
                       key={diff}
                       onClick={() => setDifficulty(diff)}
-                      className={`p-6 rounded-xl border-2 transition-all hover:scale-105 ${
-                        difficulty === diff
-                          ? `${setting.borderColor} bg-gradient-to-br ${setting.bgGradient} shadow-lg ${setting.glowColor}`
-                          : 'border-border hover:border-primary/50'
+                      className={`group relative cursor-pointer rounded-xl p-6 transition-all duration-300 min-w-[140px] ${
+                        isSelected 
+                          ? `bg-gradient-to-br ${setting.bgGradient} border-2 ${setting.borderColor} shadow-lg ${setting.glowColor}` 
+                          : 'bg-card border-2 border-border hover:border-border/60 hover:shadow-md'
                       }`}
                     >
-                      <Icon size={40} className={setting.color} weight="duotone" />
-                      <div className="mt-3 font-bold text-lg">{setting.label[language]}</div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {setting.description[language]}
+                      <div className="flex flex-col items-center gap-3">
+                        <Icon 
+                          size={28} 
+                          weight="duotone" 
+                          className={isSelected ? setting.color : `${setting.color} opacity-60 group-hover:opacity-100`} 
+                        />
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`font-bold text-base ${isSelected ? setting.color : 'text-foreground'}`}>
+                            {setting.label[language as 'en' | 'da']}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {setting.description[language as 'en' | 'da']}
+                          </span>
+                        </div>
                       </div>
-                    </button>
+                    </div>
                   )
                 })}
               </div>
             </div>
-
-            <div className="flex gap-4 justify-center flex-wrap">
-              <Button onClick={startGame} size="lg" className="gap-2">
+            
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-4">
+                {language === 'da' 
+                  ? 'Brug musen til at styre paddlen. Ødelæg alle brikker!'
+                  : 'Use your mouse to control the paddle. Destroy all bricks!'}
+              </p>
+              <Button onClick={startGame} size="lg" className="px-8 bg-gradient-to-r from-primary to-accent hover:opacity-90 gap-2">
                 <Play size={20} weight="fill" />
-                {language === 'da' ? 'Start Spil' : 'Start Game'}
-              </Button>
-              <Button onClick={() => setShowLeaderboard(true)} variant="outline" size="lg" className="gap-2">
-                <Trophy size={20} weight="duotone" />
-                {language === 'da' ? 'Topscorer' : 'Leaderboard'}
+                {language === 'da' ? 'Start spil' : 'Start Game'}
               </Button>
             </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 bg-gradient-to-br from-accent/5 via-primary/5 to-card border-2 border-accent/20">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-full bg-gradient-to-br from-accent to-primary shadow-lg">
+              <Crown size={28} weight="duotone" className="text-accent-foreground" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+                {language === 'da' ? 'Global resultattavle' : 'Global Leaderboard'}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {language === 'da' ? 'Konkurer med andre medarbejdere!' : 'Compete with other employees!'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-4 md:grid-cols-2">
+            {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
+              const setting = DIFFICULTY_SETTINGS[diff]
+              const Icon = setting.icon
+              const leaderboard = globalLeaderboard?.[diff] || []
+              const topScore = getTopScoreForDifficulty(diff)
+              const userRank = getUserRankForDifficulty(diff)
+              const userEntry = leaderboard.find(entry => entry.email === userEmail)
+
+              return (
+                <div key={diff} className="space-y-3">
+                  <div className={`p-4 rounded-lg border-2 transition-all ${
+                    userRank === 1
+                      ? 'border-accent bg-gradient-to-br from-accent/10 to-primary/10 shadow-lg'
+                      : 'border-border bg-gradient-to-br from-card to-muted/20'
+                  }`}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`p-2 rounded-lg ${
+                        diff === 'easy' ? 'bg-gradient-to-br from-green-500/20 to-green-600/20' :
+                        diff === 'medium' ? 'bg-gradient-to-br from-yellow-500/20 to-yellow-600/20' :
+                        diff === 'hard' ? 'bg-gradient-to-br from-red-500/20 to-red-600/20' :
+                        'bg-gradient-to-br from-purple-500/20 to-purple-600/20'
+                      }`}>
+                        <Icon size={24} weight="duotone" className={setting.color} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold">
+                          {setting.label[language as 'en' | 'da']}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {setting.description[language as 'en' | 'da']}
+                        </div>
+                      </div>
+                    </div>
+
+                    {leaderboard.length > 0 ? (
+                      <div className="space-y-2">
+                        {leaderboard.slice(0, 10).map((entry, index) => {
+                          const isCurrentUser = entry.email === userEmail
+                          const rankColors = [
+                            'text-yellow-500',
+                            'text-gray-400',
+                            'text-amber-600'
+                          ]
+                          const rankIcons = [Crown, Medal, Star]
+                          const RankIcon = index < 3 ? rankIcons[index] : null
+
+                          return (
+                            <div
+                              key={entry.email}
+                              className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+                                isCurrentUser
+                                  ? 'bg-primary/10 border border-primary/30 shadow-md'
+                                  : 'bg-muted/30'
+                              }`}
+                            >
+                              <div className="flex items-center justify-center w-8 h-8">
+                                {RankIcon ? (
+                                  <RankIcon 
+                                    size={20} 
+                                    weight="fill" 
+                                    className={rankColors[index]} 
+                                  />
+                                ) : (
+                                  <span className="text-sm font-bold text-muted-foreground">
+                                    #{index + 1}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className={`text-sm font-medium truncate ${
+                                  isCurrentUser ? 'text-primary font-bold' : 'text-foreground'
+                                }`}>
+                                  {getDisplayName(entry.email)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {language === 'da' ? 'Level' : 'Level'} {entry.level}
+                                </div>
+                              </div>
+                              <div className={`text-lg font-bold ${
+                                isCurrentUser ? 'text-primary' : 'text-muted-foreground'
+                              }`}>
+                                {entry.score}
+                              </div>
+                            </div>
+                          )
+                        })}
+
+                        {userEntry && userRank && userRank > 10 && (
+                          <>
+                            <div className="text-center py-1">
+                              <span className="text-xs text-muted-foreground">...</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/30 shadow-md">
+                              <div className="flex items-center justify-center w-8 h-8">
+                                <span className="text-sm font-bold text-primary">
+                                  #{userRank}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-bold text-primary truncate">
+                                  {getDisplayName(userEmail)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {language === 'da' ? 'Level' : 'Level'} {userEntry.level}
+                                </div>
+                              </div>
+                              <div className="text-lg font-bold text-primary">
+                                {userEntry.score}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <Trophy size={32} className="text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                          {language === 'da'
+                            ? 'Ingen scores endnu'
+                            : 'No scores yet'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {language === 'da'
+                            ? 'Vær den første!'
+                            : 'Be the first!'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </Card>
 
