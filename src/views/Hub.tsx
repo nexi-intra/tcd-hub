@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus, ChatText, Notebook, X, PencilSimple, Palette } from '@phosphor-icons/react'
+import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus, ChatText, Notebook, X, PencilSimple } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -719,16 +719,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       icon: <Notebook size={48} weight="duotone" />,
       color: 'oklch(0.68 0.18 150)',
       gradient: 'from-[oklch(0.68_0.18_150)] via-[oklch(0.72_0.16_180)] to-[oklch(0.68_0.18_150)]',
-      available: true,
-      category: 'work',
-    },
-    {
-      id: 'theme-builder',
-      title: 'Theme Builder',
-      description: 'Customize your own color schemes',
-      icon: <Palette size={48} weight="duotone" />,
-      color: 'oklch(0.70 0.20 300)',
-      gradient: 'from-[oklch(0.70_0.20_300)] via-[oklch(0.65_0.22_320)] to-[oklch(0.70_0.20_300)]',
       available: true,
       category: 'work',
     },

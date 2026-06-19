@@ -11,14 +11,13 @@ import { MealPlan } from '@/views/MealPlan'
 import { GameCorner } from '@/views/GameCorner'
 import { ProjectBoard } from '@/views/ProjectBoard'
 import { VirtualNotebook } from '@/views/VirtualNotebook'
-import { ThemeBuilder } from '@/views/ThemeBuilder'
 import { Auth } from '@/views/Auth'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
 import { toast } from 'sonner'
 
-type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games' | 'projects' | 'notebook' | 'theme-builder'
+type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games' | 'projects' | 'notebook'
 
 interface UserSession {
   userId: string
@@ -172,8 +171,6 @@ function App() {
       setCurrentView('projects')
     } else if (moduleId === 'notebook') {
       setCurrentView('notebook')
-    } else if (moduleId === 'theme-builder') {
-      setCurrentView('theme-builder')
     }
   }
 
@@ -225,7 +222,6 @@ function App() {
         {currentView === 'games' && <GameCorner onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
         {currentView === 'projects' && <ProjectBoard onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
         {currentView === 'notebook' && <VirtualNotebook onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
-        {currentView === 'theme-builder' && <ThemeBuilder onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
       </LanguageProvider>
     </ThemeProvider>
   )
