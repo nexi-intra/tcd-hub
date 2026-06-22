@@ -352,7 +352,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                                 {preview}
                               </p>
                               {isTruncated && (
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-card/95">
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -447,7 +447,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                                 {preview}
                               </p>
                               {isTruncated && (
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-card/95">
                                   <Button
                                     variant="outline"
                                     size="sm"
