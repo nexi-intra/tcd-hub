@@ -318,7 +318,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                     {searchQuery ? t.notebook.noSearchResults : t.notebook.noSharedNotes}
                   </div>
                 ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {filteredNotes.map((note) => {
                       const { preview, isTruncated } = getTruncatedContent(note.content)
                       const isRecent = isRecentlyUpdated(note.updatedAt)
@@ -331,7 +331,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                           exit={{ opacity: 0, scale: 0.9 }}
                           className="relative"
                         >
-                          <Card className="p-4 h-[380px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
+                          <Card className="p-3 h-[280px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
                             {isRecent && (
                               <div className="absolute -top-2 -right-2">
                                 <Badge variant="default" className="gap-1 shadow-lg">
@@ -341,8 +341,8 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                               </div>
                             )}
                             
-                            <div className="flex justify-between items-start mb-3 gap-2">
-                              <h3 className="font-semibold text-lg line-clamp-2 flex-1 min-h-[3.5rem]">
+                            <div className="flex justify-between items-start mb-2 gap-2">
+                              <h3 className="font-semibold text-base line-clamp-2 flex-1 min-h-[2.5rem]">
                                 {note.title}
                               </h3>
                               {canEditNote(note) && (
@@ -350,25 +350,25 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8"
+                                    className="h-7 w-7"
                                     onClick={() => openEditDialog(note)}
                                   >
-                                    <PencilSimple size={16} />
+                                    <PencilSimple size={14} />
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    className="h-7 w-7 text-destructive hover:text-destructive"
                                     onClick={() => openDeleteDialog(note)}
                                   >
-                                    <Trash size={16} />
+                                    <Trash size={14} />
                                   </Button>
                                 </div>
                               )}
                             </div>
                             
-                            <div className="flex-1 mb-4 overflow-hidden">
-                              <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4">
+                            <div className="flex-1 mb-2 overflow-hidden">
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">
                                 {preview}
                               </p>
                             </div>
@@ -377,17 +377,17 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-full gap-2 mb-4"
+                                className="w-full gap-2 mb-2 h-7 text-xs"
                                 onClick={() => openViewDialog(note)}
                               >
-                                <Eye size={16} />
+                                <Eye size={14} />
                                 {language === 'da' ? 'Læs mere' : 'Read More'}
                               </Button>
                             )}
 
-                            <div className="space-y-2 text-xs text-muted-foreground border-t pt-3 mt-auto">
+                            <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-auto">
                               <div className="flex items-center justify-between gap-2">
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge variant="secondary" className="text-xs h-5">
                                   {note.creatorName}
                                 </Badge>
                               </div>
@@ -396,7 +396,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                                 <span>{formatShortDate(note.createdAt)}</span>
                               </div>
                               {note.lastEditedBy && note.createdAt !== note.updatedAt && (
-                                <div className="flex flex-col gap-1">
+                                <div className="flex flex-col gap-0.5">
                                   <div className="flex items-center gap-1">
                                     <span className="font-medium">{language === 'da' ? 'Redigeret af:' : 'Edited by:'}</span>
                                     <span>{note.lastEditedByName || note.lastEditedBy}</span>
@@ -422,7 +422,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                     {searchQuery ? t.notebook.noSearchResults : t.notebook.noPersonalNotes}
                   </div>
                 ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {filteredNotes.map((note) => {
                       const { preview, isTruncated } = getTruncatedContent(note.content)
                       const isRecent = isRecentlyUpdated(note.updatedAt)
@@ -435,7 +435,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                           exit={{ opacity: 0, scale: 0.9 }}
                           className="relative"
                         >
-                          <Card className="p-4 h-[380px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
+                          <Card className="p-3 h-[280px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
                             {isRecent && (
                               <div className="absolute -top-2 -right-2">
                                 <Badge variant="default" className="gap-1 shadow-lg">
@@ -445,32 +445,34 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                               </div>
                             )}
                             
-                            <div className="flex justify-between items-start mb-3 gap-2">
-                              <h3 className="font-semibold text-lg line-clamp-2 flex-1 min-h-[3.5rem]">
+                            <div className="flex justify-between items-start mb-2 gap-2">
+                              <h3 className="font-semibold text-base line-clamp-2 flex-1 min-h-[2.5rem]">
                                 {note.title}
                               </h3>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => openEditDialog(note)}
-                                >
-                                  <PencilSimple size={16} />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive"
-                                  onClick={() => openDeleteDialog(note)}
-                                >
-                                  <Trash size={16} />
-                                </Button>
-                              </div>
+                              {canEditNote(note) && (
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => openEditDialog(note)}
+                                  >
+                                    <PencilSimple size={14} />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-destructive hover:text-destructive"
+                                    onClick={() => openDeleteDialog(note)}
+                                  >
+                                    <Trash size={14} />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                             
-                            <div className="flex-1 mb-4 overflow-hidden">
-                              <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4">
+                            <div className="flex-1 mb-2 overflow-hidden">
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">
                                 {preview}
                               </p>
                             </div>
@@ -479,21 +481,21 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-full gap-2 mb-4"
+                                className="w-full gap-2 mb-2 h-7 text-xs"
                                 onClick={() => openViewDialog(note)}
                               >
-                                <Eye size={16} />
+                                <Eye size={14} />
                                 {language === 'da' ? 'Læs mere' : 'Read More'}
                               </Button>
                             )}
 
-                            <div className="space-y-2 text-xs text-muted-foreground border-t pt-3 mt-auto">
+                            <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-auto">
                               <div className="flex items-center gap-1">
                                 <span className="font-medium">{language === 'da' ? 'Oprettet:' : 'Created:'}</span>
                                 <span>{formatShortDate(note.createdAt)}</span>
                               </div>
                               {note.lastEditedBy && note.createdAt !== note.updatedAt && (
-                                <div className="flex flex-col gap-1">
+                                <div className="flex flex-col gap-0.5">
                                   <div className="flex items-center gap-1">
                                     <span className="font-medium">{language === 'da' ? 'Redigeret af:' : 'Edited by:'}</span>
                                     <span>{note.lastEditedByName || note.lastEditedBy}</span>
