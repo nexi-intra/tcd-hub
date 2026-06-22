@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, MagnifyingGlass, PencilSimple, Trash, X, Lock, LockOpen, Eye, Sparkle } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, MagnifyingGlass, PencilSimple, Trash, X, Lock, LockOpen, Eye } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { format, parseISO, isAfter, subDays } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 
 interface Note {
@@ -211,16 +211,6 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     }
   }
 
-  const isRecentlyUpdated = (dateString: string) => {
-    try {
-      const date = parseISO(dateString)
-      const twoDaysAgo = subDays(new Date(), 2)
-      return isAfter(date, twoDaysAgo)
-    } catch {
-      return false
-    }
-  }
-
   const getTruncatedContent = (content: string): { preview: string; isTruncated: boolean } => {
     const lines = content.split('\n')
     const previewLines = lines.slice(0, PREVIEW_LINES)
@@ -321,7 +311,6 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {filteredNotes.map((note) => {
                       const { preview, isTruncated } = getTruncatedContent(note.content)
-                      const isRecent = isRecentlyUpdated(note.updatedAt)
                       
                       return (
                         <motion.div
@@ -332,15 +321,6 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                           className="relative"
                         >
                           <Card className="p-3 h-[280px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
-                            {isRecent && (
-                              <div className="absolute -top-2 -right-2">
-                                <Badge variant="default" className="gap-1 shadow-lg">
-                                  <Sparkle size={12} weight="fill" />
-                                  {language === 'da' ? 'Ny' : 'New'}
-                                </Badge>
-                              </div>
-                            )}
-                            
                             <div className="flex justify-between items-start mb-2 gap-2">
                               <h3 className="font-semibold text-base line-clamp-2 flex-1 min-h-[2.5rem]">
                                 {note.title}
@@ -367,23 +347,24 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                               )}
                             </div>
                             
-                            <div className="flex-1 mb-2 overflow-hidden">
+                            <div className="flex-1 mb-2 overflow-hidden relative">
                               <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">
                                 {preview}
                               </p>
+                              {isTruncated && (
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2 h-8 text-xs shadow-lg"
+                                    onClick={() => openViewDialog(note)}
+                                  >
+                                    <Eye size={14} />
+                                    {language === 'da' ? 'Læs mere' : 'Read More'}
+                                  </Button>
+                                </div>
+                              )}
                             </div>
-
-                            {isTruncated && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full gap-2 mb-2 h-7 text-xs"
-                                onClick={() => openViewDialog(note)}
-                              >
-                                <Eye size={14} />
-                                {language === 'da' ? 'Læs mere' : 'Read More'}
-                              </Button>
-                            )}
 
                             <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-auto">
                               <div className="flex items-center justify-between gap-2">
@@ -425,7 +406,6 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {filteredNotes.map((note) => {
                       const { preview, isTruncated } = getTruncatedContent(note.content)
-                      const isRecent = isRecentlyUpdated(note.updatedAt)
                       
                       return (
                         <motion.div
@@ -436,15 +416,6 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                           className="relative"
                         >
                           <Card className="p-3 h-[280px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
-                            {isRecent && (
-                              <div className="absolute -top-2 -right-2">
-                                <Badge variant="default" className="gap-1 shadow-lg">
-                                  <Sparkle size={12} weight="fill" />
-                                  {language === 'da' ? 'Ny' : 'New'}
-                                </Badge>
-                              </div>
-                            )}
-                            
                             <div className="flex justify-between items-start mb-2 gap-2">
                               <h3 className="font-semibold text-base line-clamp-2 flex-1 min-h-[2.5rem]">
                                 {note.title}
@@ -471,23 +442,24 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                               )}
                             </div>
                             
-                            <div className="flex-1 mb-2 overflow-hidden">
+                            <div className="flex-1 mb-2 overflow-hidden relative">
                               <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">
                                 {preview}
                               </p>
+                              {isTruncated && (
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2 h-8 text-xs shadow-lg"
+                                    onClick={() => openViewDialog(note)}
+                                  >
+                                    <Eye size={14} />
+                                    {language === 'da' ? 'Læs mere' : 'Read More'}
+                                  </Button>
+                                </div>
+                              )}
                             </div>
-
-                            {isTruncated && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full gap-2 mb-2 h-7 text-xs"
-                                onClick={() => openViewDialog(note)}
-                              >
-                                <Eye size={14} />
-                                {language === 'da' ? 'Læs mere' : 'Read More'}
-                              </Button>
-                            )}
 
                             <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-auto">
                               <div className="flex items-center gap-1">
