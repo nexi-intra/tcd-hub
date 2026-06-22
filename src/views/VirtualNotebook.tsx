@@ -320,9 +320,9 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                           exit={{ opacity: 0, scale: 0.9 }}
                           className="relative"
                         >
-                          <Card className="p-4 h-[420px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
-                            <div className="flex justify-between items-start mb-2 gap-2 flex-shrink-0">
-                              <h3 className="font-semibold text-base line-clamp-2 flex-1">
+                          <Card className="p-3 h-[280px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
+                            <div className="flex justify-between items-start mb-1.5 gap-2 flex-shrink-0">
+                              <h3 className="font-semibold text-sm line-clamp-2 flex-1">
                                 {note.title}
                               </h3>
                               {canEditNote(note) && (
@@ -330,25 +330,25 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7"
+                                    className="h-6 w-6"
                                     onClick={() => openEditDialog(note)}
                                   >
-                                    <PencilSimple size={14} />
+                                    <PencilSimple size={12} />
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 text-destructive hover:text-destructive"
+                                    className="h-6 w-6 text-destructive hover:text-destructive"
                                     onClick={() => openDeleteDialog(note)}
                                   >
-                                    <Trash size={14} />
+                                    <Trash size={12} />
                                   </Button>
                                 </div>
                               )}
                             </div>
                             
-                            <div className="flex-1 mb-2 overflow-hidden relative">
-                              <p className="text-sm leading-[1.4] text-muted-foreground whitespace-pre-wrap line-clamp-[20]">
+                            <div className="flex-1 mb-1.5 overflow-hidden relative">
+                              <p className="text-xs leading-[1.4] text-muted-foreground whitespace-pre-wrap line-clamp-[12]">
                                 {preview}
                               </p>
                               {isTruncated && (
@@ -356,19 +356,19 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="gap-2 h-8 text-xs shadow-lg"
+                                    className="gap-2 h-7 text-xs shadow-lg"
                                     onClick={() => openViewDialog(note)}
                                   >
-                                    <Eye size={14} />
+                                    <Eye size={12} />
                                     {language === 'da' ? 'Læs mere' : 'Read More'}
                                   </Button>
                                 </div>
                               )}
                             </div>
 
-                            <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 flex-shrink-0">
+                            <div className="space-y-0.5 text-xs text-muted-foreground border-t pt-1.5 flex-shrink-0">
                               <div className="flex items-center justify-between gap-2">
-                                <Badge variant="secondary" className="text-xs h-5">
+                                <Badge variant="secondary" className="text-xs h-4 px-1.5">
                                   {note.creatorName}
                                 </Badge>
                               </div>
@@ -415,9 +415,9 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                           exit={{ opacity: 0, scale: 0.9 }}
                           className="relative"
                         >
-                          <Card className="p-4 h-[420px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
-                            <div className="flex justify-between items-start mb-2 gap-2 flex-shrink-0">
-                              <h3 className="font-semibold text-base line-clamp-2 flex-1">
+                          <Card className="p-3 h-[280px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
+                            <div className="flex justify-between items-start mb-1.5 gap-2 flex-shrink-0">
+                              <h3 className="font-semibold text-sm line-clamp-2 flex-1">
                                 {note.title}
                               </h3>
                               {canEditNote(note) && (
@@ -425,25 +425,25 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7"
+                                    className="h-6 w-6"
                                     onClick={() => openEditDialog(note)}
                                   >
-                                    <PencilSimple size={14} />
+                                    <PencilSimple size={12} />
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 text-destructive hover:text-destructive"
+                                    className="h-6 w-6 text-destructive hover:text-destructive"
                                     onClick={() => openDeleteDialog(note)}
                                   >
-                                    <Trash size={14} />
+                                    <Trash size={12} />
                                   </Button>
                                 </div>
                               )}
                             </div>
                             
-                            <div className="flex-1 mb-2 overflow-hidden relative">
-                              <p className="text-sm leading-[1.4] text-muted-foreground whitespace-pre-wrap line-clamp-[20]">
+                            <div className="flex-1 mb-1.5 overflow-hidden relative">
+                              <p className="text-xs leading-[1.4] text-muted-foreground whitespace-pre-wrap line-clamp-[12]">
                                 {preview}
                               </p>
                               {isTruncated && (
@@ -451,17 +451,17 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="gap-2 h-8 text-xs shadow-lg"
+                                    className="gap-2 h-7 text-xs shadow-lg"
                                     onClick={() => openViewDialog(note)}
                                   >
-                                    <Eye size={14} />
+                                    <Eye size={12} />
                                     {language === 'da' ? 'Læs mere' : 'Read More'}
                                   </Button>
                                 </div>
                               )}
                             </div>
 
-                            <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 flex-shrink-0">
+                            <div className="space-y-0.5 text-xs text-muted-foreground border-t pt-1.5 flex-shrink-0">
                               <div className="flex items-center gap-1">
                                 <span className="font-medium">{language === 'da' ? 'Oprettet:' : 'Created:'}</span>
                                 <span>{formatShortDate(note.createdAt)}</span>
