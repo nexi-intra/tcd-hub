@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, MagnifyingGlass, PencilSimple, Trash, X, Lock, LockOpen } from '@phosphor-icons/react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowLeft, Plus, MagnifyingGlass, PencilSimple, Trash, X, Lock, LockOpen, Eye, Sparkle } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,11 +8,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, isAfter, subDays } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 
 interface Note {
@@ -23,6 +22,8 @@ interface Note {
   creatorName: string
   createdAt: string
   updatedAt: string
+  lastEditedBy?: string
+  lastEditedByName?: string
   isPersonal: boolean
 }
 
@@ -31,6 +32,8 @@ interface VirtualNotebookProps {
   userEmail: string
 }
 
+const PREVIEW_LINES = 4
+
 export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookProps) {
   const { t, language } = useLanguage()
   const [notes, setNotes] = useState<Note[]>([])
@@ -38,16 +41,18 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showViewDialog, setShowViewDialog] = useState(false)
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
   const [noteTitle, setNoteTitle] = useState('')
   const [noteContent, setNoteContent] = useState('')
   const [activeTab, setActiveTab] = useState<'shared' | 'personal'>('shared')
   const [isCreatingPersonal, setIsCreatingPersonal] = useState(false)
   const [userName, setUserName] = useState('')
+  const [userRole, setUserRole] = useState<'admin' | 'manager' | 'user'>('user')
 
   useEffect(() => {
     loadNotes()
-    loadUserName()
+    loadUserInfo()
   }, [userEmail])
 
   const loadNotes = async () => {
@@ -55,10 +60,13 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     setNotes(allNotes)
   }
 
-  const loadUserName = async () => {
-    const users = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
-    const name = users[userEmail]?.fullName || userEmail
+  const loadUserInfo = async () => {
+    const users = (await window.spark.kv.get<Record<string, { fullName: string; role?: string }>>('users')) || {}
+    const user = users[userEmail]
+    const name = user?.fullName || userEmail
+    const role = user?.role as 'admin' | 'manager' | 'user' || 'user'
     setUserName(name)
+    setUserRole(role)
   }
 
   const handleCreateNote = async () => {
@@ -108,6 +116,8 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
       title: noteTitle.trim(),
       content: noteContent.trim(),
       updatedAt: new Date().toISOString(),
+      lastEditedBy: userEmail,
+      lastEditedByName: userName,
     }
 
     const updatedNotes = notes.map(n => n.id === selectedNote.id ? updatedNote : n)
@@ -141,10 +151,14 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   }
 
   const openEditDialog = (note: Note) => {
-    if (note.creatorEmail !== userEmail) {
+    const isManager = userRole === 'admin' || userRole === 'manager'
+    const isOwner = note.creatorEmail === userEmail
+
+    if (!isOwner && !isManager) {
       toast.error(t.notebook.onlyCreatorCanEdit)
       return
     }
+    
     setSelectedNote(note)
     setNoteTitle(note.title)
     setNoteContent(note.content)
@@ -152,12 +166,21 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   }
 
   const openDeleteDialog = (note: Note) => {
-    if (note.creatorEmail !== userEmail) {
+    const isManager = userRole === 'admin' || userRole === 'manager'
+    const isOwner = note.creatorEmail === userEmail
+
+    if (!isOwner && !isManager) {
       toast.error(t.notebook.onlyCreatorCanEdit)
       return
     }
+    
     setSelectedNote(note)
     setShowDeleteDialog(true)
+  }
+
+  const openViewDialog = (note: Note) => {
+    setSelectedNote(note)
+    setShowViewDialog(true)
   }
 
   const filteredNotes = notes.filter(note => {
@@ -177,6 +200,42 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     } catch {
       return dateString
     }
+  }
+
+  const formatShortDate = (dateString: string) => {
+    try {
+      const date = parseISO(dateString)
+      return format(date, 'PP', { locale: language === 'da' ? da : enUS })
+    } catch {
+      return dateString
+    }
+  }
+
+  const isRecentlyUpdated = (dateString: string) => {
+    try {
+      const date = parseISO(dateString)
+      const twoDaysAgo = subDays(new Date(), 2)
+      return isAfter(date, twoDaysAgo)
+    } catch {
+      return false
+    }
+  }
+
+  const getTruncatedContent = (content: string): { preview: string; isTruncated: boolean } => {
+    const lines = content.split('\n')
+    const previewLines = lines.slice(0, PREVIEW_LINES)
+    const isTruncated = lines.length > PREVIEW_LINES || previewLines.some(line => line.length > 80)
+    
+    return {
+      preview: previewLines.join('\n'),
+      isTruncated: isTruncated || lines.length > PREVIEW_LINES
+    }
+  }
+
+  const canEditNote = (note: Note) => {
+    const isManager = userRole === 'admin' || userRole === 'manager'
+    const isOwner = note.creatorEmail === userEmail
+    return isOwner || isManager
   }
 
   return (
@@ -260,20 +319,137 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                   </div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredNotes.map((note) => (
-                      <motion.div
-                        key={note.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                      >
-                        <Card className="p-4 hover:shadow-lg transition-shadow">
-                          <div className="flex justify-between items-start mb-3">
-                            <h3 className="font-semibold text-lg line-clamp-1 flex-1">
-                              {note.title}
-                            </h3>
-                            {note.creatorEmail === userEmail && (
-                              <div className="flex gap-1 ml-2">
+                    {filteredNotes.map((note) => {
+                      const { preview, isTruncated } = getTruncatedContent(note.content)
+                      const isRecent = isRecentlyUpdated(note.updatedAt)
+                      
+                      return (
+                        <motion.div
+                          key={note.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          className="relative"
+                        >
+                          <Card className="p-4 h-[380px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
+                            {isRecent && (
+                              <div className="absolute -top-2 -right-2">
+                                <Badge variant="default" className="gap-1 shadow-lg">
+                                  <Sparkle size={12} weight="fill" />
+                                  {language === 'da' ? 'Ny' : 'New'}
+                                </Badge>
+                              </div>
+                            )}
+                            
+                            <div className="flex justify-between items-start mb-3 gap-2">
+                              <h3 className="font-semibold text-lg line-clamp-2 flex-1 min-h-[3.5rem]">
+                                {note.title}
+                              </h3>
+                              {canEditNote(note) && (
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => openEditDialog(note)}
+                                  >
+                                    <PencilSimple size={16} />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    onClick={() => openDeleteDialog(note)}
+                                  >
+                                    <Trash size={16} />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex-1 mb-4 overflow-hidden">
+                              <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4">
+                                {preview}
+                              </p>
+                            </div>
+
+                            {isTruncated && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full gap-2 mb-4"
+                                onClick={() => openViewDialog(note)}
+                              >
+                                <Eye size={16} />
+                                {language === 'da' ? 'Læs mere' : 'Read More'}
+                              </Button>
+                            )}
+
+                            <div className="space-y-2 text-xs text-muted-foreground border-t pt-3 mt-auto">
+                              <div className="flex items-center justify-between gap-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  {note.creatorName}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium">{language === 'da' ? 'Oprettet:' : 'Created:'}</span>
+                                <span>{formatShortDate(note.createdAt)}</span>
+                              </div>
+                              {note.lastEditedBy && note.createdAt !== note.updatedAt && (
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium">{language === 'da' ? 'Redigeret af:' : 'Edited by:'}</span>
+                                    <span>{note.lastEditedByName || note.lastEditedBy}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium">{language === 'da' ? 'Dato:' : 'Date:'}</span>
+                                    <span>{formatShortDate(note.updatedAt)}</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="personal" className="mt-0">
+                {filteredNotes.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    {searchQuery ? t.notebook.noSearchResults : t.notebook.noPersonalNotes}
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {filteredNotes.map((note) => {
+                      const { preview, isTruncated } = getTruncatedContent(note.content)
+                      const isRecent = isRecentlyUpdated(note.updatedAt)
+                      
+                      return (
+                        <motion.div
+                          key={note.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          className="relative"
+                        >
+                          <Card className="p-4 h-[380px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
+                            {isRecent && (
+                              <div className="absolute -top-2 -right-2">
+                                <Badge variant="default" className="gap-1 shadow-lg">
+                                  <Sparkle size={12} weight="fill" />
+                                  {language === 'da' ? 'Ny' : 'New'}
+                                </Badge>
+                              </div>
+                            )}
+                            
+                            <div className="flex justify-between items-start mb-3 gap-2">
+                              <h3 className="font-semibold text-lg line-clamp-2 flex-1 min-h-[3.5rem]">
+                                {note.title}
+                              </h3>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -291,95 +467,48 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                                   <Trash size={16} />
                                 </Button>
                               </div>
-                            )}
-                          </div>
-                          
-                          <ScrollArea className="h-48 mb-6">
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                              {note.content}
-                            </p>
-                          </ScrollArea>
-
-                          <div className="space-y-2 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="text-xs">
-                                {note.creatorName}
-                              </Badge>
                             </div>
-                            <div>
-                              {t.notebook.createdBy}: {formatDate(note.createdAt)}
+                            
+                            <div className="flex-1 mb-4 overflow-hidden">
+                              <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4">
+                                {preview}
+                              </p>
                             </div>
-                            {note.createdAt !== note.updatedAt && (
-                              <div>
-                                {t.notebook.lastEdited}: {formatDate(note.updatedAt)}
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
 
-              <TabsContent value="personal" className="mt-0">
-                {filteredNotes.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    {searchQuery ? t.notebook.noSearchResults : t.notebook.noPersonalNotes}
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredNotes.map((note) => (
-                      <motion.div
-                        key={note.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                      >
-                        <Card className="p-4 hover:shadow-lg transition-shadow">
-                          <div className="flex justify-between items-start mb-3">
-                            <h3 className="font-semibold text-lg line-clamp-1 flex-1">
-                              {note.title}
-                            </h3>
-                            <div className="flex gap-1 ml-2">
+                            {isTruncated && (
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => openEditDialog(note)}
+                                variant="outline"
+                                size="sm"
+                                className="w-full gap-2 mb-4"
+                                onClick={() => openViewDialog(note)}
                               >
-                                <PencilSimple size={16} />
+                                <Eye size={16} />
+                                {language === 'da' ? 'Læs mere' : 'Read More'}
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => openDeleteDialog(note)}
-                              >
-                                <Trash size={16} />
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          <ScrollArea className="h-48 mb-6">
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                              {note.content}
-                            </p>
-                          </ScrollArea>
-
-                          <div className="space-y-2 text-xs text-muted-foreground">
-                            <div>
-                              {t.notebook.createdBy}: {formatDate(note.createdAt)}
-                            </div>
-                            {note.createdAt !== note.updatedAt && (
-                              <div>
-                                {t.notebook.lastEdited}: {formatDate(note.updatedAt)}
-                              </div>
                             )}
-                          </div>
-                        </Card>
-                      </motion.div>
-                    ))}
+
+                            <div className="space-y-2 text-xs text-muted-foreground border-t pt-3 mt-auto">
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium">{language === 'da' ? 'Oprettet:' : 'Created:'}</span>
+                                <span>{formatShortDate(note.createdAt)}</span>
+                              </div>
+                              {note.lastEditedBy && note.createdAt !== note.updatedAt && (
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium">{language === 'da' ? 'Redigeret af:' : 'Edited by:'}</span>
+                                    <span>{note.lastEditedByName || note.lastEditedBy}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium">{language === 'da' ? 'Dato:' : 'Date:'}</span>
+                                    <span>{formatShortDate(note.updatedAt)}</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        </motion.div>
+                      )
+                    })}
                   </div>
                 )}
               </TabsContent>
@@ -389,7 +518,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
       </div>
 
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{t.notebook.addNote}</DialogTitle>
             <DialogDescription>
@@ -409,7 +538,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                 placeholder={t.notebook.enterContent}
                 value={noteContent}
                 onChange={(e) => setNoteContent(e.target.value)}
-                rows={8}
+                rows={12}
                 className="resize-none"
               />
             </div>
@@ -426,7 +555,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
       </Dialog>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{t.notebook.editNote}</DialogTitle>
           </DialogHeader>
@@ -443,7 +572,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                 placeholder={t.notebook.enterContent}
                 value={noteContent}
                 onChange={(e) => setNoteContent(e.target.value)}
-                rows={8}
+                rows={12}
                 className="resize-none"
               />
             </div>
@@ -454,6 +583,65 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
             </Button>
             <Button onClick={handleEditNote}>
               {t.notebook.save}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{selectedNote?.title}</DialogTitle>
+            <DialogDescription className="flex items-center gap-2 mt-2">
+              <Badge variant="secondary">{selectedNote?.creatorName}</Badge>
+              <span>•</span>
+              <span>{selectedNote && formatDate(selectedNote.createdAt)}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[50vh] pr-2">
+            <p className="text-sm whitespace-pre-wrap leading-relaxed">
+              {selectedNote?.content}
+            </p>
+          </div>
+          {selectedNote && selectedNote.lastEditedBy && selectedNote.createdAt !== selectedNote.updatedAt && (
+            <div className="text-xs text-muted-foreground border-t pt-3">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{language === 'da' ? 'Sidst redigeret af:' : 'Last edited by:'}</span>
+                <span>{selectedNote.lastEditedByName || selectedNote.lastEditedBy}</span>
+                <span>•</span>
+                <span>{formatDate(selectedNote.updatedAt)}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            {selectedNote && canEditNote(selectedNote) && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowViewDialog(false)
+                    setTimeout(() => openEditDialog(selectedNote), 100)
+                  }}
+                  className="gap-2"
+                >
+                  <PencilSimple size={16} />
+                  {language === 'da' ? 'Rediger' : 'Edit'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowViewDialog(false)
+                    setTimeout(() => openDeleteDialog(selectedNote), 100)
+                  }}
+                  className="gap-2 text-destructive hover:text-destructive"
+                >
+                  <Trash size={16} />
+                  {language === 'da' ? 'Slet' : 'Delete'}
+                </Button>
+              </>
+            )}
+            <Button onClick={() => setShowViewDialog(false)}>
+              {language === 'da' ? 'Luk' : 'Close'}
             </Button>
           </DialogFooter>
         </DialogContent>
