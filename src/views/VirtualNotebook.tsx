@@ -153,8 +153,9 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   const openEditDialog = (note: Note) => {
     const isManager = userRole === 'admin' || userRole === 'manager'
     const isOwner = note.creatorEmail === userEmail
+    const isSharedNote = !note.isPersonal
 
-    if (!isOwner && !isManager) {
+    if (!isSharedNote && !isOwner && !isManager) {
       toast.error(t.notebook.onlyCreatorCanEdit)
       return
     }
@@ -168,8 +169,9 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   const openDeleteDialog = (note: Note) => {
     const isManager = userRole === 'admin' || userRole === 'manager'
     const isOwner = note.creatorEmail === userEmail
+    const isSharedNote = !note.isPersonal
 
-    if (!isOwner && !isManager) {
+    if (!isSharedNote && !isOwner && !isManager) {
       toast.error(t.notebook.onlyCreatorCanEdit)
       return
     }
@@ -225,6 +227,12 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   const canEditNote = (note: Note) => {
     const isManager = userRole === 'admin' || userRole === 'manager'
     const isOwner = note.creatorEmail === userEmail
+    const isSharedNote = !note.isPersonal
+    
+    if (isSharedNote) {
+      return true
+    }
+    
     return isOwner || isManager
   }
 
