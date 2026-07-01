@@ -87,12 +87,28 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onNavigateBack()
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        if (selectedMonth === 0) {
+          setSelectedMonth(11)
+          setSelectedYear(selectedYear - 1)
+        } else {
+          setSelectedMonth(selectedMonth - 1)
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        if (selectedMonth === 11) {
+          setSelectedMonth(0)
+          setSelectedYear(selectedYear + 1)
+        } else {
+          setSelectedMonth(selectedMonth + 1)
+        }
       }
     }
     
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onNavigateBack])
+  }, [onNavigateBack, selectedMonth, selectedYear])
 
   const isWeekend = (date: Date) => {
     const day = date.getDay()
