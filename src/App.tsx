@@ -15,6 +15,7 @@ import { Auth } from '@/views/Auth'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
+import { BirthdayCelebration } from '@/components/BirthdayCelebration'
 import { toast } from 'sonner'
 
 type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games' | 'projects' | 'notebook'
@@ -210,6 +211,7 @@ function App() {
     <ThemeProvider userId={userSession.userId}>
       <LanguageProvider userId={userSession.userId}>
         <AnimatedBackground />
+        <BirthdayCelebration userEmail={userSession.email} />
         {currentView === 'hub' && <Hub onNavigate={handleNavigate} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
         {currentView === 'calendar' && <VacationCalendar onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
