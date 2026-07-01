@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useKV } from '@github/spark/hooks'
 import { UserProfile } from '@/components/UserProfile'
 import { SingleDayOffDialog } from '@/components/SingleDayOffDialog'
@@ -637,37 +638,43 @@ Return ONLY a JSON object with this exact structure:
           <Card className="p-6 border-2">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      if (selectedMonth === 0) {
-                        setSelectedMonth(11)
-                        setSelectedYear(selectedYear - 1)
-                      } else {
-                        setSelectedMonth(selectedMonth - 1)
-                      }
-                    }}
+                <div className="flex items-center gap-3">
+                  <Select
+                    value={selectedMonth.toString()}
+                    onValueChange={(value) => setSelectedMonth(parseInt(value))}
                   >
-                    ←
-                  </Button>
-                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold">
-                    {months[selectedMonth]} {selectedYear}
-                  </h2>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      if (selectedMonth === 11) {
-                        setSelectedMonth(0)
-                        setSelectedYear(selectedYear + 1)
-                      } else {
-                        setSelectedMonth(selectedMonth + 1)
-                      }
-                    }}
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map((month, index) => (
+                        <SelectItem key={index} value={index.toString()}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select
+                    value={selectedYear.toString()}
+                    onValueChange={(value) => setSelectedYear(parseInt(value))}
                   >
-                    →
-                  </Button>
+                    <SelectTrigger className="w-[110px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 5 }, (_, i) => {
+                        const year = new Date().getFullYear() - 2 + i
+                        return (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
                 </div>
+                
                 <Button
                   variant="outline"
                   onClick={handleJumpToToday}
