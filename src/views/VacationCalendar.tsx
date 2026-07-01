@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Trash, User, Check, X, ClockCounterClockwise, CalendarDot, Gift } from '@phosphor-icons/react'
+import { ArrowLeft, Trash, User, Check, X, ClockCounterClockwise, CalendarDot } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -729,10 +729,10 @@ Return ONLY a JSON object with this exact structure:
                             <div className="space-y-0.5">
                               {dayBirthdays.length > 0 && (
                                 <div 
-                                  className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 flex items-center gap-0.5"
+                                  className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300 flex items-center gap-0.5"
                                   title={dayBirthdays.map(b => `${b.fullName} har fødselsdag 🎉`).join(', ')}
                                 >
-                                  <Gift size={10} weight="fill" />
+                                  <span className="text-xs">🇩🇰</span>
                                   <span className="truncate">{dayBirthdays.length === 1 ? getFirstName(dayBirthdays[0].email) : `${dayBirthdays.length} fødselsdage`}</span>
                                 </div>
                               )}

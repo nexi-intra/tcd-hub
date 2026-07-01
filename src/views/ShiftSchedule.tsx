@@ -783,11 +783,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                   {hasBirthday && (
                     <div className="relative group">
                       <div
-                        className="px-2 py-1.5 rounded-md text-xs font-bold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-2 border-yellow-400 dark:border-yellow-600 flex items-center gap-1.5 cursor-default"
+                        className="px-2 py-1.5 rounded-md text-xs font-bold bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300 border-2 border-red-400 dark:border-red-600 flex items-center gap-1.5 cursor-default"
                         title="Fødselsdag i dag! 🎉"
                       >
-                        <Gift size={16} weight="fill" />
-                        <span className="truncate flex-1 text-left">Fødselsdag 🎉</span>
+                        <span className="text-base">🇩🇰</span>
+                        <span className="truncate flex-1 text-left">Fødselsdag</span>
                       </div>
                     </div>
                   )}
