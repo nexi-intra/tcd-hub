@@ -10,6 +10,18 @@ interface Flag {
   size: number
 }
 
+interface Confetti {
+  id: number
+  x: number
+  y: number
+  rotation: number
+  color: string
+  velocityX: number
+  velocityY: number
+  size: number
+  shape: 'circle' | 'square' | 'triangle'
+}
+
 interface BirthdayCelebrationProps {
   userEmail: string
 }
@@ -17,6 +29,8 @@ interface BirthdayCelebrationProps {
 export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
   const [showCelebration, setShowCelebration] = useState(false)
   const [flags, setFlags] = useState<Flag[]>([])
+  const [confetti, setConfetti] = useState<Confetti[]>([])
+  const [showConfettiBurst, setShowConfettiBurst] = useState(false)
 
   useEffect(() => {
     const checkBirthday = async () => {
@@ -34,6 +48,18 @@ export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
       
       if (userBirthday && userBirthday.birthday === todayStr) {
         setShowCelebration(true)
+        
+        const confettiKey = `confetti-shown-${userEmail}-${todayStr}-${new Date().getFullYear()}`
+        const hasShownConfetti = await window.spark.kv.get<boolean>(confettiKey)
+        
+        if (!hasShownConfetti) {
+          setShowConfettiBurst(true)
+          await window.spark.kv.set(confettiKey, true)
+          
+          setTimeout(() => {
+            setShowConfettiBurst(false)
+          }, 4000)
+        }
       } else {
         setShowCelebration(false)
       }
@@ -77,10 +103,139 @@ export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
     }
   }, [showCelebration])
 
+  useEffect(() => {
+    if (!showConfettiBurst) return
+
+    const colors = [
+      '#C8102E',
+      '#FFFFFF',
+      '#FFD700',
+      '#FF6B6B',
+      '#4ECDC4',
+      '#45B7D1',
+      '#FFA07A',
+      '#98D8C8'
+    ]
+
+    const shapes: Array<'circle' | 'square' | 'triangle'> = ['circle', 'square', 'triangle']
+
+    const createConfettiBurst = (originX: number, originY: number, count: number) => {
+      const newConfetti: Confetti[] = []
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5
+        const velocity = 8 + Math.random() * 8
+        newConfetti.push({
+          id: Date.now() + Math.random() * 100000 + i,
+          x: originX,
+          y: originY,
+          rotation: Math.random() * 360,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          velocityX: Math.cos(angle) * velocity,
+          velocityY: Math.sin(angle) * velocity - 5,
+          size: 8 + Math.random() * 8,
+          shape: shapes[Math.floor(Math.random() * shapes.length)]
+        })
+      }
+      return newConfetti
+    }
+
+    const screenWidth = window.innerWidth
+    const burstPoints = [
+      { x: screenWidth * 0.2, y: window.innerHeight * 0.3 },
+      { x: screenWidth * 0.5, y: window.innerHeight * 0.2 },
+      { x: screenWidth * 0.8, y: window.innerHeight * 0.3 }
+    ]
+
+    let allConfetti: Confetti[] = []
+
+    burstPoints.forEach((point, index) => {
+      setTimeout(() => {
+        const burst = createConfettiBurst(point.x, point.y, 40)
+        allConfetti = [...allConfetti, ...burst]
+        setConfetti(allConfetti)
+      }, index * 150)
+    })
+
+    const gravity = 0.5
+    const friction = 0.99
+    let animationFrameId: number
+
+    const animate = () => {
+      setConfetti(currentConfetti => {
+        return currentConfetti
+          .map(piece => ({
+            ...piece,
+            x: piece.x + piece.velocityX,
+            y: piece.y + piece.velocityY,
+            velocityX: piece.velocityX * friction,
+            velocityY: piece.velocityY + gravity,
+            rotation: piece.rotation + piece.velocityX * 2
+          }))
+          .filter(piece => piece.y < window.innerHeight + 100)
+      })
+
+      animationFrameId = requestAnimationFrame(animate)
+    }
+
+    animationFrameId = requestAnimationFrame(animate)
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
+      }
+    }
+  }, [showConfettiBurst])
+
   if (!showCelebration) return null
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
+      {confetti.map((piece) => (
+        <div
+          key={piece.id}
+          className="absolute"
+          style={{
+            left: piece.x,
+            top: piece.y,
+            transform: `rotate(${piece.rotation}deg)`,
+            transition: 'none'
+          }}
+        >
+          {piece.shape === 'circle' && (
+            <div
+              style={{
+                width: piece.size,
+                height: piece.size,
+                borderRadius: '50%',
+                backgroundColor: piece.color,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+              }}
+            />
+          )}
+          {piece.shape === 'square' && (
+            <div
+              style={{
+                width: piece.size,
+                height: piece.size,
+                backgroundColor: piece.color,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+              }}
+            />
+          )}
+          {piece.shape === 'triangle' && (
+            <div
+              style={{
+                width: 0,
+                height: 0,
+                borderLeft: `${piece.size / 2}px solid transparent`,
+                borderRight: `${piece.size / 2}px solid transparent`,
+                borderBottom: `${piece.size}px solid ${piece.color}`,
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+              }}
+            />
+          )}
+        </div>
+      ))}
       {flags.map((flag) => (
         <motion.div
           key={flag.id}
