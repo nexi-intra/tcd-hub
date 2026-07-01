@@ -28,6 +28,12 @@ interface User {
   phone?: string
 }
 
+interface BirthdayEntry {
+  email: string
+  fullName: string
+  birthday: string
+}
+
 interface SickLeaveEntry {
   id: string
   userEmail: string
@@ -120,6 +126,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [newBrickBreakLevel, setNewBrickBreakLevel] = useState('')
   const [brickBreakPlayCounts, setBrickBreakPlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
   const [isManualGrantDialogOpen, setIsManualGrantDialogOpen] = useState(false)
+  const [birthdays, setBirthdays] = useState<BirthdayEntry[]>([])
+  const [isEditBirthdayDialogOpen, setIsEditBirthdayDialogOpen] = useState(false)
+  const [editingBirthday, setEditingBirthday] = useState<BirthdayEntry | null>(null)
+  const [birthdayDate, setBirthdayDate] = useState('')
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -132,6 +142,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         loadGameLeaderboard()
         loadEndlessDodgerLeaderboard()
         loadBrickBreakLeaderboard()
+        loadBirthdays()
       }
     }
     checkAccess()
@@ -200,6 +211,57 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0
       return dateA.getTime() - dateB.getTime()
     }))
+  }
+
+  const loadBirthdays = async () => {
+    const birthdaysData = await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays') || []
+    setBirthdays(birthdaysData.sort((a, b) => {
+      const dateA = new Date(`2000-${a.birthday}`)
+      const dateB = new Date(`2000-${b.birthday}`)
+      return dateA.getMonth() - dateB.getMonth() || dateA.getDate() - dateB.getDate()
+    }))
+  }
+
+  const openEditBirthdayDialog = (entry: BirthdayEntry) => {
+    setEditingBirthday(entry)
+    setBirthdayDate(entry.birthday)
+    setIsEditBirthdayDialogOpen(true)
+  }
+
+  const handleSaveBirthday = async () => {
+    if (!editingBirthday || !birthdayDate) {
+      toast.error('Vælg venligst en fødselsdato')
+      return
+    }
+
+    const birthdaysData = await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays') || []
+    const index = birthdaysData.findIndex(b => b.email === editingBirthday.email)
+    
+    if (index !== -1) {
+      birthdaysData[index].birthday = birthdayDate
+    } else {
+      birthdaysData.push({
+        email: editingBirthday.email,
+        fullName: editingBirthday.fullName,
+        birthday: birthdayDate
+      })
+    }
+
+    await window.spark.kv.set('employee-birthdays', birthdaysData)
+    await loadBirthdays()
+    
+    setIsEditBirthdayDialogOpen(false)
+    setEditingBirthday(null)
+    setBirthdayDate('')
+    toast.success('Fødselsdag gemt')
+  }
+
+  const deleteBirthday = async (email: string) => {
+    const birthdaysData = await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays') || []
+    const updated = birthdaysData.filter(b => b.email !== email)
+    await window.spark.kv.set('employee-birthdays', updated)
+    await loadBirthdays()
+    toast.success('Fødselsdag slettet')
   }
 
   const changeUserRole = async (email: string, newRole: UserRole) => {
@@ -1128,7 +1190,7 @@ Return ONLY a JSON object with this exact structure:
         </motion.div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 max-w-7xl">
+          <TabsList className="grid w-full grid-cols-8 max-w-7xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
@@ -1149,6 +1211,10 @@ Return ONLY a JSON object with this exact structure:
             <TabsTrigger value="vacation-overview" className="gap-2">
               <CalendarBlank size={18} />
               Ferie Oversigt
+            </TabsTrigger>
+            <TabsTrigger value="birthdays" className="gap-2">
+              <Gift size={18} />
+              Fødselsdage
             </TabsTrigger>
             <TabsTrigger value="game-scores" className="gap-2">
               <Trophy size={18} />
@@ -1867,6 +1933,161 @@ Return ONLY a JSON object with this exact structure:
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="birthdays" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Gift size={28} className="text-accent" weight="duotone" />
+                  <h2 className="text-2xl font-bold">Medarbejder Fødselsdage</h2>
+                </div>
+                <Badge variant="outline" className="text-sm">
+                  {birthdays.length} {birthdays.length === 1 ? 'Fødselsdag' : 'Fødselsdage'}
+                </Badge>
+              </div>
+
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Her kan du registrere og redigere medarbejdernes fødselsdage. Klik på en bruger for at tilføje eller ændre deres fødselsdag.
+                </p>
+              </div>
+
+              {isLoading ? (
+                <p className="text-muted-foreground text-center py-12">Indlæser brugere...</p>
+              ) : users.length === 0 ? (
+                <p className="text-muted-foreground text-center py-12">Ingen brugere fundet</p>
+              ) : (
+                <div className="space-y-3">
+                  {users.map((user) => {
+                    const birthdayEntry = birthdays.find(b => b.email === user.email)
+                    const hasBirthday = !!birthdayEntry
+                    
+                    let birthdayDisplay = 'Ingen fødselsdag registreret'
+                    let daysUntilBirthday: number | null = null
+                    
+                    if (birthdayEntry) {
+                      try {
+                        const [month, day] = birthdayEntry.birthday.split('-').map(Number)
+                        const today = new Date()
+                        const thisYear = today.getFullYear()
+                        let nextBirthday = new Date(thisYear, month - 1, day)
+                        
+                        if (nextBirthday < today) {
+                          nextBirthday = new Date(thisYear + 1, month - 1, day)
+                        }
+                        
+                        const diffTime = nextBirthday.getTime() - today.getTime()
+                        daysUntilBirthday = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                        
+                        const monthNames = ['Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'December']
+                        birthdayDisplay = `${day}. ${monthNames[month - 1]}`
+                      } catch (error) {
+                        birthdayDisplay = birthdayEntry.birthday
+                      }
+                    }
+
+                    return (
+                      <motion.div
+                        key={user.email}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center justify-between p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all cursor-pointer"
+                        onClick={() => openEditBirthdayDialog({
+                          email: user.email,
+                          fullName: user.fullName,
+                          birthday: birthdayEntry?.birthday || ''
+                        })}
+                      >
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="font-bold text-lg">{user.fullName}</div>
+                            </div>
+                            <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                            <div className={cn(
+                              "text-sm mt-1 flex items-center gap-2",
+                              hasBirthday ? "text-foreground font-medium" : "text-muted-foreground"
+                            )}>
+                              <Gift size={16} weight={hasBirthday ? "fill" : "regular"} />
+                              {birthdayDisplay}
+                              {daysUntilBirthday !== null && daysUntilBirthday <= 7 && (
+                                <Badge className="ml-2 bg-accent/20 text-accent border-accent/30">
+                                  {daysUntilBirthday === 0 ? '🎉 I dag!' : daysUntilBirthday === 1 ? 'I morgen' : `Om ${daysUntilBirthday} dage`}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="ml-4 flex items-center gap-2">
+                          {hasBirthday ? (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  openEditBirthdayDialog(birthdayEntry)
+                                }}
+                                className="hover:bg-primary/10"
+                              >
+                                <PencilSimple size={20} />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash size={20} />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Slet fødselsdag?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Er du sikker på at du vil slette fødselsdagen for <strong>{user.fullName}</strong>? Denne handling kan ikke fortrydes.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteBirthday(user.email)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Slet fødselsdag
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openEditBirthdayDialog({
+                                  email: user.email,
+                                  fullName: user.fullName,
+                                  birthday: ''
+                                })
+                              }}
+                              className="gap-2"
+                            >
+                              <Plus size={16} weight="bold" />
+                              Tilføj fødselsdag
+                            </Button>
+                          )}
                         </div>
                       </motion.div>
                     )
@@ -3078,6 +3299,54 @@ Return ONLY a JSON object with this exact structure:
         managerEmail={userEmail}
         onSuccess={loadVacationEntries}
       />
+
+      <Dialog open={isEditBirthdayDialogOpen} onOpenChange={setIsEditBirthdayDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rediger fødselsdag</DialogTitle>
+            <DialogDescription>
+              Indtast fødselsdato for {editingBirthday?.fullName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="birthday-date">Fødselsdato *</Label>
+              <Input
+                id="birthday-date"
+                type="date"
+                value={birthdayDate ? `2000-${birthdayDate}` : ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const date = new Date(e.target.value)
+                    const month = String(date.getMonth() + 1).padStart(2, '0')
+                    const day = String(date.getDate()).padStart(2, '0')
+                    setBirthdayDate(`${month}-${day}`)
+                  } else {
+                    setBirthdayDate('')
+                  }
+                }}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Årstallet bruges ikke - kun dag og måned gemmes
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsEditBirthdayDialogOpen(false)
+              setEditingBirthday(null)
+              setBirthdayDate('')
+            }}>
+              Annuller
+            </Button>
+            <Button onClick={handleSaveBirthday} className="gap-2">
+              <Check size={18} weight="bold" />
+              Gem fødselsdag
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
