@@ -732,7 +732,11 @@ Return ONLY a JSON object with this exact structure:
                                   className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300 flex items-center gap-0.5"
                                   title={dayBirthdays.map(b => `${b.fullName} har fødselsdag 🎉`).join(', ')}
                                 >
-                                  <span className="text-xs">🇩🇰</span>
+                                  <svg width="12" height="10" viewBox="0 0 37 28" className="flex-shrink-0">
+                                    <rect width="37" height="28" fill="#C8102E"/>
+                                    <rect x="12" y="0" width="4" height="28" fill="#FFFFFF"/>
+                                    <rect x="0" y="12" width="37" height="4" fill="#FFFFFF"/>
+                                  </svg>
                                   <span className="truncate">{dayBirthdays.length === 1 ? getFirstName(dayBirthdays[0].email) : `${dayBirthdays.length} fødselsdage`}</span>
                                 </div>
                               )}
