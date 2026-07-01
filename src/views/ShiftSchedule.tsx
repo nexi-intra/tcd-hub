@@ -64,6 +64,7 @@ interface BirthdayEntry {
   email: string
   fullName: string
   birthday: string
+  birthYear?: number
 }
 
 interface ShiftScheduleProps {
@@ -763,7 +764,13 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
             const dateMonth = dateParts[1]
             const dateDay = dateParts[2]
             const dateMonthDay = `${dateMonth}-${dateDay}`
-            const hasBirthday = birthdays.some(b => b.email === employee.email && b.birthday === dateMonthDay)
+            const birthdayEntry = birthdays.find(b => b.email === employee.email && b.birthday === dateMonthDay)
+            const hasBirthday = !!birthdayEntry
+            
+            let age: number | undefined
+            if (birthdayEntry?.birthYear) {
+              age = selectedYear - birthdayEntry.birthYear
+            }
 
             return (
               <td
@@ -780,14 +787,17 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                 )}
               >
                 <div className="space-y-2">
-                  {hasBirthday && (
+                  {hasBirthday && birthdayEntry && (
                     <div className="relative group">
                       <div
                         className="px-2 py-1.5 rounded-md text-xs font-bold bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300 border-2 border-red-400 dark:border-red-600 flex items-center gap-1.5 cursor-default"
-                        title="Fødselsdag i dag! 🎉"
+                        title={`${birthdayEntry.fullName} har fødselsdag i dag! 🎉${age ? ` Fylder ${age} år` : ''}`}
                       >
                         <span className="text-base">🇩🇰</span>
-                        <span className="truncate flex-1 text-left">Fødselsdag</span>
+                        <span className="truncate flex-1 text-left">
+                          {birthdayEntry.fullName}
+                          {age && ` (${age})`}
+                        </span>
                       </div>
                     </div>
                   )}
