@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple, ChatText, Phone, FirstAidKit, Airplane } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, UserCircle, Tag, Calendar as CalendarIcon, PencilSimple, ChatText, Phone, FirstAidKit, Airplane, Gift } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -60,6 +60,12 @@ interface VacationEntry {
   reviewedAt?: string
 }
 
+interface BirthdayEntry {
+  email: string
+  fullName: string
+  birthday: string
+}
+
 interface ShiftScheduleProps {
   onNavigateBack: () => void
   onLogout: () => void
@@ -92,6 +98,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
   const [employees, setEmployees] = useState<TeamEmployee[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
   const [vacationEntries, setVacationEntries] = useKV<VacationEntry[]>('vacation-entries', [])
+  const [birthdays, setBirthdays] = useState<BirthdayEntry[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
   const userEmail = propUserEmail
   
@@ -167,6 +174,9 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
       if (usersData && usersData[userEmail]?.role === 'admin') {
         setIsAdmin(true)
       }
+
+      const birthdaysData = await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays') || []
+      setBirthdays(birthdaysData)
     }
     if (userEmail) {
       loadUserAndCheckAdmin()
@@ -749,6 +759,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
             
             const employeeColor = getEmployeeColorByEmail(employee.email)
 
+            const dateParts = dateString.split('-')
+            const dateMonth = dateParts[1]
+            const dateDay = dateParts[2]
+            const dateMonthDay = `${dateMonth}-${dateDay}`
+            const hasBirthday = birthdays.some(b => b.email === employee.email && b.birthday === dateMonthDay)
+
             return (
               <td
                 key={employee.id}
@@ -764,6 +780,17 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                 )}
               >
                 <div className="space-y-2">
+                  {hasBirthday && (
+                    <div className="relative group">
+                      <div
+                        className="px-2 py-1.5 rounded-md text-xs font-bold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-2 border-yellow-400 dark:border-yellow-600 flex items-center gap-1.5 cursor-default"
+                        title="Fødselsdag i dag! 🎉"
+                      >
+                        <Gift size={16} weight="fill" />
+                        <span className="truncate flex-1 text-left">Fødselsdag 🎉</span>
+                      </div>
+                    </div>
+                  )}
                   {vacation && (
                     <div className="relative group">
                       <div

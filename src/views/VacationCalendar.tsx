@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Trash, User, Check, X, ClockCounterClockwise, CalendarDot } from '@phosphor-icons/react'
+import { ArrowLeft, Trash, User, Check, X, ClockCounterClockwise, CalendarDot, Gift } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +28,12 @@ interface VacationEntry {
   reviewedAt?: string
 }
 
+interface BirthdayEntry {
+  email: string
+  fullName: string
+  birthday: string
+}
+
 interface VacationCalendarProps {
   onNavigateBack: () => void
   onLogout: () => void
@@ -41,6 +47,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
   const [isManager, setIsManager] = useState(false)
   const [usersData, setUsersData] = useState<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>({})
   const [allTeamMembers, setAllTeamMembers] = useState<Array<{ email: string; name: string }>>([])
+  const [birthdays, setBirthdays] = useState<BirthdayEntry[]>([])
   const userEmail = propUserEmail
   const { t, language } = useLanguage()
 
@@ -65,6 +72,9 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
         })).sort((a, b) => a.name.localeCompare(b.name))
         setAllTeamMembers(teamList)
       }
+
+      const birthdaysData = await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays') || []
+      setBirthdays(birthdaysData)
     }
     if (userEmail) {
       loadUser()
@@ -409,6 +419,15 @@ Return ONLY a JSON object with this exact structure:
     )
   }
 
+  const getBirthdaysForDay = (day: number) => {
+    const currentMonth = selectedMonth + 1
+    const monthStr = currentMonth.toString().padStart(2, '0')
+    const dayStr = day.toString().padStart(2, '0')
+    const dateStr = `${monthStr}-${dayStr}`
+    
+    return birthdays.filter(b => b.birthday === dateStr)
+  }
+
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear)
   const firstDay = getFirstDayOfMonth(selectedMonth, selectedYear)
 
@@ -678,6 +697,7 @@ Return ONLY a JSON object with this exact structure:
                       }
 
                       const dayVacations = getDayVacations(day)
+                      const dayBirthdays = getBirthdaysForDay(day)
                       const currentDate = new Date(selectedYear, selectedMonth, day)
                       const dayOfWeek = currentDate.getDay()
                       const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6
@@ -707,7 +727,16 @@ Return ONLY a JSON object with this exact structure:
                             </div>
                           ) : (
                             <div className="space-y-0.5">
-                              {dayVacations.slice(0, 3).map((vacation) => {
+                              {dayBirthdays.length > 0 && (
+                                <div 
+                                  className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 flex items-center gap-0.5"
+                                  title={dayBirthdays.map(b => `${b.fullName} har fødselsdag 🎉`).join(', ')}
+                                >
+                                  <Gift size={10} weight="fill" />
+                                  <span className="truncate">{dayBirthdays.length === 1 ? getFirstName(dayBirthdays[0].email) : `${dayBirthdays.length} fødselsdage`}</span>
+                                </div>
+                              )}
+                              {dayVacations.slice(0, dayBirthdays.length > 0 ? 2 : 3).map((vacation) => {
                                 const userColor = getEmployeeColorByEmail(vacation.userEmail)
                                 return (
                                   <div
@@ -723,9 +752,9 @@ Return ONLY a JSON object with this exact structure:
                                   </div>
                                 )
                               })}
-                              {dayVacations.length > 3 && (
+                              {dayVacations.length > (dayBirthdays.length > 0 ? 2 : 3) && (
                                 <div className="text-[9px] text-muted-foreground">
-                                  +{dayVacations.length - 3}
+                                  +{dayVacations.length - (dayBirthdays.length > 0 ? 2 : 3)}
                                 </div>
                               )}
                             </div>
