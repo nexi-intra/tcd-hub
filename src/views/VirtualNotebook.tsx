@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, MagnifyingGlass, PencilSimple, Trash, X, Lock, LockOpen, Eye } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, MagnifyingGlass, PencilSimple, Trash, X, Lock, LockOpen, Eye, Bell } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, formatDistanceToNow } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 
 interface Note {
@@ -25,6 +25,18 @@ interface Note {
   lastEditedBy?: string
   lastEditedByName?: string
   isPersonal: boolean
+}
+
+interface Notification {
+  id: string
+  type: 'note-edited'
+  noteId: string
+  noteTitle: string
+  editedBy: string
+  editedByName: string
+  originalCreator: string
+  timestamp: string
+  read: boolean
 }
 
 interface VirtualNotebookProps {
@@ -49,10 +61,14 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   const [isCreatingPersonal, setIsCreatingPersonal] = useState(false)
   const [userName, setUserName] = useState('')
   const [userRole, setUserRole] = useState<'admin' | 'manager' | 'user'>('user')
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
     loadNotes()
     loadUserInfo()
+    loadNotifications()
   }, [userEmail])
 
   const loadNotes = async () => {
@@ -67,6 +83,46 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     const role = user?.role as 'admin' | 'manager' | 'user' || 'user'
     setUserName(name)
     setUserRole(role)
+  }
+
+  const loadNotifications = async () => {
+    const allNotifications = (await window.spark.kv.get<Notification[]>('notebook-notifications')) || []
+    const userNotifications = allNotifications.filter(n => 
+      n.editedBy !== userEmail && 
+      (n.originalCreator === userEmail || activeTab === 'shared')
+    ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    
+    setNotifications(userNotifications)
+    setUnreadCount(userNotifications.filter(n => !n.read).length)
+  }
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    const allNotifications = (await window.spark.kv.get<Notification[]>('notebook-notifications')) || []
+    const updated = allNotifications.map(n => 
+      n.id === notificationId ? { ...n, read: true } : n
+    )
+    await window.spark.kv.set('notebook-notifications', updated)
+    await loadNotifications()
+  }
+
+  const markAllAsRead = async () => {
+    const allNotifications = (await window.spark.kv.get<Notification[]>('notebook-notifications')) || []
+    const updated = allNotifications.map(n => {
+      if (n.editedBy !== userEmail && (n.originalCreator === userEmail || !notes.find(note => note.id === n.noteId)?.isPersonal)) {
+        return { ...n, read: true }
+      }
+      return n
+    })
+    await window.spark.kv.set('notebook-notifications', updated)
+    await loadNotifications()
+    toast.success(language === 'da' ? 'Alle notifikationer markeret som læst' : 'All notifications marked as read')
+  }
+
+  const deleteNotification = async (notificationId: string) => {
+    const allNotifications = (await window.spark.kv.get<Notification[]>('notebook-notifications')) || []
+    const updated = allNotifications.filter(n => n.id !== notificationId)
+    await window.spark.kv.set('notebook-notifications', updated)
+    await loadNotifications()
   }
 
   const handleCreateNote = async () => {
@@ -123,6 +179,31 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     const updatedNotes = notes.map(n => n.id === selectedNote.id ? updatedNote : n)
     await window.spark.kv.set('notebook-notes', updatedNotes)
     setNotes(updatedNotes)
+
+    if (!selectedNote.isPersonal) {
+      const notification = {
+        id: `notification_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        type: 'note-edited' as const,
+        noteId: selectedNote.id,
+        noteTitle: updatedNote.title,
+        editedBy: userEmail,
+        editedByName: userName,
+        originalCreator: selectedNote.creatorEmail,
+        timestamp: new Date().toISOString(),
+        read: false,
+      }
+
+      const existingNotifications = (await window.spark.kv.get<Notification[]>('notebook-notifications')) || []
+      await window.spark.kv.set('notebook-notifications', [...existingNotifications, notification])
+      
+      if (selectedNote.creatorEmail !== userEmail) {
+        toast.info(
+          language === 'da' 
+            ? `${userName} redigerede noten "${updatedNote.title}"` 
+            : `${userName} edited the note "${updatedNote.title}"`
+        )
+      }
+    }
 
     setNoteTitle('')
     setNoteContent('')
@@ -255,7 +336,22 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
           <div className="flex-1 text-center">
             <h1 className="text-4xl font-bold">{t.notebook.title}</h1>
           </div>
-          <div className="w-10"></div>
+          <Button
+            onClick={() => setShowNotifications(true)}
+            variant="outline"
+            size="icon"
+            className="rounded-full relative"
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              >
+                {unreadCount}
+              </Badge>
+            )}
+          </Button>
         </motion.div>
 
         <motion.div
@@ -645,6 +741,100 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showNotifications} onOpenChange={setShowNotifications}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle>
+                {language === 'da' ? 'Notifikationer' : 'Notifications'}
+              </DialogTitle>
+              {notifications.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={markAllAsRead}
+                  className="text-xs"
+                >
+                  {language === 'da' ? 'Markér alle som læst' : 'Mark all as read'}
+                </Button>
+              )}
+            </div>
+            <DialogDescription>
+              {language === 'da' ? 'Se hvem der har redigeret delte noter' : 'See who has edited shared notes'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="overflow-y-auto max-h-[50vh] space-y-2">
+            {notifications.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                {language === 'da' ? 'Ingen notifikationer' : 'No notifications'}
+              </div>
+            ) : (
+              <AnimatePresence>
+                {notifications.map((notification) => (
+                  <motion.div
+                    key={notification.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                  >
+                    <Card 
+                      className={`p-4 ${!notification.read ? 'bg-accent/10 border-accent' : ''}`}
+                      onClick={() => !notification.read && markNotificationAsRead(notification.id)}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            {!notification.read && (
+                              <div className="w-2 h-2 rounded-full bg-accent"></div>
+                            )}
+                            <p className="font-medium text-sm">
+                              {notification.editedByName}
+                            </p>
+                            <Badge variant="secondary" className="text-xs">
+                              {language === 'da' ? 'Redigeret' : 'Edited'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {language === 'da' 
+                              ? `redigerede noten "${notification.noteTitle}"`
+                              : `edited the note "${notification.noteTitle}"`
+                            }
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatDistanceToNow(parseISO(notification.timestamp), {
+                              addSuffix: true,
+                              locale: language === 'da' ? da : enUS
+                            })}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteNotification(notification.id)
+                          }}
+                        >
+                          <X size={14} />
+                        </Button>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setShowNotifications(false)}>
+              {language === 'da' ? 'Luk' : 'Close'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
