@@ -189,96 +189,108 @@ export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
   if (!showCelebration) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
-      {confetti.map((piece) => (
-        <div
-          key={piece.id}
-          className="absolute"
-          style={{
-            left: piece.x,
-            top: piece.y,
-            transform: `rotate(${piece.rotation}deg)`,
-            transition: 'none'
-          }}
-        >
-          {piece.shape === 'circle' && (
-            <div
-              style={{
-                width: piece.size,
-                height: piece.size,
-                borderRadius: '50%',
-                backgroundColor: piece.color,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }}
-            />
-          )}
-          {piece.shape === 'square' && (
-            <div
-              style={{
-                width: piece.size,
-                height: piece.size,
-                backgroundColor: piece.color,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }}
-            />
-          )}
-          {piece.shape === 'triangle' && (
-            <div
-              style={{
-                width: 0,
-                height: 0,
-                borderLeft: `${piece.size / 2}px solid transparent`,
-                borderRight: `${piece.size / 2}px solid transparent`,
-                borderBottom: `${piece.size}px solid ${piece.color}`,
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-              }}
-            />
-          )}
-        </div>
-      ))}
-      {flags.map((flag) => (
-        <motion.div
-          key={flag.id}
-          className="absolute will-change-transform"
-          style={{
-            left: `${flag.x}%`,
-          }}
-          initial={{ 
-            y: -100, 
-            rotate: flag.rotation,
-            opacity: 1 
-          }}
-          animate={{
-            y: [0, window.innerHeight + 100],
-            rotate: [flag.rotation, flag.rotation + 720],
-            opacity: [1, 1, 0.8]
-          }}
-          transition={{
-            duration: flag.duration,
-            delay: flag.delay,
-            ease: 'linear',
-            times: [0, 0.95, 1]
-          }}
-          onAnimationComplete={() => {
-            setFlags(prev => prev.filter(f => f.id !== flag.id))
-          }}
-        >
-          <svg
-            width={flag.size}
-            height={flag.size * 0.75}
-            viewBox="0 0 37 28"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+    <>
+      <div 
+        className="fixed inset-0 pointer-events-none overflow-hidden"
+        style={{ zIndex: 999999 }}
+      >
+        {confetti.map((piece) => (
+          <div
+            key={piece.id}
+            className="absolute"
             style={{
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+              left: `${piece.x}px`,
+              top: `${piece.y}px`,
+              transform: `rotate(${piece.rotation}deg)`,
+              transition: 'none',
+              willChange: 'transform'
             }}
           >
-            <rect width="37" height="28" fill="#C8102E"/>
-            <rect x="12" width="3" height="28" fill="white"/>
-            <rect y="12.5" width="37" height="3" fill="white"/>
-          </svg>
-        </motion.div>
-      ))}
-    </div>
+            {piece.shape === 'circle' && (
+              <div
+                style={{
+                  width: `${piece.size}px`,
+                  height: `${piece.size}px`,
+                  borderRadius: '50%',
+                  backgroundColor: piece.color,
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                }}
+              />
+            )}
+            {piece.shape === 'square' && (
+              <div
+                style={{
+                  width: `${piece.size}px`,
+                  height: `${piece.size}px`,
+                  backgroundColor: piece.color,
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                }}
+              />
+            )}
+            {piece.shape === 'triangle' && (
+              <div
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeft: `${piece.size / 2}px solid transparent`,
+                  borderRight: `${piece.size / 2}px solid transparent`,
+                  borderBottom: `${piece.size}px solid ${piece.color}`,
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                }}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+      <div 
+        className="fixed inset-0 pointer-events-none overflow-hidden"
+        style={{ zIndex: 999998 }}
+      >
+        {flags.map((flag) => (
+          <motion.div
+            key={flag.id}
+            className="absolute"
+            style={{
+              left: `${flag.x}%`,
+              willChange: 'transform'
+            }}
+            initial={{ 
+              y: -100, 
+              rotate: flag.rotation,
+              opacity: 1 
+            }}
+            animate={{
+              y: window.innerHeight + 100,
+              rotate: flag.rotation + 720,
+              opacity: [1, 1, 0.8]
+            }}
+            transition={{
+              duration: flag.duration,
+              delay: flag.delay,
+              ease: 'linear',
+              times: [0, 0.95, 1]
+            }}
+            onAnimationComplete={() => {
+              setFlags(prev => prev.filter(f => f.id !== flag.id))
+            }}
+          >
+            <svg
+              width={flag.size}
+              height={flag.size * 0.75}
+              viewBox="0 0 37 28"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{
+                filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.4))',
+              }}
+            >
+              <rect width="37" height="28" fill="#C8102E"/>
+              <rect x="12" width="3" height="28" fill="white"/>
+              <rect y="12.5" width="37" height="3" fill="white"/>
+            </svg>
+          </motion.div>
+        ))}
+      </div>
+    </>
   )
 }
