@@ -34,27 +34,48 @@ export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
       
       if (userBirthday && userBirthday.birthday === todayStr) {
         setShowCelebration(true)
-        generateFlags()
+      } else {
+        setShowCelebration(false)
       }
     }
 
     checkBirthday()
   }, [userEmail])
 
-  const generateFlags = () => {
-    const newFlags: Flag[] = []
-    for (let i = 0; i < 30; i++) {
-      newFlags.push({
-        id: i,
-        x: Math.random() * 100,
-        delay: Math.random() * 3,
-        duration: 8 + Math.random() * 4,
-        rotation: Math.random() * 360,
-        size: 30 + Math.random() * 20
-      })
+  useEffect(() => {
+    if (!showCelebration) return
+
+    const generateNewFlags = () => {
+      const newFlags: Flag[] = []
+      const baseTime = Date.now()
+      for (let i = 0; i < 25; i++) {
+        newFlags.push({
+          id: baseTime + i,
+          x: Math.random() * 100,
+          delay: Math.random() * 2,
+          duration: 6 + Math.random() * 3,
+          rotation: Math.random() * 360,
+          size: 25 + Math.random() * 15
+        })
+      }
+      setFlags(prev => [...prev, ...newFlags])
     }
-    setFlags(newFlags)
-  }
+
+    generateNewFlags()
+
+    const interval = setInterval(() => {
+      generateNewFlags()
+    }, 3000)
+
+    const cleanupInterval = setInterval(() => {
+      setFlags(prev => prev.slice(-50))
+    }, 5000)
+
+    return () => {
+      clearInterval(interval)
+      clearInterval(cleanupInterval)
+    }
+  }, [showCelebration])
 
   if (!showCelebration) return null
 
