@@ -32,6 +32,7 @@ interface BirthdayEntry {
   email: string
   fullName: string
   birthday: string
+  birthYear?: number
 }
 
 interface VacationCalendarProps {
@@ -438,6 +439,25 @@ Return ONLY a JSON object with this exact structure:
     return email.split('@')[0].split('.')[0]
   }
 
+  const calculateAge = (birthday: BirthdayEntry, currentDay: number): number | null => {
+    if (!birthday.birthYear) return null
+    
+    const [monthStr, dayStr] = birthday.birthday.split('-')
+    const birthMonth = parseInt(monthStr)
+    const birthDay = parseInt(dayStr)
+    
+    const currentDate = new Date(selectedYear, selectedMonth, currentDay)
+    const birthdayThisYear = new Date(selectedYear, birthMonth - 1, birthDay)
+    
+    let age = selectedYear - birthday.birthYear
+    
+    if (currentDate < birthdayThisYear) {
+      age--
+    }
+    
+    return age
+  }
+
   const getWeekNumber = (date: Date) => {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1)
     const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000
@@ -737,7 +757,17 @@ Return ONLY a JSON object with this exact structure:
                                     <rect x="12" y="0" width="4" height="28" fill="#FFFFFF"/>
                                     <rect x="0" y="12" width="37" height="4" fill="#FFFFFF"/>
                                   </svg>
-                                  <span className="truncate">{dayBirthdays.length === 1 ? getFirstName(dayBirthdays[0].email) : `${dayBirthdays.length} fødselsdage`}</span>
+                                  <span className="truncate">
+                                    {dayBirthdays.length === 1 
+                                      ? (() => {
+                                          const age = calculateAge(dayBirthdays[0], day)
+                                          return age !== null 
+                                            ? `${getFirstName(dayBirthdays[0].email)} (${age} år)`
+                                            : getFirstName(dayBirthdays[0].email)
+                                        })()
+                                      : `${dayBirthdays.length} fødselsdage`
+                                    }
+                                  </span>
                                 </div>
                               )}
                               {dayVacations.slice(0, dayBirthdays.length > 0 ? 2 : 3).map((vacation) => {

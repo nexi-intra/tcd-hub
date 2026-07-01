@@ -32,6 +32,7 @@ interface BirthdayEntry {
   email: string
   fullName: string
   birthday: string
+  birthYear?: number
 }
 
 interface SickLeaveEntry {
@@ -130,6 +131,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [isEditBirthdayDialogOpen, setIsEditBirthdayDialogOpen] = useState(false)
   const [editingBirthday, setEditingBirthday] = useState<BirthdayEntry | null>(null)
   const [birthdayDate, setBirthdayDate] = useState('')
+  const [birthYear, setBirthYear] = useState('')
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -225,6 +227,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const openEditBirthdayDialog = (entry: BirthdayEntry) => {
     setEditingBirthday(entry)
     setBirthdayDate(entry.birthday)
+    setBirthYear(entry.birthYear?.toString() || '')
     setIsEditBirthdayDialogOpen(true)
   }
 
@@ -237,14 +240,17 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     const birthdaysData = await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays') || []
     const index = birthdaysData.findIndex(b => b.email === editingBirthday.email)
     
+    const updatedEntry: BirthdayEntry = {
+      email: editingBirthday.email,
+      fullName: editingBirthday.fullName,
+      birthday: birthdayDate,
+      birthYear: birthYear ? parseInt(birthYear) : undefined
+    }
+    
     if (index !== -1) {
-      birthdaysData[index].birthday = birthdayDate
+      birthdaysData[index] = updatedEntry
     } else {
-      birthdaysData.push({
-        email: editingBirthday.email,
-        fullName: editingBirthday.fullName,
-        birthday: birthdayDate
-      })
+      birthdaysData.push(updatedEntry)
     }
 
     await window.spark.kv.set('employee-birthdays', birthdaysData)
@@ -253,6 +259,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     setIsEditBirthdayDialogOpen(false)
     setEditingBirthday(null)
     setBirthdayDate('')
+    setBirthYear('')
     toast.success('Fødselsdag gemt')
   }
 
@@ -3314,21 +3321,24 @@ Return ONLY a JSON object with this exact structure:
               <Input
                 id="birthday-date"
                 type="date"
-                value={birthdayDate ? `2000-${birthdayDate}` : ''}
+                value={birthdayDate && birthYear ? `${birthYear}-${birthdayDate}` : birthdayDate ? `2000-${birthdayDate}` : ''}
                 onChange={(e) => {
                   if (e.target.value) {
                     const date = new Date(e.target.value)
+                    const year = date.getFullYear()
                     const month = String(date.getMonth() + 1).padStart(2, '0')
                     const day = String(date.getDate()).padStart(2, '0')
                     setBirthdayDate(`${month}-${day}`)
+                    setBirthYear(year.toString())
                   } else {
                     setBirthdayDate('')
+                    setBirthYear('')
                   }
                 }}
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground">
-                Årstallet bruges ikke - kun dag og måned gemmes
+                Vælg den fulde fødselsdato inklusive år for at vise alderen på kalenderen
               </p>
             </div>
           </div>
@@ -3337,6 +3347,7 @@ Return ONLY a JSON object with this exact structure:
               setIsEditBirthdayDialogOpen(false)
               setEditingBirthday(null)
               setBirthdayDate('')
+              setBirthYear('')
             }}>
               Annuller
             </Button>
