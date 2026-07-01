@@ -73,7 +73,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
         setAllTeamMembers(teamList)
       }
 
-      const birthdaysData = await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays') || []
+      const birthdaysData = (await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays')) || []
       setBirthdays(birthdaysData)
     }
     if (userEmail) {
@@ -141,7 +141,7 @@ Return ONLY a JSON object with this exact structure:
       const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
       const emailContent = JSON.parse(emailContentJson)
       
-      const emails = await window.spark.kv.get<Array<{
+      const emails = (await window.spark.kv.get<Array<{
         id: string
         from: string
         to: string
@@ -149,7 +149,7 @@ Return ONLY a JSON object with this exact structure:
         message: string
         timestamp: number
         read: boolean
-      }>>('emails') || []
+      }>>('emails')) || []
 
       const users = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
       const managerEmails: string[] = []
@@ -184,7 +184,7 @@ Return ONLY a JSON object with this exact structure:
           read: false
         }
 
-        const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
+        const notifications = (await window.spark.kv.get<any[]>('email-notifications')) || []
         await window.spark.kv.set('email-notifications', [...notifications, notification])
       }
 
@@ -246,7 +246,7 @@ Return ONLY a JSON object with this exact structure:
       const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
       const emailContent = JSON.parse(emailContentJson)
       
-      const emails = await window.spark.kv.get<Array<{
+      const emails = (await window.spark.kv.get<Array<{
         id: string
         from: string
         to: string
@@ -254,7 +254,7 @@ Return ONLY a JSON object with this exact structure:
         message: string
         timestamp: number
         read: boolean
-      }>>('emails') || []
+      }>>('emails')) || []
 
       const newEmail = {
         id: Date.now().toString() + '-approval',
@@ -278,7 +278,7 @@ Return ONLY a JSON object with this exact structure:
         read: false
       }
 
-      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
+      const notifications = (await window.spark.kv.get<any[]>('email-notifications')) || []
       await window.spark.kv.set('email-notifications', [...notifications, notification])
     } catch (emailError) {
       console.error('Error sending vacation approval email:', emailError)
@@ -338,7 +338,7 @@ Return ONLY a JSON object with this exact structure:
       const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
       const emailContent = JSON.parse(emailContentJson)
       
-      const emails = await window.spark.kv.get<Array<{
+      const emails = (await window.spark.kv.get<Array<{
         id: string
         from: string
         to: string
@@ -346,7 +346,7 @@ Return ONLY a JSON object with this exact structure:
         message: string
         timestamp: number
         read: boolean
-      }>>('emails') || []
+      }>>('emails')) || []
 
       const newEmail = {
         id: Date.now().toString() + '-rejection',
@@ -370,7 +370,7 @@ Return ONLY a JSON object with this exact structure:
         read: false
       }
 
-      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
+      const notifications = (await window.spark.kv.get<any[]>('email-notifications')) || []
       await window.spark.kv.set('email-notifications', [...notifications, notification])
     } catch (emailError) {
       console.error('Error sending vacation rejection email:', emailError)
