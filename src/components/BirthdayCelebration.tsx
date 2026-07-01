@@ -48,14 +48,14 @@ export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
     const generateNewFlags = () => {
       const newFlags: Flag[] = []
       const baseTime = Date.now()
-      for (let i = 0; i < 25; i++) {
+      for (let i = 0; i < 15; i++) {
         newFlags.push({
-          id: baseTime + i,
+          id: baseTime + i + Math.random() * 1000,
           x: Math.random() * 100,
-          delay: Math.random() * 2,
-          duration: 6 + Math.random() * 3,
+          delay: Math.random() * 1.5,
+          duration: 5 + Math.random() * 3,
           rotation: Math.random() * 360,
-          size: 25 + Math.random() * 15
+          size: 30 + Math.random() * 20
         })
       }
       setFlags(prev => [...prev, ...newFlags])
@@ -65,11 +65,11 @@ export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
 
     const interval = setInterval(() => {
       generateNewFlags()
-    }, 3000)
+    }, 2000)
 
     const cleanupInterval = setInterval(() => {
-      setFlags(prev => prev.slice(-50))
-    }, 5000)
+      setFlags(prev => prev.slice(-60))
+    }, 4000)
 
     return () => {
       clearInterval(interval)
@@ -84,21 +84,28 @@ export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
       {flags.map((flag) => (
         <motion.div
           key={flag.id}
-          className="absolute"
+          className="absolute will-change-transform"
           style={{
             left: `${flag.x}%`,
-            top: '-10%',
           }}
-          initial={{ y: -100, rotate: flag.rotation }}
+          initial={{ 
+            y: -100, 
+            rotate: flag.rotation,
+            opacity: 1 
+          }}
           animate={{
-            y: window.innerHeight + 100,
-            rotate: flag.rotation + 360 * 2,
+            y: [0, window.innerHeight + 100],
+            rotate: [flag.rotation, flag.rotation + 720],
+            opacity: [1, 1, 0.8]
           }}
           transition={{
             duration: flag.duration,
             delay: flag.delay,
-            repeat: Infinity,
             ease: 'linear',
+            times: [0, 0.95, 1]
+          }}
+          onAnimationComplete={() => {
+            setFlags(prev => prev.filter(f => f.id !== flag.id))
           }}
         >
           <svg
@@ -108,7 +115,7 @@ export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             style={{
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
             }}
           >
             <rect width="37" height="28" fill="#C8102E"/>
