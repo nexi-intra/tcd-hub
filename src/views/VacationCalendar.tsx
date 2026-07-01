@@ -741,58 +741,60 @@ Return ONLY a JSON object with this exact structure:
                           )}>
                             {day}
                           </div>
-                          {isWeekendDay ? (
-                            <div className="text-[8px] text-muted-foreground text-center mt-2">
-                              Lukket
-                            </div>
-                          ) : (
-                            <div className="space-y-0.5">
-                              {dayBirthdays.length > 0 && (
-                                <div 
-                                  className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300 flex items-center gap-0.5"
-                                  title={dayBirthdays.map(b => `${b.fullName} har fødselsdag 🎉`).join(', ')}
-                                >
-                                  <svg width="12" height="10" viewBox="0 0 37 28" className="flex-shrink-0">
-                                    <rect width="37" height="28" fill="#C8102E"/>
-                                    <rect x="12" y="0" width="4" height="28" fill="#FFFFFF"/>
-                                    <rect x="0" y="12" width="37" height="4" fill="#FFFFFF"/>
-                                  </svg>
-                                  <span className="truncate">
-                                    {dayBirthdays.length === 1 
-                                      ? (() => {
-                                          const age = calculateAge(dayBirthdays[0], day)
-                                          return age !== null 
-                                            ? `${getFirstName(dayBirthdays[0].email)} (${age} år)`
-                                            : getFirstName(dayBirthdays[0].email)
-                                        })()
-                                      : `${dayBirthdays.length} fødselsdage`
-                                    }
-                                  </span>
-                                </div>
-                              )}
-                              {dayVacations.slice(0, dayBirthdays.length > 0 ? 2 : 3).map((vacation) => {
-                                const userColor = getEmployeeColorByEmail(vacation.userEmail)
-                                return (
-                                  <div
-                                    key={vacation.id}
-                                    className="text-[10px] px-1.5 py-0.5 rounded truncate font-semibold"
-                                    style={{
-                                      backgroundColor: userColor.bg,
-                                      color: userColor.text
-                                    }}
-                                    title={`${getFirstName(vacation.userEmail)}${vacation.notes ? ': ' + vacation.notes : ''}`}
-                                  >
-                                    {getFirstName(vacation.userEmail)}
+                          <div className="space-y-0.5">
+                            {dayBirthdays.length > 0 && (
+                              <div 
+                                className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300 flex items-center gap-0.5"
+                                title={dayBirthdays.map(b => `${b.fullName} har fødselsdag 🎉`).join(', ')}
+                              >
+                                <svg width="12" height="10" viewBox="0 0 37 28" className="flex-shrink-0">
+                                  <rect width="37" height="28" fill="#C8102E"/>
+                                  <rect x="12" y="0" width="4" height="28" fill="#FFFFFF"/>
+                                  <rect x="0" y="12" width="37" height="4" fill="#FFFFFF"/>
+                                </svg>
+                                <span className="truncate">
+                                  {dayBirthdays.length === 1 
+                                    ? (() => {
+                                        const age = calculateAge(dayBirthdays[0], day)
+                                        return age !== null 
+                                          ? `${getFirstName(dayBirthdays[0].email)} (${age} år)`
+                                          : getFirstName(dayBirthdays[0].email)
+                                      })()
+                                    : `${dayBirthdays.length} fødselsdage`
+                                  }
+                                </span>
+                              </div>
+                            )}
+                            {isWeekendDay && dayBirthdays.length === 0 ? (
+                              <div className="text-[8px] text-muted-foreground text-center mt-2">
+                                Lukket
+                              </div>
+                            ) : !isWeekendDay && (
+                              <>
+                                {dayVacations.slice(0, dayBirthdays.length > 0 ? 2 : 3).map((vacation) => {
+                                  const userColor = getEmployeeColorByEmail(vacation.userEmail)
+                                  return (
+                                    <div
+                                      key={vacation.id}
+                                      className="text-[10px] px-1.5 py-0.5 rounded truncate font-semibold"
+                                      style={{
+                                        backgroundColor: userColor.bg,
+                                        color: userColor.text
+                                      }}
+                                      title={`${getFirstName(vacation.userEmail)}${vacation.notes ? ': ' + vacation.notes : ''}`}
+                                    >
+                                      {getFirstName(vacation.userEmail)}
+                                    </div>
+                                  )
+                                })}
+                                {dayVacations.length > (dayBirthdays.length > 0 ? 2 : 3) && (
+                                  <div className="text-[9px] text-muted-foreground">
+                                    +{dayVacations.length - (dayBirthdays.length > 0 ? 2 : 3)}
                                   </div>
-                                )
-                              })}
-                              {dayVacations.length > (dayBirthdays.length > 0 ? 2 : 3) && (
-                                <div className="text-[9px] text-muted-foreground">
-                                  +{dayVacations.length - (dayBirthdays.length > 0 ? 2 : 3)}
-                                </div>
-                              )}
-                            </div>
-                          )}
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       )
                     })}
