@@ -39,7 +39,16 @@ interface PowerUp {
   y: number
   width: number
   height: number
-  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle' | 'slowMotion' | 'speedBoost'
+  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle' | 'slowMotion' | 'speedBoost' | 'laser'
+  dy: number
+}
+
+interface Laser {
+  id: number
+  x: number
+  y: number
+  width: number
+  height: number
   dy: number
 }
 
@@ -127,7 +136,7 @@ const BRICK_COLORS = [
   { color: '#FF8B4E', hits: 1, points: 10 },
 ]
 
-const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost']
+const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost', 'laser']
 
 const POWERUP_CONFIG = {
   extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
@@ -136,7 +145,8 @@ const POWERUP_CONFIG = {
   shrinkPaddle: { color: '#FFD84E', symbol: '━', label: { en: 'Shrink Paddle', da: 'Formindsk Bat' } },
   enlargePaddle: { color: '#C94EFF', symbol: '━━', label: { en: 'Enlarge Paddle', da: 'Forstør Bat' } },
   slowMotion: { color: '#9D4EFF', symbol: '⏱', label: { en: 'Slow Motion', da: 'Langsom' } },
-  speedBoost: { color: '#FF4E6B', symbol: '⚡', label: { en: 'Speed Boost', da: 'Fart' } }
+  speedBoost: { color: '#FF4E6B', symbol: '⚡', label: { en: 'Speed Boost', da: 'Fart' } },
+  laser: { color: '#00FFFF', symbol: '⚡', label: { en: 'Laser', da: 'Laser' } }
 }
 
 interface User {
@@ -173,6 +183,9 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [fireballTimeLeft, setFireballTimeLeft] = useState(0)
   const [ballSpeedMultiplier, setBallSpeedMultiplier] = useState(1)
   const [speedPowerupTimeLeft, setSpeedPowerupTimeLeft] = useState(0)
+  const [hasLaser, setHasLaser] = useState(false)
+  const [laserTimeLeft, setLaserTimeLeft] = useState(0)
+  const [lasers, setLasers] = useState<Laser[]>([])
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('brickbreak-global-leaderboard', {
     easy: [],
     medium: [],
@@ -198,6 +211,9 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const isFireballRef = useRef<boolean>(false)
   const hasShieldRef = useRef<boolean>(false)
   const ballSpeedMultiplierRef = useRef<number>(1)
+  const hasLaserRef = useRef<boolean>(false)
+  const lasersRef = useRef<Laser[]>([])
+  const lastLaserTimeRef = useRef<number>(0)
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -309,6 +325,11 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setSpeedPowerupTimeLeft(0)
     isFireballRef.current = false
     hasShieldRef.current = false
+    hasLaserRef.current = false
+    lasersRef.current = []
+    setHasLaser(false)
+    setLaserTimeLeft(0)
+    setLasers([])
     setGameState('waitingToLaunch')
   }
 
@@ -551,6 +572,25 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           })
         }, 1000)
         break
+        
+      case 'laser':
+        setHasLaser(true)
+        hasLaserRef.current = true
+        setLaserTimeLeft(5)
+        toast.success(message)
+        
+        const laserInterval = setInterval(() => {
+          setLaserTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(laserInterval)
+              setHasLaser(false)
+              hasLaserRef.current = false
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+        break
     }
   }
 
@@ -750,6 +790,89 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     powerUpsRef.current = updatedPowerUps
     setPowerUps(updatedPowerUps)
 
+    if (hasLaserRef.current) {
+      const currentTime = Date.now()
+      if (currentTime - lastLaserTimeRef.current > 300) {
+        const newLaser: Laser = {
+          id: Date.now() + Math.random(),
+          x: currentPaddle.x + currentPaddle.width / 2 - 2,
+          y: currentPaddle.y - 10,
+          width: 4,
+          height: 15,
+          dy: -10
+        }
+        lasersRef.current = [...lasersRef.current, newLaser]
+        setLasers(prev => [...prev, newLaser])
+        lastLaserTimeRef.current = currentTime
+      }
+    }
+
+    const currentLasers = lasersRef.current
+    const updatedLasers: Laser[] = []
+    let laserScoreIncrease = 0
+
+    currentLasers.forEach(laser => {
+      let laserDestroyed = false
+      const newLaser = {
+        ...laser,
+        y: laser.y + laser.dy
+      }
+
+      if (newLaser.y + newLaser.height < 0) {
+        return
+      }
+
+      newBricks.forEach((brick, index) => {
+        if (laserDestroyed || bricksToRemove.includes(index)) return
+
+        const collision = 
+          newLaser.x + newLaser.width > brick.x &&
+          newLaser.x < brick.x + brick.width &&
+          newLaser.y < brick.y + brick.height &&
+          newLaser.y + newLaser.height > brick.y
+
+        if (collision) {
+          laserDestroyed = true
+          brick.hits++
+
+          if (brick.hits >= brick.maxHits) {
+            laserScoreIncrease += brick.points
+
+            if (Math.random() < POWERUP_SPAWN_CHANCE) {
+              const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
+              const newPowerUp: PowerUp = {
+                id: Date.now() + Math.random(),
+                x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
+                y: brick.y,
+                width: POWERUP_SIZE,
+                height: POWERUP_SIZE,
+                type: powerUpType,
+                dy: POWERUP_FALL_SPEED
+              }
+              powerUpsRef.current = [...powerUpsRef.current, newPowerUp]
+              setPowerUps(prev => [...prev, newPowerUp])
+            }
+
+            bricksToRemove.push(index)
+          }
+        }
+      })
+
+      if (!laserDestroyed) {
+        updatedLasers.push(newLaser)
+      }
+    })
+
+    lasersRef.current = updatedLasers
+    setLasers(updatedLasers)
+
+    if (laserScoreIncrease > 0) {
+      scoreRef.current += laserScoreIncrease
+      setScore(scoreRef.current)
+    }
+
+    newBricks = newBricks.filter((_, index) => !bricksToRemove.includes(index))
+
     ballsRef.current = newBalls
     bricksRef.current = newBricks
     
@@ -934,6 +1057,26 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText(config.symbol, powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2)
+    })
+
+    const currentLasers = lasersRef.current
+    currentLasers.forEach(laser => {
+      const laserGradient = ctx.createLinearGradient(laser.x, laser.y, laser.x, laser.y + laser.height)
+      laserGradient.addColorStop(0, '#00FFFF')
+      laserGradient.addColorStop(0.5, '#00DDFF')
+      laserGradient.addColorStop(1, 'rgba(0, 255, 255, 0.3)')
+      
+      ctx.fillStyle = laserGradient
+      ctx.shadowBlur = 15
+      ctx.shadowColor = '#00FFFF'
+      ctx.fillRect(laser.x, laser.y, laser.width, laser.height)
+      
+      ctx.fillStyle = '#FFFFFF'
+      ctx.shadowBlur = 20
+      ctx.shadowColor = '#00FFFF'
+      ctx.fillRect(laser.x + 1, laser.y, laser.width - 2, laser.height)
+      
+      ctx.shadowBlur = 0
     })
 
     if (ballAttachedRef.current) {
@@ -1410,6 +1553,13 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               <span className="text-xl">⚡</span>
               <span className="font-bold">{language === 'da' ? 'FART' : 'SPEED BOOST'}</span>
               <span className="ml-2 px-2 py-0.5 rounded bg-pink-500 text-white text-sm font-bold">{speedPowerupTimeLeft}s</span>
+            </div>
+          )}
+          {hasLaser && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-2 border-cyan-500/50 text-cyan-500 animate-pulse">
+              <span className="text-xl">⚡</span>
+              <span className="font-bold">{language === 'da' ? 'LASER AKTIV' : 'LASER ACTIVE'}</span>
+              <span className="ml-2 px-2 py-0.5 rounded bg-cyan-500 text-white text-sm font-bold">{laserTimeLeft}s</span>
             </div>
           )}
         </div>
