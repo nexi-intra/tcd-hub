@@ -240,6 +240,12 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       width: INITIAL_PADDLE_WIDTH,
       height: PADDLE_HEIGHT
     }
+    
+    scoreRef.current = 0
+    livesRef.current = 3
+    paddleRef.current = newPaddle
+    ballAttachedRef.current = true
+    
     const newBalls = [{
       x: newPaddle.x + newPaddle.width / 2,
       y: newPaddle.y - BALL_RADIUS,
@@ -249,12 +255,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     }]
     const newBricks = createBricks(1)
     
-    ballAttachedRef.current = true
     ballsRef.current = newBalls
     bricksRef.current = newBricks
-    paddleRef.current = newPaddle
-    scoreRef.current = 0
-    livesRef.current = 3
     
     setBallAttachedToPaddle(true)
     setBalls(newBalls)
@@ -274,6 +276,10 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
       width: INITIAL_PADDLE_WIDTH
     }
+    
+    paddleRef.current = newPaddle
+    ballAttachedRef.current = true
+    
     const newBalls = [{
       x: newPaddle.x + newPaddle.width / 2,
       y: newPaddle.y - BALL_RADIUS,
@@ -283,10 +289,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     }]
     const newBricks = createBricks(newLevel)
     
-    ballAttachedRef.current = true
     ballsRef.current = newBalls
     bricksRef.current = newBricks
-    paddleRef.current = newPaddle
     
     setBallAttachedToPaddle(true)
     setBalls(newBalls)
@@ -409,9 +413,11 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
     if (ballAttachedRef.current) {
       const attachedBall = {
-        ...currentBalls[0],
         x: currentPaddle.x + currentPaddle.width / 2,
-        y: currentPaddle.y - BALL_RADIUS
+        y: currentPaddle.y - BALL_RADIUS,
+        dx: 0,
+        dy: 0,
+        radius: BALL_RADIUS
       }
       ballsRef.current = [attachedBall]
       setBalls([attachedBall])
