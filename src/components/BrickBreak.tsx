@@ -39,7 +39,7 @@ interface PowerUp {
   y: number
   width: number
   height: number
-  type: 'multiBall' | 'largePaddle' | 'smallPaddle' | 'slowMotion' | 'extraLife'
+  type: 'multiBall' | 'largePaddle' | 'smallPaddle' | 'slowMotion' | 'extraLife' | 'fastBall' | 'stickyPaddle' | 'fireball' | 'shield'
   dy: number
 }
 
@@ -127,14 +127,18 @@ const BRICK_COLORS = [
   { color: '#FF8B4E', hits: 1, points: 10 },
 ]
 
-const POWERUP_TYPES: PowerUp['type'][] = ['multiBall', 'largePaddle', 'smallPaddle', 'slowMotion', 'extraLife']
+const POWERUP_TYPES: PowerUp['type'][] = ['multiBall', 'largePaddle', 'smallPaddle', 'slowMotion', 'extraLife', 'fastBall', 'stickyPaddle', 'fireball', 'shield']
 
 const POWERUP_CONFIG = {
   multiBall: { color: '#FF6B9D', symbol: '●●', label: { en: 'Multi Ball', da: 'Multi Bold' } },
   largePaddle: { color: '#4ECFFF', symbol: '━━', label: { en: 'Large Paddle', da: 'Stor Bat' } },
   smallPaddle: { color: '#FFD84E', symbol: '━', label: { en: 'Small Paddle', da: 'Lille Bat' } },
   slowMotion: { color: '#C94EFF', symbol: '⏱', label: { en: 'Slow Motion', da: 'Slow Motion' } },
-  extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } }
+  extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
+  fastBall: { color: '#FF4E8B', symbol: '⚡', label: { en: 'Fast Ball', da: 'Hurtig Bold' } },
+  stickyPaddle: { color: '#8B4EFF', symbol: '🔗', label: { en: 'Sticky Paddle', da: 'Klæbrig Bat' } },
+  fireball: { color: '#FF8B4E', symbol: '🔥', label: { en: 'Fireball', da: 'Ildkugle' } },
+  shield: { color: '#4EFFCF', symbol: '🛡', label: { en: 'Shield', da: 'Skjold' } }
 }
 
 interface User {
@@ -437,7 +441,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
   const applyPowerUp = (type: PowerUp['type']) => {
     const message = POWERUP_CONFIG[type].label[language]
-    toast.success(message)
     
     switch (type) {
       case 'multiBall':
@@ -456,6 +459,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           }
           ballsRef.current = [...currentBalls, newBall1, newBall2]
           setBalls([...currentBalls, newBall1, newBall2])
+          toast.success(message)
         }
         break
         
@@ -466,6 +470,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         }
         paddleRef.current = newWideLaddle
         setPaddle(newWideLaddle)
+        toast.success(message)
         setTimeout(() => {
           const resetPaddle = {
             ...paddleRef.current,
@@ -483,6 +488,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         }
         paddleRef.current = newSmallPaddle
         setPaddle(newSmallPaddle)
+        toast.success(message)
         setTimeout(() => {
           const resetPaddle = {
             ...paddleRef.current,
@@ -501,6 +507,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         }))
         ballsRef.current = slowedBalls
         setBalls(slowedBalls)
+        toast.success(message)
         setTimeout(() => {
           const normalBalls = ballsRef.current.map(ball => ({
             ...ball,
@@ -513,8 +520,46 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         break
         
       case 'extraLife':
-        livesRef.current = Math.min(livesRef.current + 1, 5)
-        setLives(livesRef.current)
+        if (livesRef.current < 3) {
+          livesRef.current = livesRef.current + 1
+          setLives(livesRef.current)
+          toast.success(message)
+        } else {
+          const noEffectMsg = language === 'da' ? 'Max 3 liv!' : 'Max 3 lives!'
+          toast.info(noEffectMsg)
+        }
+        break
+        
+      case 'fastBall':
+        const fastBalls = ballsRef.current.map(ball => ({
+          ...ball,
+          dx: ball.dx * 1.5,
+          dy: ball.dy * 1.5
+        }))
+        ballsRef.current = fastBalls
+        setBalls(fastBalls)
+        toast.success(message)
+        setTimeout(() => {
+          const normalBalls = ballsRef.current.map(ball => ({
+            ...ball,
+            dx: ball.dx / 1.5,
+            dy: ball.dy / 1.5
+          }))
+          ballsRef.current = normalBalls
+          setBalls(normalBalls)
+        }, 8000)
+        break
+        
+      case 'stickyPaddle':
+        toast.success(message)
+        break
+        
+      case 'fireball':
+        toast.success(message)
+        break
+        
+      case 'shield':
+        toast.success(message)
         break
     }
   }
