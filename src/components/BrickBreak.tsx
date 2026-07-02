@@ -193,6 +193,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const livesRef = useRef<number>(3)
   const scoreRef = useRef<number>(0)
   const ballAttachedRef = useRef<boolean>(true)
+  const isFireballRef = useRef<boolean>(false)
+  const hasShieldRef = useRef<boolean>(false)
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -300,6 +302,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setHasShield(false)
     setIsFireball(false)
     setFireballTimeLeft(0)
+    isFireballRef.current = false
+    hasShieldRef.current = false
     setGameState('waitingToLaunch')
   }
 
@@ -459,11 +463,13 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         
       case 'shield':
         setHasShield(true)
+        hasShieldRef.current = true
         toast.success(message)
         break
         
       case 'fireball':
         setIsFireball(true)
+        isFireballRef.current = true
         setFireballTimeLeft(10)
         toast.success(message)
         
@@ -472,6 +478,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             if (prev <= 1) {
               clearInterval(fireballInterval)
               setIsFireball(false)
+              isFireballRef.current = false
               return 0
             }
             return prev - 1
@@ -640,7 +647,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           ball.y - ball.radius < brick.y + brick.height
 
         if (collision) {
-          if (isFireball) {
+          if (isFireballRef.current) {
             scoreIncrease += brick.points
             addParticles(brick.x + brick.width / 2, brick.y + brick.height / 2, brick.color)
             
@@ -751,8 +758,9 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setBricks(newBricks)
 
     if (newBalls.length === 0) {
-      if (hasShield) {
+      if (hasShieldRef.current) {
         setHasShield(false)
+        hasShieldRef.current = false
         const shieldMsg = language === 'da' ? 'Skjold brugt!' : 'Shield used!'
         toast.info(shieldMsg)
         
@@ -861,7 +869,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     currentBalls.forEach(ball => {
       ctx.beginPath()
       ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2)
-      if (isFireball) {
+      if (isFireballRef.current) {
         const fireGradient = ctx.createRadialGradient(ball.x, ball.y, 0, ball.x, ball.y, ball.radius * 3)
         fireGradient.addColorStop(0, '#FFFF00')
         fireGradient.addColorStop(0.3, '#FF6B00')
