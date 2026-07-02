@@ -481,21 +481,32 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
             const currentAngle = Math.atan2(ball.dy, ball.dx)
             
-            const duplicateBall = {
+            const ball1 = {
               ...ball,
-              x: ball.x + (Math.random() - 0.5) * 20,
-              y: ball.y + (Math.random() - 0.5) * 20,
-              dx: Math.cos(currentAngle + (Math.random() - 0.5) * 0.8) * speed,
-              dy: Math.sin(currentAngle + (Math.random() - 0.5) * 0.8) * speed,
+              x: ball.x + 5,
+              y: ball.y,
+              dx: Math.cos(currentAngle - 0.4) * speed,
+              dy: Math.sin(currentAngle - 0.4) * speed,
               radius: BALL_RADIUS
             }
             
-            newBalls.push(duplicateBall)
+            const ball2 = {
+              ...ball,
+              x: ball.x - 5,
+              y: ball.y,
+              dx: Math.cos(currentAngle + 0.4) * speed,
+              dy: Math.sin(currentAngle + 0.4) * speed,
+              radius: BALL_RADIUS
+            }
+            
+            newBalls.push(ball1)
+            newBalls.push(ball2)
           })
           
           const allBalls = [...currentBalls, ...newBalls]
           ballsRef.current = allBalls
           setBalls(allBalls)
+          console.log('MultiBall activated! Total balls now:', allBalls.length)
           toast.success(message)
         } else {
           const noEffectMsg = language === 'da' ? 'Skal have bold i spil!' : 'Need ball in play!'
