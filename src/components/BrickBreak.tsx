@@ -233,17 +233,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     return newBricks
   }
 
-  const resetBall = () => {
-    const baseSpeed = DIFFICULTY_SETTINGS[difficulty].ballSpeed
-    return {
-      x: GAME_WIDTH / 2,
-      y: GAME_HEIGHT - 60,
-      dx: (Math.random() > 0.5 ? 1 : -1) * baseSpeed * 0.7,
-      dy: -baseSpeed,
-      radius: BALL_RADIUS
-    }
-  }
-
   const startGame = () => {
     const newPaddle = {
       x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
