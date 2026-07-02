@@ -57,8 +57,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
       id: 'brickbreak',
       title: language === 'da' ? 'Brick Break' : 'Brick Break',
       description: language === 'da' 
-        ? 'Ødelæg alle brikkerne og klar så mange levels som muligt. Samle power-ups undervejs!'
-        : 'Destroy all bricks and clear as many levels as possible. Collect power-ups along the way!',
+        ? 'Ødelæg alle brikkerne og klar så mange levels som muligt!'
+        : 'Destroy all bricks and clear as many levels as possible!',
       icon: <Cube size={48} weight="duotone" />,
       color: 'oklch(0.68 0.20 340)',
       gradient: 'from-[oklch(0.68_0.20_340)] via-[oklch(0.70_0.18_310)] to-[oklch(0.68_0.20_340)]',
