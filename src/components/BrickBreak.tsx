@@ -476,22 +476,35 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         
         if (activeBalls.length > 0) {
           const newBalls: Ball[] = []
+          
           activeBalls.forEach(ball => {
-            const currentAngle = Math.atan2(ball.dy, ball.dx)
             const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
+            const currentAngle = Math.atan2(ball.dy, ball.dx)
             
-            const newAngle = currentAngle + (Math.random() > 0.5 ? 0.4 : -0.4)
-            
-            newBalls.push({
+            const ball1 = {
               ...ball,
-              x: ball.x + (Math.random() - 0.5) * 4,
-              y: ball.y + (Math.random() - 0.5) * 4,
-              dx: Math.cos(newAngle) * speed,
-              dy: Math.sin(newAngle) * speed
-            })
+              x: ball.x + (Math.random() - 0.5) * 10,
+              y: ball.y + (Math.random() - 0.5) * 10,
+              dx: Math.cos(currentAngle - 0.5) * speed,
+              dy: Math.sin(currentAngle - 0.5) * speed,
+              radius: BALL_RADIUS
+            }
+            
+            const ball2 = {
+              ...ball,
+              x: ball.x + (Math.random() - 0.5) * 10,
+              y: ball.y + (Math.random() - 0.5) * 10,
+              dx: Math.cos(currentAngle + 0.5) * speed,
+              dy: Math.sin(currentAngle + 0.5) * speed,
+              radius: BALL_RADIUS
+            }
+            
+            newBalls.push(ball1, ball2)
           })
-          ballsRef.current = [...currentBalls, ...newBalls]
-          setBalls([...currentBalls, ...newBalls])
+          
+          const allBalls = [...currentBalls, ...newBalls]
+          ballsRef.current = allBalls
+          setBalls(allBalls)
           toast.success(message)
         } else {
           const noEffectMsg = language === 'da' ? 'Skal have bold i spil!' : 'Need ball in play!'
