@@ -698,9 +698,21 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       setPaddle({ ...currentPaddle, x: newX })
     }
 
-    const handleClick = () => {
+    const handleClick = (e: MouseEvent) => {
       if (gameState === 'waitingToLaunch') {
-        launchBall()
+        const canvas = canvasRef.current
+        if (!canvas) return
+        
+        const rect = canvas.getBoundingClientRect()
+        const isClickOnCanvas = 
+          e.clientX >= rect.left && 
+          e.clientX <= rect.right && 
+          e.clientY >= rect.top && 
+          e.clientY <= rect.bottom
+        
+        if (isClickOnCanvas) {
+          launchBall()
+        }
       }
     }
 
