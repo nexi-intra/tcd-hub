@@ -33,6 +33,16 @@ interface Paddle {
   height: number
 }
 
+interface PowerUp {
+  id: number
+  x: number
+  y: number
+  width: number
+  height: number
+  type: 'multiBall' | 'largePaddle' | 'smallPaddle' | 'slowMotion' | 'extraLife'
+  dy: number
+}
+
 interface LeaderboardEntry {
   email: string
   score: number
@@ -104,6 +114,9 @@ const BRICK_PADDING = 5
 const BRICK_OFFSET_TOP = 80
 const BRICK_OFFSET_LEFT = 35
 const DEFLECTOR_SIZE = 40
+const POWERUP_SIZE = 30
+const POWERUP_FALL_SPEED = 3
+const POWERUP_SPAWN_CHANCE = 0.2
 
 const BRICK_COLORS = [
   { color: '#FF6B9D', hits: 3, points: 30 },
@@ -113,6 +126,16 @@ const BRICK_COLORS = [
   { color: '#FFD84E', hits: 1, points: 10 },
   { color: '#FF8B4E', hits: 1, points: 10 },
 ]
+
+const POWERUP_TYPES: PowerUp['type'][] = ['multiBall', 'largePaddle', 'smallPaddle', 'slowMotion', 'extraLife']
+
+const POWERUP_CONFIG = {
+  multiBall: { color: '#FF6B9D', symbol: '●●', label: { en: 'Multi Ball', da: 'Multi Bold' } },
+  largePaddle: { color: '#4ECFFF', symbol: '━━', label: { en: 'Large Paddle', da: 'Stor Bat' } },
+  smallPaddle: { color: '#FFD84E', symbol: '━', label: { en: 'Small Paddle', da: 'Lille Bat' } },
+  slowMotion: { color: '#C94EFF', symbol: '⏱', label: { en: 'Slow Motion', da: 'Slow Motion' } },
+  extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } }
+}
 
 interface User {
   email: string
@@ -143,6 +166,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [particles, setParticles] = useState<{ x: number; y: number; color: string; id: number }[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [ballAttachedToPaddle, setBallAttachedToPaddle] = useState(true)
+  const [powerUps, setPowerUps] = useState<PowerUp[]>([])
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('brickbreak-global-leaderboard', {
     easy: [],
     medium: [],
@@ -155,6 +179,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const mouseXRef = useRef<number>(GAME_WIDTH / 2)
   const ballsRef = useRef<Ball[]>([])
   const bricksRef = useRef<Brick[]>([])
+  const powerUpsRef = useRef<PowerUp[]>([])
   const paddleRef = useRef<Paddle>({
     x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
     y: GAME_HEIGHT - 40,
@@ -245,6 +270,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     livesRef.current = 3
     paddleRef.current = newPaddle
     ballAttachedRef.current = true
+    powerUpsRef.current = []
     
     const newBalls = [{
       x: newPaddle.x + newPaddle.width / 2,
@@ -266,6 +292,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setLevel(1)
     setLives(3)
     setParticles([])
+    setPowerUps([])
     setGameState('waitingToLaunch')
   }
 
@@ -279,6 +306,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     
     paddleRef.current = newPaddle
     ballAttachedRef.current = true
+    powerUpsRef.current = []
     
     const newBalls = [{
       x: newPaddle.x + newPaddle.width / 2,
@@ -298,6 +326,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setPaddle(newPaddle)
     setLevel(newLevel)
     setParticles([])
+    setPowerUps([])
     setGameState('waitingToLaunch')
   }
 
@@ -404,6 +433,90 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setBallAttachedToPaddle(false)
     ballAttachedRef.current = false
     setGameState('playing')
+  }
+
+  const applyPowerUp = (type: PowerUp['type']) => {
+    const message = POWERUP_CONFIG[type].label[language]
+    toast.success(message)
+    
+    switch (type) {
+      case 'multiBall':
+        const currentBalls = ballsRef.current
+        if (currentBalls.length > 0) {
+          const firstBall = currentBalls[0]
+          const newBall1 = {
+            ...firstBall,
+            dx: firstBall.dx + 2,
+            dy: firstBall.dy
+          }
+          const newBall2 = {
+            ...firstBall,
+            dx: firstBall.dx - 2,
+            dy: firstBall.dy
+          }
+          ballsRef.current = [...currentBalls, newBall1, newBall2]
+          setBalls([...currentBalls, newBall1, newBall2])
+        }
+        break
+        
+      case 'largePaddle':
+        const newWideLaddle = {
+          ...paddleRef.current,
+          width: Math.min(INITIAL_PADDLE_WIDTH * 1.5, 200)
+        }
+        paddleRef.current = newWideLaddle
+        setPaddle(newWideLaddle)
+        setTimeout(() => {
+          const resetPaddle = {
+            ...paddleRef.current,
+            width: INITIAL_PADDLE_WIDTH
+          }
+          paddleRef.current = resetPaddle
+          setPaddle(resetPaddle)
+        }, 10000)
+        break
+        
+      case 'smallPaddle':
+        const newSmallPaddle = {
+          ...paddleRef.current,
+          width: Math.max(INITIAL_PADDLE_WIDTH * 0.6, 60)
+        }
+        paddleRef.current = newSmallPaddle
+        setPaddle(newSmallPaddle)
+        setTimeout(() => {
+          const resetPaddle = {
+            ...paddleRef.current,
+            width: INITIAL_PADDLE_WIDTH
+          }
+          paddleRef.current = resetPaddle
+          setPaddle(resetPaddle)
+        }, 10000)
+        break
+        
+      case 'slowMotion':
+        const slowedBalls = ballsRef.current.map(ball => ({
+          ...ball,
+          dx: ball.dx * 0.6,
+          dy: ball.dy * 0.6
+        }))
+        ballsRef.current = slowedBalls
+        setBalls(slowedBalls)
+        setTimeout(() => {
+          const normalBalls = ballsRef.current.map(ball => ({
+            ...ball,
+            dx: ball.dx / 0.6,
+            dy: ball.dy / 0.6
+          }))
+          ballsRef.current = normalBalls
+          setBalls(normalBalls)
+        }, 8000)
+        break
+        
+      case 'extraLife':
+        livesRef.current = Math.min(livesRef.current + 1, 5)
+        setLives(livesRef.current)
+        break
+    }
   }
 
   const gameLoop = () => {
@@ -523,6 +636,22 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           if (brick.hits >= brick.maxHits) {
             scoreIncrease += brick.points
             addParticles(brick.x + brick.width / 2, brick.y + brick.height / 2, brick.color)
+            
+            if (Math.random() < POWERUP_SPAWN_CHANCE) {
+              const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
+              const newPowerUp: PowerUp = {
+                id: Date.now() + Math.random(),
+                x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
+                y: brick.y,
+                width: POWERUP_SIZE,
+                height: POWERUP_SIZE,
+                type: powerUpType,
+                dy: POWERUP_FALL_SPEED
+              }
+              powerUpsRef.current = [...powerUpsRef.current, newPowerUp]
+              setPowerUps(prev => [...prev, newPowerUp])
+            }
+            
             return false
           }
         }
@@ -535,6 +664,31 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       scoreRef.current += scoreIncrease
       setScore(scoreRef.current)
     }
+
+    const currentPowerUps = powerUpsRef.current
+    const updatedPowerUps = currentPowerUps.map(powerUp => ({
+      ...powerUp,
+      y: powerUp.y + powerUp.dy
+    })).filter(powerUp => {
+      if (powerUp.y > GAME_HEIGHT) {
+        return false
+      }
+      
+      if (
+        powerUp.y + powerUp.height > currentPaddle.y &&
+        powerUp.y < currentPaddle.y + currentPaddle.height &&
+        powerUp.x + powerUp.width > currentPaddle.x &&
+        powerUp.x < currentPaddle.x + currentPaddle.width
+      ) {
+        applyPowerUp(powerUp.type)
+        return false
+      }
+      
+      return true
+    })
+    
+    powerUpsRef.current = updatedPowerUps
+    setPowerUps(updatedPowerUps)
 
     ballsRef.current = newBalls
     bricksRef.current = newBricks
@@ -651,6 +805,26 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     ctx.shadowColor = '#C94EFF'
     ctx.fillRect(currentPaddle.x, currentPaddle.y, currentPaddle.width, currentPaddle.height)
     ctx.shadowBlur = 0
+
+    const currentPowerUps = powerUpsRef.current
+    currentPowerUps.forEach(powerUp => {
+      const config = POWERUP_CONFIG[powerUp.type]
+      ctx.fillStyle = config.color
+      ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height)
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'
+      ctx.lineWidth = 2
+      ctx.strokeRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height)
+      ctx.shadowBlur = 8
+      ctx.shadowColor = config.color
+      ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height)
+      ctx.shadowBlur = 0
+      
+      ctx.fillStyle = '#FFFFFF'
+      ctx.font = 'bold 18px Quicksand, sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(config.symbol, powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2)
+    })
 
     particles.forEach(particle => {
       ctx.fillStyle = particle.color
