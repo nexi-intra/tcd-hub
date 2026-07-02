@@ -245,7 +245,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   }
 
   const startGame = () => {
-    const newBricks = createBricks(1)
     const newPaddle = {
       x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
       y: GAME_HEIGHT - 40,
@@ -259,39 +258,33 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       dy: 0,
       radius: BALL_RADIUS
     }]
+    const newBricks = createBricks(1)
     
-    scoreRef.current = 0
-    livesRef.current = 3
+    ballAttachedRef.current = true
     ballsRef.current = newBalls
     bricksRef.current = newBricks
     paddleRef.current = newPaddle
-    ballAttachedRef.current = true
+    scoreRef.current = 0
+    livesRef.current = 3
     
+    setBallAttachedToPaddle(true)
+    setBalls(newBalls)
+    setBricks(newBricks)
+    setPaddle(newPaddle)
     setScore(0)
     setLevel(1)
     setLives(3)
-    setBricks(newBricks)
-    setBalls(newBalls)
-    setPaddle(newPaddle)
     setParticles([])
-    setBallAttachedToPaddle(true)
     setGameState('waitingToLaunch')
   }
 
   const nextLevel = () => {
     const newLevel = level + 1
-    const newBricks = createBricks(newLevel)
     const newPaddle = {
       ...paddleRef.current,
       x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
       width: INITIAL_PADDLE_WIDTH
     }
-    
-    ballAttachedRef.current = true
-    ballsRef.current = []
-    bricksRef.current = newBricks
-    paddleRef.current = newPaddle
-    
     const newBalls = [{
       x: newPaddle.x + newPaddle.width / 2,
       y: newPaddle.y - BALL_RADIUS,
@@ -299,15 +292,19 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       dy: 0,
       radius: BALL_RADIUS
     }]
+    const newBricks = createBricks(newLevel)
     
+    ballAttachedRef.current = true
     ballsRef.current = newBalls
+    bricksRef.current = newBricks
+    paddleRef.current = newPaddle
     
-    setLevel(newLevel)
-    setBricks(newBricks)
-    setBalls(newBalls)
-    setPaddle(newPaddle)
-    setParticles([])
     setBallAttachedToPaddle(true)
+    setBalls(newBalls)
+    setBricks(newBricks)
+    setPaddle(newPaddle)
+    setLevel(newLevel)
+    setParticles([])
     setGameState('waitingToLaunch')
   }
 
