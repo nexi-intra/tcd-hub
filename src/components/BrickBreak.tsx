@@ -39,7 +39,7 @@ interface PowerUp {
   y: number
   width: number
   height: number
-  type: 'extraLife' | 'shield' | 'fireball' | 'multiBall' | 'shrinkPaddle' | 'enlargePaddle'
+  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle'
   dy: number
 }
 
@@ -127,13 +127,12 @@ const BRICK_COLORS = [
   { color: '#FF8B4E', hits: 1, points: 10 },
 ]
 
-const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'multiBall']
+const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle']
 
 const POWERUP_CONFIG = {
   extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
   shield: { color: '#4ECFFF', symbol: '🛡', label: { en: 'Shield', da: 'Skjold' } },
   fireball: { color: '#FF8B4E', symbol: '🔥', label: { en: 'Fireball', da: 'Ildkugle' } },
-  multiBall: { color: '#FF6B9D', symbol: '●●', label: { en: 'Multi Ball', da: 'Multi Bold' } },
   shrinkPaddle: { color: '#FFD84E', symbol: '━', label: { en: 'Shrink Paddle', da: 'Formindsk Bat' } },
   enlargePaddle: { color: '#C94EFF', symbol: '━━', label: { en: 'Enlarge Paddle', da: 'Forstør Bat' } }
 }
@@ -468,50 +467,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
-        break
-        
-      case 'multiBall':
-        const currentBalls = ballsRef.current
-        const activeBalls = currentBalls.filter(ball => ball.dx !== 0 || ball.dy !== 0)
-        
-        if (activeBalls.length > 0) {
-          const newBalls: Ball[] = []
-          
-          activeBalls.forEach(ball => {
-            const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
-            const currentAngle = Math.atan2(ball.dy, ball.dx)
-            
-            const ball1 = {
-              ...ball,
-              x: ball.x + 5,
-              y: ball.y,
-              dx: Math.cos(currentAngle - 0.4) * speed,
-              dy: Math.sin(currentAngle - 0.4) * speed,
-              radius: BALL_RADIUS
-            }
-            
-            const ball2 = {
-              ...ball,
-              x: ball.x - 5,
-              y: ball.y,
-              dx: Math.cos(currentAngle + 0.4) * speed,
-              dy: Math.sin(currentAngle + 0.4) * speed,
-              radius: BALL_RADIUS
-            }
-            
-            newBalls.push(ball1)
-            newBalls.push(ball2)
-          })
-          
-          const allBalls = [...currentBalls, ...newBalls]
-          ballsRef.current = allBalls
-          setBalls(allBalls)
-          console.log('MultiBall activated! Total balls now:', allBalls.length)
-          toast.success(message)
-        } else {
-          const noEffectMsg = language === 'da' ? 'Skal have bold i spil!' : 'Need ball in play!'
-          toast.info(noEffectMsg)
-        }
         break
         
       case 'shrinkPaddle':
