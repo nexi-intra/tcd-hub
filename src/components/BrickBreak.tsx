@@ -48,7 +48,7 @@ interface GlobalLeaderboard {
 }
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'expert'
-type GameState = 'menu' | 'playing' | 'paused' | 'levelComplete' | 'gameOver'
+type GameState = 'menu' | 'playing' | 'paused' | 'levelComplete' | 'gameOver' | 'waitingToLaunch'
 
 const DIFFICULTY_SETTINGS = {
   easy: {
@@ -142,6 +142,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   })
   const [particles, setParticles] = useState<{ x: number; y: number; color: string; id: number }[]>([])
   const [users, setUsers] = useState<User[]>([])
+  const [ballAttachedToPaddle, setBallAttachedToPaddle] = useState(true)
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('brickbreak-global-leaderboard', {
     easy: [],
     medium: [],
@@ -162,6 +163,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   })
   const livesRef = useRef<number>(3)
   const scoreRef = useRef<number>(0)
+  const ballAttachedRef = useRef<boolean>(true)
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -244,13 +246,19 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
   const startGame = () => {
     const newBricks = createBricks(1)
-    const newBalls = [resetBall()]
     const newPaddle = {
       x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
       y: GAME_HEIGHT - 40,
       width: INITIAL_PADDLE_WIDTH,
       height: PADDLE_HEIGHT
     }
+    const newBalls = [{
+      x: newPaddle.x + newPaddle.width / 2,
+      y: newPaddle.y - BALL_RADIUS,
+      dx: 0,
+      dy: 0,
+      radius: BALL_RADIUS
+    }]
     
     setScore(0)
     setLevel(1)
@@ -259,37 +267,47 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setBalls(newBalls)
     setPaddle(newPaddle)
     setParticles([])
+    setBallAttachedToPaddle(true)
     
     scoreRef.current = 0
     livesRef.current = 3
     ballsRef.current = newBalls
     bricksRef.current = newBricks
     paddleRef.current = newPaddle
+    ballAttachedRef.current = true
     
-    setGameState('playing')
+    setGameState('waitingToLaunch')
   }
 
   const nextLevel = () => {
     const newLevel = level + 1
     const newBricks = createBricks(newLevel)
-    const newBalls = [resetBall()]
     const newPaddle = {
       ...paddleRef.current,
       x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
       width: INITIAL_PADDLE_WIDTH
     }
+    const newBalls = [{
+      x: newPaddle.x + newPaddle.width / 2,
+      y: newPaddle.y - BALL_RADIUS,
+      dx: 0,
+      dy: 0,
+      radius: BALL_RADIUS
+    }]
     
     setLevel(newLevel)
     setBricks(newBricks)
     setBalls(newBalls)
     setPaddle(newPaddle)
     setParticles([])
+    setBallAttachedToPaddle(true)
     
     ballsRef.current = newBalls
     bricksRef.current = newBricks
     paddleRef.current = newPaddle
+    ballAttachedRef.current = true
     
-    setGameState('playing')
+    setGameState('waitingToLaunch')
   }
 
   const addParticles = (x: number, y: number, color: string) => {
@@ -377,10 +395,41 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     }
   }
 
+  const launchBall = () => {
+    if (!ballAttachedRef.current) return
+    
+    const baseSpeed = DIFFICULTY_SETTINGS[difficulty].ballSpeed
+    const currentBall = ballsRef.current[0]
+    if (!currentBall) return
+    
+    const launchedBall = {
+      ...currentBall,
+      dx: (Math.random() > 0.5 ? 1 : -1) * baseSpeed * 0.7,
+      dy: -baseSpeed
+    }
+    
+    ballsRef.current = [launchedBall]
+    setBalls([launchedBall])
+    setBallAttachedToPaddle(false)
+    ballAttachedRef.current = false
+    setGameState('playing')
+  }
+
   const gameLoop = () => {
     const currentBalls = ballsRef.current
     const currentBricks = bricksRef.current
     const currentPaddle = paddleRef.current
+
+    if (ballAttachedRef.current) {
+      const attachedBall = {
+        ...currentBalls[0],
+        x: currentPaddle.x + currentPaddle.width / 2,
+        y: currentPaddle.y - BALL_RADIUS
+      }
+      ballsRef.current = [attachedBall]
+      setBalls([attachedBall])
+      return
+    }
 
     if (currentBalls.length === 0 && livesRef.current <= 1) {
       return
@@ -508,9 +557,19 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         setGameState('gameOver')
         saveScore()
       } else {
-        const newBall = resetBall()
+        const currentPaddle = paddleRef.current
+        const newBall = {
+          x: currentPaddle.x + currentPaddle.width / 2,
+          y: currentPaddle.y - BALL_RADIUS,
+          dx: 0,
+          dy: 0,
+          radius: BALL_RADIUS
+        }
         ballsRef.current = [newBall]
         setBalls([newBall])
+        setBallAttachedToPaddle(true)
+        ballAttachedRef.current = true
+        setGameState('waitingToLaunch')
       }
     }
 
@@ -606,11 +665,24 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       ctx.fillRect(particle.x + Math.random() * 20 - 10, particle.y + Math.random() * 20 - 10, 4, 4)
       ctx.globalAlpha = 1
     })
+
+    if (ballAttachedRef.current) {
+      ctx.save()
+      ctx.font = 'bold 24px Quicksand, sans-serif'
+      ctx.fillStyle = '#FFFFFF'
+      ctx.textAlign = 'center'
+      ctx.shadowBlur = 10
+      ctx.shadowColor = '#4ECFFF'
+      const message = language === 'da' ? 'Klik eller tryk på mellemrum for at skyde' : 'Click or Press Space to Launch'
+      ctx.fillText(message, GAME_WIDTH / 2, GAME_HEIGHT / 2)
+      ctx.shadowBlur = 0
+      ctx.restore()
+    }
   }
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (gameState !== 'playing') return
+      if (gameState !== 'playing' && gameState !== 'waitingToLaunch') return
       
       const canvas = canvasRef.current
       if (!canvas) return
@@ -627,17 +699,33 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       setPaddle({ ...currentPaddle, x: newX })
     }
 
+    const handleClick = () => {
+      if (gameState === 'waitingToLaunch') {
+        launchBall()
+      }
+    }
+
     window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
+    window.addEventListener('click', handleClick)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('click', handleClick)
+    }
   }, [gameState])
 
   useEffect(() => {
-    if (gameState !== 'playing') return
+    if (gameState !== 'playing' && gameState !== 'waitingToLaunch') return
 
     const pressedKeys = new Set<string>()
     const PADDLE_SPEED = 8
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === ' ' && gameState === 'waitingToLaunch') {
+        e.preventDefault()
+        launchBall()
+        return
+      }
+      
       if (['ArrowLeft', 'ArrowRight', 'a', 'A', 'd', 'D'].includes(e.key)) {
         e.preventDefault()
         pressedKeys.add(e.key.toLowerCase())
@@ -649,7 +737,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     }
 
     const updatePaddleFromKeys = () => {
-      if (gameState !== 'playing') return
+      if (gameState !== 'playing' && gameState !== 'waitingToLaunch') return
 
       const currentPaddle = paddleRef.current
       let newX = currentPaddle.x
@@ -682,14 +770,16 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   }, [gameState])
 
   useEffect(() => {
-    if (gameState !== 'playing') return
+    if (gameState !== 'playing' && gameState !== 'waitingToLaunch') return
 
     let animationFrameId: number
 
     const combinedLoop = () => {
-      gameLoop()
-      draw()
-      animationFrameId = requestAnimationFrame(combinedLoop)
+      if (gameState === 'playing' || gameState === 'waitingToLaunch') {
+        gameLoop()
+        draw()
+        animationFrameId = requestAnimationFrame(combinedLoop)
+      }
     }
 
     animationFrameId = requestAnimationFrame(combinedLoop)
