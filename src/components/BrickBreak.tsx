@@ -472,27 +472,30 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         
       case 'multiBall':
         const currentBalls = ballsRef.current
-        if (currentBalls.length > 0) {
+        const activeBalls = currentBalls.filter(ball => ball.dx !== 0 || ball.dy !== 0)
+        
+        if (activeBalls.length > 0) {
           const newBalls: Ball[] = []
-          currentBalls.forEach(ball => {
-            const angle1 = Math.atan2(ball.dy, ball.dx) + 0.3
-            const angle2 = Math.atan2(ball.dy, ball.dx) - 0.3
+          activeBalls.forEach(ball => {
+            const currentAngle = Math.atan2(ball.dy, ball.dx)
             const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
+            
+            const newAngle = currentAngle + (Math.random() > 0.5 ? 0.4 : -0.4)
             
             newBalls.push({
               ...ball,
-              dx: Math.cos(angle1) * speed,
-              dy: Math.sin(angle1) * speed
-            })
-            newBalls.push({
-              ...ball,
-              dx: Math.cos(angle2) * speed,
-              dy: Math.sin(angle2) * speed
+              x: ball.x + (Math.random() - 0.5) * 4,
+              y: ball.y + (Math.random() - 0.5) * 4,
+              dx: Math.cos(newAngle) * speed,
+              dy: Math.sin(newAngle) * speed
             })
           })
           ballsRef.current = [...currentBalls, ...newBalls]
           setBalls([...currentBalls, ...newBalls])
           toast.success(message)
+        } else {
+          const noEffectMsg = language === 'da' ? 'Skal have bold i spil!' : 'Need ball in play!'
+          toast.info(noEffectMsg)
         }
         break
         
