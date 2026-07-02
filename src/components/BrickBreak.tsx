@@ -400,30 +400,38 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       }
 
       if (newBall.x <= DEFLECTOR_SIZE && newBall.y <= DEFLECTOR_SIZE) {
-        const distToLine = (newBall.x + newBall.y) / Math.sqrt(2)
-        if (distToLine < newBall.radius) {
-          const angle = Math.atan2(newBall.dy, newBall.dx)
+        if (newBall.x + newBall.y <= DEFLECTOR_SIZE) {
           const speed = Math.sqrt(newBall.dx * newBall.dx + newBall.dy * newBall.dy)
-          const newAngle = angle + Math.PI / 2
-          newBall.dx = Math.cos(newAngle) * speed
-          newBall.dy = Math.sin(newAngle) * speed
           
-          newBall.x = DEFLECTOR_SIZE + newBall.radius
-          newBall.y = DEFLECTOR_SIZE + newBall.radius
+          const nx = 1 / Math.sqrt(2)
+          const ny = 1 / Math.sqrt(2)
+          
+          const dot = newBall.dx * nx + newBall.dy * ny
+          newBall.dx = newBall.dx - 2 * dot * nx
+          newBall.dy = newBall.dy - 2 * dot * ny
+          
+          while (newBall.x + newBall.y <= DEFLECTOR_SIZE + newBall.radius) {
+            newBall.x += 1
+            newBall.y += 1
+          }
         }
       }
 
       if (newBall.x >= GAME_WIDTH - DEFLECTOR_SIZE && newBall.y <= DEFLECTOR_SIZE) {
-        const distToLine = ((GAME_WIDTH - newBall.x) + newBall.y) / Math.sqrt(2)
-        if (distToLine < newBall.radius) {
-          const angle = Math.atan2(newBall.dy, newBall.dx)
+        if ((GAME_WIDTH - newBall.x) + newBall.y <= DEFLECTOR_SIZE) {
           const speed = Math.sqrt(newBall.dx * newBall.dx + newBall.dy * newBall.dy)
-          const newAngle = angle - Math.PI / 2
-          newBall.dx = Math.cos(newAngle) * speed
-          newBall.dy = Math.sin(newAngle) * speed
           
-          newBall.x = GAME_WIDTH - DEFLECTOR_SIZE - newBall.radius
-          newBall.y = DEFLECTOR_SIZE + newBall.radius
+          const nx = -1 / Math.sqrt(2)
+          const ny = 1 / Math.sqrt(2)
+          
+          const dot = newBall.dx * nx + newBall.dy * ny
+          newBall.dx = newBall.dx - 2 * dot * nx
+          newBall.dy = newBall.dy - 2 * dot * ny
+          
+          while ((GAME_WIDTH - newBall.x) + newBall.y <= DEFLECTOR_SIZE + newBall.radius) {
+            newBall.x -= 1
+            newBall.y += 1
+          }
         }
       }
 
