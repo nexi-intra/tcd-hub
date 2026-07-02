@@ -39,7 +39,7 @@ interface PowerUp {
   y: number
   width: number
   height: number
-  type: 'multiBall' | 'largePaddle' | 'smallPaddle' | 'slowMotion' | 'extraLife' | 'fastBall' | 'stickyPaddle' | 'fireball' | 'shield'
+  type: 'extraLife' | 'shield' | 'fireball' | 'multiBall' | 'shrinkPaddle' | 'enlargePaddle'
   dy: number
 }
 
@@ -127,18 +127,15 @@ const BRICK_COLORS = [
   { color: '#FF8B4E', hits: 1, points: 10 },
 ]
 
-const POWERUP_TYPES: PowerUp['type'][] = ['multiBall', 'largePaddle', 'smallPaddle', 'slowMotion', 'extraLife', 'fastBall', 'stickyPaddle', 'fireball', 'shield']
+const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'multiBall', 'shrinkPaddle', 'enlargePaddle']
 
 const POWERUP_CONFIG = {
-  multiBall: { color: '#FF6B9D', symbol: '●●', label: { en: 'Multi Ball', da: 'Multi Bold' } },
-  largePaddle: { color: '#4ECFFF', symbol: '━━', label: { en: 'Large Paddle', da: 'Stor Bat' } },
-  smallPaddle: { color: '#FFD84E', symbol: '━', label: { en: 'Small Paddle', da: 'Lille Bat' } },
-  slowMotion: { color: '#C94EFF', symbol: '⏱', label: { en: 'Slow Motion', da: 'Slow Motion' } },
   extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
-  fastBall: { color: '#FF4E8B', symbol: '⚡', label: { en: 'Fast Ball', da: 'Hurtig Bold' } },
-  stickyPaddle: { color: '#8B4EFF', symbol: '🔗', label: { en: 'Sticky Paddle', da: 'Klæbrig Bat' } },
+  shield: { color: '#4ECFFF', symbol: '🛡', label: { en: 'Shield', da: 'Skjold' } },
   fireball: { color: '#FF8B4E', symbol: '🔥', label: { en: 'Fireball', da: 'Ildkugle' } },
-  shield: { color: '#4EFFCF', symbol: '🛡', label: { en: 'Shield', da: 'Skjold' } }
+  multiBall: { color: '#FF6B9D', symbol: '●●', label: { en: 'Multi Ball', da: 'Multi Bold' } },
+  shrinkPaddle: { color: '#FFD84E', symbol: '━', label: { en: 'Shrink Paddle', da: 'Formindsk Bat' } },
+  enlargePaddle: { color: '#C94EFF', symbol: '━━', label: { en: 'Enlarge Paddle', da: 'Forstør Bat' } }
 }
 
 interface User {
@@ -171,6 +168,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [users, setUsers] = useState<User[]>([])
   const [ballAttachedToPaddle, setBallAttachedToPaddle] = useState(true)
   const [powerUps, setPowerUps] = useState<PowerUp[]>([])
+  const [hasShield, setHasShield] = useState(false)
+  const [isFireball, setIsFireball] = useState(false)
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('brickbreak-global-leaderboard', {
     easy: [],
     medium: [],
@@ -297,6 +296,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setLives(3)
     setParticles([])
     setPowerUps([])
+    setHasShield(false)
+    setIsFireball(false)
     setGameState('waitingToLaunch')
   }
 
@@ -443,6 +444,30 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     const message = POWERUP_CONFIG[type].label[language]
     
     switch (type) {
+      case 'extraLife':
+        if (livesRef.current < 3) {
+          livesRef.current = livesRef.current + 1
+          setLives(livesRef.current)
+          toast.success(message)
+        } else {
+          const noEffectMsg = language === 'da' ? 'Max 3 liv!' : 'Max 3 lives!'
+          toast.info(noEffectMsg)
+        }
+        break
+        
+      case 'shield':
+        setHasShield(true)
+        toast.success(message)
+        break
+        
+      case 'fireball':
+        setIsFireball(true)
+        toast.success(message)
+        setTimeout(() => {
+          setIsFireball(false)
+        }, 10000)
+        break
+        
       case 'multiBall':
         const currentBalls = ballsRef.current
         if (currentBalls.length > 0) {
@@ -463,25 +488,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         }
         break
         
-      case 'largePaddle':
-        const newWideLaddle = {
-          ...paddleRef.current,
-          width: Math.min(INITIAL_PADDLE_WIDTH * 1.5, 200)
-        }
-        paddleRef.current = newWideLaddle
-        setPaddle(newWideLaddle)
-        toast.success(message)
-        setTimeout(() => {
-          const resetPaddle = {
-            ...paddleRef.current,
-            width: INITIAL_PADDLE_WIDTH
-          }
-          paddleRef.current = resetPaddle
-          setPaddle(resetPaddle)
-        }, 10000)
-        break
-        
-      case 'smallPaddle':
+      case 'shrinkPaddle':
         const newSmallPaddle = {
           ...paddleRef.current,
           width: Math.max(INITIAL_PADDLE_WIDTH * 0.6, 60)
@@ -499,67 +506,22 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         }, 10000)
         break
         
-      case 'slowMotion':
-        const slowedBalls = ballsRef.current.map(ball => ({
-          ...ball,
-          dx: ball.dx * 0.6,
-          dy: ball.dy * 0.6
-        }))
-        ballsRef.current = slowedBalls
-        setBalls(slowedBalls)
-        toast.success(message)
-        setTimeout(() => {
-          const normalBalls = ballsRef.current.map(ball => ({
-            ...ball,
-            dx: ball.dx / 0.6,
-            dy: ball.dy / 0.6
-          }))
-          ballsRef.current = normalBalls
-          setBalls(normalBalls)
-        }, 8000)
-        break
-        
-      case 'extraLife':
-        if (livesRef.current < 3) {
-          livesRef.current = livesRef.current + 1
-          setLives(livesRef.current)
-          toast.success(message)
-        } else {
-          const noEffectMsg = language === 'da' ? 'Max 3 liv!' : 'Max 3 lives!'
-          toast.info(noEffectMsg)
+      case 'enlargePaddle':
+        const newWidePaddle = {
+          ...paddleRef.current,
+          width: Math.min(INITIAL_PADDLE_WIDTH * 1.5, 200)
         }
-        break
-        
-      case 'fastBall':
-        const fastBalls = ballsRef.current.map(ball => ({
-          ...ball,
-          dx: ball.dx * 1.5,
-          dy: ball.dy * 1.5
-        }))
-        ballsRef.current = fastBalls
-        setBalls(fastBalls)
+        paddleRef.current = newWidePaddle
+        setPaddle(newWidePaddle)
         toast.success(message)
         setTimeout(() => {
-          const normalBalls = ballsRef.current.map(ball => ({
-            ...ball,
-            dx: ball.dx / 1.5,
-            dy: ball.dy / 1.5
-          }))
-          ballsRef.current = normalBalls
-          setBalls(normalBalls)
-        }, 8000)
-        break
-        
-      case 'stickyPaddle':
-        toast.success(message)
-        break
-        
-      case 'fireball':
-        toast.success(message)
-        break
-        
-      case 'shield':
-        toast.success(message)
+          const resetPaddle = {
+            ...paddleRef.current,
+            width: INITIAL_PADDLE_WIDTH
+          }
+          paddleRef.current = resetPaddle
+          setPaddle(resetPaddle)
+        }, 10000)
         break
     }
   }
@@ -663,17 +625,19 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           ball.y - ball.radius < brick.y + brick.height
 
         if (collision) {
-          const overlapLeft = ball.x + ball.radius - brick.x
-          const overlapRight = brick.x + brick.width - (ball.x - ball.radius)
-          const overlapTop = ball.y + ball.radius - brick.y
-          const overlapBottom = brick.y + brick.height - (ball.y - ball.radius)
+          if (!isFireball) {
+            const overlapLeft = ball.x + ball.radius - brick.x
+            const overlapRight = brick.x + brick.width - (ball.x - ball.radius)
+            const overlapTop = ball.y + ball.radius - brick.y
+            const overlapBottom = brick.y + brick.height - (ball.y - ball.radius)
 
-          const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom)
+            const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom)
 
-          if (minOverlap === overlapTop || minOverlap === overlapBottom) {
-            ball.dy = -ball.dy
-          } else {
-            ball.dx = -ball.dx
+            if (minOverlap === overlapTop || minOverlap === overlapBottom) {
+              ball.dy = -ball.dy
+            } else {
+              ball.dx = -ball.dx
+            }
           }
 
           brick.hits++
@@ -742,13 +706,11 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setBricks(newBricks)
 
     if (newBalls.length === 0) {
-      livesRef.current -= 1
-      setLives(livesRef.current)
-      
-      if (livesRef.current <= 0) {
-        setGameState('gameOver')
-        saveScore()
-      } else {
+      if (hasShield) {
+        setHasShield(false)
+        const shieldMsg = language === 'da' ? 'Skjold brugt!' : 'Shield used!'
+        toast.info(shieldMsg)
+        
         const currentPaddle = paddleRef.current
         const newBall = {
           x: currentPaddle.x + currentPaddle.width / 2,
@@ -762,6 +724,28 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         setBallAttachedToPaddle(true)
         ballAttachedRef.current = true
         setGameState('waitingToLaunch')
+      } else {
+        livesRef.current -= 1
+        setLives(livesRef.current)
+        
+        if (livesRef.current <= 0) {
+          setGameState('gameOver')
+          saveScore()
+        } else {
+          const currentPaddle = paddleRef.current
+          const newBall = {
+            x: currentPaddle.x + currentPaddle.width / 2,
+            y: currentPaddle.y - BALL_RADIUS,
+            dx: 0,
+            dy: 0,
+            radius: BALL_RADIUS
+          }
+          ballsRef.current = [newBall]
+          setBalls([newBall])
+          setBallAttachedToPaddle(true)
+          ballAttachedRef.current = true
+          setGameState('waitingToLaunch')
+        }
       }
     }
 
@@ -832,10 +816,15 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     currentBalls.forEach(ball => {
       ctx.beginPath()
       ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2)
-      ctx.fillStyle = '#FFFFFF'
-      ctx.fill()
-      ctx.shadowBlur = 15
-      ctx.shadowColor = '#4ECFFF'
+      if (isFireball) {
+        ctx.fillStyle = '#FF8B4E'
+        ctx.shadowBlur = 20
+        ctx.shadowColor = '#FF8B4E'
+      } else {
+        ctx.fillStyle = '#FFFFFF'
+        ctx.shadowBlur = 15
+        ctx.shadowColor = '#4ECFFF'
+      }
       ctx.fill()
       ctx.shadowBlur = 0
     })
@@ -1328,6 +1317,16 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               <span key={i} className="text-red-500">♥</span>
             ))}
           </div>
+          {hasShield && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-cyan-500/20 border border-cyan-500/50 text-cyan-500">
+              🛡 {language === 'da' ? 'Skjold' : 'Shield'}
+            </div>
+          )}
+          {isFireball && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-orange-500/20 border border-orange-500/50 text-orange-500">
+              🔥 {language === 'da' ? 'Ildkugle' : 'Fireball'}
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
           <Button onClick={() => setGameState('menu')} variant="outline" size="sm">
