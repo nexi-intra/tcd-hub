@@ -116,7 +116,7 @@ const BRICK_OFFSET_LEFT = 35
 const DEFLECTOR_SIZE = 40
 const POWERUP_SIZE = 30
 const POWERUP_FALL_SPEED = 3
-const POWERUP_SPAWN_CHANCE = 0.2
+const POWERUP_SPAWN_CHANCE = 0.45
 
 const BRICK_COLORS = [
   { color: '#FF6B9D', hits: 3, points: 30 },
