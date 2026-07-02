@@ -146,7 +146,7 @@ const POWERUP_CONFIG = {
   enlargePaddle: { color: '#C94EFF', symbol: '━━', label: { en: 'Enlarge Paddle', da: 'Forstør Bat' } },
   slowMotion: { color: '#9D4EFF', symbol: '⏱', label: { en: 'Slow Motion', da: 'Langsom' } },
   speedBoost: { color: '#FF4E6B', symbol: '⚡', label: { en: 'Speed Boost', da: 'Fart' } },
-  laser: { color: '#00FFFF', symbol: '⚡', label: { en: 'Laser', da: 'Laser' } }
+  laser: { color: '#00FFFF', symbol: '🔫', label: { en: 'Laser', da: 'Laser' } }
 }
 
 interface User {
