@@ -473,19 +473,25 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       case 'multiBall':
         const currentBalls = ballsRef.current
         if (currentBalls.length > 0) {
-          const firstBall = currentBalls[0]
-          const newBall1 = {
-            ...firstBall,
-            dx: firstBall.dx + 2,
-            dy: firstBall.dy
-          }
-          const newBall2 = {
-            ...firstBall,
-            dx: firstBall.dx - 2,
-            dy: firstBall.dy
-          }
-          ballsRef.current = [...currentBalls, newBall1, newBall2]
-          setBalls([...currentBalls, newBall1, newBall2])
+          const newBalls: Ball[] = []
+          currentBalls.forEach(ball => {
+            const angle1 = Math.atan2(ball.dy, ball.dx) + 0.3
+            const angle2 = Math.atan2(ball.dy, ball.dx) - 0.3
+            const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
+            
+            newBalls.push({
+              ...ball,
+              dx: Math.cos(angle1) * speed,
+              dy: Math.sin(angle1) * speed
+            })
+            newBalls.push({
+              ...ball,
+              dx: Math.cos(angle2) * speed,
+              dy: Math.sin(angle2) * speed
+            })
+          })
+          ballsRef.current = [...currentBalls, ...newBalls]
+          setBalls([...currentBalls, ...newBalls])
           toast.success(message)
         }
         break
@@ -729,7 +735,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setBalls(newBalls)
     setBricks(newBricks)
 
-    if (newBalls.length === 0) {
+    if (newBalls.length === 0 && currentBalls.length > 0) {
       if (hasShieldRef.current) {
         setHasShield(false)
         hasShieldRef.current = false
