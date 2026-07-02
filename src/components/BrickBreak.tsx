@@ -164,7 +164,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     width: INITIAL_PADDLE_WIDTH,
     height: PADDLE_HEIGHT
   })
-  const [particles, setParticles] = useState<{ x: number; y: number; color: string; id: number }[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [ballAttachedToPaddle, setBallAttachedToPaddle] = useState(true)
   const [powerUps, setPowerUps] = useState<PowerUp[]>([])
@@ -297,7 +296,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setScore(0)
     setLevel(1)
     setLives(3)
-    setParticles([])
     setPowerUps([])
     setHasShield(false)
     setIsFireball(false)
@@ -336,22 +334,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setBricks(newBricks)
     setPaddle(newPaddle)
     setLevel(newLevel)
-    setParticles([])
     setPowerUps([])
     setGameState('waitingToLaunch')
-  }
-
-  const addParticles = (x: number, y: number, color: string) => {
-    const newParticles = Array.from({ length: 8 }, (_, i) => ({
-      x,
-      y,
-      color,
-      id: Date.now() + i
-    }))
-    setParticles(prev => [...prev, ...newParticles])
-    setTimeout(() => {
-      setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)))
-    }, 500)
   }
 
   const saveScore = async () => {
@@ -649,17 +633,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         if (collision) {
           if (isFireballRef.current) {
             scoreIncrease += brick.points
-            addParticles(brick.x + brick.width / 2, brick.y + brick.height / 2, brick.color)
-            
-            for (let i = 0; i < 12; i++) {
-              const explosionParticle = {
-                x: brick.x + brick.width / 2,
-                y: brick.y + brick.height / 2,
-                color: i % 2 === 0 ? '#FF0000' : '#FF6B00',
-                id: Date.now() + Math.random() + i
-              }
-              setParticles(prev => [...prev, explosionParticle])
-            }
             
             if (Math.random() < POWERUP_SPAWN_CHANCE) {
               const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
@@ -695,7 +668,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
             if (brick.hits >= brick.maxHits) {
               scoreIncrease += brick.points
-              addParticles(brick.x + brick.width / 2, brick.y + brick.height / 2, brick.color)
               
               if (Math.random() < POWERUP_SPAWN_CHANCE) {
                 const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
@@ -935,13 +907,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText(config.symbol, powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2)
-    })
-
-    particles.forEach(particle => {
-      ctx.fillStyle = particle.color
-      ctx.globalAlpha = 0.6
-      ctx.fillRect(particle.x + Math.random() * 20 - 10, particle.y + Math.random() * 20 - 10, 4, 4)
-      ctx.globalAlpha = 1
     })
 
     if (ballAttachedRef.current) {
