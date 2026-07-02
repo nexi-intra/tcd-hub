@@ -810,6 +810,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     const currentLasers = lasersRef.current
     const updatedLasers: Laser[] = []
     let laserScoreIncrease = 0
+    const laserBricksToRemove: number[] = []
 
     currentLasers.forEach(laser => {
       let laserDestroyed = false
@@ -823,7 +824,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       }
 
       newBricks.forEach((brick, index) => {
-        if (laserDestroyed || bricksToRemove.includes(index)) return
+        if (laserDestroyed || laserBricksToRemove.includes(index)) return
 
         const collision = 
           newLaser.x + newLaser.width > brick.x &&
@@ -853,7 +854,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               setPowerUps(prev => [...prev, newPowerUp])
             }
 
-            bricksToRemove.push(index)
+            laserBricksToRemove.push(index)
           }
         }
       })
@@ -871,7 +872,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       setScore(scoreRef.current)
     }
 
-    newBricks = newBricks.filter((_, index) => !bricksToRemove.includes(index))
+    newBricks = newBricks.filter((_, index) => !laserBricksToRemove.includes(index))
 
     ballsRef.current = newBalls
     bricksRef.current = newBricks
