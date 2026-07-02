@@ -142,8 +142,8 @@ const POWERUP_CONFIG = {
   extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
   shield: { color: '#4ECFFF', symbol: '🛡', label: { en: 'Shield', da: 'Skjold' } },
   fireball: { color: '#FF8B4E', symbol: '🔥', label: { en: 'Fireball', da: 'Ildkugle' } },
-  shrinkPaddle: { color: '#FFD84E', symbol: '━', label: { en: 'Shrink Paddle', da: 'Formindsk Bat' } },
-  enlargePaddle: { color: '#C94EFF', symbol: '━━', label: { en: 'Enlarge Paddle', da: 'Forstør Bat' } },
+  shrinkPaddle: { color: '#FFD84E', symbol: '━', label: { en: 'Shrink Paddle', da: 'Formindsk bat' } },
+  enlargePaddle: { color: '#C94EFF', symbol: '━━', label: { en: 'Enlarge Paddle', da: 'Forstør bat' } },
   slowMotion: { color: '#9D4EFF', symbol: '⏱', label: { en: 'Slow Motion', da: 'Langsom' } },
   speedBoost: { color: '#FF4E6B', symbol: '⚡', label: { en: 'Speed Boost', da: 'Fart' } },
   laser: { color: '#00FFFF', symbol: '🔫', label: { en: 'Laser', da: 'Laser' } }
