@@ -127,7 +127,7 @@ const BRICK_COLORS = [
   { color: '#FF8B4E', hits: 1, points: 10 },
 ]
 
-const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'multiBall', 'shrinkPaddle', 'enlargePaddle']
+const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'multiBall', 'shrinkPaddle', 'enlargePaddle', 'fireball']
 
 const POWERUP_CONFIG = {
   extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
