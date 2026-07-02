@@ -179,6 +179,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [ballAttachedToPaddle, setBallAttachedToPaddle] = useState(true)
   const [powerUps, setPowerUps] = useState<PowerUp[]>([])
   const [hasShield, setHasShield] = useState(false)
+  const [shieldTimeLeft, setShieldTimeLeft] = useState(0)
   const [isFireball, setIsFireball] = useState(false)
   const [fireballTimeLeft, setFireballTimeLeft] = useState(0)
   const [ballSpeedMultiplier, setBallSpeedMultiplier] = useState(1)
@@ -186,6 +187,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [hasLaser, setHasLaser] = useState(false)
   const [laserTimeLeft, setLaserTimeLeft] = useState(0)
   const [lasers, setLasers] = useState<Laser[]>([])
+  const [enlargePaddleTimeLeft, setEnlargePaddleTimeLeft] = useState(0)
+  const [shrinkPaddleTimeLeft, setShrinkPaddleTimeLeft] = useState(0)
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('brickbreak-global-leaderboard', {
     easy: [],
     medium: [],
@@ -319,10 +322,13 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setLives(3)
     setPowerUps([])
     setHasShield(false)
+    setShieldTimeLeft(0)
     setIsFireball(false)
     setFireballTimeLeft(0)
     setBallSpeedMultiplier(1)
     setSpeedPowerupTimeLeft(0)
+    setEnlargePaddleTimeLeft(0)
+    setShrinkPaddleTimeLeft(0)
     isFireballRef.current = false
     hasShieldRef.current = false
     hasLaserRef.current = false
@@ -364,6 +370,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setLevel(newLevel)
     setPowerUps([])
     setHasShield(false)
+    setShieldTimeLeft(0)
     setIsFireball(false)
     setFireballTimeLeft(0)
     setBallSpeedMultiplier(1)
@@ -371,6 +378,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setHasLaser(false)
     setLaserTimeLeft(0)
     setLasers([])
+    setEnlargePaddleTimeLeft(0)
+    setShrinkPaddleTimeLeft(0)
     isFireballRef.current = false
     hasShieldRef.current = false
     ballSpeedMultiplierRef.current = 1
@@ -490,7 +499,20 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       case 'shield':
         setHasShield(true)
         hasShieldRef.current = true
+        setShieldTimeLeft(20)
         toast.success(message)
+        
+        const shieldInterval = setInterval(() => {
+          setShieldTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(shieldInterval)
+              setHasShield(false)
+              hasShieldRef.current = false
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
         break
         
       case 'fireball':
@@ -519,15 +541,24 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         }
         paddleRef.current = newSmallPaddle
         setPaddle(newSmallPaddle)
+        setShrinkPaddleTimeLeft(10)
         toast.success(message)
-        setTimeout(() => {
-          const resetPaddle = {
-            ...paddleRef.current,
-            width: INITIAL_PADDLE_WIDTH
-          }
-          paddleRef.current = resetPaddle
-          setPaddle(resetPaddle)
-        }, 10000)
+        
+        const shrinkInterval = setInterval(() => {
+          setShrinkPaddleTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(shrinkInterval)
+              const resetPaddle = {
+                ...paddleRef.current,
+                width: INITIAL_PADDLE_WIDTH
+              }
+              paddleRef.current = resetPaddle
+              setPaddle(resetPaddle)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
         break
         
       case 'enlargePaddle':
@@ -537,15 +568,24 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         }
         paddleRef.current = newWidePaddle
         setPaddle(newWidePaddle)
+        setEnlargePaddleTimeLeft(10)
         toast.success(message)
-        setTimeout(() => {
-          const resetPaddle = {
-            ...paddleRef.current,
-            width: INITIAL_PADDLE_WIDTH
-          }
-          paddleRef.current = resetPaddle
-          setPaddle(resetPaddle)
-        }, 10000)
+        
+        const enlargeInterval = setInterval(() => {
+          setEnlargePaddleTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(enlargeInterval)
+              const resetPaddle = {
+                ...paddleRef.current,
+                width: INITIAL_PADDLE_WIDTH
+              }
+              paddleRef.current = resetPaddle
+              setPaddle(resetPaddle)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
         break
         
       case 'slowMotion':
@@ -909,6 +949,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         setHasLaser(false)
         setLaserTimeLeft(0)
         setLasers([])
+        setEnlargePaddleTimeLeft(0)
+        setShrinkPaddleTimeLeft(0)
         isFireballRef.current = false
         ballSpeedMultiplierRef.current = 1
         hasLaserRef.current = false
@@ -934,6 +976,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         powerUpsRef.current = []
         setPowerUps([])
         setHasShield(false)
+        setShieldTimeLeft(0)
         setIsFireball(false)
         setFireballTimeLeft(0)
         setBallSpeedMultiplier(1)
@@ -941,6 +984,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         setHasLaser(false)
         setLaserTimeLeft(0)
         setLasers([])
+        setEnlargePaddleTimeLeft(0)
+        setShrinkPaddleTimeLeft(0)
         hasShieldRef.current = false
         isFireballRef.current = false
         ballSpeedMultiplierRef.current = 1
@@ -1574,8 +1619,10 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             ))}
           </div>
           {hasShield && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-cyan-500/20 border border-cyan-500/50 text-cyan-500">
-              🛡 {language === 'da' ? 'Skjold' : 'Shield'}
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-2 border-cyan-500/50 text-cyan-500 animate-pulse">
+              <span className="text-xl">🛡</span>
+              <span className="font-bold">{language === 'da' ? 'SKJOLD AKTIV' : 'SHIELD ACTIVE'}</span>
+              <span className="ml-2 px-2 py-0.5 rounded bg-cyan-500 text-white text-sm font-bold">{shieldTimeLeft}s</span>
             </div>
           )}
           {isFireball && (
@@ -1583,6 +1630,20 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               <span className="text-xl">🔥</span>
               <span className="font-bold">{language === 'da' ? 'ILDKUGLE AKTIV' : 'FIREBALL ACTIVE'}</span>
               <span className="ml-2 px-2 py-0.5 rounded bg-red-500 text-white text-sm font-bold">{fireballTimeLeft}s</span>
+            </div>
+          )}
+          {enlargePaddleTimeLeft > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-purple-500/20 border border-purple-500/50 text-purple-500">
+              <span className="text-xl">━━</span>
+              <span className="font-bold">{language === 'da' ? 'STOR BAT' : 'LARGE PADDLE'}</span>
+              <span className="ml-2 px-2 py-0.5 rounded bg-purple-500 text-white text-sm font-bold">{enlargePaddleTimeLeft}s</span>
+            </div>
+          )}
+          {shrinkPaddleTimeLeft > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-yellow-500/20 border border-yellow-500/50 text-yellow-500">
+              <span className="text-xl">━</span>
+              <span className="font-bold">{language === 'da' ? 'LILLE BAT' : 'SMALL PADDLE'}</span>
+              <span className="ml-2 px-2 py-0.5 rounded bg-yellow-500 text-white text-sm font-bold">{shrinkPaddleTimeLeft}s</span>
             </div>
           )}
           {ballSpeedMultiplier === 0.5 && speedPowerupTimeLeft > 0 && (
