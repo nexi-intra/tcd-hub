@@ -39,7 +39,7 @@ interface PowerUp {
   y: number
   width: number
   height: number
-  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle'
+  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle' | 'slowMotion' | 'speedBoost'
   dy: number
 }
 
@@ -127,14 +127,16 @@ const BRICK_COLORS = [
   { color: '#FF8B4E', hits: 1, points: 10 },
 ]
 
-const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle']
+const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost']
 
 const POWERUP_CONFIG = {
   extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
   shield: { color: '#4ECFFF', symbol: '🛡', label: { en: 'Shield', da: 'Skjold' } },
   fireball: { color: '#FF8B4E', symbol: '🔥', label: { en: 'Fireball', da: 'Ildkugle' } },
   shrinkPaddle: { color: '#FFD84E', symbol: '━', label: { en: 'Shrink Paddle', da: 'Formindsk Bat' } },
-  enlargePaddle: { color: '#C94EFF', symbol: '━━', label: { en: 'Enlarge Paddle', da: 'Forstør Bat' } }
+  enlargePaddle: { color: '#C94EFF', symbol: '━━', label: { en: 'Enlarge Paddle', da: 'Forstør Bat' } },
+  slowMotion: { color: '#9D4EFF', symbol: '⏱', label: { en: 'Slow Motion', da: 'Langsom' } },
+  speedBoost: { color: '#FF4E6B', symbol: '⚡', label: { en: 'Speed Boost', da: 'Fart' } }
 }
 
 interface User {
@@ -169,6 +171,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [hasShield, setHasShield] = useState(false)
   const [isFireball, setIsFireball] = useState(false)
   const [fireballTimeLeft, setFireballTimeLeft] = useState(0)
+  const [ballSpeedMultiplier, setBallSpeedMultiplier] = useState(1)
+  const [speedPowerupTimeLeft, setSpeedPowerupTimeLeft] = useState(0)
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('brickbreak-global-leaderboard', {
     easy: [],
     medium: [],
@@ -193,6 +197,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const ballAttachedRef = useRef<boolean>(true)
   const isFireballRef = useRef<boolean>(false)
   const hasShieldRef = useRef<boolean>(false)
+  const ballSpeedMultiplierRef = useRef<number>(1)
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -275,6 +280,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     paddleRef.current = newPaddle
     ballAttachedRef.current = true
     powerUpsRef.current = []
+    ballSpeedMultiplierRef.current = 1
     
     const newBalls = [{
       x: newPaddle.x + newPaddle.width / 2,
@@ -299,6 +305,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setHasShield(false)
     setIsFireball(false)
     setFireballTimeLeft(0)
+    setBallSpeedMultiplier(1)
+    setSpeedPowerupTimeLeft(0)
     isFireballRef.current = false
     hasShieldRef.current = false
     setGameState('waitingToLaunch')
@@ -416,10 +424,11 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     const currentBall = ballsRef.current[0]
     if (!currentBall) return
     
+    const speedMultiplier = ballSpeedMultiplierRef.current
     const launchedBall = {
       ...currentBall,
-      dx: (Math.random() > 0.5 ? 1 : -1) * baseSpeed * 0.7,
-      dy: -baseSpeed
+      dx: (Math.random() > 0.5 ? 1 : -1) * baseSpeed * 0.7 * speedMultiplier,
+      dy: -baseSpeed * speedMultiplier
     }
     
     ballsRef.current = [launchedBall]
@@ -504,6 +513,44 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setPaddle(resetPaddle)
         }, 10000)
         break
+        
+      case 'slowMotion':
+        ballSpeedMultiplierRef.current = 0.5
+        setBallSpeedMultiplier(0.5)
+        setSpeedPowerupTimeLeft(8)
+        toast.success(message)
+        
+        const slowMotionInterval = setInterval(() => {
+          setSpeedPowerupTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(slowMotionInterval)
+              ballSpeedMultiplierRef.current = 1
+              setBallSpeedMultiplier(1)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+        break
+        
+      case 'speedBoost':
+        ballSpeedMultiplierRef.current = 2
+        setBallSpeedMultiplier(2)
+        setSpeedPowerupTimeLeft(8)
+        toast.success(message)
+        
+        const speedBoostInterval = setInterval(() => {
+          setSpeedPowerupTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(speedBoostInterval)
+              ballSpeedMultiplierRef.current = 1
+              setBallSpeedMultiplier(1)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+        break
     }
   }
 
@@ -531,8 +578,9 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
     const newBalls = currentBalls.map(ball => {
       let newBall = { ...ball }
-      newBall.x += newBall.dx
-      newBall.y += newBall.dy
+      const speedMultiplier = ballSpeedMultiplierRef.current
+      newBall.x += newBall.dx * speedMultiplier
+      newBall.y += newBall.dy * speedMultiplier
 
       if (newBall.x - newBall.radius < 0 || newBall.x + newBall.radius > GAME_WIDTH) {
         newBall.dx = -newBall.dx
@@ -1348,6 +1396,20 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               <span className="text-xl">🔥</span>
               <span className="font-bold">{language === 'da' ? 'ILDKUGLE AKTIV' : 'FIREBALL ACTIVE'}</span>
               <span className="ml-2 px-2 py-0.5 rounded bg-red-500 text-white text-sm font-bold">{fireballTimeLeft}s</span>
+            </div>
+          )}
+          {ballSpeedMultiplier === 0.5 && speedPowerupTimeLeft > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-purple-500/20 border border-purple-500/50 text-purple-500">
+              <span className="text-xl">⏱</span>
+              <span className="font-bold">{language === 'da' ? 'LANGSOM' : 'SLOW MOTION'}</span>
+              <span className="ml-2 px-2 py-0.5 rounded bg-purple-500 text-white text-sm font-bold">{speedPowerupTimeLeft}s</span>
+            </div>
+          )}
+          {ballSpeedMultiplier === 2 && speedPowerupTimeLeft > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-pink-500/20 border border-pink-500/50 text-pink-500">
+              <span className="text-xl">⚡</span>
+              <span className="font-bold">{language === 'da' ? 'FART' : 'SPEED BOOST'}</span>
+              <span className="ml-2 px-2 py-0.5 rounded bg-pink-500 text-white text-sm font-bold">{speedPowerupTimeLeft}s</span>
             </div>
           )}
         </div>
