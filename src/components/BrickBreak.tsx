@@ -260,6 +260,13 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       radius: BALL_RADIUS
     }]
     
+    scoreRef.current = 0
+    livesRef.current = 3
+    ballsRef.current = newBalls
+    bricksRef.current = newBricks
+    paddleRef.current = newPaddle
+    ballAttachedRef.current = true
+    
     setScore(0)
     setLevel(1)
     setLives(3)
@@ -268,14 +275,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setPaddle(newPaddle)
     setParticles([])
     setBallAttachedToPaddle(true)
-    
-    scoreRef.current = 0
-    livesRef.current = 3
-    ballsRef.current = newBalls
-    bricksRef.current = newBricks
-    paddleRef.current = newPaddle
-    ballAttachedRef.current = true
-    
     setGameState('waitingToLaunch')
   }
 
