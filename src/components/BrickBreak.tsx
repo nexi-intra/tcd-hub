@@ -363,6 +363,19 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setPaddle(newPaddle)
     setLevel(newLevel)
     setPowerUps([])
+    setHasShield(false)
+    setIsFireball(false)
+    setFireballTimeLeft(0)
+    setBallSpeedMultiplier(1)
+    setSpeedPowerupTimeLeft(0)
+    setHasLaser(false)
+    setLaserTimeLeft(0)
+    setLasers([])
+    isFireballRef.current = false
+    hasShieldRef.current = false
+    ballSpeedMultiplierRef.current = 1
+    hasLaserRef.current = false
+    lasersRef.current = []
     setGameState('waitingToLaunch')
   }
 
@@ -887,6 +900,20 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         const shieldMsg = language === 'da' ? 'Skjold brugt!' : 'Shield used!'
         toast.info(shieldMsg)
         
+        powerUpsRef.current = []
+        setPowerUps([])
+        setIsFireball(false)
+        setFireballTimeLeft(0)
+        setBallSpeedMultiplier(1)
+        setSpeedPowerupTimeLeft(0)
+        setHasLaser(false)
+        setLaserTimeLeft(0)
+        setLasers([])
+        isFireballRef.current = false
+        ballSpeedMultiplierRef.current = 1
+        hasLaserRef.current = false
+        lasersRef.current = []
+        
         const currentPaddle = paddleRef.current
         const newBall = {
           x: currentPaddle.x + currentPaddle.width / 2,
@@ -903,6 +930,22 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       } else {
         livesRef.current -= 1
         setLives(livesRef.current)
+        
+        powerUpsRef.current = []
+        setPowerUps([])
+        setHasShield(false)
+        setIsFireball(false)
+        setFireballTimeLeft(0)
+        setBallSpeedMultiplier(1)
+        setSpeedPowerupTimeLeft(0)
+        setHasLaser(false)
+        setLaserTimeLeft(0)
+        setLasers([])
+        hasShieldRef.current = false
+        isFireballRef.current = false
+        ballSpeedMultiplierRef.current = 1
+        hasLaserRef.current = false
+        lasersRef.current = []
         
         if (livesRef.current <= 0) {
           setGameState('gameOver')
