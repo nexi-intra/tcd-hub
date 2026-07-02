@@ -142,8 +142,8 @@ const POWERUP_CONFIG = {
   extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
   shield: { color: '#4ECFFF', symbol: '🛡', label: { en: 'Shield', da: 'Skjold' } },
   fireball: { color: '#FF8B4E', symbol: '🔥', label: { en: 'Fireball', da: 'Ildkugle' } },
-  shrinkPaddle: { color: '#FFD84E', symbol: '━', label: { en: 'Shrink Paddle', da: 'Formindsk bat' } },
-  enlargePaddle: { color: '#C94EFF', symbol: '━━', label: { en: 'Enlarge Paddle', da: 'Forstør bat' } },
+  shrinkPaddle: { color: '#FFD84E', symbol: '━', label: { en: 'Shrink Paddle', da: 'Formindsk bar' } },
+  enlargePaddle: { color: '#C94EFF', symbol: '━━', label: { en: 'Enlarge Paddle', da: 'Forstør bar' } },
   slowMotion: { color: '#9D4EFF', symbol: '⏱', label: { en: 'Slow Motion', da: 'Langsom' } },
   speedBoost: { color: '#FF4E6B', symbol: '⚡', label: { en: 'Speed Boost', da: 'Fart' } },
   laser: { color: '#00FFFF', symbol: '🔫', label: { en: 'Laser', da: 'Laser' } }
@@ -1635,14 +1635,14 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           {enlargePaddleTimeLeft > 0 && (
             <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-purple-500/20 border border-purple-500/50 text-purple-500">
               <span className="text-xl">━━</span>
-              <span className="font-bold">{language === 'da' ? 'STOR BAT' : 'LARGE PADDLE'}</span>
+              <span className="font-bold">{language === 'da' ? 'STOR BAR' : 'LARGE PADDLE'}</span>
               <span className="ml-2 px-2 py-0.5 rounded bg-purple-500 text-white text-sm font-bold">{enlargePaddleTimeLeft}s</span>
             </div>
           )}
           {shrinkPaddleTimeLeft > 0 && (
             <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-yellow-500/20 border border-yellow-500/50 text-yellow-500">
               <span className="text-xl">━</span>
-              <span className="font-bold">{language === 'da' ? 'LILLE BAT' : 'SMALL PADDLE'}</span>
+              <span className="font-bold">{language === 'da' ? 'LILLE BAR' : 'SMALL PADDLE'}</span>
               <span className="ml-2 px-2 py-0.5 rounded bg-yellow-500 text-white text-sm font-bold">{shrinkPaddleTimeLeft}s</span>
             </div>
           )}
