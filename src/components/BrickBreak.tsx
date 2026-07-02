@@ -116,7 +116,7 @@ const BRICK_OFFSET_LEFT = 35
 const DEFLECTOR_SIZE = 40
 const POWERUP_SIZE = 30
 const POWERUP_FALL_SPEED = 3
-const POWERUP_SPAWN_CHANCE = 0.45
+const POWERUP_SPAWN_CHANCE = 0.30
 
 const BRICK_COLORS = [
   { color: '#FF6B9D', hits: 3, points: 30 },
@@ -481,25 +481,16 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
             const currentAngle = Math.atan2(ball.dy, ball.dx)
             
-            const ball1 = {
+            const duplicateBall = {
               ...ball,
-              x: ball.x + (Math.random() - 0.5) * 10,
-              y: ball.y + (Math.random() - 0.5) * 10,
-              dx: Math.cos(currentAngle - 0.5) * speed,
-              dy: Math.sin(currentAngle - 0.5) * speed,
+              x: ball.x + (Math.random() - 0.5) * 20,
+              y: ball.y + (Math.random() - 0.5) * 20,
+              dx: Math.cos(currentAngle + (Math.random() - 0.5) * 0.8) * speed,
+              dy: Math.sin(currentAngle + (Math.random() - 0.5) * 0.8) * speed,
               radius: BALL_RADIUS
             }
             
-            const ball2 = {
-              ...ball,
-              x: ball.x + (Math.random() - 0.5) * 10,
-              y: ball.y + (Math.random() - 0.5) * 10,
-              dx: Math.cos(currentAngle + 0.5) * speed,
-              dy: Math.sin(currentAngle + 0.5) * speed,
-              radius: BALL_RADIUS
-            }
-            
-            newBalls.push(ball1, ball2)
+            newBalls.push(duplicateBall)
           })
           
           const allBalls = [...currentBalls, ...newBalls]
