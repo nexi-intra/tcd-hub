@@ -170,6 +170,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [powerUps, setPowerUps] = useState<PowerUp[]>([])
   const [hasShield, setHasShield] = useState(false)
   const [isFireball, setIsFireball] = useState(false)
+  const [fireballTimeLeft, setFireballTimeLeft] = useState(0)
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('brickbreak-global-leaderboard', {
     easy: [],
     medium: [],
@@ -298,6 +299,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setPowerUps([])
     setHasShield(false)
     setIsFireball(false)
+    setFireballTimeLeft(0)
     setGameState('waitingToLaunch')
   }
 
@@ -462,10 +464,19 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         
       case 'fireball':
         setIsFireball(true)
+        setFireballTimeLeft(10)
         toast.success(message)
-        setTimeout(() => {
-          setIsFireball(false)
-        }, 10000)
+        
+        const fireballInterval = setInterval(() => {
+          setFireballTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(fireballInterval)
+              setIsFireball(false)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
         break
         
       case 'multiBall':
@@ -632,6 +643,16 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           if (isFireball) {
             scoreIncrease += brick.points
             addParticles(brick.x + brick.width / 2, brick.y + brick.height / 2, brick.color)
+            
+            for (let i = 0; i < 12; i++) {
+              const explosionParticle = {
+                x: brick.x + brick.width / 2,
+                y: brick.y + brick.height / 2,
+                color: i % 2 === 0 ? '#FF0000' : '#FF6B00',
+                id: Date.now() + Math.random() + i
+              }
+              setParticles(prev => [...prev, explosionParticle])
+            }
             
             if (Math.random() < POWERUP_SPAWN_CHANCE) {
               const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
@@ -841,15 +862,39 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       ctx.beginPath()
       ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2)
       if (isFireball) {
-        ctx.fillStyle = '#FF0000'
-        ctx.shadowBlur = 20
+        const fireGradient = ctx.createRadialGradient(ball.x, ball.y, 0, ball.x, ball.y, ball.radius * 3)
+        fireGradient.addColorStop(0, '#FFFF00')
+        fireGradient.addColorStop(0.3, '#FF6B00')
+        fireGradient.addColorStop(0.6, '#FF0000')
+        fireGradient.addColorStop(1, 'rgba(255, 0, 0, 0)')
+        
+        ctx.fillStyle = fireGradient
+        ctx.shadowBlur = 30
         ctx.shadowColor = '#FF0000'
+        ctx.beginPath()
+        ctx.arc(ball.x, ball.y, ball.radius * 3, 0, Math.PI * 2)
+        ctx.fill()
+        
+        ctx.fillStyle = '#FF4400'
+        ctx.shadowBlur = 25
+        ctx.shadowColor = '#FF0000'
+        ctx.beginPath()
+        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2)
+        ctx.fill()
+        
+        for (let i = 0; i < 3; i++) {
+          ctx.fillStyle = `rgba(255, ${100 - i * 30}, 0, ${0.6 - i * 0.2})`
+          ctx.shadowBlur = 15 - i * 5
+          ctx.beginPath()
+          ctx.arc(ball.x - ball.dx * i * 0.5, ball.y - ball.dy * i * 0.5, ball.radius * (1 - i * 0.2), 0, Math.PI * 2)
+          ctx.fill()
+        }
       } else {
         ctx.fillStyle = '#FFFFFF'
         ctx.shadowBlur = 15
         ctx.shadowColor = '#4ECFFF'
+        ctx.fill()
       }
-      ctx.fill()
       ctx.shadowBlur = 0
     })
 
@@ -1347,8 +1392,10 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             </div>
           )}
           {isFireball && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-orange-500/20 border border-orange-500/50 text-orange-500">
-              🔥 {language === 'da' ? 'Ildkugle' : 'Fireball'}
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gradient-to-r from-red-500/20 to-orange-500/20 border-2 border-red-500/50 text-red-500 animate-pulse">
+              <span className="text-xl">🔥</span>
+              <span className="font-bold">{language === 'da' ? 'ILDKUGLE AKTIV' : 'FIREBALL ACTIVE'}</span>
+              <span className="ml-2 px-2 py-0.5 rounded bg-red-500 text-white text-sm font-bold">{fireballTimeLeft}s</span>
             </div>
           )}
         </div>
