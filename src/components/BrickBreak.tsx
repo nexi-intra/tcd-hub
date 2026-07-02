@@ -103,6 +103,7 @@ const BRICK_COLS = 10
 const BRICK_PADDING = 5
 const BRICK_OFFSET_TOP = 80
 const BRICK_OFFSET_LEFT = 35
+const DEFLECTOR_SIZE = 40
 
 const BRICK_COLORS = [
   { color: '#FF6B9D', hits: 3, points: 30 },
@@ -398,6 +399,34 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         newBall.dy = -newBall.dy
       }
 
+      if (newBall.x <= DEFLECTOR_SIZE && newBall.y <= DEFLECTOR_SIZE) {
+        const distToLine = (newBall.x + newBall.y) / Math.sqrt(2)
+        if (distToLine < newBall.radius) {
+          const angle = Math.atan2(newBall.dy, newBall.dx)
+          const speed = Math.sqrt(newBall.dx * newBall.dx + newBall.dy * newBall.dy)
+          const newAngle = angle + Math.PI / 2
+          newBall.dx = Math.cos(newAngle) * speed
+          newBall.dy = Math.sin(newAngle) * speed
+          
+          newBall.x = DEFLECTOR_SIZE + newBall.radius
+          newBall.y = DEFLECTOR_SIZE + newBall.radius
+        }
+      }
+
+      if (newBall.x >= GAME_WIDTH - DEFLECTOR_SIZE && newBall.y <= DEFLECTOR_SIZE) {
+        const distToLine = ((GAME_WIDTH - newBall.x) + newBall.y) / Math.sqrt(2)
+        if (distToLine < newBall.radius) {
+          const angle = Math.atan2(newBall.dy, newBall.dx)
+          const speed = Math.sqrt(newBall.dx * newBall.dx + newBall.dy * newBall.dy)
+          const newAngle = angle - Math.PI / 2
+          newBall.dx = Math.cos(newAngle) * speed
+          newBall.dy = Math.sin(newAngle) * speed
+          
+          newBall.x = GAME_WIDTH - DEFLECTOR_SIZE - newBall.radius
+          newBall.y = DEFLECTOR_SIZE + newBall.radius
+        }
+      }
+
       if (
         newBall.y + newBall.radius > currentPaddle.y &&
         newBall.y - newBall.radius < currentPaddle.y + currentPaddle.height &&
@@ -493,6 +522,32 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
+
+    ctx.save()
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.lineTo(DEFLECTOR_SIZE, 0)
+    ctx.lineTo(0, DEFLECTOR_SIZE)
+    ctx.closePath()
+    ctx.fillStyle = 'rgba(255, 107, 157, 0.4)'
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(255, 107, 157, 0.8)'
+    ctx.lineWidth = 2
+    ctx.stroke()
+    ctx.restore()
+
+    ctx.save()
+    ctx.beginPath()
+    ctx.moveTo(GAME_WIDTH, 0)
+    ctx.lineTo(GAME_WIDTH - DEFLECTOR_SIZE, 0)
+    ctx.lineTo(GAME_WIDTH, DEFLECTOR_SIZE)
+    ctx.closePath()
+    ctx.fillStyle = 'rgba(78, 207, 255, 0.4)'
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(78, 207, 255, 0.8)'
+    ctx.lineWidth = 2
+    ctx.stroke()
+    ctx.restore()
 
     const currentBricks = bricksRef.current
     const currentBalls = ballsRef.current
