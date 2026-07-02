@@ -616,8 +616,12 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     let newBricks = [...currentBricks]
     let scoreIncrease = 0
 
+    const bricksToRemove: number[] = []
+    
     newBalls.forEach(ball => {
-      newBricks = newBricks.filter(brick => {
+      newBricks.forEach((brick, index) => {
+        if (bricksToRemove.includes(index)) return
+        
         const collision = 
           ball.x + ball.radius > brick.x &&
           ball.x - ball.radius < brick.x + brick.width &&
@@ -644,7 +648,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               setPowerUps(prev => [...prev, newPowerUp])
             }
             
-            return false
+            bricksToRemove.push(index)
           } else {
             const overlapLeft = ball.x + ball.radius - brick.x
             const overlapRight = brick.x + brick.width - (ball.x - ball.radius)
@@ -680,14 +684,14 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                 setPowerUps(prev => [...prev, newPowerUp])
               }
               
-              return false
+              bricksToRemove.push(index)
             }
           }
         }
-
-        return true
       })
     })
+    
+    newBricks = newBricks.filter((_, index) => !bricksToRemove.includes(index))
 
     if (scoreIncrease > 0) {
       scoreRef.current += scoreIncrease
