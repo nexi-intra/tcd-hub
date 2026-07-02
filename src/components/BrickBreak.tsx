@@ -286,6 +286,12 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
       width: INITIAL_PADDLE_WIDTH
     }
+    
+    ballAttachedRef.current = true
+    ballsRef.current = []
+    bricksRef.current = newBricks
+    paddleRef.current = newPaddle
+    
     const newBalls = [{
       x: newPaddle.x + newPaddle.width / 2,
       y: newPaddle.y - BALL_RADIUS,
@@ -294,18 +300,14 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       radius: BALL_RADIUS
     }]
     
+    ballsRef.current = newBalls
+    
     setLevel(newLevel)
     setBricks(newBricks)
     setBalls(newBalls)
     setPaddle(newPaddle)
     setParticles([])
     setBallAttachedToPaddle(true)
-    
-    ballsRef.current = newBalls
-    bricksRef.current = newBricks
-    paddleRef.current = newPaddle
-    ballAttachedRef.current = true
-    
     setGameState('waitingToLaunch')
   }
 
