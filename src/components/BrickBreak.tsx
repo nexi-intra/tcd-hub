@@ -625,24 +625,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           ball.y - ball.radius < brick.y + brick.height
 
         if (collision) {
-          if (!isFireball) {
-            const overlapLeft = ball.x + ball.radius - brick.x
-            const overlapRight = brick.x + brick.width - (ball.x - ball.radius)
-            const overlapTop = ball.y + ball.radius - brick.y
-            const overlapBottom = brick.y + brick.height - (ball.y - ball.radius)
-
-            const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom)
-
-            if (minOverlap === overlapTop || minOverlap === overlapBottom) {
-              ball.dy = -ball.dy
-            } else {
-              ball.dx = -ball.dx
-            }
-          }
-
-          brick.hits++
-
-          if (brick.hits >= brick.maxHits) {
+          if (isFireball) {
             scoreIncrease += brick.points
             addParticles(brick.x + brick.width / 2, brick.y + brick.height / 2, brick.color)
             
@@ -662,6 +645,43 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             }
             
             return false
+          } else {
+            const overlapLeft = ball.x + ball.radius - brick.x
+            const overlapRight = brick.x + brick.width - (ball.x - ball.radius)
+            const overlapTop = ball.y + ball.radius - brick.y
+            const overlapBottom = brick.y + brick.height - (ball.y - ball.radius)
+
+            const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom)
+
+            if (minOverlap === overlapTop || minOverlap === overlapBottom) {
+              ball.dy = -ball.dy
+            } else {
+              ball.dx = -ball.dx
+            }
+
+            brick.hits++
+
+            if (brick.hits >= brick.maxHits) {
+              scoreIncrease += brick.points
+              addParticles(brick.x + brick.width / 2, brick.y + brick.height / 2, brick.color)
+              
+              if (Math.random() < POWERUP_SPAWN_CHANCE) {
+                const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
+                const newPowerUp: PowerUp = {
+                  id: Date.now() + Math.random(),
+                  x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
+                  y: brick.y,
+                  width: POWERUP_SIZE,
+                  height: POWERUP_SIZE,
+                  type: powerUpType,
+                  dy: POWERUP_FALL_SPEED
+                }
+                powerUpsRef.current = [...powerUpsRef.current, newPowerUp]
+                setPowerUps(prev => [...prev, newPowerUp])
+              }
+              
+              return false
+            }
           }
         }
 
@@ -817,9 +837,9 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       ctx.beginPath()
       ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2)
       if (isFireball) {
-        ctx.fillStyle = '#FF8B4E'
+        ctx.fillStyle = '#FF0000'
         ctx.shadowBlur = 20
-        ctx.shadowColor = '#FF8B4E'
+        ctx.shadowColor = '#FF0000'
       } else {
         ctx.fillStyle = '#FFFFFF'
         ctx.shadowBlur = 15
