@@ -555,8 +555,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         break
         
       case 'speedBoost':
-        ballSpeedMultiplierRef.current = 2
-        setBallSpeedMultiplier(2)
+        ballSpeedMultiplierRef.current = 1.5
+        setBallSpeedMultiplier(1.5)
         setSpeedPowerupTimeLeft(8)
         toast.success(message)
         
@@ -1549,7 +1549,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               <span className="ml-2 px-2 py-0.5 rounded bg-purple-500 text-white text-sm font-bold">{speedPowerupTimeLeft}s</span>
             </div>
           )}
-          {ballSpeedMultiplier === 2 && speedPowerupTimeLeft > 0 && (
+          {ballSpeedMultiplier === 1.5 && speedPowerupTimeLeft > 0 && (
             <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-pink-500/20 border border-pink-500/50 text-pink-500">
               <span className="text-xl">⚡</span>
               <span className="font-bold">{language === 'da' ? 'FART' : 'SPEED BOOST'}</span>
