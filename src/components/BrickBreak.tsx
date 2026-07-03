@@ -447,11 +447,14 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setLasers([])
     setEnlargePaddleTimeLeft(0)
     setShrinkPaddleTimeLeft(0)
+    setIsStickyPaddle(false)
+    setStickyPaddleTimeLeft(0)
     isFireballRef.current = false
     hasShieldRef.current = false
     ballSpeedMultiplierRef.current = 1
     hasLaserRef.current = false
     lasersRef.current = []
+    isStickyPaddleRef.current = false
     setGameState('waitingToLaunch')
   }
 
