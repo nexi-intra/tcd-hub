@@ -1408,38 +1408,14 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           ctx.fill()
         }
       } else if (isExplosiveBallRef.current) {
-        const explosionGradient = ctx.createRadialGradient(ball.x, ball.y, 0, ball.x, ball.y, ball.radius * 2.5)
-        explosionGradient.addColorStop(0, '#FFAA00')
-        explosionGradient.addColorStop(0.3, '#FF5500')
-        explosionGradient.addColorStop(0.6, '#AA0000')
-        explosionGradient.addColorStop(1, 'rgba(170, 0, 0, 0)')
-        
-        ctx.fillStyle = explosionGradient
-        ctx.shadowBlur = 25
-        ctx.shadowColor = '#FF2E00'
-        ctx.beginPath()
-        ctx.arc(ball.x, ball.y, ball.radius * 2.5, 0, Math.PI * 2)
-        ctx.fill()
-        
-        ctx.fillStyle = '#FF2E00'
+        ctx.save()
+        ctx.font = `${ball.radius * 2}px Arial`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
         ctx.shadowBlur = 20
-        ctx.shadowColor = '#AA0000'
-        ctx.beginPath()
-        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2)
-        ctx.fill()
-        
-        for (let i = 0; i < 4; i++) {
-          const angle = (i / 4) * Math.PI * 2
-          const sparkleDist = ball.radius * 1.5
-          const sparkleX = ball.x + Math.cos(angle) * sparkleDist
-          const sparkleY = ball.y + Math.sin(angle) * sparkleDist
-          
-          ctx.fillStyle = `rgba(255, ${200 - i * 30}, 0, ${0.7 - i * 0.15})`
-          ctx.shadowBlur = 10
-          ctx.beginPath()
-          ctx.arc(sparkleX, sparkleY, ball.radius * 0.3, 0, Math.PI * 2)
-          ctx.fill()
-        }
+        ctx.shadowColor = '#FF4400'
+        ctx.fillText('💣', ball.x, ball.y)
+        ctx.restore()
       } else {
         ctx.fillStyle = '#FFFFFF'
         ctx.shadowBlur = 15
