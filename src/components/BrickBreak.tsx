@@ -210,6 +210,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   })
   const livesRef = useRef<number>(3)
   const scoreRef = useRef<number>(0)
+  const levelRef = useRef<number>(1)
   const ballAttachedRef = useRef<boolean>(true)
   const isFireballRef = useRef<boolean>(false)
   const hasShieldRef = useRef<boolean>(false)
@@ -296,6 +297,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     
     scoreRef.current = 0
     livesRef.current = 3
+    levelRef.current = 1
     paddleRef.current = newPaddle
     ballAttachedRef.current = true
     powerUpsRef.current = []
@@ -341,6 +343,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
   const nextLevel = () => {
     const newLevel = level + 1
+    levelRef.current = newLevel
     const newPaddle = {
       ...paddleRef.current,
       x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
@@ -395,6 +398,9 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       return
     }
 
+    const finalScore = scoreRef.current
+    const finalLevel = levelRef.current
+
     try {
       const currentLeaderboard = await window.spark.kv.get<GlobalLeaderboard>('brickbreak-global-leaderboard') || {
         easy: [],
@@ -408,19 +414,19 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       const existingEntryIndex = difficultyBoard.findIndex(entry => entry.email === userEmail)
       
       if (existingEntryIndex !== -1) {
-        if (score > difficultyBoard[existingEntryIndex].score) {
+        if (finalScore > difficultyBoard[existingEntryIndex].score) {
           difficultyBoard[existingEntryIndex] = {
             email: userEmail,
-            score: score,
-            level: level,
+            score: finalScore,
+            level: finalLevel,
             timestamp: Date.now()
           }
         }
       } else {
         difficultyBoard.push({
           email: userEmail,
-          score: score,
-          level: level,
+          score: finalScore,
+          level: finalLevel,
           timestamp: Date.now()
         })
       }
