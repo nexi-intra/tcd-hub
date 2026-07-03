@@ -910,17 +910,25 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
     if (hasLaserRef.current) {
       const currentTime = Date.now()
-      if (currentTime - lastLaserTimeRef.current > 300) {
-        const newLaser: Laser = {
+      if (currentTime - lastLaserTimeRef.current > 150) {
+        const leftLaser: Laser = {
           id: Date.now() + Math.random(),
-          x: currentPaddle.x + currentPaddle.width / 2 - 2,
+          x: currentPaddle.x + 5,
           y: currentPaddle.y - 10,
           width: 4,
           height: 15,
           dy: -10
         }
-        lasersRef.current = [...lasersRef.current, newLaser]
-        setLasers(prev => [...prev, newLaser])
+        const rightLaser: Laser = {
+          id: Date.now() + Math.random() + 0.1,
+          x: currentPaddle.x + currentPaddle.width - 9,
+          y: currentPaddle.y - 10,
+          width: 4,
+          height: 15,
+          dy: -10
+        }
+        lasersRef.current = [...lasersRef.current, leftLaser, rightLaser]
+        setLasers(prev => [...prev, leftLaser, rightLaser])
         lastLaserTimeRef.current = currentTime
       }
     }
@@ -952,7 +960,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
         if (collision) {
           laserDestroyed = true
-          brick.hits++
+          brick.hits += 2
 
           if (brick.hits >= brick.maxHits) {
             laserScoreIncrease += brick.points
