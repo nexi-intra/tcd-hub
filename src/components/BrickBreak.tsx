@@ -1640,7 +1640,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           <h3 className="text-lg font-semibold mb-4">
             {language === 'da' ? 'Sådan Spiller Du' : 'How to Play'}
           </h3>
-          <div className="text-sm space-y-2">
+          <div className="text-sm space-y-4">
             <div>
               <h4 className="font-semibold mb-2">{language === 'da' ? 'Kontroller' : 'Controls'}</h4>
               <ul className="space-y-1 text-muted-foreground">
@@ -1649,6 +1649,123 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                 <li>• {language === 'da' ? 'Undgå at miste bolden' : 'Avoid losing the ball'}</li>
                 <li>• {language === 'da' ? 'Du har 3 liv per spil' : 'You have 3 lives per game'}</li>
               </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-3">{language === 'da' ? 'Power-Ups' : 'Power-Ups'}</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/20">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/20 text-xl">
+                    {POWERUP_CONFIG.extraLife.symbol}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-green-500 text-xs">
+                      {POWERUP_CONFIG.extraLife.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {language === 'da' ? 'Giver dig et ekstra liv' : 'Gives you an extra life'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-cyan-500/10 to-blue-600/10 border border-cyan-500/20">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-cyan-500/20 text-xl">
+                    {POWERUP_CONFIG.shield.symbol}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-cyan-500 text-xs">
+                      {POWERUP_CONFIG.shield.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {language === 'da' ? 'Beskytter dig mod ét tab i 20 sek' : 'Protects from one loss for 20s'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-red-500/10 to-orange-600/10 border border-red-500/20">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500/20 text-xl">
+                    {POWERUP_CONFIG.fireball.symbol}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-red-500 text-xs">
+                      {POWERUP_CONFIG.fireball.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {language === 'da' ? 'Bolden går gennem brikker i 10 sek' : 'Ball goes through bricks for 10s'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-purple-500/10 to-purple-600/10 border border-purple-500/20">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-500/20 text-xl">
+                    {POWERUP_CONFIG.enlargePaddle.symbol}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-purple-500 text-xs">
+                      {POWERUP_CONFIG.enlargePaddle.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {language === 'da' ? 'Gør paddle større i 15 sek' : 'Makes paddle larger for 15s'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500/20 text-xl">
+                    {POWERUP_CONFIG.shrinkPaddle.symbol}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-yellow-500 text-xs">
+                      {POWERUP_CONFIG.shrinkPaddle.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {language === 'da' ? 'Gør paddle mindre i 15 sek' : 'Makes paddle smaller for 15s'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-indigo-500/10 to-purple-600/10 border border-indigo-500/20">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-500/20 text-xl">
+                    {POWERUP_CONFIG.slowMotion.symbol}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-indigo-500 text-xs">
+                      {POWERUP_CONFIG.slowMotion.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {language === 'da' ? 'Sænker boldens hastighed til 0.5x i 15 sek' : 'Slows ball to 0.5x for 15s'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-pink-500/10 to-red-600/10 border border-pink-500/20">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-pink-500/20 text-xl">
+                    {POWERUP_CONFIG.speedBoost.symbol}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-pink-500 text-xs">
+                      {POWERUP_CONFIG.speedBoost.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {language === 'da' ? 'Øger boldens hastighed til 1.5x i 15 sek' : 'Increases ball speed to 1.5x for 15s'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-cyan-500/10 to-teal-600/10 border border-cyan-500/20">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-cyan-500/20 text-xl">
+                    {POWERUP_CONFIG.laser.symbol}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-cyan-500 text-xs">
+                      {POWERUP_CONFIG.laser.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {language === 'da' ? 'Skyder laser der giver 2x skade i 5 sek' : 'Shoots lasers for 2x damage for 5s'}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </Card>
