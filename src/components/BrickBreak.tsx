@@ -836,7 +836,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         newBall.x > currentPaddle.x &&
         newBall.x < currentPaddle.x + currentPaddle.width
       ) {
-        if (isStickyPaddleRef.current && newBalls.length === 1) {
+        if (isStickyPaddleRef.current && currentBalls.length === 1) {
           ballAttachedRef.current = true
           setBallAttachedToPaddle(true)
           newBall.dx = 0
