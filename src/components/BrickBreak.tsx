@@ -39,7 +39,7 @@ interface PowerUp {
   y: number
   width: number
   height: number
-  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle' | 'slowMotion' | 'speedBoost' | 'laser'
+  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle' | 'slowMotion' | 'speedBoost' | 'laser' | 'stickyPaddle'
   dy: number
 }
 
@@ -136,7 +136,7 @@ const BRICK_COLORS = [
   { color: '#FF8B4E', hits: 1, points: 10 },
 ]
 
-const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost', 'laser']
+const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost', 'laser', 'stickyPaddle']
 
 const POWERUP_CONFIG = {
   extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
@@ -146,7 +146,8 @@ const POWERUP_CONFIG = {
   enlargePaddle: { color: '#C94EFF', symbol: '+', label: { en: 'Enlarge Paddle', da: 'Forstør bar' } },
   slowMotion: { color: '#9D4EFF', symbol: '⏱', label: { en: 'Slow Motion', da: 'Langsom' } },
   speedBoost: { color: '#FF4E6B', symbol: '⚡', label: { en: 'Speed Boost', da: 'Fart' } },
-  laser: { color: '#00FFFF', symbol: '🔫', label: { en: 'Laser', da: 'Laser' } }
+  laser: { color: '#00FFFF', symbol: '🔫', label: { en: 'Laser', da: 'Laser' } },
+  stickyPaddle: { color: '#8FFF4E', symbol: '🟢', label: { en: 'Sticky Paddle', da: 'Klæbrig Bar' } }
 }
 
 interface User {
@@ -189,6 +190,9 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [lasers, setLasers] = useState<Laser[]>([])
   const [enlargePaddleTimeLeft, setEnlargePaddleTimeLeft] = useState(0)
   const [shrinkPaddleTimeLeft, setShrinkPaddleTimeLeft] = useState(0)
+  const [isStickyPaddle, setIsStickyPaddle] = useState(false)
+  const [stickyPaddleTimeLeft, setStickyPaddleTimeLeft] = useState(0)
+  const [aimAngle, setAimAngle] = useState(0)
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('brickbreak-global-leaderboard', {
     easy: [],
     medium: [],
@@ -218,6 +222,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const hasLaserRef = useRef<boolean>(false)
   const lasersRef = useRef<Laser[]>([])
   const lastLaserTimeRef = useRef<number>(0)
+  const isStickyPaddleRef = useRef<boolean>(false)
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -533,10 +538,32 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     if (!currentBall) return
     
     const speedMultiplier = ballSpeedMultiplierRef.current
+    
+    let dx, dy
+    if (isStickyPaddleRef.current && ballAttachedToPaddle) {
+      const currentPaddle = paddleRef.current
+      const mouseX = mouseXRef.current
+      const ballX = currentBall.x
+      const ballY = currentBall.y
+      
+      const deltaX = mouseX - ballX
+      const deltaY = 0 - ballY
+      const angle = Math.atan2(deltaY, deltaX)
+      
+      const clampedAngle = Math.max(-Math.PI * 0.8, Math.min(-Math.PI * 0.2, angle))
+      
+      const speed = baseSpeed * speedMultiplier
+      dx = Math.cos(clampedAngle) * speed
+      dy = Math.sin(clampedAngle) * speed
+    } else {
+      dx = (Math.random() > 0.5 ? 1 : -1) * baseSpeed * 0.7 * speedMultiplier
+      dy = -baseSpeed * speedMultiplier
+    }
+    
     const launchedBall = {
       ...currentBall,
-      dx: (Math.random() > 0.5 ? 1 : -1) * baseSpeed * 0.7 * speedMultiplier,
-      dy: -baseSpeed * speedMultiplier
+      dx,
+      dy
     }
     
     ballsRef.current = [launchedBall]
@@ -709,6 +736,25 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           })
         }, 1000)
         break
+        
+      case 'stickyPaddle':
+        setIsStickyPaddle(true)
+        isStickyPaddleRef.current = true
+        setStickyPaddleTimeLeft(15)
+        toast.success(message)
+        
+        const stickyInterval = setInterval(() => {
+          setStickyPaddleTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(stickyInterval)
+              setIsStickyPaddle(false)
+              isStickyPaddleRef.current = false
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+        break
     }
   }
 
@@ -790,11 +836,20 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         newBall.x > currentPaddle.x &&
         newBall.x < currentPaddle.x + currentPaddle.width
       ) {
-        const hitPos = (newBall.x - currentPaddle.x) / currentPaddle.width
-        const angle = (hitPos - 0.5) * Math.PI * 0.6
-        const speed = Math.sqrt(newBall.dx * newBall.dx + newBall.dy * newBall.dy)
-        newBall.dx = Math.sin(angle) * speed
-        newBall.dy = -Math.abs(Math.cos(angle) * speed)
+        if (isStickyPaddleRef.current && newBalls.length === 1) {
+          ballAttachedRef.current = true
+          setBallAttachedToPaddle(true)
+          newBall.dx = 0
+          newBall.dy = 0
+          newBall.y = currentPaddle.y - newBall.radius
+          setGameState('waitingToLaunch')
+        } else {
+          const hitPos = (newBall.x - currentPaddle.x) / currentPaddle.width
+          const angle = (hitPos - 0.5) * Math.PI * 0.6
+          const speed = Math.sqrt(newBall.dx * newBall.dx + newBall.dy * newBall.dy)
+          newBall.dx = Math.sin(angle) * speed
+          newBall.dy = -Math.abs(Math.cos(angle) * speed)
+        }
       }
 
       return newBall
@@ -1207,15 +1262,45 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     })
 
     const gradient = ctx.createLinearGradient(currentPaddle.x, 0, currentPaddle.x + currentPaddle.width, 0)
-    gradient.addColorStop(0, '#FF6B9D')
-    gradient.addColorStop(0.5, '#C94EFF')
-    gradient.addColorStop(1, '#4ECFFF')
+    if (isStickyPaddleRef.current) {
+      gradient.addColorStop(0, '#8FFF4E')
+      gradient.addColorStop(0.5, '#4EFF8B')
+      gradient.addColorStop(1, '#4ECFFF')
+    } else {
+      gradient.addColorStop(0, '#FF6B9D')
+      gradient.addColorStop(0.5, '#C94EFF')
+      gradient.addColorStop(1, '#4ECFFF')
+    }
     ctx.fillStyle = gradient
     ctx.fillRect(currentPaddle.x, currentPaddle.y, currentPaddle.width, currentPaddle.height)
     ctx.shadowBlur = 10
-    ctx.shadowColor = '#C94EFF'
+    ctx.shadowColor = isStickyPaddleRef.current ? '#8FFF4E' : '#C94EFF'
     ctx.fillRect(currentPaddle.x, currentPaddle.y, currentPaddle.width, currentPaddle.height)
     ctx.shadowBlur = 0
+    
+    if (ballAttachedRef.current && isStickyPaddleRef.current && currentBalls.length > 0) {
+      const ball = currentBalls[0]
+      const mouseX = mouseXRef.current
+      
+      ctx.save()
+      ctx.setLineDash([5, 5])
+      ctx.strokeStyle = 'rgba(143, 255, 78, 0.6)'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(ball.x, ball.y)
+      ctx.lineTo(mouseX, 0)
+      ctx.stroke()
+      ctx.setLineDash([])
+      ctx.restore()
+      
+      ctx.beginPath()
+      ctx.arc(mouseX, 20, 8, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(143, 255, 78, 0.8)'
+      ctx.fill()
+      ctx.strokeStyle = '#FFFFFF'
+      ctx.lineWidth = 2
+      ctx.stroke()
+    }
 
     const currentPowerUps = powerUpsRef.current
     currentPowerUps.forEach(powerUp => {
@@ -1765,6 +1850,20 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                     </div>
                   </div>
                 </div>
+                
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-lime-500/10 to-green-600/10 border border-lime-500/20">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-lime-500/20 text-xl">
+                    {POWERUP_CONFIG.stickyPaddle.symbol}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-lime-500 text-xs">
+                      {POWERUP_CONFIG.stickyPaddle.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {language === 'da' ? 'Bolden klæber til paddle - sigt og affyr i 15 sek' : 'Ball sticks to paddle - aim and shoot for 15s'}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1871,6 +1970,13 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               <span className="text-xl">⚡</span>
               <span className="font-bold">{language === 'da' ? 'LASER AKTIV' : 'LASER ACTIVE'}</span>
               <span className="ml-2 px-2 py-0.5 rounded bg-cyan-500 text-white text-sm font-bold">{laserTimeLeft}s</span>
+            </div>
+          )}
+          {isStickyPaddle && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gradient-to-r from-lime-500/20 to-green-500/20 border-2 border-lime-500/50 text-lime-500 animate-pulse">
+              <span className="text-xl">🟢</span>
+              <span className="font-bold">{language === 'da' ? 'KLÆBRIG BAR' : 'STICKY PADDLE'}</span>
+              <span className="ml-2 px-2 py-0.5 rounded bg-lime-500 text-white text-sm font-bold">{stickyPaddleTimeLeft}s</span>
             </div>
           )}
         </div>
