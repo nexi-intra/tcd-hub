@@ -831,6 +831,12 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         break
         
       case 'multiBall':
+        if (ballAttachedRef.current) {
+          const noEffectMsg = language === 'da' ? 'Skyd bolden først!' : 'Launch the ball first!'
+          toast.info(noEffectMsg)
+          break
+        }
+        
         const currentBalls = ballsRef.current
         if (currentBalls.length > 0) {
           const baseSpeed = DIFFICULTY_SETTINGS[difficulty].ballSpeed
@@ -838,30 +844,35 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           const newBalls: Ball[] = []
           
           currentBalls.forEach(ball => {
-            const angle1 = Math.random() * Math.PI / 3 - Math.PI / 6
-            const angle2 = Math.random() * Math.PI / 3 + Math.PI / 6
-            
-            newBalls.push({
-              x: ball.x,
-              y: ball.y,
-              dx: Math.cos(angle1) * baseSpeed * speedMultiplier,
-              dy: Math.sin(angle1) * baseSpeed * speedMultiplier - Math.abs(baseSpeed * speedMultiplier * 0.5),
-              radius: BALL_RADIUS
-            })
-            
-            newBalls.push({
-              x: ball.x,
-              y: ball.y,
-              dx: Math.cos(angle2) * baseSpeed * speedMultiplier,
-              dy: Math.sin(angle2) * baseSpeed * speedMultiplier - Math.abs(baseSpeed * speedMultiplier * 0.5),
-              radius: BALL_RADIUS
-            })
+            if (Math.abs(ball.dx) > 0 || Math.abs(ball.dy) > 0) {
+              const ballSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
+              
+              const angle1 = Math.atan2(ball.dy, ball.dx) - Math.PI / 6
+              newBalls.push({
+                x: ball.x,
+                y: ball.y,
+                dx: Math.cos(angle1) * ballSpeed,
+                dy: Math.sin(angle1) * ballSpeed,
+                radius: BALL_RADIUS
+              })
+              
+              const angle2 = Math.atan2(ball.dy, ball.dx) + Math.PI / 6
+              newBalls.push({
+                x: ball.x,
+                y: ball.y,
+                dx: Math.cos(angle2) * ballSpeed,
+                dy: Math.sin(angle2) * ballSpeed,
+                radius: BALL_RADIUS
+              })
+            }
           })
           
-          const allBalls = [...currentBalls, ...newBalls]
-          ballsRef.current = allBalls
-          setBalls(allBalls)
-          toast.success(message)
+          if (newBalls.length > 0) {
+            const allBalls = [...currentBalls, ...newBalls]
+            ballsRef.current = allBalls
+            setBalls(allBalls)
+            toast.success(message)
+          }
         }
         break
     }
