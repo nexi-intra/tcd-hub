@@ -1891,7 +1891,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                       {POWERUP_CONFIG.slowMotion.label[language as 'en' | 'da']}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {language === 'da' ? 'Sænker boldens hastighed til 0.5x i 15 sek' : 'Slows ball to 0.5x for 15s'}
+                      {language === 'da' ? 'Sænker boldens hastighed til 0.5x i 10 sek' : 'Slows ball to 0.5x for 10s'}
                     </div>
                   </div>
                 </div>
@@ -1905,7 +1905,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                       {POWERUP_CONFIG.speedBoost.label[language as 'en' | 'da']}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {language === 'da' ? 'Øger boldens hastighed til 1.5x i 15 sek' : 'Increases ball speed to 1.5x for 15s'}
+                      {language === 'da' ? 'Øger boldens hastighed til 1.5x i 10 sek' : 'Increases ball speed to 1.5x for 10s'}
                     </div>
                   </div>
                 </div>
