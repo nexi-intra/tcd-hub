@@ -842,36 +842,32 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           const newBalls: Ball[] = []
           
           currentBalls.forEach(ball => {
-            if (Math.abs(ball.dx) > 0 || Math.abs(ball.dy) > 0) {
-              const currentAngle = Math.atan2(ball.dy, ball.dx)
-              const ballSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
-              
-              const angle1 = currentAngle - Math.PI / 6
-              newBalls.push({
-                x: ball.x,
-                y: ball.y,
-                dx: Math.cos(angle1) * ballSpeed,
-                dy: Math.sin(angle1) * ballSpeed,
-                radius: BALL_RADIUS
-              })
-              
-              const angle2 = currentAngle + Math.PI / 6
-              newBalls.push({
-                x: ball.x,
-                y: ball.y,
-                dx: Math.cos(angle2) * ballSpeed,
-                dy: Math.sin(angle2) * ballSpeed,
-                radius: BALL_RADIUS
-              })
-            }
+            const currentAngle = Math.atan2(ball.dy, ball.dx)
+            const ballSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
+            
+            const angle1 = currentAngle - Math.PI / 6
+            newBalls.push({
+              x: ball.x,
+              y: ball.y,
+              dx: Math.cos(angle1) * ballSpeed,
+              dy: Math.sin(angle1) * ballSpeed,
+              radius: BALL_RADIUS
+            })
+            
+            const angle2 = currentAngle + Math.PI / 6
+            newBalls.push({
+              x: ball.x,
+              y: ball.y,
+              dx: Math.cos(angle2) * ballSpeed,
+              dy: Math.sin(angle2) * ballSpeed,
+              radius: BALL_RADIUS
+            })
           })
           
-          if (newBalls.length > 0) {
-            const allBalls = [...currentBalls, ...newBalls]
-            ballsRef.current = allBalls
-            setBalls(allBalls)
-            toast.success(message)
-          }
+          const allBalls = [...currentBalls, ...newBalls]
+          ballsRef.current = allBalls
+          setBalls(allBalls)
+          toast.success(message)
         }
         break
     }
