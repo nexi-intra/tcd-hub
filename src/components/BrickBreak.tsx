@@ -39,7 +39,7 @@ interface PowerUp {
   y: number
   width: number
   height: number
-  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle' | 'slowMotion' | 'speedBoost' | 'laser' | 'stickyPaddle' | 'explosiveBall'
+  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle' | 'slowMotion' | 'speedBoost' | 'laser' | 'stickyPaddle' | 'explosiveBall' | 'reverseControls'
   dy: number
 }
 
@@ -155,7 +155,7 @@ const BRICK_COLORS_BY_DIFFICULTY = {
   ]
 }
 
-const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost', 'laser', 'stickyPaddle', 'explosiveBall']
+const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost', 'laser', 'stickyPaddle', 'explosiveBall', 'reverseControls']
 
 const POWERUP_CONFIG = {
   extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
@@ -167,7 +167,8 @@ const POWERUP_CONFIG = {
   speedBoost: { color: '#FF4E6B', symbol: '⚡', label: { en: 'Speed Boost', da: 'Fart' } },
   laser: { color: '#00FFFF', symbol: '🔫', label: { en: 'Laser', da: 'Laser' } },
   stickyPaddle: { color: '#8FFF4E', symbol: '🟢', label: { en: 'Sticky Paddle', da: 'Klæbrig Bar' } },
-  explosiveBall: { color: '#FF2E00', symbol: '💣', label: { en: 'Explosive Ball', da: 'Eksplosiv Bold' } }
+  explosiveBall: { color: '#FF2E00', symbol: '💣', label: { en: 'Explosive Ball', da: 'Eksplosiv Bold' } },
+  reverseControls: { color: '#FFB84E', symbol: '↔', label: { en: 'Reverse Controls', da: 'Omvendt Kontrol' } }
 }
 
 interface User {
@@ -214,6 +215,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [stickyPaddleTimeLeft, setStickyPaddleTimeLeft] = useState(0)
   const [isExplosiveBall, setIsExplosiveBall] = useState(false)
   const [explosiveBallTimeLeft, setExplosiveBallTimeLeft] = useState(0)
+  const [isReverseControls, setIsReverseControls] = useState(false)
+  const [reverseControlsTimeLeft, setReverseControlsTimeLeft] = useState(0)
   const [aimAngle, setAimAngle] = useState(0)
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('brickbreak-global-leaderboard', {
     easy: [],
@@ -246,6 +249,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const lastLaserTimeRef = useRef<number>(0)
   const isStickyPaddleRef = useRef<boolean>(false)
   const isExplosiveBallRef = useRef<boolean>(false)
+  const isReverseControlsRef = useRef<boolean>(false)
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -851,6 +855,25 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               clearInterval(explosiveInterval)
               setIsExplosiveBall(false)
               isExplosiveBallRef.current = false
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+        break
+        
+      case 'reverseControls':
+        setIsReverseControls(true)
+        isReverseControlsRef.current = true
+        setReverseControlsTimeLeft(5)
+        toast.success(message)
+        
+        const reverseInterval = setInterval(() => {
+          setReverseControlsTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(reverseInterval)
+              setIsReverseControls(false)
+              isReverseControlsRef.current = false
               return 0
             }
             return prev - 1
@@ -1529,7 +1552,12 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
       const rect = canvas.getBoundingClientRect()
       const scaleX = GAME_WIDTH / rect.width
-      const mouseX = (e.clientX - rect.left) * scaleX
+      let mouseX = (e.clientX - rect.left) * scaleX
+      
+      if (isReverseControlsRef.current) {
+        mouseX = GAME_WIDTH - mouseX
+      }
+      
       mouseXRef.current = mouseX
 
       const currentPaddle = paddleRef.current
@@ -2042,6 +2070,20 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                     </div>
                   </div>
                 </div>
+                
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-600/10 border border-amber-500/20">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/20 text-xl">
+                    {POWERUP_CONFIG.reverseControls.symbol}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-amber-500 text-xs">
+                      {POWERUP_CONFIG.reverseControls.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {language === 'da' ? 'Vender musestyring om i 5 sek' : 'Reverses mouse controls for 5s'}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2162,6 +2204,13 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               <span className="text-xl">🟢</span>
               <span className="font-bold">{language === 'da' ? 'KLÆBRIG BAR' : 'STICKY PADDLE'}</span>
               <span className="ml-2 px-2 py-0.5 rounded bg-lime-500 text-white text-sm font-bold">{stickyPaddleTimeLeft}s</span>
+            </div>
+          )}
+          {isReverseControls && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-2 border-amber-500/50 text-amber-500 animate-pulse">
+              <span className="text-xl">↔</span>
+              <span className="font-bold">{language === 'da' ? 'OMVENDT KONTROL' : 'REVERSE CONTROLS'}</span>
+              <span className="ml-2 px-2 py-0.5 rounded bg-amber-500 text-white text-sm font-bold">{reverseControlsTimeLeft}s</span>
             </div>
           )}
         </div>
