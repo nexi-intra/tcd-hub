@@ -262,16 +262,75 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     const newBricks: Brick[] = []
     const brickWidth = (GAME_WIDTH - BRICK_OFFSET_LEFT * 2 - BRICK_PADDING * (BRICK_COLS - 1)) / BRICK_COLS
     const brickHeight = 25
-
     const rows = Math.min(BRICK_ROWS + Math.floor(levelNum / 3), 10)
 
+    const patternIndex = (levelNum - 1) % 15
+
+    const shouldAddBrick = (row: number, col: number): boolean => {
+      switch (patternIndex) {
+        case 0:
+          return true
+        
+        case 1:
+          return (row + col) % 2 === 0
+        
+        case 2:
+          return col % 2 === 0
+        
+        case 3:
+          return row % 2 === 0
+        
+        case 4:
+          return Math.abs(col - BRICK_COLS / 2) <= row
+        
+        case 5:
+          return Math.abs(col - BRICK_COLS / 2) <= (rows - row - 1)
+        
+        case 6:
+          return col >= row && col < BRICK_COLS - row
+        
+        case 7:
+          const centerCol = BRICK_COLS / 2
+          const centerRow = rows / 2
+          const distance = Math.sqrt(Math.pow(col - centerCol, 2) + Math.pow(row - centerRow, 2))
+          return distance <= 4 + row * 0.5
+        
+        case 8:
+          return col < BRICK_COLS / 2 ? row % 2 === 0 : row % 2 === 1
+        
+        case 9:
+          return (row % 3 !== 1) || (col % 3 === 1)
+        
+        case 10:
+          return col === 0 || col === BRICK_COLS - 1 || row === 0 || row === rows - 1 || (row === Math.floor(rows / 2) && col >= 2 && col <= BRICK_COLS - 3)
+        
+        case 11:
+          return Math.abs(col - row) <= 2 || Math.abs(col - (BRICK_COLS - 1 - row)) <= 2
+        
+        case 12:
+          return (col % 3 === 0) || (row % 3 === 0)
+        
+        case 13:
+          return col >= Math.floor(BRICK_COLS / 4) && col < Math.floor(3 * BRICK_COLS / 4)
+        
+        case 14:
+          return (row + col) % 3 !== 2
+        
+        default:
+          return true
+      }
+    }
+
+    let brickId = 0
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < BRICK_COLS; col++) {
+        if (!shouldAddBrick(row, col)) continue
+
         const colorData = BRICK_COLORS[row % BRICK_COLORS.length]
         const maxHits = colorData.hits + Math.floor(levelNum / 5)
 
         newBricks.push({
-          id: row * BRICK_COLS + col,
+          id: brickId++,
           x: BRICK_OFFSET_LEFT + col * (brickWidth + BRICK_PADDING),
           y: BRICK_OFFSET_TOP + row * (brickHeight + BRICK_PADDING),
           width: brickWidth,
