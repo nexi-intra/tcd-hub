@@ -39,7 +39,7 @@ interface PowerUp {
   y: number
   width: number
   height: number
-  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle' | 'slowMotion' | 'speedBoost' | 'laser' | 'stickyPaddle'
+  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle' | 'slowMotion' | 'speedBoost' | 'laser' | 'stickyPaddle' | 'explosiveBall'
   dy: number
 }
 
@@ -155,7 +155,7 @@ const BRICK_COLORS_BY_DIFFICULTY = {
   ]
 }
 
-const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost', 'laser', 'stickyPaddle']
+const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost', 'laser', 'stickyPaddle', 'explosiveBall']
 
 const POWERUP_CONFIG = {
   extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
@@ -166,7 +166,8 @@ const POWERUP_CONFIG = {
   slowMotion: { color: '#9D4EFF', symbol: '⏱', label: { en: 'Slow Motion', da: 'Langsom' } },
   speedBoost: { color: '#FF4E6B', symbol: '⚡', label: { en: 'Speed Boost', da: 'Fart' } },
   laser: { color: '#00FFFF', symbol: '🔫', label: { en: 'Laser', da: 'Laser' } },
-  stickyPaddle: { color: '#8FFF4E', symbol: '🟢', label: { en: 'Sticky Paddle', da: 'Klæbrig Bar' } }
+  stickyPaddle: { color: '#8FFF4E', symbol: '🟢', label: { en: 'Sticky Paddle', da: 'Klæbrig Bar' } },
+  explosiveBall: { color: '#FF2E00', symbol: '💣', label: { en: 'Explosive Ball', da: 'Eksplosiv Bold' } }
 }
 
 interface User {
@@ -211,6 +212,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [shrinkPaddleTimeLeft, setShrinkPaddleTimeLeft] = useState(0)
   const [isStickyPaddle, setIsStickyPaddle] = useState(false)
   const [stickyPaddleTimeLeft, setStickyPaddleTimeLeft] = useState(0)
+  const [isExplosiveBall, setIsExplosiveBall] = useState(false)
+  const [explosiveBallTimeLeft, setExplosiveBallTimeLeft] = useState(0)
   const [aimAngle, setAimAngle] = useState(0)
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('brickbreak-global-leaderboard', {
     easy: [],
@@ -242,6 +245,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const lasersRef = useRef<Laser[]>([])
   const lastLaserTimeRef = useRef<number>(0)
   const isStickyPaddleRef = useRef<boolean>(false)
+  const isExplosiveBallRef = useRef<boolean>(false)
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -461,11 +465,14 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setShieldTimeLeft(0)
     setIsFireball(false)
     setFireballTimeLeft(0)
+    setIsExplosiveBall(false)
+    setExplosiveBallTimeLeft(0)
     setBallSpeedMultiplier(1)
     setSpeedPowerupTimeLeft(0)
     setEnlargePaddleTimeLeft(0)
     setShrinkPaddleTimeLeft(0)
     isFireballRef.current = false
+    isExplosiveBallRef.current = false
     hasShieldRef.current = false
     hasLaserRef.current = false
     lasersRef.current = []
@@ -510,6 +517,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setShieldTimeLeft(0)
     setIsFireball(false)
     setFireballTimeLeft(0)
+    setIsExplosiveBall(false)
+    setExplosiveBallTimeLeft(0)
     setBallSpeedMultiplier(1)
     setSpeedPowerupTimeLeft(0)
     setHasLaser(false)
@@ -520,6 +529,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setIsStickyPaddle(false)
     setStickyPaddleTimeLeft(0)
     isFireballRef.current = false
+    isExplosiveBallRef.current = false
     hasShieldRef.current = false
     ballSpeedMultiplierRef.current = 1
     hasLaserRef.current = false
@@ -828,6 +838,25 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           })
         }, 1000)
         break
+        
+      case 'explosiveBall':
+        setIsExplosiveBall(true)
+        isExplosiveBallRef.current = true
+        setExplosiveBallTimeLeft(10)
+        toast.success(message)
+        
+        const explosiveInterval = setInterval(() => {
+          setExplosiveBallTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(explosiveInterval)
+              setIsExplosiveBall(false)
+              isExplosiveBallRef.current = false
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+        break
     }
   }
 
@@ -963,6 +992,46 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             }
             
             bricksToRemove.push(index)
+          } else if (isExplosiveBallRef.current) {
+            scoreIncrease += brick.points
+            
+            if (Math.random() < POWERUP_SPAWN_CHANCE) {
+              const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
+              const newPowerUp: PowerUp = {
+                id: Date.now() + Math.random(),
+                x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
+                y: brick.y,
+                width: POWERUP_SIZE,
+                height: POWERUP_SIZE,
+                type: powerUpType,
+                dy: POWERUP_FALL_SPEED
+              }
+              powerUpsRef.current = [...powerUpsRef.current, newPowerUp]
+              setPowerUps(prev => [...prev, newPowerUp])
+            }
+            
+            bricksToRemove.push(index)
+            
+            const explosionRadius = brick.width * 1.8
+            const brickCenterX = brick.x + brick.width / 2
+            const brickCenterY = brick.y + brick.height / 2
+            
+            newBricks.forEach((otherBrick, otherIndex) => {
+              if (otherIndex === index || bricksToRemove.includes(otherIndex)) return
+              
+              const otherCenterX = otherBrick.x + otherBrick.width / 2
+              const otherCenterY = otherBrick.y + otherBrick.height / 2
+              
+              const distance = Math.sqrt(
+                Math.pow(otherCenterX - brickCenterX, 2) + 
+                Math.pow(otherCenterY - brickCenterY, 2)
+              )
+              
+              if (distance <= explosionRadius) {
+                scoreIncrease += otherBrick.points
+                bricksToRemove.push(otherIndex)
+              }
+            })
           } else {
             const overlapLeft = ball.x + ball.radius - brick.x
             const overlapRight = brick.x + brick.width - (ball.x - ball.radius)
@@ -1323,6 +1392,39 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           ctx.shadowBlur = 15 - i * 5
           ctx.beginPath()
           ctx.arc(ball.x - ball.dx * i * 0.5, ball.y - ball.dy * i * 0.5, ball.radius * (1 - i * 0.2), 0, Math.PI * 2)
+          ctx.fill()
+        }
+      } else if (isExplosiveBallRef.current) {
+        const explosionGradient = ctx.createRadialGradient(ball.x, ball.y, 0, ball.x, ball.y, ball.radius * 2.5)
+        explosionGradient.addColorStop(0, '#FFAA00')
+        explosionGradient.addColorStop(0.3, '#FF5500')
+        explosionGradient.addColorStop(0.6, '#AA0000')
+        explosionGradient.addColorStop(1, 'rgba(170, 0, 0, 0)')
+        
+        ctx.fillStyle = explosionGradient
+        ctx.shadowBlur = 25
+        ctx.shadowColor = '#FF2E00'
+        ctx.beginPath()
+        ctx.arc(ball.x, ball.y, ball.radius * 2.5, 0, Math.PI * 2)
+        ctx.fill()
+        
+        ctx.fillStyle = '#FF2E00'
+        ctx.shadowBlur = 20
+        ctx.shadowColor = '#AA0000'
+        ctx.beginPath()
+        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2)
+        ctx.fill()
+        
+        for (let i = 0; i < 4; i++) {
+          const angle = (i / 4) * Math.PI * 2
+          const sparkleDist = ball.radius * 1.5
+          const sparkleX = ball.x + Math.cos(angle) * sparkleDist
+          const sparkleY = ball.y + Math.sin(angle) * sparkleDist
+          
+          ctx.fillStyle = `rgba(255, ${200 - i * 30}, 0, ${0.7 - i * 0.15})`
+          ctx.shadowBlur = 10
+          ctx.beginPath()
+          ctx.arc(sparkleX, sparkleY, ball.radius * 0.3, 0, Math.PI * 2)
           ctx.fill()
         }
       } else {
@@ -1937,6 +2039,20 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                     </div>
                   </div>
                 </div>
+                
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-orange-500/10 to-red-600/10 border border-orange-500/20">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500/20 text-xl">
+                    {POWERUP_CONFIG.explosiveBall.symbol}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-orange-500 text-xs">
+                      {POWERUP_CONFIG.explosiveBall.label[language as 'en' | 'da']}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {language === 'da' ? 'Bolden eksploderer ved kollision og ødelægger omgivende brikker i 10 sek' : 'Ball explodes on collision destroying surrounding bricks for 10s'}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2043,6 +2159,13 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               <span className="text-xl">⚡</span>
               <span className="font-bold">{language === 'da' ? 'LASER AKTIV' : 'LASER ACTIVE'}</span>
               <span className="ml-2 px-2 py-0.5 rounded bg-cyan-500 text-white text-sm font-bold">{laserTimeLeft}s</span>
+            </div>
+          )}
+          {isExplosiveBall && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-gradient-to-r from-orange-500/20 to-red-600/20 border-2 border-orange-500/50 text-orange-500 animate-pulse">
+              <span className="text-xl">💣</span>
+              <span className="font-bold">{language === 'da' ? 'EKSPLOSIV BOLD AKTIV' : 'EXPLOSIVE BALL ACTIVE'}</span>
+              <span className="ml-2 px-2 py-0.5 rounded bg-orange-500 text-white text-sm font-bold">{explosiveBallTimeLeft}s</span>
             </div>
           )}
           {isStickyPaddle && (
