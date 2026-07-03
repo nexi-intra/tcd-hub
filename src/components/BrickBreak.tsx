@@ -1126,9 +1126,25 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     const currentPaddle = paddleRef.current
 
     currentBricks.forEach(brick => {
-      const opacity = 1 - (brick.hits / brick.maxHits) * 0.5
-      ctx.fillStyle = brick.color
-      ctx.globalAlpha = opacity
+      const hitsRemaining = brick.maxHits - brick.hits
+      
+      let displayColor = brick.color
+      if (hitsRemaining === 1) {
+        displayColor = '#FFD84E'
+      } else if (hitsRemaining === 2) {
+        displayColor = '#FF8B4E'
+      } else if (hitsRemaining === 3) {
+        displayColor = '#4EFF8B'
+      } else if (hitsRemaining === 4) {
+        displayColor = '#4ECFFF'
+      } else if (hitsRemaining === 5) {
+        displayColor = '#C94EFF'
+      } else if (hitsRemaining >= 6) {
+        displayColor = '#FF6B9D'
+      }
+      
+      ctx.fillStyle = displayColor
+      ctx.globalAlpha = 1
       ctx.fillRect(brick.x, brick.y, brick.width, brick.height)
       
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
@@ -1136,7 +1152,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       ctx.strokeRect(brick.x, brick.y, brick.width, brick.height)
       
       ctx.shadowBlur = 10
-      ctx.shadowColor = brick.color
+      ctx.shadowColor = displayColor
       ctx.fillRect(brick.x, brick.y, brick.width, brick.height)
       ctx.shadowBlur = 0
       ctx.globalAlpha = 1
