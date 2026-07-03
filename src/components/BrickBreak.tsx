@@ -813,7 +813,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       case 'stickyPaddle':
         setIsStickyPaddle(true)
         isStickyPaddleRef.current = true
-        setStickyPaddleTimeLeft(15)
+        setStickyPaddleTimeLeft(10)
         toast.success(message)
         
         const stickyInterval = setInterval(() => {
@@ -1933,7 +1933,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                       {POWERUP_CONFIG.stickyPaddle.label[language as 'en' | 'da']}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {language === 'da' ? 'Bolden klæber til paddle - sigt og affyr i 15 sek' : 'Ball sticks to paddle - aim and shoot for 15s'}
+                      {language === 'da' ? 'Bolden klæber til paddle - sigt og affyr i 10 sek' : 'Ball sticks to paddle - aim and shoot for 10s'}
                     </div>
                   </div>
                 </div>
