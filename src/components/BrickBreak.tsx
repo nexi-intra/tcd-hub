@@ -127,14 +127,33 @@ const POWERUP_SIZE = 30
 const POWERUP_FALL_SPEED = 3
 const POWERUP_SPAWN_CHANCE = 0.30
 
-const BRICK_COLORS = [
-  { color: '#FF6B9D', hits: 3, points: 30 },
-  { color: '#C94EFF', hits: 3, points: 30 },
-  { color: '#4ECFFF', hits: 2, points: 20 },
-  { color: '#4EFF8B', hits: 2, points: 20 },
-  { color: '#FFD84E', hits: 1, points: 10 },
-  { color: '#FF8B4E', hits: 1, points: 10 },
-]
+const BRICK_COLORS_BY_DIFFICULTY = {
+  easy: [
+    { color: '#FFD84E', hits: 1, points: 10 },
+    { color: '#FF8B4E', hits: 1, points: 10 },
+    { color: '#4EFF8B', hits: 1, points: 15 },
+    { color: '#4ECFFF', hits: 2, points: 20 },
+  ],
+  medium: [
+    { color: '#FFD84E', hits: 1, points: 10 },
+    { color: '#FF8B4E', hits: 1, points: 10 },
+    { color: '#4ECFFF', hits: 2, points: 20 },
+    { color: '#4EFF8B', hits: 2, points: 20 },
+    { color: '#C94EFF', hits: 3, points: 30 },
+  ],
+  hard: [
+    { color: '#4EFF8B', hits: 2, points: 20 },
+    { color: '#4ECFFF', hits: 2, points: 20 },
+    { color: '#C94EFF', hits: 3, points: 30 },
+    { color: '#FF6B9D', hits: 3, points: 30 },
+  ],
+  expert: [
+    { color: '#4ECFFF', hits: 2, points: 20 },
+    { color: '#C94EFF', hits: 3, points: 30 },
+    { color: '#FF6B9D', hits: 3, points: 30 },
+    { color: '#9D4EFF', hits: 4, points: 40 },
+  ]
+}
 
 const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost', 'laser', 'stickyPaddle']
 
@@ -267,63 +286,107 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     const newBricks: Brick[] = []
     const brickWidth = (GAME_WIDTH - BRICK_OFFSET_LEFT * 2 - BRICK_PADDING * (BRICK_COLS - 1)) / BRICK_COLS
     const brickHeight = 25
-    const rows = Math.min(BRICK_ROWS + Math.floor(levelNum / 3), 10)
+    
+    const difficultyBrickColors = BRICK_COLORS_BY_DIFFICULTY[difficulty]
+    
+    const rowsByDifficulty = {
+      easy: Math.min(BRICK_ROWS - 1, BRICK_ROWS - 1 + Math.floor(levelNum / 4)),
+      medium: Math.min(BRICK_ROWS, BRICK_ROWS + Math.floor(levelNum / 3)),
+      hard: Math.min(BRICK_ROWS + 1, BRICK_ROWS + 1 + Math.floor(levelNum / 3)),
+      expert: Math.min(BRICK_ROWS + 2, BRICK_ROWS + 2 + Math.floor(levelNum / 2))
+    }
+    const rows = rowsByDifficulty[difficulty]
 
     const patternIndex = (levelNum - 1) % 15
+    
+    const patternDensityByDifficulty = {
+      easy: 0.75,
+      medium: 0.85,
+      hard: 0.95,
+      expert: 1.0
+    }
+    const densityFactor = patternDensityByDifficulty[difficulty]
 
     const shouldAddBrick = (row: number, col: number): boolean => {
+      let basePattern = true
+      
       switch (patternIndex) {
         case 0:
-          return true
+          basePattern = true
+          break
         
         case 1:
-          return (row + col) % 2 === 0
+          basePattern = (row + col) % 2 === 0
+          break
         
         case 2:
-          return col % 2 === 0
+          basePattern = col % 2 === 0
+          break
         
         case 3:
-          return row % 2 === 0
+          basePattern = row % 2 === 0
+          break
         
         case 4:
-          return Math.abs(col - BRICK_COLS / 2) <= row
+          basePattern = Math.abs(col - BRICK_COLS / 2) <= row
+          break
         
         case 5:
-          return Math.abs(col - BRICK_COLS / 2) <= (rows - row - 1)
+          basePattern = Math.abs(col - BRICK_COLS / 2) <= (rows - row - 1)
+          break
         
         case 6:
-          return col >= row && col < BRICK_COLS - row
+          basePattern = col >= row && col < BRICK_COLS - row
+          break
         
         case 7:
           const centerCol = BRICK_COLS / 2
           const centerRow = rows / 2
           const distance = Math.sqrt(Math.pow(col - centerCol, 2) + Math.pow(row - centerRow, 2))
-          return distance <= 4 + row * 0.5
+          basePattern = distance <= 4 + row * 0.5
+          break
         
         case 8:
-          return col < BRICK_COLS / 2 ? row % 2 === 0 : row % 2 === 1
+          basePattern = col < BRICK_COLS / 2 ? row % 2 === 0 : row % 2 === 1
+          break
         
         case 9:
-          return (row % 3 !== 1) || (col % 3 === 1)
+          basePattern = (row % 3 !== 1) || (col % 3 === 1)
+          break
         
         case 10:
-          return col === 0 || col === BRICK_COLS - 1 || row === 0 || row === rows - 1 || (row === Math.floor(rows / 2) && col >= 2 && col <= BRICK_COLS - 3)
+          basePattern = col === 0 || col === BRICK_COLS - 1 || row === 0 || row === rows - 1 || (row === Math.floor(rows / 2) && col >= 2 && col <= BRICK_COLS - 3)
+          break
         
         case 11:
-          return Math.abs(col - row) <= 2 || Math.abs(col - (BRICK_COLS - 1 - row)) <= 2
+          basePattern = Math.abs(col - row) <= 2 || Math.abs(col - (BRICK_COLS - 1 - row)) <= 2
+          break
         
         case 12:
-          return (col % 3 === 0) || (row % 3 === 0)
+          basePattern = (col % 3 === 0) || (row % 3 === 0)
+          break
         
         case 13:
-          return col >= Math.floor(BRICK_COLS / 4) && col < Math.floor(3 * BRICK_COLS / 4)
+          basePattern = col >= Math.floor(BRICK_COLS / 4) && col < Math.floor(3 * BRICK_COLS / 4)
+          break
         
         case 14:
-          return (row + col) % 3 !== 2
+          basePattern = (row + col) % 3 !== 2
+          break
         
         default:
-          return true
+          basePattern = true
       }
+      
+      if (!basePattern) return false
+      
+      if (difficulty === 'easy') {
+        return Math.random() < densityFactor
+      } else if (difficulty === 'medium') {
+        return Math.random() < densityFactor
+      }
+      
+      return basePattern
     }
 
     let brickId = 0
@@ -331,8 +394,15 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       for (let col = 0; col < BRICK_COLS; col++) {
         if (!shouldAddBrick(row, col)) continue
 
-        const colorData = BRICK_COLORS[row % BRICK_COLORS.length]
-        const maxHits = colorData.hits + Math.floor(levelNum / 5)
+        const colorData = difficultyBrickColors[row % difficultyBrickColors.length]
+        
+        const hitsBonusByDifficulty = {
+          easy: Math.floor(levelNum / 8),
+          medium: Math.floor(levelNum / 6),
+          hard: Math.floor(levelNum / 5),
+          expert: Math.floor(levelNum / 4)
+        }
+        const maxHits = colorData.hits + hitsBonusByDifficulty[difficulty]
 
         newBricks.push({
           id: brickId++,
