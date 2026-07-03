@@ -837,17 +837,16 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           break
         }
         
-        const currentBalls = ballsRef.current
+        const currentBalls = [...ballsRef.current]
         if (currentBalls.length > 0) {
-          const baseSpeed = DIFFICULTY_SETTINGS[difficulty].ballSpeed
-          const speedMultiplier = ballSpeedMultiplierRef.current
           const newBalls: Ball[] = []
           
           currentBalls.forEach(ball => {
             if (Math.abs(ball.dx) > 0 || Math.abs(ball.dy) > 0) {
+              const currentAngle = Math.atan2(ball.dy, ball.dx)
               const ballSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
               
-              const angle1 = Math.atan2(ball.dy, ball.dx) - Math.PI / 6
+              const angle1 = currentAngle - Math.PI / 6
               newBalls.push({
                 x: ball.x,
                 y: ball.y,
@@ -856,7 +855,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                 radius: BALL_RADIUS
               })
               
-              const angle2 = Math.atan2(ball.dy, ball.dx) + Math.PI / 6
+              const angle2 = currentAngle + Math.PI / 6
               newBalls.push({
                 x: ball.x,
                 y: ball.y,
