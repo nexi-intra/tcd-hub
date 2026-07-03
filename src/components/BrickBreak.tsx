@@ -993,6 +993,19 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             
             bricksToRemove.push(index)
           } else if (isExplosiveBallRef.current) {
+            const overlapLeft = ball.x + ball.radius - brick.x
+            const overlapRight = brick.x + brick.width - (ball.x - ball.radius)
+            const overlapTop = ball.y + ball.radius - brick.y
+            const overlapBottom = brick.y + brick.height - (ball.y - ball.radius)
+
+            const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom)
+
+            if (minOverlap === overlapTop || minOverlap === overlapBottom) {
+              ball.dy = -ball.dy
+            } else {
+              ball.dx = -ball.dx
+            }
+            
             scoreIncrease += brick.points
             
             if (Math.random() < POWERUP_SPAWN_CHANCE) {
