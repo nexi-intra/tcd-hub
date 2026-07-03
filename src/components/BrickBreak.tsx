@@ -1863,7 +1863,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                       {POWERUP_CONFIG.enlargePaddle.label[language as 'en' | 'da']}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {language === 'da' ? 'Gør paddle større i 15 sek' : 'Makes paddle larger for 15s'}
+                      {language === 'da' ? 'Gør paddle større i 10 sek' : 'Makes paddle larger for 10s'}
                     </div>
                   </div>
                 </div>
@@ -1877,7 +1877,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                       {POWERUP_CONFIG.shrinkPaddle.label[language as 'en' | 'da']}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {language === 'da' ? 'Gør paddle mindre i 15 sek' : 'Makes paddle smaller for 15s'}
+                      {language === 'da' ? 'Gør paddle mindre i 10 sek' : 'Makes paddle smaller for 10s'}
                     </div>
                   </div>
                 </div>
@@ -1891,7 +1891,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                       {POWERUP_CONFIG.slowMotion.label[language as 'en' | 'da']}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {language === 'da' ? 'Sænker boldens hastighed til 0.5x i 10 sek' : 'Slows ball to 0.5x for 10s'}
+                      {language === 'da' ? 'Sænker boldens hastighed til 0.5x i 8 sek' : 'Slows ball to 0.5x for 8s'}
                     </div>
                   </div>
                 </div>
@@ -1905,7 +1905,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                       {POWERUP_CONFIG.speedBoost.label[language as 'en' | 'da']}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {language === 'da' ? 'Øger boldens hastighed til 1.5x i 10 sek' : 'Increases ball speed to 1.5x for 10s'}
+                      {language === 'da' ? 'Øger boldens hastighed til 1.5x i 8 sek' : 'Increases ball speed to 1.5x for 8s'}
                     </div>
                   </div>
                 </div>
