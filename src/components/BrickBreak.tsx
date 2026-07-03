@@ -39,7 +39,7 @@ interface PowerUp {
   y: number
   width: number
   height: number
-  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle' | 'slowMotion' | 'speedBoost' | 'laser' | 'stickyPaddle' | 'multiBall'
+  type: 'extraLife' | 'shield' | 'fireball' | 'shrinkPaddle' | 'enlargePaddle' | 'slowMotion' | 'speedBoost' | 'laser' | 'stickyPaddle'
   dy: number
 }
 
@@ -155,7 +155,7 @@ const BRICK_COLORS_BY_DIFFICULTY = {
   ]
 }
 
-const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost', 'laser', 'stickyPaddle', 'multiBall']
+const POWERUP_TYPES: PowerUp['type'][] = ['extraLife', 'shield', 'fireball', 'shrinkPaddle', 'enlargePaddle', 'slowMotion', 'speedBoost', 'laser', 'stickyPaddle']
 
 const POWERUP_CONFIG = {
   extraLife: { color: '#4EFF8B', symbol: '♥', label: { en: 'Extra Life', da: 'Ekstra Liv' } },
@@ -166,8 +166,7 @@ const POWERUP_CONFIG = {
   slowMotion: { color: '#9D4EFF', symbol: '⏱', label: { en: 'Slow Motion', da: 'Langsom' } },
   speedBoost: { color: '#FF4E6B', symbol: '⚡', label: { en: 'Speed Boost', da: 'Fart' } },
   laser: { color: '#00FFFF', symbol: '🔫', label: { en: 'Laser', da: 'Laser' } },
-  stickyPaddle: { color: '#8FFF4E', symbol: '🟢', label: { en: 'Sticky Paddle', da: 'Klæbrig Bar' } },
-  multiBall: { color: '#FFB84E', symbol: '⚪', label: { en: 'Multi Ball', da: 'Multi Bold' } }
+  stickyPaddle: { color: '#8FFF4E', symbol: '🟢', label: { en: 'Sticky Paddle', da: 'Klæbrig Bar' } }
 }
 
 interface User {
@@ -828,47 +827,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
-        break
-        
-      case 'multiBall':
-        if (ballAttachedRef.current) {
-          const noEffectMsg = language === 'da' ? 'Skyd bolden først!' : 'Launch the ball first!'
-          toast.info(noEffectMsg)
-          break
-        }
-        
-        const currentBalls = [...ballsRef.current]
-        if (currentBalls.length > 0) {
-          const newBalls: Ball[] = []
-          
-          currentBalls.forEach(ball => {
-            const currentAngle = Math.atan2(ball.dy, ball.dx)
-            const ballSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
-            
-            const angle1 = currentAngle - Math.PI / 6
-            newBalls.push({
-              x: ball.x,
-              y: ball.y,
-              dx: Math.cos(angle1) * ballSpeed,
-              dy: Math.sin(angle1) * ballSpeed,
-              radius: BALL_RADIUS
-            })
-            
-            const angle2 = currentAngle + Math.PI / 6
-            newBalls.push({
-              x: ball.x,
-              y: ball.y,
-              dx: Math.cos(angle2) * ballSpeed,
-              dy: Math.sin(angle2) * ballSpeed,
-              radius: BALL_RADIUS
-            })
-          })
-          
-          const allBalls = [...currentBalls, ...newBalls]
-          ballsRef.current = allBalls
-          setBalls(allBalls)
-          toast.success(message)
-        }
         break
     }
   }
@@ -1976,20 +1934,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {language === 'da' ? 'Bolden klæber til paddle - sigt og affyr i 10 sek' : 'Ball sticks to paddle - aim and shoot for 10s'}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-orange-500/10 to-amber-600/10 border border-orange-500/20">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500/20 text-xl">
-                    {POWERUP_CONFIG.multiBall.symbol}
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-orange-500 text-xs">
-                      {POWERUP_CONFIG.multiBall.label[language as 'en' | 'da']}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {language === 'da' ? 'Tilføjer 2 ekstra bolde til hver eksisterende bold' : 'Adds 2 extra balls for each existing ball'}
                     </div>
                   </div>
                 </div>
