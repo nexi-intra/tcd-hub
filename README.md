@@ -1,4 +1,4 @@
-# Terminal Configuration & Dispatch Hub
+# Terminal Configuration & Dispatch Hub.
 
 Et samlet team hub for Terminal Configuration & Dispatch teamet med guides, feriekalender, og teamværktøjer.
 
