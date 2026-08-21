@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target, RocketLaunch, Cube, Gift, Bird } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target, RocketLaunch, Cube, Gift, Bird, SquaresFour, GameController } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -139,6 +139,17 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [newBrickBreakScore, setNewBrickBreakScore] = useState('')
   const [newBrickBreakLevel, setNewBrickBreakLevel] = useState('')
   const [brickBreakPlayCounts, setBrickBreakPlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
+  const [tetrisLeaderboard, setTetrisLeaderboard] = useState<{
+    easy: Array<{ email: string; score: number; level: number; timestamp: number }>
+    medium: Array<{ email: string; score: number; level: number; timestamp: number }>
+    hard: Array<{ email: string; score: number; level: number; timestamp: number }>
+    expert: Array<{ email: string; score: number; level: number; timestamp: number }>
+  } | null>(null)
+  const [editingTetrisScore, setEditingTetrisScore] = useState<{ difficulty: 'easy' | 'medium' | 'hard' | 'expert'; email: string; score: number; level: number } | null>(null)
+  const [isEditTetrisScoreDialogOpen, setIsEditTetrisScoreDialogOpen] = useState(false)
+  const [newTetrisScore, setNewTetrisScore] = useState('')
+  const [newTetrisLevel, setNewTetrisLevel] = useState('')
+  const [tetrisPlayCounts, setTetrisPlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
   const [isManualGrantDialogOpen, setIsManualGrantDialogOpen] = useState(false)
   const [birthdays, setBirthdays] = useState<BirthdayEntry[]>([])
   const [isEditBirthdayDialogOpen, setIsEditBirthdayDialogOpen] = useState(false)
@@ -158,6 +169,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         loadEndlessDodgerLeaderboard()
         loadBrickBreakLeaderboard()
         loadNexiFlyerLeaderboard()
+        loadTetrisLeaderboard()
         loadBirthdays()
       }
     }
@@ -1215,6 +1227,97 @@ Return ONLY a JSON object with this exact structure:
     toast.success('Score slettet')
   }
 
+  const loadTetrisLeaderboard = async () => {
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; level: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; level: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; level: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; level: number; timestamp: number }>
+    }>('tetris-global-leaderboard')
+
+    setTetrisLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
+
+    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('tetris-play-counts')
+    setTetrisPlayCounts(playCounts || {})
+  }
+
+  const openEditTetrisScoreDialog = (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string, score: number, level: number) => {
+    setEditingTetrisScore({ difficulty, email, score, level })
+    setNewTetrisScore(score.toString())
+    setNewTetrisLevel(level.toString())
+    setIsEditTetrisScoreDialogOpen(true)
+  }
+
+  const handleSaveTetrisScore = async () => {
+    if (!editingTetrisScore) return
+
+    const scoreValue = parseInt(newTetrisScore)
+    const levelValue = parseInt(newTetrisLevel)
+    if (isNaN(scoreValue) || scoreValue < 0 || isNaN(levelValue) || levelValue < 0) {
+      toast.error('Ugyldig score eller level')
+      return
+    }
+
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; level: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; level: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; level: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; level: number; timestamp: number }>
+    }>('tetris-global-leaderboard')
+
+    if (!leaderboard) {
+      toast.error('Leaderboard ikke fundet')
+      return
+    }
+
+    const board = leaderboard[editingTetrisScore.difficulty]
+    const entryIndex = board.findIndex((entry: { email: string; score: number; level: number; timestamp: number }) => entry.email === editingTetrisScore.email)
+
+    if (entryIndex !== -1) {
+      board[entryIndex] = {
+        ...board[entryIndex],
+        score: scoreValue,
+        level: levelValue,
+        timestamp: Date.now()
+      }
+
+      board.sort((a: { score: number }, b: { score: number }) => b.score - a.score)
+
+      const updatedLeaderboard = {
+        ...leaderboard,
+        [editingTetrisScore.difficulty]: board
+      }
+
+      await window.spark.kv.set('tetris-global-leaderboard', updatedLeaderboard)
+      await loadTetrisLeaderboard()
+
+      setIsEditTetrisScoreDialogOpen(false)
+      setEditingTetrisScore(null)
+      setNewTetrisScore('')
+      setNewTetrisLevel('')
+      toast.success('Score opdateret')
+    } else {
+      toast.error('Score entry ikke fundet')
+    }
+  }
+
+  const deleteTetrisScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; level: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; level: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; level: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; level: number; timestamp: number }>
+    }>('tetris-global-leaderboard')
+
+    if (!leaderboard) return
+
+    leaderboard[difficulty] = leaderboard[difficulty].filter((entry: { email: string }) => entry.email !== email)
+
+    await window.spark.kv.set('tetris-global-leaderboard', leaderboard)
+    await loadTetrisLeaderboard()
+    toast.success('Score slettet')
+  }
+
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
       case 'admin':
@@ -1305,7 +1408,7 @@ Return ONLY a JSON object with this exact structure:
         </motion.div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9 max-w-7xl">
+          <TabsList className="grid w-full grid-cols-6 max-w-5xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
@@ -1331,21 +1434,9 @@ Return ONLY a JSON object with this exact structure:
               <Gift size={18} />
               Fødselsdage
             </TabsTrigger>
-            <TabsTrigger value="game-scores" className="gap-2">
-              <Trophy size={18} />
-              Hit N Miss
-            </TabsTrigger>
-            <TabsTrigger value="dodger-scores" className="gap-2">
-              <RocketLaunch size={18} />
-              Endless Dodger
-            </TabsTrigger>
-            <TabsTrigger value="brick-break-scores" className="gap-2">
-              <Cube size={18} />
-              Brick Break
-            </TabsTrigger>
-            <TabsTrigger value="nexiflyer-scores" className="gap-2">
-              <Bird size={18} />
-              Nexi Flyer
+            <TabsTrigger value="games" className="gap-2">
+              <GameController size={18} />
+              Spil
             </TabsTrigger>
           </TabsList>
 
@@ -2216,6 +2307,31 @@ Return ONLY a JSON object with this exact structure:
             </Card>
           </TabsContent>
 
+          <TabsContent value="games" className="space-y-6">
+            <Tabs defaultValue="game-scores" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-5 max-w-4xl">
+                <TabsTrigger value="game-scores" className="gap-2">
+                  <Target size={18} />
+                  Hit N Miss
+                </TabsTrigger>
+                <TabsTrigger value="dodger-scores" className="gap-2">
+                  <RocketLaunch size={18} />
+                  Endless Dodger
+                </TabsTrigger>
+                <TabsTrigger value="brick-break-scores" className="gap-2">
+                  <Cube size={18} />
+                  Brick Break
+                </TabsTrigger>
+                <TabsTrigger value="nexiflyer-scores" className="gap-2">
+                  <Bird size={18} />
+                  Nexi Flyer
+                </TabsTrigger>
+                <TabsTrigger value="tetris-scores" className="gap-2">
+                  <SquaresFour size={18} />
+                  Tetris
+                </TabsTrigger>
+              </TabsList>
+
           <TabsContent value="game-scores" className="space-y-6">
             <Card className="p-6 border-2">
               <div className="flex items-center justify-between mb-6">
@@ -3011,6 +3127,211 @@ Return ONLY a JSON object with this exact structure:
             </Card>
           </TabsContent>
 
+          <TabsContent value="tetris-scores" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center gap-3 mb-6">
+                <SquaresFour size={28} className="text-primary" weight="duotone" />
+                <h2 className="text-2xl font-bold">Tetris Spil Statistik</h2>
+              </div>
+
+              {tetrisPlayCounts && Object.keys(tetrisPlayCounts).length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    {Object.entries(tetrisPlayCounts)
+                      .sort(([, countsA], [, countsB]) => {
+                        const totalA = (countsA.easy || 0) + (countsA.medium || 0) + (countsA.hard || 0) + (countsA.expert || 0)
+                        const totalB = (countsB.easy || 0) + (countsB.medium || 0) + (countsB.hard || 0) + (countsB.expert || 0)
+                        return totalB - totalA
+                      })
+                      .map(([email, counts]) => {
+                        const totalPlays = (counts.easy || 0) + (counts.medium || 0) + (counts.hard || 0) + (counts.expert || 0)
+                        
+                        const getUserName = () => {
+                          const user = users.find(u => u.email === email)
+                          return user ? user.fullName : email
+                        }
+
+                        return (
+                          <motion.div
+                            key={email}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-4 rounded-xl border-2 bg-gradient-to-br from-card to-muted/30 hover:shadow-lg transition-all"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="font-semibold text-lg">{getUserName()}</div>
+                                <div className="text-xs text-muted-foreground">{email}</div>
+                              </div>
+                              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                                <Trophy size={18} weight="fill" className="text-primary" />
+                                <span className="font-bold text-lg text-primary">{totalPlays}</span>
+                                <span className="text-xs text-muted-foreground">spil</span>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-2 rounded bg-green-500/10 border border-green-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Let</div>
+                                <div className="font-bold text-green-600">{counts.easy || 0}</div>
+                              </div>
+                              <div className="p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Mellem</div>
+                                <div className="font-bold text-yellow-600">{counts.medium || 0}</div>
+                              </div>
+                              <div className="p-2 rounded bg-red-500/10 border border-red-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Svær</div>
+                                <div className="font-bold text-red-600">{counts.hard || 0}</div>
+                              </div>
+                              <div className="p-2 rounded bg-purple-500/10 border border-purple-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Ekspert</div>
+                                <div className="font-bold text-purple-600">{counts.expert || 0}</div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Trophy size={64} className="text-muted-foreground/30 mx-auto mb-4" weight="duotone" />
+                    <p className="text-muted-foreground">Ingen spil statistik endnu</p>
+                    <p className="text-sm text-muted-foreground mt-2">Statistik vil vises når brugere begynder at spille Tetris</p>
+                  </div>
+                )}
+            </Card>
+
+            <Card className="p-6 border-2">
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Her kan du redigere og slette highscores fra Tetris. Du kan ændre score værdier, level nået, eller fjerne hele entries.
+                </p>
+              </div>
+
+              {!tetrisLeaderboard ? (
+                <div className="text-center py-12">
+                  <Trophy size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
+                  <p className="text-muted-foreground">Indlæser highscores...</p>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {(['easy', 'medium', 'hard', 'expert'] as const).map((difficulty) => {
+                    const board = tetrisLeaderboard[difficulty] || []
+                    const difficultyLabels = {
+                      easy: { da: 'Let', color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/30' },
+                      medium: { da: 'Mellem', color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
+                      hard: { da: 'Svær', color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/30' },
+                      expert: { da: 'Ekspert', color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/30' }
+                    }
+                    const setting = difficultyLabels[difficulty]
+
+                    return (
+                      <div key={difficulty} className="space-y-3">
+                        <div className={`p-4 rounded-lg ${setting.bg} border ${setting.border}`}>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <Trophy size={24} weight="duotone" className={setting.color} />
+                              <div>
+                                <h3 className="font-bold text-lg">{setting.da}</h3>
+                                <p className="text-xs text-muted-foreground">
+                                  {board.length} {board.length === 1 ? 'score' : 'scores'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {board.length === 0 ? (
+                            <div className="text-center py-6">
+                              <SquaresFour size={32} className="text-muted-foreground/30 mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground">Ingen scores endnu</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {board.map((entry, index) => {
+                                const getUserName = () => {
+                                  const user = users.find(u => u.email === entry.email)
+                                  return user ? user.fullName : entry.email
+                                }
+
+                                return (
+                                  <motion.div
+                                    key={entry.email}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center justify-between p-3 rounded-lg bg-card border hover:shadow-sm transition-all group"
+                                  >
+                                    <div className="flex items-center gap-3 flex-1">
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 font-bold text-sm">
+                                        #{index + 1}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-semibold truncate">{getUserName()}</div>
+                                        <div className="text-xs text-muted-foreground">{entry.email}</div>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <div className="text-right">
+                                          <div className="text-lg font-bold text-primary">
+                                            {entry.score}
+                                          </div>
+                                          <div className="text-xs text-muted-foreground">
+                                            Level {entry.level}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="ml-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => openEditTetrisScoreDialog(difficulty, entry.email, entry.score, entry.level)}
+                                        className="hover:bg-primary/10"
+                                      >
+                                        <PencilSimple size={20} />
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                          >
+                                            <Trash size={20} />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Slet score?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Er du sikker på at du vil slette scoren for <strong>{getUserName()}</strong>? Denne handling kan ikke fortrydes.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() => deleteTetrisScore(difficulty, entry.email)}
+                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                              Slet score
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </motion.div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+            </Tabs>
+          </TabsContent>
+
         </Tabs>
       </div>
 
@@ -3637,6 +3958,55 @@ Return ONLY a JSON object with this exact structure:
               Annuller
             </Button>
             <Button onClick={handleSaveBrickBreakScore} className="gap-2">
+              <Check size={18} weight="bold" />
+              Gem ændringer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditTetrisScoreDialogOpen} onOpenChange={setIsEditTetrisScoreDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rediger Tetris score</DialogTitle>
+            <DialogDescription>
+              Rediger scoren og level for {editingTetrisScore?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-tetris-score">Score *</Label>
+              <Input
+                id="edit-tetris-score"
+                type="number"
+                value={newTetrisScore}
+                onChange={(e) => setNewTetrisScore(e.target.value)}
+                placeholder="Indtast score"
+                min="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-tetris-level">Level *</Label>
+              <Input
+                id="edit-tetris-level"
+                type="number"
+                value={newTetrisLevel}
+                onChange={(e) => setNewTetrisLevel(e.target.value)}
+                placeholder="Indtast level"
+                min="0"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsEditTetrisScoreDialogOpen(false)
+              setEditingTetrisScore(null)
+              setNewTetrisScore('')
+              setNewTetrisLevel('')
+            }}>
+              Annuller
+            </Button>
+            <Button onClick={handleSaveTetrisScore} className="gap-2">
               <Check size={18} weight="bold" />
               Gem ændringer
             </Button>
