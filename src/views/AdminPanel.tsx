@@ -42,9 +42,10 @@ interface ShiftRole {
 interface AdminPanelProps {
   onNavigateBack: () => void
   onLogout: () => void
+  userEmail: string
 }
 
-export function AdminPanel({ onNavigateBack, onLogout }: AdminPanelProps) {
+export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEmail }: AdminPanelProps) {
   const [users, setUsers] = useState<User[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -67,21 +68,19 @@ export function AdminPanel({ onNavigateBack, onLogout }: AdminPanelProps) {
 
   useEffect(() => {
     const loadUserAndCheckAdmin = async () => {
-      const session = await window.spark.kv.get<{ userId: string; email: string }>('user-session')
-      if (session) {
-        setUserEmail(session.email)
-        
-        const hasAccess = await hasAdminAccess(session.email)
-        setIsAdmin(hasAccess)
-        if (hasAccess) {
-          loadUsers()
-          loadSickLeaveEntries()
-          loadShiftRoles()
-        }
+      if (!currentUserEmail) return
+      setUserEmail(currentUserEmail)
+
+      const hasAccess = await hasAdminAccess(currentUserEmail)
+      setIsAdmin(hasAccess)
+      if (hasAccess) {
+        loadUsers()
+        loadSickLeaveEntries()
+        loadShiftRoles()
       }
     }
     loadUserAndCheckAdmin()
-  }, [])
+  }, [currentUserEmail])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -280,14 +279,14 @@ export function AdminPanel({ onNavigateBack, onLogout }: AdminPanelProps) {
     switch (role) {
       case 'admin':
         return (
-          <Badge className="bg-gradient-to-r from-accent via-primary to-secondary text-white">
+          <Badge className="bg-gradient-to-r from-accent via-primary to-accent text-white">
             <Crown size={14} className="mr-1" weight="fill" />
             Administrator
           </Badge>
         )
       case 'manager':
         return (
-          <Badge className="bg-gradient-to-r from-primary to-secondary text-white">
+          <Badge className="bg-gradient-to-r from-primary to-accent text-white">
             <ShieldCheck size={14} className="mr-1" weight="fill" />
             Manager
           </Badge>
@@ -368,7 +367,7 @@ export function AdminPanel({ onNavigateBack, onLogout }: AdminPanelProps) {
           className="mb-8"
         >
           <div className="flex items-center gap-6">
-            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
+            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
               Admin Panel
             </h1>
           </div>
@@ -418,10 +417,10 @@ export function AdminPanel({ onNavigateBack, onLogout }: AdminPanelProps) {
                     <div className="flex items-center gap-4 flex-1 min-w-0">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg ${
                         user.role === 'admin' 
-                          ? 'bg-gradient-to-br from-accent via-primary to-secondary' 
+                          ? 'bg-gradient-to-br from-accent via-primary to-accent' 
                           : user.role === 'manager'
-                          ? 'bg-gradient-to-br from-primary to-secondary'
-                          : 'bg-gradient-to-br from-secondary to-accent'
+                          ? 'bg-gradient-to-br from-primary to-accent'
+                          : 'bg-muted-foreground'
                       }`}>
                         {user.fullName.charAt(0).toUpperCase()}
                       </div>
@@ -610,7 +609,7 @@ export function AdminPanel({ onNavigateBack, onLogout }: AdminPanelProps) {
                   <Button
                     onClick={() => openEmployeeDialog()}
                     size="sm"
-                    className="gap-2 bg-gradient-to-r from-primary to-secondary"
+                    className="gap-2 bg-gradient-to-r from-primary to-accent"
                   >
                     <Plus size={16} />
                     Tilføj Medarbejder
@@ -644,10 +643,10 @@ export function AdminPanel({ onNavigateBack, onLogout }: AdminPanelProps) {
                       <div className="flex items-center gap-3 mb-2">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold shadow-md ${
                           user.role === 'admin' 
-                            ? 'bg-gradient-to-br from-accent via-primary to-secondary' 
+                            ? 'bg-gradient-to-br from-accent via-primary to-accent' 
                             : user.role === 'manager'
-                            ? 'bg-gradient-to-br from-primary to-secondary'
-                            : 'bg-gradient-to-br from-secondary to-accent'
+                            ? 'bg-gradient-to-br from-primary to-accent'
+                            : 'bg-muted-foreground'
                         }`}>
                           {user.fullName.charAt(0).toUpperCase()}
                         </div>
@@ -708,7 +707,7 @@ export function AdminPanel({ onNavigateBack, onLogout }: AdminPanelProps) {
             <Card className="p-6 border-2">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                  <Tag size={28} className="text-secondary" weight="duotone" />
+                  <Tag size={28} className="text-accent" weight="duotone" />
                   <h2 className="text-2xl font-bold">Opgaver / Roller</h2>
                 </div>
                 <div className="flex items-center gap-3">
@@ -718,7 +717,7 @@ export function AdminPanel({ onNavigateBack, onLogout }: AdminPanelProps) {
                   <Button
                     onClick={() => setShowRoleDialog(true)}
                     size="sm"
-                    className="gap-2 bg-gradient-to-r from-primary to-secondary"
+                    className="gap-2 bg-gradient-to-r from-primary to-accent"
                   >
                     <Plus size={16} />
                     Tilføj Opgave

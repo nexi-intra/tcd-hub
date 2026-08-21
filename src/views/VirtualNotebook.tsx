@@ -334,7 +334,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
             <ArrowLeft size={20} />
           </Button>
           <div className="flex-1 text-center">
-            <h1 className="text-4xl font-bold">{t.notebook.title}</h1>
+            <h1 className="text-4xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">{t.notebook.title}</h1>
           </div>
           <Button
             onClick={() => setShowNotifications(true)}

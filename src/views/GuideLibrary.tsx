@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -170,7 +170,7 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
           <div className="flex flex-col items-center justify-center gap-6 text-center">
             <div className="flex flex-col items-center gap-4">
               <motion.div 
-                className="h-16 w-16 flex-shrink-0 rounded-3xl bg-gradient-to-br from-primary via-secondary to-accent shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden"
+                className="h-16 w-16 flex-shrink-0 rounded-3xl bg-gradient-to-br from-primary to-accent shadow-2xl shadow-primary/30 flex items-center justify-center relative overflow-hidden"
                 whileHover={{ scale: 1.08, rotate: 5 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
@@ -178,11 +178,11 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
                 <Books size={32} weight="duotone" className="text-primary-foreground relative z-10" />
               </motion.div>
               <div className="min-w-0">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
                   Guide Bibliotek
                 </h1>
                 <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-2 flex items-center justify-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-gradient-to-r from-primary/15 to-secondary/15 text-primary font-semibold border border-primary/20 text-xs sm:text-sm">
+                  <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-gradient-to-r from-primary/15 to-accent/15 text-primary font-semibold border border-primary/20 text-xs sm:text-sm">
                     {guides?.length || 0}
                   </span>
                   <span className="text-xs sm:text-sm">{(guides?.length || 0) === 1 ? 'guide' : 'guides'} tilgængelig</span>
@@ -191,7 +191,7 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
             </div>
             <div className="flex gap-2 flex-shrink-0 items-center">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button onClick={handleAddNew} className="h-11 px-5 bg-gradient-to-r from-primary via-secondary to-primary hover:from-primary/90 hover:via-secondary/90 hover:to-primary/90 shadow-xl shadow-primary/30 font-semibold transition-all">
+                <Button onClick={handleAddNew} className="h-11 px-5 bg-gradient-to-r from-primary via-accent to-primary hover:from-primary/90 hover:via-accent/90 hover:to-primary/90 shadow-xl shadow-primary/30 font-semibold transition-all">
                   <Plus size={20} weight="bold" className="sm:mr-2" />
                   <span className="hidden sm:inline">Ny guide</span>
                 </Button>
@@ -231,7 +231,7 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
                     className={cn(
                       'transition-all backdrop-blur-md font-semibold border-2 rounded-xl px-4 h-10',
                       activeCategory === category 
-                        ? 'shadow-xl shadow-primary/30 bg-gradient-to-r from-primary via-secondary to-primary border-primary' 
+                        ? 'shadow-xl shadow-primary/30 bg-gradient-to-r from-primary via-accent to-primary border-primary' 
                         : 'hover:bg-muted hover:border-primary/40 border-border'
                     )}
                   >
@@ -282,13 +282,13 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
                 ease: "easeInOut"
               }}
             >
-              <div className="h-32 w-32 rounded-[2rem] bg-gradient-to-br from-primary via-secondary to-accent shadow-2xl shadow-primary/40 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/50 via-secondary/50 to-accent/50 blur-2xl animate-pulse" />
+              <div className="h-32 w-32 rounded-[2rem] bg-gradient-to-br from-primary to-accent shadow-2xl shadow-primary/40 flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/50 to-accent/50 blur-2xl animate-pulse" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,white,transparent)] opacity-20" />
                 <Books size={64} weight="duotone" className="text-primary-foreground relative z-10 drop-shadow-lg" />
               </div>
             </motion.div>
-            <h2 className="text-4xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-4 text-center">
+            <h2 className="text-4xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent mb-4 text-center">
               {searchQuery || activeCategory !== 'All' ? 'Ingen guides fundet' : 'Ingen guides endnu'}
             </h2>
             <p className="text-muted-foreground text-center max-w-md mb-8 text-lg leading-relaxed">
@@ -301,7 +301,7 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Button onClick={handleAddNew} size="lg" className="h-14 px-8 text-base bg-gradient-to-r from-primary via-secondary to-primary hover:from-primary/90 hover:via-secondary/90 hover:to-primary/90 shadow-2xl shadow-primary/40 font-semibold rounded-2xl">
+                <Button onClick={handleAddNew} size="lg" className="h-14 px-8 text-base bg-gradient-to-r from-primary via-accent to-primary hover:from-primary/90 hover:via-accent/90 hover:to-primary/90 shadow-2xl shadow-primary/40 font-semibold rounded-2xl">
                   <Plus size={24} weight="bold" className="mr-2" />
                   Opret første guide
                 </Button>

@@ -57,9 +57,12 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-          className="mb-6 text-muted-foreground/40 [&>svg]:w-16 [&>svg]:h-16 sm:[&>svg]:w-20 sm:[&>svg]:h-20"
+          className="relative mb-6"
         >
-          {icon}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 blur-xl scale-125" />
+          <div className="relative text-muted-foreground/40 [&>svg]:w-16 [&>svg]:h-16 sm:[&>svg]:w-20 sm:[&>svg]:h-20">
+            {icon}
+          </div>
         </motion.div>
       )}
       

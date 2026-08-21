@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Cube, Trophy, X, Lightning, Speedometer, Fire, Flame, Crown, Medal, Star, Play } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { toast } from 'sonner'
 
@@ -230,6 +230,9 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const mouseXRef = useRef<number>(GAME_WIDTH / 2)
   const ballsRef = useRef<Ball[]>([])
   const bricksRef = useRef<Brick[]>([])
+  const brickParticlesRef = useRef<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number; color: string; size: number }[]>([])
+  const ballTrailRef = useRef<{ x: number; y: number; life: number; maxLife: number; color: string }[]>([])
+  const shakeRef = useRef(0)
   const powerUpsRef = useRef<PowerUp[]>([])
   const paddleRef = useRef<Paddle>({
     x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
@@ -444,6 +447,9 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     ballAttachedRef.current = true
     powerUpsRef.current = []
     ballSpeedMultiplierRef.current = 1
+    brickParticlesRef.current = []
+    ballTrailRef.current = []
+    shakeRef.current = 0
     
     const newBalls = [{
       x: newPaddle.x + newPaddle.width / 2,
@@ -883,6 +889,35 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     }
   }
 
+  const spawnBrickParticles = (brick: Brick) => {
+    const centerX = brick.x + brick.width / 2
+    const centerY = brick.y + brick.height / 2
+    const hitsRemaining = brick.maxHits - brick.hits
+    const colors = [
+      hitsRemaining === 1 ? '#FFD84E' :
+      hitsRemaining === 2 ? '#FF8B4E' :
+      hitsRemaining === 3 ? '#4EFF8B' :
+      hitsRemaining === 4 ? '#4ECFFF' :
+      hitsRemaining === 5 ? '#C94EFF' : '#FF6B9D',
+      '#FFFFFF'
+    ]
+
+    for (let i = 0; i < 14; i++) {
+      const angle = Math.random() * Math.PI * 2
+      const speed = 2 + Math.random() * 4
+      brickParticlesRef.current.push({
+        x: centerX,
+        y: centerY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 24,
+        maxLife: 24,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 2 + Math.random() * 2.5
+      })
+    }
+  }
+
   const gameLoop = () => {
     const currentBalls = ballsRef.current
     const currentBricks = bricksRef.current
@@ -980,6 +1015,22 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       return newBall
     }).filter(ball => ball.y - ball.radius < GAME_HEIGHT)
 
+    const trailColor = isFireballRef.current ? '#FF6B00' : isExplosiveBallRef.current ? '#FF4400' : '#4ECFFF'
+    newBalls.forEach(ball => {
+      ballTrailRef.current.push({ x: ball.x, y: ball.y, life: 12, maxLife: 12, color: trailColor })
+    })
+    ballTrailRef.current = ballTrailRef.current
+      .map(t => ({ ...t, life: t.life - 1 }))
+      .filter(t => t.life > 0)
+      .slice(-80)
+
+    brickParticlesRef.current = brickParticlesRef.current
+      .map(p => ({ ...p, x: p.x + p.vx, y: p.y + p.vy, vy: p.vy + 0.15, life: p.life - 1 }))
+      .filter(p => p.life > 0)
+
+    shakeRef.current *= 0.88
+    if (shakeRef.current < 0.3) shakeRef.current = 0
+
     let newBricks = [...currentBricks]
     let scoreIncrease = 0
 
@@ -1014,6 +1065,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               setPowerUps(prev => [...prev, newPowerUp])
             }
             
+            spawnBrickParticles(brick)
             bricksToRemove.push(index)
           } else if (isExplosiveBallRef.current) {
             const overlapLeft = ball.x + ball.radius - brick.x
@@ -1046,6 +1098,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               setPowerUps(prev => [...prev, newPowerUp])
             }
             
+            spawnBrickParticles(brick)
             bricksToRemove.push(index)
             
             const explosionRadius = brick.width * 1.8
@@ -1065,6 +1118,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               
               if (distance <= explosionRadius) {
                 scoreIncrease += otherBrick.points
+                spawnBrickParticles(otherBrick)
                 bricksToRemove.push(otherIndex)
               }
             })
@@ -1102,6 +1156,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                 setPowerUps(prev => [...prev, newPowerUp])
               }
               
+              spawnBrickParticles(brick)
               bricksToRemove.push(index)
             }
           }
@@ -1278,6 +1333,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       } else {
         livesRef.current -= 1
         setLives(livesRef.current)
+        shakeRef.current = 18
         
         powerUpsRef.current = []
         setPowerUps([])
@@ -1333,6 +1389,12 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
 
+    const shakeMagnitude = shakeRef.current
+    const shakeX = shakeMagnitude > 0.3 ? (Math.random() - 0.5) * shakeMagnitude : 0
+    const shakeY = shakeMagnitude > 0.3 ? (Math.random() - 0.5) * shakeMagnitude : 0
+    ctx.save()
+    ctx.translate(shakeX, shakeY)
+
     ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
 
@@ -1384,20 +1446,45 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         displayColor = '#FF6B9D'
       }
       
+      ctx.shadowBlur = 12
+      ctx.shadowColor = displayColor
       ctx.fillStyle = displayColor
       ctx.globalAlpha = 1
       ctx.fillRect(brick.x, brick.y, brick.width, brick.height)
+      ctx.shadowBlur = 0
+
+      const brickGlow = ctx.createLinearGradient(brick.x, brick.y, brick.x, brick.y + brick.height)
+      brickGlow.addColorStop(0, 'rgba(255, 255, 255, 0.45)')
+      brickGlow.addColorStop(0.4, 'rgba(255, 255, 255, 0.05)')
+      brickGlow.addColorStop(1, 'rgba(0, 0, 0, 0.25)')
+      ctx.fillStyle = brickGlow
+      ctx.fillRect(brick.x, brick.y, brick.width, brick.height)
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.55)'
+      ctx.fillRect(brick.x + 2, brick.y + 2, brick.width - 4, Math.max(2, brick.height * 0.22))
       
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
       ctx.lineWidth = 2
       ctx.strokeRect(brick.x, brick.y, brick.width, brick.height)
-      
-      ctx.shadowBlur = 10
-      ctx.shadowColor = displayColor
-      ctx.fillRect(brick.x, brick.y, brick.width, brick.height)
-      ctx.shadowBlur = 0
-      ctx.globalAlpha = 1
     })
+
+    brickParticlesRef.current.forEach(p => {
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife)
+      ctx.fillStyle = p.color
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+      ctx.fill()
+    })
+    ctx.globalAlpha = 1
+
+    ballTrailRef.current.forEach(t => {
+      ctx.globalAlpha = Math.max(0, (t.life / t.maxLife) * 0.5)
+      ctx.fillStyle = t.color
+      ctx.beginPath()
+      ctx.arc(t.x, t.y, BALL_RADIUS * (t.life / t.maxLife), 0, Math.PI * 2)
+      ctx.fill()
+    })
+    ctx.globalAlpha = 1
 
     currentBalls.forEach(ball => {
       ctx.beginPath()
@@ -1541,6 +1628,8 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       ctx.shadowBlur = 0
       ctx.restore()
     }
+
+    ctx.restore()
   }
 
   useEffect(() => {

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { toast } from 'sonner'
 import { getWeekNumber, getStartOfWeek, formatDate } from '@/lib/dateUtils'
 
@@ -212,7 +212,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
           transition={{ duration: 0.4 }}
         >
           <div className="flex flex-col items-center">
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent flex items-center gap-3 justify-center">
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent flex items-center gap-3 justify-center">
               <ForkKnife size={40} weight="duotone" className="text-primary" />
               Madplan
             </h1>

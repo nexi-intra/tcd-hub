@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { cn } from '@/lib/utils'
 
 interface ThemeBuilderProps {
@@ -298,7 +298,7 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
               <ArrowLeft size={24} />
             </Button>
             <div>
-              <h1 className="text-4xl font-bold flex items-center gap-3">
+              <h1 className="text-4xl font-bold flex items-center gap-3 bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
                 <Palette size={40} className="text-primary" />
                 Theme Builder
               </h1>

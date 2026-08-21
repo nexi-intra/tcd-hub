@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -1074,7 +1074,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           className="mb-10 text-center"
         >
           <div className="flex flex-col items-center gap-6">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">Vagtplan</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">Vagtplan</h1>
           </div>
         </motion.div>
 
@@ -1537,7 +1537,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
             <Card className="p-6 border-2">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                  <Tag size={28} className="text-secondary" weight="duotone" />
+                  <Tag size={28} className="text-accent" weight="duotone" />
                   <h2 className="text-2xl font-bold">Opgaver / Roller</h2>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1547,7 +1547,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                   <Button
                     onClick={openAddRoleDialog}
                     size="sm"
-                    className="gap-2 bg-gradient-to-r from-primary to-secondary"
+                    className="gap-2 bg-gradient-to-r from-primary to-accent"
                   >
                     <Plus size={16} />
                     Tilføj Opgave

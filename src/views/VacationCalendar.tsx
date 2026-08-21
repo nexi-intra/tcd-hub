@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { UserProfile } from '@/components/UserProfile'
 import { SingleDayOffDialog } from '@/components/SingleDayOffDialog'
 import { VacationRequestDialog } from '@/components/VacationRequestDialog'
@@ -634,11 +634,11 @@ Return ONLY a JSON object with this exact structure:
           className="mb-10 text-center"
         >
           <div className="flex flex-col items-center gap-4">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
               Feriekalender
             </h1>
             {isManager && (
-              <Badge className="bg-gradient-to-r from-primary to-secondary text-white text-xs sm:text-sm">
+              <Badge className="bg-gradient-to-r from-primary to-accent text-white text-xs sm:text-sm">
                 Manager
               </Badge>
             )}

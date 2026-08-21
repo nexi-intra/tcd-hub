@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target, RocketLaunch, Cube, Gift } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target, RocketLaunch, Cube, Gift, Bird } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +20,9 @@ import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import React from 'react'
 import { ManualVacationGrant } from '@/components/ManualVacationGrant'
+
+// @github/spark's llmPrompt type declares `strings: string[]` but tagged templates always pass a TemplateStringsArray.
+const llmPrompt = window.spark.llmPrompt as unknown as (strings: TemplateStringsArray, ...values: unknown[]) => string
 
 interface User {
   email: string
@@ -115,6 +118,16 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [isEditDodgerScoreDialogOpen, setIsEditDodgerScoreDialogOpen] = useState(false)
   const [newDodgerScore, setNewDodgerScore] = useState('')
   const [dodgerPlayCounts, setDodgerPlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
+  const [nexiFlyerLeaderboard, setNexiFlyerLeaderboard] = useState<{
+    easy: Array<{ email: string; score: number; timestamp: number }>
+    medium: Array<{ email: string; score: number; timestamp: number }>
+    hard: Array<{ email: string; score: number; timestamp: number }>
+    expert: Array<{ email: string; score: number; timestamp: number }>
+  } | null>(null)
+  const [editingNexiFlyerScore, setEditingNexiFlyerScore] = useState<{ difficulty: 'easy' | 'medium' | 'hard' | 'expert'; email: string; score: number } | null>(null)
+  const [isEditNexiFlyerScoreDialogOpen, setIsEditNexiFlyerScoreDialogOpen] = useState(false)
+  const [newNexiFlyerScore, setNewNexiFlyerScore] = useState('')
+  const [nexiFlyerPlayCounts, setNexiFlyerPlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
   const [brickBreakLeaderboard, setBrickBreakLeaderboard] = useState<{
     easy: Array<{ email: string; score: number; level: number; timestamp: number }>
     medium: Array<{ email: string; score: number; level: number; timestamp: number }>
@@ -144,6 +157,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         loadGameLeaderboard()
         loadEndlessDodgerLeaderboard()
         loadBrickBreakLeaderboard()
+        loadNexiFlyerLeaderboard()
         loadBirthdays()
       }
     }
@@ -418,7 +432,14 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       phone: newUserPhone.trim()
     }
 
-    await window.spark.kv.set('users', usersData)
+    try {
+      await window.spark.kv.set('users', usersData)
+    } catch (error) {
+      console.error('Failed to save new user:', error)
+      toast.error(`Kunne ikke gemme bruger: ${error instanceof Error ? error.message : String(error)}`)
+      return
+    }
+
     await loadUsers()
     
     setIsCreateDialogOpen(false)
@@ -461,7 +482,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     })
 
     try {
-      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
+      const prompt = llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
 
 Vacation Request Details:
 Start Date: ${startDateFormatted}
@@ -549,7 +570,7 @@ Return ONLY a JSON object with this exact structure:
     })
 
     try {
-      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
+      const prompt = llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
 
 Vacation Request Details:
 Start Date: ${startDateFormatted}
@@ -671,7 +692,7 @@ Return ONLY a JSON object with this exact structure:
     })
 
     try {
-      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${editingVacation.userEmail} about their vacation being EDITED/MODIFIED by a manager.
+      const prompt = llmPrompt`Generate a professional email notification to send to ${editingVacation.userEmail} about their vacation being EDITED/MODIFIED by a manager.
 
 Original Vacation Details:
 Original Start Date: ${originalStartDate}
@@ -774,7 +795,7 @@ Return ONLY a JSON object with this exact structure:
     })
 
     try {
-      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacationToDelete.userEmail} about their vacation being DELETED by a manager.
+      const prompt = llmPrompt`Generate a professional email notification to send to ${vacationToDelete.userEmail} about their vacation being DELETED by a manager.
 
 Deleted Vacation Details:
 Start Date: ${startDateFormatted}
@@ -1016,6 +1037,93 @@ Return ONLY a JSON object with this exact structure:
     toast.success('Score slettet')
   }
 
+  const loadNexiFlyerLeaderboard = async () => {
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; timestamp: number }>
+    }>('nexi-flyer-global-leaderboard')
+
+    setNexiFlyerLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
+
+    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('nexi-flyer-play-counts')
+    setNexiFlyerPlayCounts(playCounts || {})
+  }
+
+  const openEditNexiFlyerScoreDialog = (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string, score: number) => {
+    setEditingNexiFlyerScore({ difficulty, email, score })
+    setNewNexiFlyerScore(score.toString())
+    setIsEditNexiFlyerScoreDialogOpen(true)
+  }
+
+  const handleSaveNexiFlyerScore = async () => {
+    if (!editingNexiFlyerScore) return
+
+    const scoreValue = parseInt(newNexiFlyerScore)
+    if (isNaN(scoreValue) || scoreValue < 0) {
+      toast.error('Ugyldig score')
+      return
+    }
+
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; timestamp: number }>
+    }>('nexi-flyer-global-leaderboard')
+
+    if (!leaderboard) {
+      toast.error('Leaderboard ikke fundet')
+      return
+    }
+
+    const board = leaderboard[editingNexiFlyerScore.difficulty]
+    const entryIndex = board.findIndex((entry: { email: string; score: number; timestamp: number }) => entry.email === editingNexiFlyerScore.email)
+
+    if (entryIndex !== -1) {
+      board[entryIndex] = {
+        ...board[entryIndex],
+        score: scoreValue,
+        timestamp: Date.now()
+      }
+
+      board.sort((a: { score: number }, b: { score: number }) => b.score - a.score)
+
+      const updatedLeaderboard = {
+        ...leaderboard,
+        [editingNexiFlyerScore.difficulty]: board
+      }
+
+      await window.spark.kv.set('nexi-flyer-global-leaderboard', updatedLeaderboard)
+      await loadNexiFlyerLeaderboard()
+
+      setIsEditNexiFlyerScoreDialogOpen(false)
+      setEditingNexiFlyerScore(null)
+      setNewNexiFlyerScore('')
+      toast.success('Score opdateret')
+    } else {
+      toast.error('Score entry ikke fundet')
+    }
+  }
+
+  const deleteNexiFlyerScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
+    const leaderboard = await window.spark.kv.get<{
+      easy: Array<{ email: string; score: number; timestamp: number }>
+      medium: Array<{ email: string; score: number; timestamp: number }>
+      hard: Array<{ email: string; score: number; timestamp: number }>
+      expert: Array<{ email: string; score: number; timestamp: number }>
+    }>('nexi-flyer-global-leaderboard')
+
+    if (!leaderboard) return
+
+    leaderboard[difficulty] = leaderboard[difficulty].filter((entry: { email: string }) => entry.email !== email)
+
+    await window.spark.kv.set('nexi-flyer-global-leaderboard', leaderboard)
+    await loadNexiFlyerLeaderboard()
+    toast.success('Score slettet')
+  }
+
   const loadBrickBreakLeaderboard = async () => {
     const leaderboard = await window.spark.kv.get<{
       easy: Array<{ email: string; score: number; level: number; timestamp: number }>
@@ -1111,14 +1219,14 @@ Return ONLY a JSON object with this exact structure:
     switch (role) {
       case 'admin':
         return (
-          <Badge className="bg-gradient-to-r from-accent via-primary to-secondary text-white">
+          <Badge className="bg-gradient-to-r from-accent via-primary to-accent text-white">
             <Crown size={14} className="mr-1" weight="fill" />
             Administrator
           </Badge>
         )
       case 'manager':
         return (
-          <Badge className="bg-gradient-to-r from-primary to-secondary text-white">
+          <Badge className="bg-gradient-to-r from-primary to-accent text-white">
             <ShieldCheck size={14} className="mr-1" weight="fill" />
             Manager
           </Badge>
@@ -1190,14 +1298,14 @@ Return ONLY a JSON object with this exact structure:
           className="mb-10 text-center"
         >
           <div className="flex flex-col items-center gap-6">
-            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
+            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
               Manager Panel
             </h1>
           </div>
         </motion.div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 max-w-7xl">
+          <TabsList className="grid w-full grid-cols-9 max-w-7xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
@@ -1234,6 +1342,10 @@ Return ONLY a JSON object with this exact structure:
             <TabsTrigger value="brick-break-scores" className="gap-2">
               <Cube size={18} />
               Brick Break
+            </TabsTrigger>
+            <TabsTrigger value="nexiflyer-scores" className="gap-2">
+              <Bird size={18} />
+              Nexi Flyer
             </TabsTrigger>
           </TabsList>
 
@@ -1707,7 +1819,7 @@ Return ONLY a JSON object with this exact structure:
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-4 flex-1">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-primary flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             {firstLetter}
                           </div>
                           <div className="flex-1">
@@ -1775,7 +1887,7 @@ Return ONLY a JSON object with this exact structure:
                         </Button>
                         <Button
                           onClick={() => handleApproveVacation(vacation)}
-                          className="flex-1 gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
+                          className="flex-1 gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                         >
                           <Check size={18} weight="bold" />
                           Godkend
@@ -1806,7 +1918,7 @@ Return ONLY a JSON object with this exact structure:
                 <div className="flex items-center gap-3">
                   <Button 
                     onClick={() => setIsManualGrantDialogOpen(true)}
-                    className="gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
+                    className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                   >
                     <Gift size={18} weight="bold" />
                     Giv Ferie/Fridag
@@ -2704,6 +2816,201 @@ Return ONLY a JSON object with this exact structure:
             </Card>
           </TabsContent>
 
+          <TabsContent value="nexiflyer-scores" className="space-y-6">
+            <Card className="p-6 border-2">
+              <div className="flex items-center gap-3 mb-6">
+                <Bird size={28} className="text-primary" weight="duotone" />
+                <h2 className="text-2xl font-bold">Nexi Flyer Spil Statistik</h2>
+              </div>
+
+              {nexiFlyerPlayCounts && Object.keys(nexiFlyerPlayCounts).length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    {Object.entries(nexiFlyerPlayCounts)
+                      .sort(([, countsA], [, countsB]) => {
+                        const totalA = (countsA.easy || 0) + (countsA.medium || 0) + (countsA.hard || 0) + (countsA.expert || 0)
+                        const totalB = (countsB.easy || 0) + (countsB.medium || 0) + (countsB.hard || 0) + (countsB.expert || 0)
+                        return totalB - totalA
+                      })
+                      .map(([email, counts]) => {
+                        const totalPlays = (counts.easy || 0) + (counts.medium || 0) + (counts.hard || 0) + (counts.expert || 0)
+                        
+                        const getUserName = () => {
+                          const user = users.find(u => u.email === email)
+                          return user ? user.fullName : email
+                        }
+
+                        return (
+                          <motion.div
+                            key={email}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-4 rounded-xl border-2 bg-gradient-to-br from-card to-muted/30 hover:shadow-lg transition-all"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="font-semibold text-lg">{getUserName()}</div>
+                                <div className="text-xs text-muted-foreground">{email}</div>
+                              </div>
+                              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                                <Trophy size={18} weight="fill" className="text-primary" />
+                                <span className="font-bold text-lg text-primary">{totalPlays}</span>
+                                <span className="text-xs text-muted-foreground">spil</span>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-2 rounded bg-green-500/10 border border-green-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Let</div>
+                                <div className="font-bold text-green-600">{counts.easy || 0}</div>
+                              </div>
+                              <div className="p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Mellem</div>
+                                <div className="font-bold text-yellow-600">{counts.medium || 0}</div>
+                              </div>
+                              <div className="p-2 rounded bg-red-500/10 border border-red-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Svær</div>
+                                <div className="font-bold text-red-600">{counts.hard || 0}</div>
+                              </div>
+                              <div className="p-2 rounded bg-purple-500/10 border border-purple-500/20">
+                                <div className="text-xs text-muted-foreground mb-1">Ekspert</div>
+                                <div className="font-bold text-purple-600">{counts.expert || 0}</div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Trophy size={64} className="text-muted-foreground/30 mx-auto mb-4" weight="duotone" />
+                    <p className="text-muted-foreground">Ingen spil statistik endnu</p>
+                    <p className="text-sm text-muted-foreground mt-2">Statistik vil vises når brugere begynder at spille Nexi Flyer</p>
+                  </div>
+                )}
+            </Card>
+
+            <Card className="p-6 border-2">
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Her kan du redigere og slette highscores fra Nexi Flyer spillet. Du kan ændre score værdier eller fjerne hele entries.
+                </p>
+              </div>
+
+              {!nexiFlyerLeaderboard ? (
+                <div className="text-center py-12">
+                  <Trophy size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
+                  <p className="text-muted-foreground">Indlæser highscores...</p>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {(['easy', 'medium', 'hard', 'expert'] as const).map((difficulty) => {
+                    const board = nexiFlyerLeaderboard[difficulty] || []
+                    const difficultyLabels = {
+                      easy: { da: 'Let', color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/30' },
+                      medium: { da: 'Mellem', color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
+                      hard: { da: 'Svær', color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/30' },
+                      expert: { da: 'Ekspert', color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/30' }
+                    }
+                    const setting = difficultyLabels[difficulty]
+
+                    return (
+                      <div key={difficulty} className="space-y-3">
+                        <div className={`p-4 rounded-lg ${setting.bg} border ${setting.border}`}>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <Trophy size={24} weight="duotone" className={setting.color} />
+                              <div>
+                                <h3 className="font-bold text-lg">{setting.da}</h3>
+                                <p className="text-xs text-muted-foreground">
+                                  {board.length} {board.length === 1 ? 'score' : 'scores'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {board.length === 0 ? (
+                            <div className="text-center py-6">
+                              <Bird size={32} className="text-muted-foreground/30 mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground">Ingen scores endnu</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {board.map((entry, index) => {
+                                const getUserName = () => {
+                                  const user = users.find(u => u.email === entry.email)
+                                  return user ? user.fullName : entry.email
+                                }
+
+                                return (
+                                  <motion.div
+                                    key={entry.email}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center justify-between p-3 rounded-lg bg-card border hover:shadow-sm transition-all group"
+                                  >
+                                    <div className="flex items-center gap-3 flex-1">
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 font-bold text-sm">
+                                        #{index + 1}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-semibold truncate">{getUserName()}</div>
+                                        <div className="text-xs text-muted-foreground">{entry.email}</div>
+                                      </div>
+                                      <div className="text-lg font-bold text-primary">
+                                        {entry.score}
+                                      </div>
+                                    </div>
+                                    <div className="ml-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => openEditNexiFlyerScoreDialog(difficulty, entry.email, entry.score)}
+                                        className="hover:bg-primary/10"
+                                      >
+                                        <PencilSimple size={20} />
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                          >
+                                            <Trash size={20} />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Slet score?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Er du sikker på at du vil slette scoren for <strong>{getUserName()}</strong>? Denne handling kan ikke fortrydes.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() => deleteNexiFlyerScore(difficulty, entry.email)}
+                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                              Slet score
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </motion.div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
         </Tabs>
       </div>
 
@@ -3155,7 +3462,7 @@ Return ONLY a JSON object with this exact structure:
                     setIsPreviewDialogOpen(false)
                     handleApproveVacation(previewVacation)
                   }}
-                  className="gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
+                  className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                 >
                   <Check size={18} weight="bold" />
                   Godkend Ferie
@@ -3244,6 +3551,43 @@ Return ONLY a JSON object with this exact structure:
               Annuller
             </Button>
             <Button onClick={handleSaveDodgerScore} className="gap-2">
+              <Check size={18} weight="bold" />
+              Gem ændringer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditNexiFlyerScoreDialogOpen} onOpenChange={setIsEditNexiFlyerScoreDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rediger Nexi Flyer score</DialogTitle>
+            <DialogDescription>
+              Rediger scoren for {editingNexiFlyerScore?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-nexiflyer-score">Score *</Label>
+              <Input
+                id="edit-nexiflyer-score"
+                type="number"
+                value={newNexiFlyerScore}
+                onChange={(e) => setNewNexiFlyerScore(e.target.value)}
+                placeholder="Indtast score"
+                min="0"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsEditNexiFlyerScoreDialogOpen(false)
+              setEditingNexiFlyerScore(null)
+              setNewNexiFlyerScore('')
+            }}>
+              Annuller
+            </Button>
+            <Button onClick={handleSaveNexiFlyerScore} className="gap-2">
               <Check size={18} weight="bold" />
               Gem ændringer
             </Button>

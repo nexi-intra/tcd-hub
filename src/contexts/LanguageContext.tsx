@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { translations, Language } from '@/lib/translations'
 
 interface LanguageContextType {

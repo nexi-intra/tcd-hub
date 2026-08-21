@@ -31,7 +31,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -691,7 +691,7 @@ Return ONLY a JSON object with this exact structure:
           {day}
           {isInVacationRange && !isWeekend && (
             <div className="absolute -top-1 -right-1">
-              <Umbrella size={12} weight="fill" className="text-secondary" />
+              <Umbrella size={12} weight="fill" className="text-accent" />
             </div>
           )}
         </div>
@@ -755,7 +755,7 @@ Return ONLY a JSON object with this exact structure:
         >
           <div className="flex flex-col items-center gap-6">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
                 Email System
               </h1>
               <p className="text-muted-foreground mt-2">Send og modtag beskeder</p>
@@ -773,7 +773,7 @@ Return ONLY a JSON object with this exact structure:
             <Card className="p-4 space-y-2">
               <Button
                 onClick={() => setView('compose')}
-                className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white gap-2"
+                className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white gap-2"
                 size="lg"
               >
                 <PaperPlaneTilt size={20} weight="bold" />
@@ -1022,7 +1022,7 @@ Return ONLY a JSON object with this exact structure:
                     <div className="flex gap-2 pt-4">
                       <Button
                         onClick={handleSendEmail}
-                        className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white gap-2"
+                        className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white gap-2"
                         size="lg"
                       >
                         <PaperPlaneTilt size={20} weight="bold" />
@@ -1467,7 +1467,7 @@ Return ONLY a JSON object with this exact structure:
                                   <Button
                                     onClick={() => handleApproveVacation(vacation)}
                                     variant="default"
-                                    className="flex-1 gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
+                                    className="flex-1 gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                                   >
                                     <Check size={18} weight="bold" />
                                     Godkend
@@ -1538,7 +1538,7 @@ Return ONLY a JSON object with this exact structure:
                   </Button>
                   <Button
                     onClick={() => handleApproveVacation(selectedVacation)}
-                    className="gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
+                    className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                   >
                     <Check size={18} weight="bold" />
                     Godkend Ferie
@@ -1617,7 +1617,7 @@ Return ONLY a JSON object with this exact structure:
                 </Button>
                 <Button
                   onClick={editingFolder ? handleUpdateFolder : handleCreateFolder}
-                  className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white"
+                  className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
                 >
                   {editingFolder ? 'Gem' : 'Opret'}
                 </Button>

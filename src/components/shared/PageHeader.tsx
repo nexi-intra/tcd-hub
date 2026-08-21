@@ -42,8 +42,9 @@ export function PageHeader({
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50 shadow-sm"
+      className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50 shadow-sm relative"
     >
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary via-accent to-primary opacity-70" />
       <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
@@ -60,7 +61,7 @@ export function PageHeader({
             
             {icon && (
               <div 
-                className={`shrink-0 p-2 sm:p-3 rounded-xl shadow-lg ${gradient ? `bg-gradient-to-br ${gradient}` : 'bg-primary'}`}
+                className={`shrink-0 p-2 sm:p-3 rounded-xl shadow-lg ring-1 ring-black/5 ${gradient ? `bg-gradient-to-br ${gradient}` : 'bg-primary'}`}
               >
                 <div className="text-white [&>svg]:w-6 [&>svg]:h-6 sm:[&>svg]:w-8 sm:[&>svg]:h-8">
                   {icon}

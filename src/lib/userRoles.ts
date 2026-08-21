@@ -12,33 +12,37 @@ interface UserData {
 }
 
 export async function getUserRole(email: string): Promise<UserRole> {
-  const usersData = await window.spark.kv.get<Record<string, UserData>>('users')
-  
-  if (!usersData || !usersData[email]) {
-    if (MANAGER_EMAILS.some(m => m.toLowerCase() === email.toLowerCase())) {
-      return 'manager'
-    }
+  const normalizedEmail = email.trim().toLowerCase()
+
+  // Hardcoded roles take precedence and work even if the KV store is unavailable.
+  if (normalizedEmail === ADMIN_EMAIL.toLowerCase()) {
+    return 'admin'
+  }
+  if (MANAGER_EMAILS.some(m => m.toLowerCase() === normalizedEmail)) {
+    return 'manager'
+  }
+
+  let usersData: Record<string, UserData> | undefined
+  try {
+    usersData = await window.spark.kv.get<Record<string, UserData>>('users')
+  } catch (error) {
+    console.error('Kunne ikke hente brugerroller fra KV:', error)
     return 'user'
   }
 
-  const user = usersData[email]
-  
-  if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    return 'admin'
+  const user = usersData?.[email] || usersData?.[normalizedEmail]
+  if (!user) {
+    return 'user'
   }
-  
-  if (MANAGER_EMAILS.some(m => m.toLowerCase() === user.email.toLowerCase())) {
-    return 'manager'
-  }
-  
+
   if (user.role) {
     return user.role
   }
-  
+
   if (user.isManager) {
     return 'manager'
   }
-  
+
   return 'user'
 }
 

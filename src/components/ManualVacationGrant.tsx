@@ -289,7 +289,7 @@ Return ONLY a JSON object with this exact structure:
             <Button
               type="submit"
               disabled={isSubmitting || !selectedUser || !startDate || (grantType === 'vacation' && !endDate)}
-              className="gap-2 bg-gradient-to-r from-accent to-secondary hover:from-accent/90 hover:to-secondary/90"
+              className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
             >
               <Gift size={18} weight="bold" />
               {isSubmitting ? 'Giver...' : (grantType === 'single' ? 'Giv Fridag' : 'Giv Ferie')}

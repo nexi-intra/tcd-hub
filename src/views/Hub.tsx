@@ -1055,12 +1055,15 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex justify-center mb-6"
+            className="relative flex justify-center mb-6"
           >
-            <img src={nexiLogo} alt="Nexi Logo" className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 blur-2xl" />
+            </div>
+            <img src={nexiLogo} alt="Nexi Logo" className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 drop-shadow-lg" />
           </motion.div>
           <motion.h1 
-            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-4"
+            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent mb-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
@@ -1308,7 +1311,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     <motion.div 
                       className="absolute inset-0 bg-gradient-to-br"
                       style={{
-                        background: `radial-gradient(circle at top right, ${module.color}15, transparent)`
+                        background: `radial-gradient(circle at top right, ${module.color}25, transparent)`
                       }}
                       initial={{ opacity: 0 }}
                       whileHover={{ opacity: 1 }}
@@ -1318,7 +1321,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     <div className="relative p-4 md:p-6 flex flex-col flex-1">
                       <motion.div 
                         className={cn(
-                          "mb-3 md:mb-4 inline-flex items-center justify-center rounded-2xl p-2 md:p-3 shadow-lg",
+                          "mb-3 md:mb-4 inline-flex items-center justify-center rounded-2xl p-2 md:p-3 shadow-lg group-hover:shadow-xl transition-shadow duration-300",
                           `bg-gradient-to-br ${module.gradient}`
                         )}
                         style={{ color: 'white' }}
