@@ -9,14 +9,14 @@ export const spacing = {
 } as const
 
 export const colors = {
-  primary: 'oklch(0.50 0.12 250)',
-  secondary: 'oklch(0.92 0.02 250)',
-  accent: 'oklch(0.55 0.10 210)',
-  destructive: 'oklch(0.55 0.15 25)',
-  muted: 'oklch(0.95 0.01 250)',
+  primary: 'oklch(0.47 0.19 264)',
+  secondary: 'oklch(0.94 0.02 260)',
+  accent: 'oklch(0.64 0.15 195)',
+  destructive: 'oklch(0.58 0.21 25)',
+  muted: 'oklch(0.96 0.012 240)',
   
   gradients: {
-    primary: 'from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)]',
+    primary: 'from-[oklch(0.47_0.19_264)] to-[oklch(0.64_0.15_195)]',
     shifts: 'from-[oklch(0.60_0.22_220)] via-[oklch(0.65_0.26_340)] to-[oklch(0.60_0.22_220)]',
     calendar: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
     meals: 'from-[oklch(0.70_0.18_90)] via-[oklch(0.75_0.15_60)] to-[oklch(0.70_0.18_90)]',
@@ -27,7 +27,7 @@ export const colors = {
     games: 'from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)]',
     manager: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
     sickLeave: 'from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)]',
-    overview: 'from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]',
+    overview: 'from-[oklch(0.47_0.19_264)] to-[oklch(0.64_0.15_195)]',
   }
 } as const
 

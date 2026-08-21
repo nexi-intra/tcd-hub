@@ -132,9 +132,15 @@ function App() {
   }, [userSession, lastActivity])
 
   const handleAuthenticated = async (userId: string, email: string, rememberMe: boolean) => {
-    const token = await createSession(userId, email)
     const expiresAt = Date.now() + SESSION_DURATION
-    
+    let token = generateSessionToken()
+
+    try {
+      token = await createSession(userId, email)
+    } catch (error) {
+      console.error('Kunne ikke oprette session i KV:', error)
+    }
+
     setUserSession({ userId, email, token, expiresAt })
     setLastActivity(Date.now())
   }
@@ -216,7 +222,7 @@ function App() {
         {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
         {currentView === 'calendar' && <VacationCalendar onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'shifts' && <ShiftSchedule onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
-        {currentView === 'admin' && <AdminPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
+        {currentView === 'admin' && <AdminPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'manager' && <ManagerPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
         {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}

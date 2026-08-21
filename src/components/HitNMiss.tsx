@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { Target, Trophy, X, Timer, Lightning, Speedometer, Fire, Crown, Flame, Medal, Star } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface Position {
   x: number
@@ -14,6 +15,14 @@ interface TargetData {
   id: number
   position: Position
   spawnTime: number
+}
+
+interface HitParticle {
+  id: number
+  x: number
+  y: number
+  angle: number
+  color: string
 }
 
 interface LeaderboardEntry {
@@ -43,7 +52,9 @@ const DIFFICULTY_SETTINGS = {
     bgGradient: 'from-green-500/20 to-green-600/20',
     borderColor: 'border-green-500/30',
     glowColor: 'shadow-green-500/20',
-    missPenalty: 20
+    missPenalty: 20,
+    moving: false,
+    moveSpeed: 0
   },
   medium: {
     lifetime: 1400,
@@ -55,7 +66,9 @@ const DIFFICULTY_SETTINGS = {
     bgGradient: 'from-yellow-500/20 to-yellow-600/20',
     borderColor: 'border-yellow-500/30',
     glowColor: 'shadow-yellow-500/20',
-    missPenalty: 30
+    missPenalty: 30,
+    moving: false,
+    moveSpeed: 0
   },
   hard: {
     lifetime: 800,
@@ -67,7 +80,9 @@ const DIFFICULTY_SETTINGS = {
     bgGradient: 'from-red-500/20 to-red-600/20',
     borderColor: 'border-red-500/30',
     glowColor: 'shadow-red-500/20',
-    missPenalty: 50
+    missPenalty: 50,
+    moving: true,
+    moveSpeed: 2.5
   },
   expert: {
     lifetime: 500,
@@ -79,7 +94,9 @@ const DIFFICULTY_SETTINGS = {
     bgGradient: 'from-purple-500/20 to-purple-600/20',
     borderColor: 'border-purple-500/30',
     glowColor: 'shadow-purple-500/20',
-    missPenalty: 75
+    missPenalty: 75,
+    moving: true,
+    moveSpeed: 3.5
   }
 }
 
@@ -114,6 +131,8 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
   const [target, setTarget] = useState<TargetData | null>(null)
   const [showStreakBonus, setShowStreakBonus] = useState<{ amount: number; milestone: number } | null>(null)
   const [users, setUsers] = useState<User[]>([])
+  const [hitParticles, setHitParticles] = useState<HitParticle[]>([])
+  const [isShaking, setIsShaking] = useState(false)
   const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('hit-n-miss-global-leaderboard', {
     easy: [],
     medium: [],
@@ -124,6 +143,8 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
   const targetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const targetVelocityRef = useRef<{ vx: number; vy: number }>({ vx: 0, vy: 0 })
+  const moveAnimationRef = useRef<number | null>(null)
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -234,13 +255,17 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
       spawnTime: Date.now()
     }
 
-    console.log('Spawn target at:', newTarget.position)
+    if (DIFFICULTY_SETTINGS[difficulty].moving) {
+      const angle = Math.random() * Math.PI * 2
+      const speed = DIFFICULTY_SETTINGS[difficulty].moveSpeed
+      targetVelocityRef.current = { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed }
+    }
+
     setTarget(newTarget)
 
     const targetLifetime = DIFFICULTY_SETTINGS[difficulty].lifetime
 
     targetTimeoutRef.current = setTimeout(() => {
-      console.log('Target expired - no penalty')
       setHitStreak(0)
       spawnTarget()
     }, targetLifetime)
@@ -256,11 +281,15 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
   }
 
   const handleTargetClick = () => {
-    console.log('Target hit!')
     if (targetTimeoutRef.current) {
       clearTimeout(targetTimeoutRef.current)
     }
-    
+
+    if (target) {
+      const size = DIFFICULTY_SETTINGS[difficulty].targetSize
+      spawnHitParticles(target.position.x + size / 2, target.position.y + size / 2)
+    }
+
     const newStreak = hitStreak + 1
     setHitStreak(newStreak)
     
@@ -278,12 +307,29 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
     spawnTarget()
   }
 
+  const spawnHitParticles = (x: number, y: number) => {
+    const colors = ['#fbbf24', '#ef4444', '#f97316', '#ffffff']
+    const burstId = Date.now()
+    const newParticles: HitParticle[] = Array.from({ length: 12 }, (_, i) => ({
+      id: burstId + i,
+      x,
+      y,
+      angle: (i / 12) * 360,
+      color: colors[i % colors.length]
+    }))
+    setHitParticles(prev => [...prev, ...newParticles])
+    setTimeout(() => {
+      setHitParticles(prev => prev.filter(p => !newParticles.some(np => np.id === p.id)))
+    }, 600)
+  }
+
   const handleMissClick = () => {
-    console.log('Clicked outside target - miss!')
     setMisses(prev => prev + 1)
     const penalty = DIFFICULTY_SETTINGS[difficulty].missPenalty
     setScore(prev => Math.max(0, prev - penalty))
     setHitStreak(0)
+    setIsShaking(true)
+    setTimeout(() => setIsShaking(false), 300)
   }
 
   const startCountdown = () => {
@@ -374,8 +420,52 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current)
       }
+      if (moveAnimationRef.current) {
+        cancelAnimationFrame(moveAnimationRef.current)
+      }
     }
   }, [])
+
+  useEffect(() => {
+    if (gameState !== 'playing' || !target || !DIFFICULTY_SETTINGS[difficulty].moving || !gameAreaRef.current) {
+      return
+    }
+
+    const rect = gameAreaRef.current.getBoundingClientRect()
+    const targetSize = DIFFICULTY_SETTINGS[difficulty].targetSize
+    const margin = MIN_DISTANCE_FROM_EDGE / 2
+
+    const animate = () => {
+      setTarget(prev => {
+        if (!prev) return prev
+        let { x, y } = prev.position
+        let { vx, vy } = targetVelocityRef.current
+        x += vx
+        y += vy
+
+        if (x <= margin || x >= rect.width - targetSize - margin) {
+          vx = -vx
+          x = Math.max(margin, Math.min(x, rect.width - targetSize - margin))
+        }
+        if (y <= margin || y >= rect.height - targetSize - margin) {
+          vy = -vy
+          y = Math.max(margin, Math.min(y, rect.height - targetSize - margin))
+        }
+
+        targetVelocityRef.current = { vx, vy }
+        return { ...prev, position: { x, y } }
+      })
+      moveAnimationRef.current = requestAnimationFrame(animate)
+    }
+
+    moveAnimationRef.current = requestAnimationFrame(animate)
+    return () => {
+      if (moveAnimationRef.current) {
+        cancelAnimationFrame(moveAnimationRef.current)
+        moveAnimationRef.current = null
+      }
+    }
+  }, [gameState, target?.id, difficulty])
 
   return (
     <div className="space-y-6">
@@ -630,6 +720,35 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
             }}
           >
 
+            <AnimatePresence>
+              {isShaking && (
+                <motion.div
+                  className="absolute inset-0 bg-destructive/20 pointer-events-none z-20"
+                  initial={{ opacity: 0.7 }}
+                  animate={{ opacity: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                />
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {hitParticles.map(p => (
+                <motion.div
+                  key={p.id}
+                  className="absolute rounded-full pointer-events-none z-20"
+                  style={{ left: p.x, top: p.y, width: 8, height: 8, backgroundColor: p.color, marginLeft: -4, marginTop: -4 }}
+                  initial={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                  animate={{
+                    opacity: 0,
+                    scale: 0.3,
+                    x: Math.cos((p.angle * Math.PI) / 180) * 70,
+                    y: Math.sin((p.angle * Math.PI) / 180) * 70,
+                  }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                />
+              ))}
+            </AnimatePresence>
             
             {target && (
               <div
@@ -647,6 +766,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
                 }}
               >
                 <div className="relative w-full h-full rounded-full bg-gradient-to-br from-destructive via-red-500 to-destructive/90 shadow-2xl hover:scale-110 transition-transform flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-2 border-destructive/50 animate-ping" />
                   <div 
                     className="rounded-full bg-white shadow-lg"
                     style={{

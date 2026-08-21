@@ -1,12 +1,13 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import { GameController, Target, ArrowLeft, RocketLaunch, Cube } from '@phosphor-icons/react'
+import { GameController, Target, ArrowLeft, RocketLaunch, Cube, Bird } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { HitNMiss } from '@/components/HitNMiss'
 import { EndlessDodger } from '@/components/EndlessDodger'
 import { BrickBreak } from '@/components/BrickBreak'
+import { NexiFlyer } from '@/components/NexiFlyer'
 import { cn } from '@/lib/utils'
 
 interface GameCornerProps {
@@ -14,7 +15,7 @@ interface GameCornerProps {
   userEmail?: string
 }
 
-type GameView = 'hub' | 'hitnmiss' | 'endlessdodger' | 'brickbreak'
+type GameView = 'hub' | 'hitnmiss' | 'endlessdodger' | 'brickbreak' | 'nexiflyer'
 
 interface GameModule {
   id: string
@@ -46,8 +47,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
       id: 'endlessdodger',
       title: language === 'da' ? 'Endless Dodger' : 'Endless Dodger',
       description: language === 'da' 
-        ? 'Undgå faldende objekter og overlev så længe som muligt. Hvor lang tid kan du holde?'
-        : 'Avoid falling objects and survive as long as possible. How long can you last?',
+        ? 'Skyd bølge efter bølge af høns ned og undgå deres æg. Hvor langt kan du nå?'
+        : 'Blast wave after wave of chickens and dodge their falling eggs. How far can you get?',
       icon: <RocketLaunch size={48} weight="duotone" />,
       color: 'oklch(0.65 0.22 280)',
       gradient: 'from-[oklch(0.65_0.22_280)] via-[oklch(0.70_0.20_250)] to-[oklch(0.65_0.22_280)]',
@@ -62,6 +63,17 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
       icon: <Cube size={48} weight="duotone" />,
       color: 'oklch(0.68 0.20 340)',
       gradient: 'from-[oklch(0.68_0.20_340)] via-[oklch(0.70_0.18_310)] to-[oklch(0.68_0.20_340)]',
+      available: true,
+    },
+    {
+      id: 'nexiflyer',
+      title: 'Nexi Flyer',
+      description: language === 'da'
+        ? 'Flyv gennem rørene og sæt ny rekord i dette klassiske arkadespil!'
+        : 'Fly through the pipes and set a new record in this classic arcade game!',
+      icon: <Bird size={48} weight="duotone" />,
+      color: 'oklch(0.75 0.18 90)',
+      gradient: 'from-[oklch(0.75_0.18_90)] via-[oklch(0.78_0.16_60)] to-[oklch(0.75_0.18_90)]',
       available: true,
     },
   ]
@@ -80,7 +92,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
       },
       transition: {
         duration: 0.8,
-        ease: "easeInOut"
+        ease: "easeInOut" as const
       }
     }
   }
@@ -102,7 +114,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
       tap: { scale: 0.92 },
       transition: {
         duration: 0.3,
-        ease: "easeInOut"
+        ease: "easeInOut" as const
       }
     }
   }
@@ -238,8 +250,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                     </h1>
                     <p className="text-white/90 text-sm sm:text-base">
                       {language === 'da' 
-                        ? 'Undgå objekter og overlev så længe som muligt'
-                        : 'Avoid objects and survive as long as possible'}
+                        ? 'Skyd hønseinvasionen ned og undgå deres æg'
+                        : 'Blast the chicken invasion and dodge their eggs'}
                     </p>
                   </div>
                 </div>
@@ -323,6 +335,80 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
 
           <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
             <BrickBreak userEmail={userEmail} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (currentView === 'nexiflyer') {
+    return (
+      <div className="min-h-screen" style={{
+        background: `
+          radial-gradient(circle at 20% 30%, oklch(0.60 0.15 280 / 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 80% 60%, oklch(0.65 0.12 210 / 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 50% 90%, oklch(0.55 0.10 150 / 0.12) 0%, transparent 50%),
+          linear-gradient(
+            135deg,
+            oklch(0.98 0.01 250) 0%,
+            oklch(0.97 0.02 280) 25%,
+            oklch(0.98 0.01 210) 50%,
+            oklch(0.97 0.02 240) 75%,
+            oklch(0.98 0.01 250) 100%
+          )
+        `
+      }}>
+        <div style={{
+          background: `
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              transparent 100px,
+              oklch(0.96 0.01 240 / 0.3) 100px,
+              oklch(0.96 0.01 240 / 0.3) 101px
+            ),
+            repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent 100px,
+              oklch(0.96 0.01 240 / 0.3) 100px,
+              oklch(0.96 0.01 240 / 0.3) 101px
+            )
+          `
+        }}>
+          <div className="relative bg-gradient-to-r from-[oklch(0.75_0.18_90)] via-[oklch(0.78_0.16_60)] to-[oklch(0.75_0.18_90)] py-8 shadow-xl border-b-4 border-white/10">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
+            <div className="container mx-auto px-4 sm:px-6 relative z-10">
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={() => setCurrentView('hub')}
+                  variant="ghost"
+                  size="lg"
+                  className="text-white hover:bg-white/20 transition-colors"
+                >
+                  <ArrowLeft size={24} weight="bold" />
+                </Button>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-sm shadow-xl">
+                    <Bird size={32} weight="duotone" className="text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">
+                      Nexi Flyer
+                    </h1>
+                    <p className="text-white/90 text-sm sm:text-base">
+                      {language === 'da'
+                        ? 'Flyv gennem rørene så langt som muligt'
+                        : 'Fly through the pipes as far as you can'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
+            <NexiFlyer userEmail={userEmail} />
           </div>
         </div>
       </div>

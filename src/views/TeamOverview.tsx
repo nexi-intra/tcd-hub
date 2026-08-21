@@ -65,14 +65,14 @@ export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
     switch (role) {
       case 'admin':
         return (
-          <Badge className="bg-gradient-to-r from-accent via-primary to-secondary text-white">
+          <Badge className="bg-gradient-to-r from-accent via-primary to-accent text-white">
             <Crown size={14} className="mr-1" weight="fill" />
             Administrator
           </Badge>
         )
       case 'manager':
         return (
-          <Badge className="bg-gradient-to-r from-primary to-secondary text-white">
+          <Badge className="bg-gradient-to-r from-primary to-accent text-white">
             <ShieldCheck size={14} className="mr-1" weight="fill" />
             Manager
           </Badge>
@@ -118,7 +118,7 @@ export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
           className="mb-10 text-center"
         >
           <div className="flex flex-col items-center gap-6">
-            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent">
+            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
               Team Oversigt
             </h1>
           </div>

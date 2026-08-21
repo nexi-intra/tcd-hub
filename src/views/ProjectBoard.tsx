@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { format } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
@@ -391,7 +391,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
               {language === 'da' ? 'Tilbage til Hub' : 'Back to Hub'}
             </Button>
             <div className="flex-1 text-center">
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3 justify-center">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent flex items-center gap-3 justify-center">
                 <FolderOpen size={32} weight="duotone" className="text-primary" />
                 {language === 'da' ? 'Projekt Tavle' : 'Project Board'}
               </h1>

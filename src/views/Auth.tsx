@@ -10,6 +10,9 @@ import { motion } from 'framer-motion'
 import nexiLogo from '@/assets/images/nexi-logo.svg'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageToggle } from '@/components/LanguageToggle'
+import { ADMIN_EMAIL } from '@/lib/userRoles'
+
+const ADMIN_PASSWORD = 'Sylvester.Severin09'
 
 interface AuthProps {
   onAuthenticated: (userId: string, email: string, rememberMe: boolean) => void
@@ -73,9 +76,41 @@ export function Auth({ onAuthenticated }: AuthProps) {
         onAuthenticated(userId, email, rememberMe)
       }, 300)
     } else {
-      const usersData = (await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
-      
-      const user = usersData[email]
+      const normalizedEmail = email.trim().toLowerCase()
+
+      // Hardcoded admin login works even if the Spark KV store is unavailable.
+      if (normalizedEmail === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD) {
+        try {
+          const usersData = (await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
+          usersData[ADMIN_EMAIL] = {
+            email: ADMIN_EMAIL,
+            password: ADMIN_PASSWORD,
+            fullName: usersData[ADMIN_EMAIL]?.fullName || 'Jacob Remmer',
+            isManager: true,
+          }
+          await window.spark.kv.set('users', usersData)
+        } catch (error) {
+          console.error('Kunne ikke gemme admin-brugeren i KV:', error)
+        }
+
+        toast.success('Velkommen tilbage!')
+        setTimeout(() => {
+          onAuthenticated(`user_${ADMIN_EMAIL}`, ADMIN_EMAIL, rememberMe)
+        }, 300)
+        return
+      }
+
+      let usersData: Record<string, { email: string; password: string; fullName: string; isManager: boolean }> = {}
+      try {
+        usersData = (await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
+      } catch (error) {
+        console.error('Kunne ikke hente brugere fra KV:', error)
+        toast.error('Kunne ikke oprette forbindelse. Prøv igen.')
+        setIsLoading(false)
+        return
+      }
+
+      const user = usersData[email] || usersData[normalizedEmail]
       if (!user || user.password !== password) {
         toast.error('Forkert email eller adgangskode')
         setIsLoading(false)
@@ -84,8 +119,8 @@ export function Auth({ onAuthenticated }: AuthProps) {
 
       toast.success('Velkommen tilbage!')
       setTimeout(() => {
-        const userId = `user_${email}`
-        onAuthenticated(userId, email, rememberMe)
+        const userId = `user_${user.email}`
+        onAuthenticated(userId, user.email, rememberMe)
       }, 300)
     }
   }
@@ -113,17 +148,21 @@ export function Auth({ onAuthenticated }: AuthProps) {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="flex justify-center mb-6"
+              className="relative flex justify-center mb-6"
             >
-              <img src={nexiLogo} alt="Nexi Logo" className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 blur-2xl" />
+              </div>
+              <img src={nexiLogo} alt="Nexi Logo" className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 drop-shadow-lg" />
             </motion.div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">Terminal Configuration & Dispatch Hub</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent mb-2">Terminal Configuration & Dispatch Hub</h1>
             <p className="text-muted-foreground text-sm sm:text-base">
               {mode === 'login' ? 'Log ind for at fortsætte' : 'Opret en ny konto'}
             </p>
           </div>
 
-          <Card className="p-8 border-2 shadow-xl">
+          <Card className="p-8 border-2 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary" />
             <form onSubmit={handleSubmit} className="space-y-5">
               {mode === 'signup' && (
                 <div className="space-y-2">
@@ -237,7 +276,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
               <Button
                 type="submit"
                 size="lg"
-                className="w-full bg-gradient-to-r from-primary via-secondary to-accent text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 disabled={isLoading}
               >
                 {isLoading ? 'Behandler...' : mode === 'login' ? 'Log ind' : 'Opret konto'}

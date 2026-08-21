@@ -16,7 +16,7 @@ interface GuideCardProps {
 
 const categoryColors: Record<string, string> = {
   Procedures: 'bg-gradient-to-br from-primary/25 to-primary/15 text-primary border-primary/50 shadow-lg shadow-primary/15',
-  Technical: 'bg-gradient-to-br from-secondary/25 to-secondary/15 text-secondary border-secondary/50 shadow-lg shadow-secondary/15',
+  Technical: 'bg-gradient-to-br from-[var(--chart-3)]/25 to-[var(--chart-3)]/15 text-[var(--chart-3)] border-[var(--chart-3)]/50 shadow-lg shadow-[var(--chart-3)]/15',
   HR: 'bg-gradient-to-br from-accent/25 to-accent/15 text-accent border-accent/50 shadow-lg shadow-accent/15',
   Safety: 'bg-gradient-to-br from-destructive/25 to-destructive/15 text-destructive border-destructive/50 shadow-lg shadow-destructive/15',
   General: 'bg-gradient-to-br from-muted to-muted/70 text-foreground border-border shadow-lg shadow-black/5',
@@ -48,7 +48,7 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
         )}
         onClick={handleCardClick}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-secondary/8 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-accent/8 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,oklch(0.55_0.22_265/0.15),transparent_50%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
         <CardHeader className="pb-5 flex-1 relative z-10">
@@ -56,7 +56,7 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-3 mb-4">
-                  <CardTitle className="text-sm sm:text-base md:text-lg leading-tight break-words flex-1 font-bold text-foreground group-hover:bg-gradient-to-r group-hover:from-primary group-hover:via-secondary group-hover:to-primary group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
+                  <CardTitle className="text-sm sm:text-base md:text-lg leading-tight break-words flex-1 font-bold text-foreground group-hover:bg-gradient-to-r group-hover:from-primary group-hover:via-accent group-hover:to-primary group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
                     {guide.title}
                   </CardTitle>
                   {guide.wordFileData && (
