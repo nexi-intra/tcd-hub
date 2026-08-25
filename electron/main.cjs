@@ -12,12 +12,16 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     autoHideMenuBar: true,
+    // Avoid a blank white window while the app bundle loads.
+    show: false,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
     },
   })
+
+  win.once('ready-to-show', () => win.show())
 
   // Open external links (e.g. mailto:, https://) in the OS default handler.
   win.webContents.setWindowOpenHandler(({ url }) => {
