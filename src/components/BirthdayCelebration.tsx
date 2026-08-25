@@ -34,7 +34,7 @@ export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
 
   useEffect(() => {
     const checkBirthday = async () => {
-      const birthdays = await window.spark.kv.get<Array<{
+      const birthdays = await window.kv.get<Array<{
         email: string
         birthday: string
       }>>('employee-birthdays') || []
@@ -50,11 +50,11 @@ export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
         setShowCelebration(true)
         
         const confettiKey = `confetti-shown-${userEmail}-${todayStr}-${new Date().getFullYear()}`
-        const hasShownConfetti = await window.spark.kv.get<boolean>(confettiKey)
+        const hasShownConfetti = await window.kv.get<boolean>(confettiKey)
         
         if (!hasShownConfetti) {
           setShowConfettiBurst(true)
-          await window.spark.kv.set(confettiKey, true)
+          await window.kv.set(confettiKey, true)
           
           setTimeout(() => {
             setShowConfettiBurst(false)

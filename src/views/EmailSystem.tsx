@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { vacationApprovedEmail, vacationRejectedEmail } from '@/lib/emailTemplates'
 import { 
   ArrowLeft, 
   PaperPlaneTilt, 
@@ -111,7 +112,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
 
   useEffect(() => {
     const loadUserAndData = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; isManager: boolean }>>('users')
+      const usersData = await window.kv.get<Record<string, { email: string; fullName: string; isManager: boolean }>>('users')
     
       if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
         const userList = Object.values(usersData).map(user => ({
@@ -127,7 +128,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
         setUsers(usersData as Array<{ email: string; name: string }>)
       }
 
-      const kvEmails = await window.spark.kv.get<Email[]>('emails')
+      const kvEmails = await window.kv.get<Email[]>('emails')
       if (kvEmails && Array.isArray(kvEmails)) {
         setEmails(() => kvEmails)
       }
@@ -287,8 +288,8 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
       emailId: newEmail.id
     }
 
-    const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
-    await window.spark.kv.set('email-notifications', [...notifications, notification])
+    const notifications = await window.kv.get<any[]>('email-notifications') || []
+    await window.kv.set('email-notifications', [...notifications, notification])
 
     toast.success(t.email.emailSent)
     setComposeData({ to: '', subject: '', message: '' })
@@ -328,47 +329,8 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
     )
     toast.success('Ferie godkendt')
 
-    const startDateFormatted = new Date(vacation.startDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-    const endDateFormatted = new Date(vacation.endDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-
     try {
-      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
-
-Vacation Request Details:
-Start Date: ${startDateFormatted}
-End Date: ${endDateFormatted}
-${vacation.notes ? `Notes: ${vacation.notes}` : 'No notes'}
-Approved by: ${userEmail}
-
-The email should be in Danish, friendly yet professional, and include:
-- A clear subject line that indicates approval
-- Confirmation that the vacation request has been approved
-- The vacation period details
-- The name/email of who approved it
-- A congratulatory or positive tone
-- A brief note that this is an automatic notification
-
-CRITICAL REQUIREMENT: 
-- DO NOT include "Med venlig hilsen", "Venlig hilsen", "mvh", or ANY closing salutation/signature
-- The email body should end immediately after the main message content
-- Do not add any farewell phrases, sign-offs, or closing statements
-
-Return ONLY a JSON object with this exact structure:
-{
-  "subject": "subject line here",
-  "body": "email body here with proper line breaks"
-}`
-
-      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
-      const emailContent = JSON.parse(emailContentJson)
+      const emailContent = vacationApprovedEmail(vacation.startDate, vacation.endDate, userEmail, vacation.notes)
 
       const newEmail = {
         id: Date.now().toString() + '-approval',
@@ -392,8 +354,8 @@ Return ONLY a JSON object with this exact structure:
         emailId: newEmail.id
       }
 
-      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
-      await window.spark.kv.set('email-notifications', [...notifications, notification])
+      const notifications = await window.kv.get<any[]>('email-notifications') || []
+      await window.kv.set('email-notifications', [...notifications, notification])
     } catch (emailError) {
       console.error('Error sending vacation approval email:', emailError)
     }
@@ -412,48 +374,8 @@ Return ONLY a JSON object with this exact structure:
     )
     toast.error('Ferie afvist')
 
-    const startDateFormatted = new Date(vacation.startDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-    const endDateFormatted = new Date(vacation.endDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-
     try {
-      const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
-
-Vacation Request Details:
-Start Date: ${startDateFormatted}
-End Date: ${endDateFormatted}
-${vacation.notes ? `Notes: ${vacation.notes}` : 'No notes'}
-Rejected by: ${userEmail}
-
-The email should be in Danish, professional and respectful, and include:
-- A clear subject line that indicates rejection
-- Polite notification that the vacation request has been rejected
-- The vacation period details
-- The name/email of who rejected it
-- A professional and understanding tone
-- Suggestion that they can contact the manager for more information or to discuss alternative dates
-- A brief note that this is an automatic notification
-
-CRITICAL REQUIREMENT: 
-- DO NOT include "Med venlig hilsen", "Venlig hilsen", "mvh", or ANY closing salutation/signature
-- The email body should end immediately after the main message content
-- Do not add any farewell phrases, sign-offs, or closing statements
-
-Return ONLY a JSON object with this exact structure:
-{
-  "subject": "subject line here",
-  "body": "email body here with proper line breaks"
-}`
-
-      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
-      const emailContent = JSON.parse(emailContentJson)
+      const emailContent = vacationRejectedEmail(vacation.startDate, vacation.endDate, userEmail, vacation.notes)
 
       const newEmail = {
         id: Date.now().toString() + '-rejection',
@@ -477,8 +399,8 @@ Return ONLY a JSON object with this exact structure:
         emailId: newEmail.id
       }
 
-      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
-      await window.spark.kv.set('email-notifications', [...notifications, notification])
+      const notifications = await window.kv.get<any[]>('email-notifications') || []
+      await window.kv.set('email-notifications', [...notifications, notification])
     } catch (emailError) {
       console.error('Error sending vacation rejection email:', emailError)
     }

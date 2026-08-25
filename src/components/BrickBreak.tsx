@@ -256,7 +256,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
   useEffect(() => {
     const loadUsers = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: string; phone?: string }>>('users')
+      const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: string; phone?: string }>>('users')
       if (usersData) {
         const userList = Object.values(usersData).map(u => ({
           email: u.email,
@@ -559,7 +559,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     const finalLevel = levelRef.current
 
     try {
-      const currentLeaderboard = await window.spark.kv.get<GlobalLeaderboard>('brickbreak-global-leaderboard') || {
+      const currentLeaderboard = await window.kv.get<GlobalLeaderboard>('brickbreak-global-leaderboard') || {
         easy: [],
         medium: [],
         hard: [],
@@ -595,7 +595,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         [difficulty]: difficultyBoard.slice(0, 10)
       }
       
-      await window.spark.kv.set('brickbreak-global-leaderboard', updatedLeaderboard)
+      await window.kv.set('brickbreak-global-leaderboard', updatedLeaderboard)
       
       setGlobalLeaderboard(updatedLeaderboard)
     } catch (error) {
@@ -609,7 +609,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     if (!userEmail) return
 
     try {
-      const gameStats = await window.spark.kv.get<Record<string, Record<Difficulty, number>>>('brickbreak-play-counts') || {}
+      const gameStats = await window.kv.get<Record<string, Record<Difficulty, number>>>('brickbreak-play-counts') || {}
       
       if (!gameStats[userEmail]) {
         gameStats[userEmail] = { easy: 0, medium: 0, hard: 0, expert: 0 }
@@ -617,7 +617,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       
       gameStats[userEmail][gameDifficulty] = (gameStats[userEmail][gameDifficulty] || 0) + 1
       
-      await window.spark.kv.set('brickbreak-play-counts', gameStats)
+      await window.kv.set('brickbreak-play-counts', gameStats)
     } catch (error) {
       console.error('Error tracking game play:', error)
     }

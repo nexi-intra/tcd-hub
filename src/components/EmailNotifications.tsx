@@ -51,12 +51,12 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
   }, [open])
 
   const loadUsers = async () => {
-    const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string }>>('users') || {}
+    const usersData = await window.kv.get<Record<string, { email: string; fullName: string }>>('users') || {}
     setUsers(usersData)
   }
 
   const loadEmails = async () => {
-    const allEmails = await window.spark.kv.get<Email[]>('emails') || []
+    const allEmails = await window.kv.get<Email[]>('emails') || []
     const userEmails = allEmails
       .filter(email => email.to === userEmail)
       .sort((a, b) => b.timestamp - a.timestamp)
@@ -68,11 +68,11 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
   }
 
   const handleMarkAsRead = async (id: string) => {
-    const allEmails = await window.spark.kv.get<Email[]>('emails') || []
+    const allEmails = await window.kv.get<Email[]>('emails') || []
     const updatedEmails = allEmails.map(e => 
       e.id === id ? { ...e, read: true } : e
     )
-    await window.spark.kv.set('emails', updatedEmails)
+    await window.kv.set('emails', updatedEmails)
     
     setEmails(prevEmails => prevEmails.filter(e => e.id !== id))
     
@@ -84,9 +84,9 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
   }
 
   const handleDelete = async (id: string) => {
-    const allEmails = await window.spark.kv.get<Email[]>('emails') || []
+    const allEmails = await window.kv.get<Email[]>('emails') || []
     const updatedEmails = allEmails.filter(e => e.id !== id)
-    await window.spark.kv.set('emails', updatedEmails)
+    await window.kv.set('emails', updatedEmails)
     
     setEmails(prevEmails => prevEmails.filter(e => e.id !== id))
     
@@ -105,7 +105,7 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
     setIsSending(true)
     
     try {
-      const allEmails = await window.spark.kv.get<Email[]>('emails') || []
+      const allEmails = await window.kv.get<Email[]>('emails') || []
       const newEmail: Email = {
         id: `${Date.now()}-${Math.random()}`,
         from: userEmail,
@@ -116,7 +116,7 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
         read: false
       }
       
-      await window.spark.kv.set('emails', [...allEmails, newEmail])
+      await window.kv.set('emails', [...allEmails, newEmail])
       
       toast.success(language === 'da' ? 'Svar sendt' : 'Reply sent')
       setReplyMessage('')

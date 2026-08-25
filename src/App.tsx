@@ -43,7 +43,7 @@ function generateSessionToken(): string {
 }
 
 async function validateSession(token: string): Promise<{ valid: boolean; session?: StoredSession }> {
-  const sessions = await window.spark.kv.get<Record<string, StoredSession>>('active-sessions') || {}
+  const sessions = await window.kv.get<Record<string, StoredSession>>('active-sessions') || {}
   const session = sessions[token]
   
   if (!session) {
@@ -52,7 +52,7 @@ async function validateSession(token: string): Promise<{ valid: boolean; session
   
   if (Date.now() > session.expiresAt) {
     delete sessions[token]
-    await window.spark.kv.set('active-sessions', sessions)
+    await window.kv.set('active-sessions', sessions)
     return { valid: false }
   }
   
@@ -64,17 +64,17 @@ async function createSession(userId: string, email: string): Promise<string> {
   const expiresAt = Date.now() + SESSION_DURATION
   const createdAt = Date.now()
   
-  const sessions = await window.spark.kv.get<Record<string, StoredSession>>('active-sessions') || {}
+  const sessions = await window.kv.get<Record<string, StoredSession>>('active-sessions') || {}
   sessions[token] = { token, email, userId, expiresAt, createdAt }
-  await window.spark.kv.set('active-sessions', sessions)
+  await window.kv.set('active-sessions', sessions)
   
   return token
 }
 
 async function deleteSession(token: string): Promise<void> {
-  const sessions = await window.spark.kv.get<Record<string, StoredSession>>('active-sessions') || {}
+  const sessions = await window.kv.get<Record<string, StoredSession>>('active-sessions') || {}
   delete sessions[token]
-  await window.spark.kv.set('active-sessions', sessions)
+  await window.kv.set('active-sessions', sessions)
 }
 
 function App() {
@@ -86,7 +86,7 @@ function App() {
   useEffect(() => {
     const clearSessionOnStart = async () => {
       try {
-        await window.spark.kv.delete('last-session-token')
+        await window.kv.delete('last-session-token')
       } catch (error) {
         console.error('Error clearing session:', error)
       }
@@ -148,7 +148,7 @@ function App() {
   const handleLogout = async () => {
     if (userSession?.token) {
       await deleteSession(userSession.token)
-      await window.spark.kv.delete('last-session-token')
+      await window.kv.delete('last-session-token')
     }
     
     setUserSession(null)

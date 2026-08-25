@@ -158,7 +158,7 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
 
   useEffect(() => {
     const loadUsers = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: string; phone?: string }>>('users')
+      const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: string; phone?: string }>>('users')
       if (usersData) {
         setUsers(Object.values(usersData).map(u => ({ email: u.email, fullName: u.fullName, role: u.role || 'user', phone: u.phone })))
       } else {
@@ -427,7 +427,7 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
     if (!userEmail) return
 
     try {
-      const currentLeaderboard = await window.spark.kv.get<GlobalLeaderboard>('nexi-flyer-global-leaderboard') || {
+      const currentLeaderboard = await window.kv.get<GlobalLeaderboard>('nexi-flyer-global-leaderboard') || {
         easy: [], medium: [], hard: [], expert: []
       }
 
@@ -446,19 +446,19 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
       board.sort((a, b) => b.score - a.score)
 
       const updated = { ...currentLeaderboard, [diff]: board.slice(0, 10) }
-      await window.spark.kv.set('nexi-flyer-global-leaderboard', updated)
+      await window.kv.set('nexi-flyer-global-leaderboard', updated)
       setGlobalLeaderboard(updated)
     } catch (error) {
       console.error('Error saving Nexi Flyer score:', error)
     }
 
     try {
-      const gameStats = await window.spark.kv.get<Record<string, Record<Difficulty, number>>>('nexi-flyer-play-counts') || {}
+      const gameStats = await window.kv.get<Record<string, Record<Difficulty, number>>>('nexi-flyer-play-counts') || {}
       if (!gameStats[userEmail]) {
         gameStats[userEmail] = { easy: 0, medium: 0, hard: 0, expert: 0 }
       }
       gameStats[userEmail][difficultyRef.current] = (gameStats[userEmail][difficultyRef.current] || 0) + 1
-      await window.spark.kv.set('nexi-flyer-play-counts', gameStats)
+      await window.kv.set('nexi-flyer-play-counts', gameStats)
     } catch (error) {
       console.error('Error tracking Nexi Flyer play count:', error)
     }

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { vacationRequestEmail, vacationRequestConfirmationEmail } from '@/lib/emailTemplates'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -83,40 +84,15 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
 
       setVacations((current) => [...(current || []), newVacation])
 
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
+      const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
       const managers = Object.values(usersData || {}).filter(user => user.isManager)
-
-      const startDateFormatted = format(new Date(startDate), 'd. MMMM yyyy', { locale: da })
-      const endDateFormatted = format(new Date(endDate), 'd. MMMM yyyy', { locale: da })
+      const requesterName = usersData?.[userEmail]?.fullName || userEmail
 
       for (const manager of managers) {
         try {
-          const prompt = window.spark.llmPrompt`Generate a professional email notification to send to a manager about a new vacation request.
+          const emailContent = vacationRequestEmail(requesterName, startDate, endDate, notes.trim() || undefined)
 
-Vacation Request Details:
-Requested by: ${userEmail}
-Start Date: ${startDateFormatted}
-End Date: ${endDateFormatted}
-${notes ? `Notes from employee: ${notes}` : 'No notes provided'}
-
-The email should be in Danish, professional and clear, and include:
-- A clear subject line that indicates a new vacation request
-- Information about who is requesting vacation
-- The vacation period details
-- Any notes provided by the employee
-- A reminder that they can review and approve/reject in the Manager Panel or Email System
-- A brief note that this is an automatic notification
-
-Return ONLY a JSON object with this exact structure:
-{
-  "subject": "subject line here",
-  "body": "email body here with proper line breaks"
-}`
-
-          const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
-          const emailContent = JSON.parse(emailContentJson)
-          
-          const emails = await window.spark.kv.get<Array<{
+          const emails = await window.kv.get<Array<{
             id: string
             from: string
             to: string
@@ -138,7 +114,7 @@ Return ONLY a JSON object with this exact structure:
             type: 'vacation-request'
           }
 
-          await window.spark.kv.set('emails', [...emails, newEmail])
+          await window.kv.set('emails', [...emails, newEmail])
 
           const notification = {
             id: Date.now().toString() + '-' + manager.email + '-notif',
@@ -150,39 +126,17 @@ Return ONLY a JSON object with this exact structure:
             read: false
           }
 
-          const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
-          await window.spark.kv.set('email-notifications', [...notifications, notification])
+          const notifications = await window.kv.get<any[]>('email-notifications') || []
+          await window.kv.set('email-notifications', [...notifications, notification])
         } catch (emailError) {
           console.error('Error sending vacation request email to manager:', emailError)
         }
       }
 
       try {
-        const confirmationPrompt = window.spark.llmPrompt`Generate a confirmation email to send to ${userEmail} confirming that their vacation request has been submitted and is awaiting manager approval.
+        const confirmEmail = vacationRequestConfirmationEmail(startDate, endDate, notes.trim() || undefined)
 
-Vacation Request Details:
-Start Date: ${startDateFormatted}
-End Date: ${endDateFormatted}
-${notes ? `Your notes: ${notes}` : 'No notes provided'}
-
-The email should be in Danish, friendly and reassuring, and include:
-- A clear subject line confirming the vacation request submission
-- Confirmation that the request has been received
-- The vacation period details they requested
-- Information that the request is now awaiting manager approval
-- A note that they will receive a notification once the request is reviewed
-- A brief note that this is an automatic confirmation
-
-Return ONLY a JSON object with this exact structure:
-{
-  "subject": "subject line here",
-  "body": "email body here with proper line breaks"
-}`
-
-        const confirmEmailJson = await window.spark.llm(confirmationPrompt, "gpt-4o-mini", true)
-        const confirmEmail = JSON.parse(confirmEmailJson)
-        
-        const emails = await window.spark.kv.get<Array<{
+        const emails = await window.kv.get<Array<{
           id: string
           from: string
           to: string
@@ -204,7 +158,7 @@ Return ONLY a JSON object with this exact structure:
           type: 'vacation-confirmation'
         }
 
-        await window.spark.kv.set('emails', [...emails, confirmationEmail])
+        await window.kv.set('emails', [...emails, confirmationEmail])
 
         const confirmNotification = {
           id: Date.now().toString() + '-confirm-notif',
@@ -216,8 +170,8 @@ Return ONLY a JSON object with this exact structure:
           read: false
         }
 
-        const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
-        await window.spark.kv.set('email-notifications', [...notifications, confirmNotification])
+        const notifications = await window.kv.get<any[]>('email-notifications') || []
+        await window.kv.set('email-notifications', [...notifications, confirmNotification])
       } catch (error) {
         console.error('Error sending confirmation email:', error)
       }

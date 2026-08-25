@@ -47,45 +47,46 @@ export function ChatAssistant({ open, onOpenChange, guides }: ChatAssistantProps
     setInput('')
     setIsLoading(true)
 
-    try {
-      const guidesContext = guides
-        .map(
-          (g) =>
-            `Titel: ${g.title}\nKategori: ${g.category}\nIndhold: ${g.content}\nTags: ${g.tags.join(', ')}`
-        )
-        .join('\n\n---\n\n')
+    // Local keyword search over the guide library — no AI backend required.
+    const query = userMessage.content.toLowerCase()
+    const terms = query.split(/\s+/).filter((term) => term.length > 2)
 
-      const prompt = (window.spark.llmPrompt as any)`Du er en hjælpsom assistent for en afdelings guide-bibliotek. Du hjælper brugere med at finde relevante guides og besvare spørgsmål.
+    const scored = guides
+      .map((guide) => {
+        const haystack = `${guide.title} ${guide.category} ${guide.content} ${guide.tags.join(' ')}`.toLowerCase()
+        let score = 0
+        for (const term of terms) {
+          if (guide.title.toLowerCase().includes(term)) score += 3
+          else if (haystack.includes(term)) score += 1
+        }
+        return { guide, score }
+      })
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
 
-Her er alle tilgængelige guides:
-
-${guidesContext}
-
-Brugerens spørgsmål: ${userMessage.content}
-
-Besvar på dansk. Hvis brugeren søger efter en specifik guide, referer til guidens titel. Hvis ingen guide passer, tilbyd at hjælpe direkte eller foreslå at oprette en ny guide.`
-
-      const response = await window.spark.llm(prompt, 'gpt-4o-mini')
-
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response,
-        timestamp: Date.now(),
-      }
-
-      setMessages((prev) => [...prev, assistantMessage])
-    } catch (error) {
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Beklager, der opstod en fejl. Prøv venligst igen.',
-        timestamp: Date.now(),
-      }
-      setMessages((prev) => [...prev, errorMessage])
-    } finally {
-      setIsLoading(false)
+    let content: string
+    if (guides.length === 0) {
+      content = 'Der er ingen guides i biblioteket endnu. Opret den første guide via "Tilføj Guide"-knappen.'
+    } else if (scored.length === 0) {
+      content = `Jeg fandt ingen guides, der matcher "${userMessage.content}". Prøv andre søgeord, eller opret en ny guide, hvis emnet mangler.`
+    } else {
+      const lines = scored.map(({ guide }) => {
+        const snippet = guide.content.length > 150 ? guide.content.slice(0, 150) + '…' : guide.content
+        return `• ${guide.title} (${guide.category})\n${snippet}`
+      })
+      content = `Jeg fandt ${scored.length === 1 ? 'denne guide' : 'disse guides'}, der kan hjælpe:\n\n${lines.join('\n\n')}\n\nÅbn guiden i biblioteket for at se det fulde indhold.`
     }
+
+    const assistantMessage: ChatMessage = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content,
+      timestamp: Date.now(),
+    }
+
+    setMessages((prev) => [...prev, assistantMessage])
+    setIsLoading(false)
   }
 
   return (

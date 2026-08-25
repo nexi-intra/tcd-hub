@@ -148,7 +148,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
 
   useEffect(() => {
     const loadUsers = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: string; phone?: string }>>('users')
+      const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: string; phone?: string }>>('users')
       if (usersData) {
         const userList = Object.values(usersData).map(u => ({
           email: u.email,
@@ -395,7 +395,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
     if (!userEmail) return
 
     try {
-      const gameStats = await window.spark.kv.get<Record<string, Record<Difficulty, number>>>('hit-n-miss-play-counts') || {}
+      const gameStats = await window.kv.get<Record<string, Record<Difficulty, number>>>('hit-n-miss-play-counts') || {}
       
       if (!gameStats[userEmail]) {
         gameStats[userEmail] = { easy: 0, medium: 0, hard: 0, expert: 0 }
@@ -403,7 +403,7 @@ export function HitNMiss({ userEmail = 'guest@example.com' }: HitNMissProps = {}
       
       gameStats[userEmail][gameDifficulty] = (gameStats[userEmail][gameDifficulty] || 0) + 1
       
-      await window.spark.kv.set('hit-n-miss-play-counts', gameStats)
+      await window.kv.set('hit-n-miss-play-counts', gameStats)
     } catch (error) {
       console.error('Error tracking game play:', error)
     }

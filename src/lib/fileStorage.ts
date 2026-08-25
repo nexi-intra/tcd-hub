@@ -46,15 +46,15 @@ class FileStorageService {
         chunkCount: chunks.length
       }
       
-      await window.spark.kv.set(`${fileId}_meta`, metadata)
+      await window.kv.set(`${fileId}_meta`, metadata)
       console.log('[FileStorage] Metadata saved')
       
       for (let i = 0; i < chunks.length; i++) {
-        await window.spark.kv.set(`${fileId}_chunk_${i}`, chunks[i])
+        await window.kv.set(`${fileId}_chunk_${i}`, chunks[i])
         console.log(`[FileStorage] Chunk ${i + 1}/${chunks.length} saved`)
       }
       
-      const verification = await window.spark.kv.get(`${fileId}_meta`)
+      const verification = await window.kv.get(`${fileId}_meta`)
       if (!verification) {
         throw new Error('Fil blev ikke gemt korrekt - verification failed')
       }
@@ -64,9 +64,9 @@ class FileStorageService {
       console.error('[FileStorage] KV storage error:', kvError)
       
       try {
-        await window.spark.kv.delete(`${fileId}_meta`)
+        await window.kv.delete(`${fileId}_meta`)
         for (let i = 0; i < chunks.length; i++) {
-          await window.spark.kv.delete(`${fileId}_chunk_${i}`)
+          await window.kv.delete(`${fileId}_chunk_${i}`)
         }
       } catch (cleanupError) {
         console.error('[FileStorage] Cleanup error:', cleanupError)
@@ -96,7 +96,7 @@ class FileStorageService {
     if (fileUrl.startsWith('kv://')) {
       const fileId = fileUrl.replace('kv://', '')
       
-      const metadata = await window.spark.kv.get<{
+      const metadata = await window.kv.get<{
         filename: string
         contentType: string
         size: number
@@ -105,7 +105,7 @@ class FileStorageService {
       }>(`${fileId}_meta`)
 
       if (!metadata) {
-        const legacyData = await window.spark.kv.get<{
+        const legacyData = await window.kv.get<{
           data: string
           filename: string
           contentType: string
@@ -127,7 +127,7 @@ class FileStorageService {
       
       const chunks: string[] = []
       for (let i = 0; i < metadata.chunkCount; i++) {
-        const chunk = await window.spark.kv.get<string>(`${fileId}_chunk_${i}`)
+        const chunk = await window.kv.get<string>(`${fileId}_chunk_${i}`)
         if (!chunk) {
           throw new Error(`Missing chunk ${i} for file ${fileId}`)
         }
@@ -157,17 +157,17 @@ class FileStorageService {
     if (fileUrl.startsWith('kv://')) {
       const fileId = fileUrl.replace('kv://', '')
       
-      const metadata = await window.spark.kv.get<{
+      const metadata = await window.kv.get<{
         chunkCount: number
       }>(`${fileId}_meta`)
 
       if (metadata) {
-        await window.spark.kv.delete(`${fileId}_meta`)
+        await window.kv.delete(`${fileId}_meta`)
         for (let i = 0; i < metadata.chunkCount; i++) {
-          await window.spark.kv.delete(`${fileId}_chunk_${i}`)
+          await window.kv.delete(`${fileId}_chunk_${i}`)
         }
       } else {
-        await window.spark.kv.delete(fileId)
+        await window.kv.delete(fileId)
       }
     }
   }

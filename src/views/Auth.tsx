@@ -58,7 +58,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
         return
       }
 
-      const usersData = (await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; phone: string; isManager: boolean }>>('users')) || {}
+      const usersData = (await window.kv.get<Record<string, { email: string; password: string; fullName: string; phone: string; isManager: boolean }>>('users')) || {}
       
       if (usersData[email]) {
         toast.error('En bruger med denne email eksisterer allerede')
@@ -69,7 +69,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
       const userId = `user_${Date.now()}`
       const role = email.toLowerCase() === 'jacob.remmer@nexigroup.com' ? 'admin' : 'user'
       usersData[email] = { email, password, fullName, phone: phoneNumber.trim(), isManager: role === 'admin' }
-      await window.spark.kv.set('users', usersData)
+      await window.kv.set('users', usersData)
       
       toast.success('Konto oprettet!')
       setTimeout(() => {
@@ -78,17 +78,17 @@ export function Auth({ onAuthenticated }: AuthProps) {
     } else {
       const normalizedEmail = email.trim().toLowerCase()
 
-      // Hardcoded admin login works even if the Spark KV store is unavailable.
+      // Hardcoded admin login works even if the local KV store is unavailable.
       if (normalizedEmail === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD) {
         try {
-          const usersData = (await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
+          const usersData = (await window.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
           usersData[ADMIN_EMAIL] = {
             email: ADMIN_EMAIL,
             password: ADMIN_PASSWORD,
             fullName: usersData[ADMIN_EMAIL]?.fullName || 'Jacob Remmer',
             isManager: true,
           }
-          await window.spark.kv.set('users', usersData)
+          await window.kv.set('users', usersData)
         } catch (error) {
           console.error('Kunne ikke gemme admin-brugeren i KV:', error)
         }
@@ -102,7 +102,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
 
       let usersData: Record<string, { email: string; password: string; fullName: string; isManager: boolean }> = {}
       try {
-        usersData = (await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
+        usersData = (await window.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
       } catch (error) {
         console.error('Kunne ikke hente brugere fra KV:', error)
         toast.error('Kunne ikke oprette forbindelse. Prøv igen.')

@@ -44,7 +44,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
   const [confirmPassword, setConfirmPassword] = useState('')
 
   const handleOpenSettings = async () => {
-    const usersData = (await window.spark.kv.get<Record<string, UserData>>('users')) || {}
+    const usersData = (await window.kv.get<Record<string, UserData>>('users')) || {}
     const userData = usersData[userEmail]
     
     if (userData) {
@@ -62,7 +62,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
       console.log('handleSaveSettings called')
       console.log('userEmail:', userEmail)
       
-      const usersData = (await window.spark.kv.get<Record<string, UserData>>('users')) || {}
+      const usersData = (await window.kv.get<Record<string, UserData>>('users')) || {}
       console.log('usersData loaded:', Object.keys(usersData))
       
       const userData = usersData[userEmail]
@@ -112,7 +112,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
           phone: phoneNumber || userData.phone,
         }
 
-        await window.spark.kv.set('users', usersData)
+        await window.kv.set('users', usersData)
         console.log('Password updated successfully in database')
         toast.success('Adgangskode opdateret succesfuldt')
       } else if (phoneNumber !== userData.phone) {
@@ -123,7 +123,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
           phone: phoneNumber,
         }
 
-        await window.spark.kv.set('users', usersData)
+        await window.kv.set('users', usersData)
         console.log('Phone number updated successfully')
         toast.success('Indstillinger opdateret')
       } else {

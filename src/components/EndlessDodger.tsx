@@ -238,7 +238,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
   useEffect(() => {
     const loadUsers = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: string; phone?: string }>>('users')
+      const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: string; phone?: string }>>('users')
       if (usersData) {
         setUsers(Object.values(usersData).map(u => ({ email: u.email, fullName: u.fullName, role: u.role || 'user', phone: u.phone })))
       } else {
@@ -428,7 +428,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     if (!userEmail) return
 
     try {
-      const currentLeaderboard = await window.spark.kv.get<GlobalLeaderboard>('endless-dodger-global-leaderboard') || {
+      const currentLeaderboard = await window.kv.get<GlobalLeaderboard>('endless-dodger-global-leaderboard') || {
         easy: [], medium: [], hard: [], expert: []
       }
 
@@ -446,7 +446,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
       board.sort((a, b) => b.score - a.score)
       const updated = { ...currentLeaderboard, [diff]: board.slice(0, 10) }
-      await window.spark.kv.set('endless-dodger-global-leaderboard', updated)
+      await window.kv.set('endless-dodger-global-leaderboard', updated)
       setGlobalLeaderboard(updated)
     } catch (error) {
       console.error('Error saving score:', error)

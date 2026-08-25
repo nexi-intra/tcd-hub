@@ -35,7 +35,7 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
 
   useEffect(() => {
     const fetchReporterNames = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
+      const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
       if (usersData) {
         const names: Record<string, string> = {}
         Object.keys(usersData).forEach(email => {

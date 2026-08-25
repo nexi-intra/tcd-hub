@@ -106,7 +106,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
   useEffect(() => {
     const loadUnreadCount = async () => {
-      const emails = (await window.spark.kv.get<Array<{ to: string; read: boolean; folderId?: string }>>('emails')) || []
+      const emails = (await window.kv.get<Array<{ to: string; read: boolean; folderId?: string }>>('emails')) || []
       const unreadInbox = emails.filter(e => e.to === userEmail && !e.read && (e.folderId === undefined || e.folderId === null || e.folderId === '')).length
       setUnreadInboxCount(unreadInbox)
     }
@@ -123,8 +123,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         return
       }
       
-      const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
-      const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+      const vacations = (await window.kv.get<VacationEntry[]>('vacation-entries')) || []
+      const sickLeave = (await window.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
       
       const pendingVacations = vacations.filter(v => v.status === 'pending').length
       const pendingSickLeave = sickLeave.filter(s => s.status === 'pending').length
@@ -143,11 +143,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       const today = format(new Date(), 'yyyy-MM-dd')
       const currentDate = new Date()
       
-      const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
-      const roles = (await window.spark.kv.get<ShiftRole[]>('shift-roles')) || []
-      const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
-      const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
-      const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
+      const assignments = (await window.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+      const roles = (await window.kv.get<ShiftRole[]>('shift-roles')) || []
+      const sickLeave = (await window.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+      const vacations = (await window.kv.get<VacationEntry[]>('vacation-entries')) || []
+      const usersData = (await window.kv.get<Record<string, { fullName: string }>>('users')) || {}
       
       const isSickToday = (userEmail: string) => {
         return sickLeave.some(s => 
@@ -253,7 +253,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         }
       }
       
-      const weekMenus = (await window.spark.kv.get<WeekMenu[]>('meal-plan-weeks')) || []
+      const weekMenus = (await window.kv.get<WeekMenu[]>('meal-plan-weeks')) || []
       const getWeekNumber = (date: Date): number => {
         const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
         const dayNum = d.getUTCDay() || 7
@@ -300,8 +300,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     }
 
     const today = format(new Date(), 'yyyy-MM-dd')
-    const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
-    const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
+    const assignments = (await window.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+    const usersData = (await window.kv.get<Record<string, { fullName: string }>>('users')) || {}
     
     const selectedEmployee = allEmployees.find(e => e.email === selectedEmployeeForAssign)
     if (!selectedEmployee) {
@@ -312,8 +312,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     const employeeName = selectedEmployee.name
     const employeeEmail = selectedEmployee.email
 
-    const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
-    const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
+    const sickLeave = (await window.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+    const vacations = (await window.kv.get<VacationEntry[]>('vacation-entries')) || []
     
     const isSickToday = sickLeave.some(s => 
       s.userEmail === employeeEmail && 
@@ -356,7 +356,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       date: today,
     }
 
-    await window.spark.kv.set('shift-assignments', [...assignments, newAssignment])
+    await window.kv.set('shift-assignments', [...assignments, newAssignment])
 
     toast.success(language === 'da' ? `${employeeName} tildelt ${selectedTaskForAssign.roleName}` : `${employeeName} assigned to ${selectedTaskForAssign.roleName}`)
     
@@ -368,11 +368,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       const today = format(new Date(), 'yyyy-MM-dd')
       const currentDate = new Date()
       
-      const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
-      const roles = (await window.spark.kv.get<ShiftRole[]>('shift-roles')) || []
-      const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
-      const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
-      const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
+      const assignments = (await window.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+      const roles = (await window.kv.get<ShiftRole[]>('shift-roles')) || []
+      const sickLeave = (await window.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+      const vacations = (await window.kv.get<VacationEntry[]>('vacation-entries')) || []
+      const usersData = (await window.kv.get<Record<string, { fullName: string }>>('users')) || {}
       
       const isSickToday = (userEmail: string) => {
         return sickLeave.some(s => 
@@ -444,7 +444,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     if (!selectedUserForComment) return
 
     const today = format(new Date(), 'yyyy-MM-dd')
-    const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+    const assignments = (await window.kv.get<ShiftAssignment[]>('shift-assignments')) || []
     
     const updatedAssignments = assignments.map(a => {
       if (a.date === today && a.employeeName === selectedUserForComment.name && a.roleId === selectedUserForComment.roleId) {
@@ -453,7 +453,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       return a
     })
     
-    await window.spark.kv.set('shift-assignments', updatedAssignments)
+    await window.kv.set('shift-assignments', updatedAssignments)
     
     toast.success(language === 'da' ? 'Kommentar opdateret' : 'Comment updated')
     
@@ -465,11 +465,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       const today = format(new Date(), 'yyyy-MM-dd')
       const currentDate = new Date()
       
-      const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
-      const roles = (await window.spark.kv.get<ShiftRole[]>('shift-roles')) || []
-      const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
-      const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
-      const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
+      const assignments = (await window.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+      const roles = (await window.kv.get<ShiftRole[]>('shift-roles')) || []
+      const sickLeave = (await window.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+      const vacations = (await window.kv.get<VacationEntry[]>('vacation-entries')) || []
+      const usersData = (await window.kv.get<Record<string, { fullName: string }>>('users')) || {}
       
       const isSickToday = (userEmail: string) => {
         return sickLeave.some(s => 
@@ -539,13 +539,13 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
   const handleRemoveUserFromTask = async (employeeName: string, roleId: string) => {
     const today = format(new Date(), 'yyyy-MM-dd')
-    const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+    const assignments = (await window.kv.get<ShiftAssignment[]>('shift-assignments')) || []
     
     const updatedAssignments = assignments.filter(
       a => !(a.date === today && a.employeeName === employeeName && a.roleId === roleId)
     )
     
-    await window.spark.kv.set('shift-assignments', updatedAssignments)
+    await window.kv.set('shift-assignments', updatedAssignments)
     
     toast.success(language === 'da' ? `${employeeName} fjernet fra opgaven` : `${employeeName} removed from task`)
     
@@ -553,11 +553,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       const today = format(new Date(), 'yyyy-MM-dd')
       const currentDate = new Date()
       
-      const assignments = (await window.spark.kv.get<ShiftAssignment[]>('shift-assignments')) || []
-      const roles = (await window.spark.kv.get<ShiftRole[]>('shift-roles')) || []
-      const sickLeave = (await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
-      const vacations = (await window.spark.kv.get<VacationEntry[]>('vacation-entries')) || []
-      const usersData = (await window.spark.kv.get<Record<string, { fullName: string }>>('users')) || {}
+      const assignments = (await window.kv.get<ShiftAssignment[]>('shift-assignments')) || []
+      const roles = (await window.kv.get<ShiftRole[]>('shift-roles')) || []
+      const sickLeave = (await window.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
+      const vacations = (await window.kv.get<VacationEntry[]>('vacation-entries')) || []
+      const usersData = (await window.kv.get<Record<string, { fullName: string }>>('users')) || {}
       
       const isSickToday = (userEmail: string) => {
         return sickLeave.some(s => 
@@ -1035,7 +1035,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           setShowEmailNotifications(open)
           if (!open) {
             const loadUnreadCount = async () => {
-              const emails = (await window.spark.kv.get<Array<{ to: string; read: boolean; folderId?: string }>>('emails')) || []
+              const emails = (await window.kv.get<Array<{ to: string; read: boolean; folderId?: string }>>('emails')) || []
               const unreadInbox = emails.filter(e => e.to === userEmail && !e.read && !e.folderId).length
               setUnreadInboxCount(unreadInbox)
             }
