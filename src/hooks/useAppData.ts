@@ -55,7 +55,7 @@ export function useTeamData() {
   useEffect(() => {
     const loadEmployees = async () => {
       try {
-        const employeesData = await window.spark.kv.get<TeamEmployee[]>('team-employees') || []
+        const employeesData = await window.kv.get<TeamEmployee[]>('team-employees') || []
         setEmployees(employeesData)
       } catch (error) {
         console.error('Error loading employees:', error)
@@ -67,7 +67,7 @@ export function useTeamData() {
   }, [])
 
   const refreshEmployees = useCallback(async () => {
-    const employeesData = await window.spark.kv.get<TeamEmployee[]>('team-employees') || []
+    const employeesData = await window.kv.get<TeamEmployee[]>('team-employees') || []
     setEmployees(employeesData)
   }, [])
 

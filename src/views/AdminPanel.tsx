@@ -95,7 +95,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
 
   const loadUsers = async () => {
     setIsLoading(true)
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean }>>('users')
     if (usersData) {
       const userList = Object.values(usersData).map(u => {
         let role: UserRole = 'user'
@@ -122,14 +122,14 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
   }
 
   const loadSickLeaveEntries = async () => {
-    const entries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
+    const entries = await window.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
     setSickLeaveEntries(entries.sort((a, b) => 
       new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
     ))
   }
 
   const loadShiftRoles = async () => {
-    const roles = await window.spark.kv.get<ShiftRole[]>('shift-roles') || []
+    const roles = await window.kv.get<ShiftRole[]>('shift-roles') || []
     setShiftRoles(roles)
   }
 
@@ -146,7 +146,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
     }
 
     const updatedRoles = [...shiftRoles, newRole]
-    await window.spark.kv.set('shift-roles', updatedRoles)
+    await window.kv.set('shift-roles', updatedRoles)
     setShiftRoles(updatedRoles)
     setNewRoleName('')
     setNewRoleColor('#8b5cf6')
@@ -156,12 +156,12 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
 
   const handleDeleteRole = async (roleId: string) => {
     const updatedRoles = shiftRoles.filter(r => r.id !== roleId)
-    await window.spark.kv.set('shift-roles', updatedRoles)
+    await window.kv.set('shift-roles', updatedRoles)
     setShiftRoles(updatedRoles)
     
-    const assignments = await window.spark.kv.get<any[]>('shift-assignments') || []
+    const assignments = await window.kv.get<any[]>('shift-assignments') || []
     const updatedAssignments = assignments.filter(a => a.roleId !== roleId)
-    await window.spark.kv.set('shift-assignments', updatedAssignments)
+    await window.kv.set('shift-assignments', updatedAssignments)
     
     toast.success('Opgave slettet')
   }
@@ -198,7 +198,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
       return
     }
 
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users') || {}
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users') || {}
 
     if (!editingEmployee && usersData[employeeForm.email]) {
       toast.error('En bruger med denne email eksisterer allerede')
@@ -222,7 +222,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
       isManager: employeeForm.role === 'manager' || employeeForm.role === 'admin'
     }
 
-    await window.spark.kv.set('users', usersData)
+    await window.kv.set('users', usersData)
     await loadUsers()
     setShowEmployeeDialog(false)
     toast.success(editingEmployee ? 'Medarbejder opdateret' : 'Medarbejder oprettet')
@@ -234,10 +234,10 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
       return
     }
 
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
       delete usersData[email]
-      await window.spark.kv.set('users', usersData)
+      await window.kv.set('users', usersData)
       await loadUsers()
       toast.success('Medarbejder slettet')
     }
@@ -249,11 +249,11 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
       return
     }
 
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
       usersData[email].role = newRole
       usersData[email].isManager = newRole === 'manager' || newRole === 'admin'
-      await window.spark.kv.set('users', usersData)
+      await window.kv.set('users', usersData)
       await loadUsers()
       
       toast.success(`Bruger ændret til ${getRoleDisplayName(newRole)}`)
@@ -266,10 +266,10 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
       return
     }
 
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
       delete usersData[email]
-      await window.spark.kv.set('users', usersData)
+      await window.kv.set('users', usersData)
       await loadUsers()
       toast.success('Bruger slettet')
     }

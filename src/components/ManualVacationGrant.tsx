@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { manualVacationGrantEmail } from '@/lib/emailTemplates'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -47,7 +48,7 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
 
   useEffect(() => {
     const loadUsers = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
+      const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
       if (usersData) {
         const userList = Object.values(usersData).map(u => ({
           email: u.email,
@@ -105,40 +106,13 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
         manuallyGranted: true
       }
 
-      const vacations = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
-      await window.spark.kv.set('vacation-entries', [...vacations, newVacation])
-
-      const startDateFormatted = format(start, 'd. MMMM yyyy', { locale: da })
-      const endDateFormatted = format(end, 'd. MMMM yyyy', { locale: da })
+      const vacations = await window.kv.get<VacationEntry[]>('vacation-entries') || []
+      await window.kv.set('vacation-entries', [...vacations, newVacation])
 
       try {
-        const prompt = window.spark.llmPrompt`Generate a professional email notification to send to ${selectedUser} about being granted ${grantType === 'single' ? 'a single day off (fridag)' : 'vacation (ferie)'} by their manager.
+        const emailContent = manualVacationGrantEmail(managerEmail, start, end, grantType === 'single', notes.trim() || undefined)
 
-${grantType === 'single' ? 'Day Off' : 'Vacation'} Details:
-${grantType === 'single' ? `Date: ${startDateFormatted}` : `Start Date: ${startDateFormatted}\nEnd Date: ${endDateFormatted}`}
-${notes ? `Manager's notes: ${notes}` : 'No notes provided'}
-Granted by: ${managerEmail}
-
-The email should be in Danish, friendly and positive, and include:
-- A clear subject line that indicates they have been granted ${grantType === 'single' ? 'a day off' : 'vacation'}
-- A warm and positive message that this is approved time off
-- The ${grantType === 'single' ? 'date' : 'dates'} they have been granted
-- The name/email of the manager who granted it
-- Any notes the manager added
-- A message that this has been automatically added to their calendar
-- A brief note that this is an automatic notification
-- DO NOT include any closing signature like "Med venlig hilsen" or similar - just provide the information without a closing
-
-Return ONLY a JSON object with this exact structure:
-{
-  "subject": "subject line here",
-  "body": "email body here with proper line breaks"
-}`
-
-        const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
-        const emailContent = JSON.parse(emailContentJson)
-
-        const emails = await window.spark.kv.get<Array<{
+        const emails = await window.kv.get<Array<{
           id: string
           from: string
           to: string
@@ -158,7 +132,7 @@ Return ONLY a JSON object with this exact structure:
           read: false
         }
 
-        await window.spark.kv.set('emails', [...emails, newEmail])
+        await window.kv.set('emails', [...emails, newEmail])
 
         const notification = {
           id: Date.now().toString(),
@@ -170,8 +144,8 @@ Return ONLY a JSON object with this exact structure:
           emailId: newEmail.id
         }
 
-        const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
-        await window.spark.kv.set('email-notifications', [...notifications, notification])
+        const notifications = await window.kv.get<any[]>('email-notifications') || []
+        await window.kv.set('email-notifications', [...notifications, notification])
       } catch (emailError) {
         console.error('Error sending vacation grant email:', emailError)
       }

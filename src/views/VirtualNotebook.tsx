@@ -72,12 +72,12 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   }, [userEmail])
 
   const loadNotes = async () => {
-    const allNotes = (await window.spark.kv.get<Note[]>('notebook-notes')) || []
+    const allNotes = (await window.kv.get<Note[]>('notebook-notes')) || []
     setNotes(allNotes)
   }
 
   const loadUserInfo = async () => {
-    const users = (await window.spark.kv.get<Record<string, { fullName: string; role?: string }>>('users')) || {}
+    const users = (await window.kv.get<Record<string, { fullName: string; role?: string }>>('users')) || {}
     const user = users[userEmail]
     const name = user?.fullName || userEmail
     const role = user?.role as 'admin' | 'manager' | 'user' || 'user'
@@ -86,7 +86,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   }
 
   const loadNotifications = async () => {
-    const allNotifications = (await window.spark.kv.get<Notification[]>('notebook-notifications')) || []
+    const allNotifications = (await window.kv.get<Notification[]>('notebook-notifications')) || []
     const userNotifications = allNotifications.filter(n => 
       n.editedBy !== userEmail && 
       (n.originalCreator === userEmail || activeTab === 'shared')
@@ -97,31 +97,31 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   }
 
   const markNotificationAsRead = async (notificationId: string) => {
-    const allNotifications = (await window.spark.kv.get<Notification[]>('notebook-notifications')) || []
+    const allNotifications = (await window.kv.get<Notification[]>('notebook-notifications')) || []
     const updated = allNotifications.map(n => 
       n.id === notificationId ? { ...n, read: true } : n
     )
-    await window.spark.kv.set('notebook-notifications', updated)
+    await window.kv.set('notebook-notifications', updated)
     await loadNotifications()
   }
 
   const markAllAsRead = async () => {
-    const allNotifications = (await window.spark.kv.get<Notification[]>('notebook-notifications')) || []
+    const allNotifications = (await window.kv.get<Notification[]>('notebook-notifications')) || []
     const updated = allNotifications.map(n => {
       if (n.editedBy !== userEmail && (n.originalCreator === userEmail || !notes.find(note => note.id === n.noteId)?.isPersonal)) {
         return { ...n, read: true }
       }
       return n
     })
-    await window.spark.kv.set('notebook-notifications', updated)
+    await window.kv.set('notebook-notifications', updated)
     await loadNotifications()
     toast.success(language === 'da' ? 'Alle notifikationer markeret som læst' : 'All notifications marked as read')
   }
 
   const deleteNotification = async (notificationId: string) => {
-    const allNotifications = (await window.spark.kv.get<Notification[]>('notebook-notifications')) || []
+    const allNotifications = (await window.kv.get<Notification[]>('notebook-notifications')) || []
     const updated = allNotifications.filter(n => n.id !== notificationId)
-    await window.spark.kv.set('notebook-notifications', updated)
+    await window.kv.set('notebook-notifications', updated)
     await loadNotifications()
   }
 
@@ -147,7 +147,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     }
 
     const updatedNotes = [...notes, newNote]
-    await window.spark.kv.set('notebook-notes', updatedNotes)
+    await window.kv.set('notebook-notes', updatedNotes)
     setNotes(updatedNotes)
 
     setNoteTitle('')
@@ -177,7 +177,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     }
 
     const updatedNotes = notes.map(n => n.id === selectedNote.id ? updatedNote : n)
-    await window.spark.kv.set('notebook-notes', updatedNotes)
+    await window.kv.set('notebook-notes', updatedNotes)
     setNotes(updatedNotes)
 
     if (!selectedNote.isPersonal) {
@@ -193,8 +193,8 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
         read: false,
       }
 
-      const existingNotifications = (await window.spark.kv.get<Notification[]>('notebook-notifications')) || []
-      await window.spark.kv.set('notebook-notifications', [...existingNotifications, notification])
+      const existingNotifications = (await window.kv.get<Notification[]>('notebook-notifications')) || []
+      await window.kv.set('notebook-notifications', [...existingNotifications, notification])
       
       if (selectedNote.creatorEmail !== userEmail) {
         toast.info(
@@ -216,7 +216,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     if (!selectedNote) return
 
     const updatedNotes = notes.filter(n => n.id !== selectedNote.id)
-    await window.spark.kv.set('notebook-notes', updatedNotes)
+    await window.kv.set('notebook-notes', updatedNotes)
     setNotes(updatedNotes)
 
     setSelectedNote(null)

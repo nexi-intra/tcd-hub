@@ -6,6 +6,7 @@ Appen understøtter tre roller (**Admin**, **Manager**, **Bruger**), to sprog (*
 
 ## 📑 Indhold
 
+- [Installation og kørsel](#-installation-og-kørsel)
 - [Login og adgang](#-login-og-adgang)
 - [Gennemgående funktioner](#-gennemgående-funktioner)
 - [Moduler](#-moduler)
@@ -26,7 +27,38 @@ Appen understøtter tre roller (**Admin**, **Manager**, **Bruger**), to sprog (*
 - [Administrator](#-administrator)
 - [License](#-license)
 
-## 🔐 Login og adgang
+## � Installation og kørsel
+
+Appen er en selvstændig React-app uden eksterne backend-afhængigheder. Alle data gemmes **lokalt** på din maskine (localStorage).
+
+**Krav:** [Node.js](https://nodejs.org/) 20 eller nyere.
+
+### Kør i browseren (udvikling)
+
+```bash
+npm install
+npm run dev
+```
+
+Åbn derefter http://localhost:5000 i din browser.
+
+### Kør som desktop-app (udvikling)
+
+```bash
+npm install
+npm run electron:dev
+```
+
+### Byg en Windows .exe
+
+```bash
+npm install
+npm run electron:build
+```
+
+Den færdige fil ligger derefter i `release/TCD Hub <version>.exe` — en portable .exe der kan køres direkte uden installation. Data gemmes automatisk lokalt i din brugerprofil og bevares mellem genstarter.
+
+## �🔐 Login og adgang
 
 - **Log ind** med email og adgangskode.
 - **Opret konto** med fulde navn, email, telefonnummer og adgangskode (min. 6 tegn).
@@ -172,7 +204,7 @@ Systemadministration – kun for admins.
 
 ## 📧 Email notifikationer
 
-> **Platformen kan ikke sende rigtige emails.** I stedet bruges et internt notifikationssystem.
+> **Appen kan ikke sende rigtige emails.** I stedet bruges et internt notifikationssystem.
 
 - Når der indberettes sygemelding, anmodes om ferie/fridag, eller en anmodning godkendes/afvises, gemmes en "email notifikation" i systemet.
 - Admins og managere kan åbne **Email Notifikationer** fra Hub'en og se alle notifikationer (ulæste markeres).

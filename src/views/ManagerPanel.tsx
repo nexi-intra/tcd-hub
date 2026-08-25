@@ -20,9 +20,7 @@ import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import React from 'react'
 import { ManualVacationGrant } from '@/components/ManualVacationGrant'
-
-// @github/spark's llmPrompt type declares `strings: string[]` but tagged templates always pass a TemplateStringsArray.
-const llmPrompt = window.spark.llmPrompt as unknown as (strings: TemplateStringsArray, ...values: unknown[]) => string
+import { vacationApprovedEmail, vacationRejectedEmail, vacationEditedEmail, vacationDeletedEmail } from '@/lib/emailTemplates'
 
 interface User {
   email: string
@@ -189,7 +187,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
   const loadUsers = async () => {
     setIsLoading(true)
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean }>>('users')
     if (usersData) {
       const userList = Object.values(usersData).map(u => {
         let role: UserRole = 'user'
@@ -216,7 +214,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const loadSickLeaveEntries = async () => {
-    const entries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
+    const entries = await window.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
     setSickLeaveEntries(entries.sort((a, b) => {
       const dateA = new Date(b.submittedAt)
       const dateB = new Date(a.submittedAt)
@@ -226,7 +224,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const loadVacationEntries = async () => {
-    const entries = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
+    const entries = await window.kv.get<VacationEntry[]>('vacation-entries') || []
     setVacationEntries(entries.filter(e => e.status === 'pending').sort((a, b) => {
       const dateA = new Date(a.startDate)
       const dateB = new Date(b.startDate)
@@ -242,7 +240,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const loadBirthdays = async () => {
-    const birthdaysData = await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays') || []
+    const birthdaysData = await window.kv.get<BirthdayEntry[]>('employee-birthdays') || []
     setBirthdays(birthdaysData.sort((a, b) => {
       const dateA = new Date(`2000-${a.birthday}`)
       const dateB = new Date(`2000-${b.birthday}`)
@@ -263,7 +261,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const birthdaysData = await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays') || []
+    const birthdaysData = await window.kv.get<BirthdayEntry[]>('employee-birthdays') || []
     const index = birthdaysData.findIndex(b => b.email === editingBirthday.email)
     
     const updatedEntry: BirthdayEntry = {
@@ -279,7 +277,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       birthdaysData.push(updatedEntry)
     }
 
-    await window.spark.kv.set('employee-birthdays', birthdaysData)
+    await window.kv.set('employee-birthdays', birthdaysData)
     await loadBirthdays()
     
     setIsEditBirthdayDialogOpen(false)
@@ -290,9 +288,9 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const deleteBirthday = async (email: string) => {
-    const birthdaysData = await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays') || []
+    const birthdaysData = await window.kv.get<BirthdayEntry[]>('employee-birthdays') || []
     const updated = birthdaysData.filter(b => b.email !== email)
-    await window.spark.kv.set('employee-birthdays', updated)
+    await window.kv.set('employee-birthdays', updated)
     await loadBirthdays()
     toast.success('Fødselsdag slettet')
   }
@@ -303,11 +301,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
       usersData[email].role = newRole
       usersData[email].isManager = newRole === 'manager' || newRole === 'admin'
-      await window.spark.kv.set('users', usersData)
+      await window.kv.set('users', usersData)
       await loadUsers()
       
       toast.success(`Bruger ændret til ${getRoleDisplayName(newRole)}`)
@@ -320,16 +318,16 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
       const userFullName = usersData[email].fullName
       
       delete usersData[email]
-      await window.spark.kv.set('users', usersData)
+      await window.kv.set('users', usersData)
       
-      const assignments = (await window.spark.kv.get<Array<{ id: string; employeeId: string; employeeName: string; roleId: string; date: string; comment?: string }>>('shift-assignments')) || []
+      const assignments = (await window.kv.get<Array<{ id: string; employeeId: string; employeeName: string; roleId: string; date: string; comment?: string }>>('shift-assignments')) || []
       const updatedAssignments = assignments.filter(a => a.employeeName !== userFullName)
-      await window.spark.kv.set('shift-assignments', updatedAssignments)
+      await window.kv.set('shift-assignments', updatedAssignments)
       
       await loadUsers()
       toast.success('Bruger slettet')
@@ -337,7 +335,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const openEditNameDialog = async (user: User) => {
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
     const userData = usersData?.[user.email]
     
     setEditingUser(user)
@@ -365,7 +363,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
     if (!usersData || !usersData[editingUser.email]) {
       toast.error('Bruger ikke fundet')
       return
@@ -393,7 +391,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       usersData[editingUser.email] = updatedUserData
     }
 
-    await window.spark.kv.set('users', usersData)
+    await window.kv.set('users', usersData)
     await loadUsers()
     setIsEditDialogOpen(false)
     setEditingUser(null)
@@ -428,7 +426,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users') || {}
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users') || {}
     
     if (usersData[newUserEmail.toLowerCase()]) {
       toast.error('En bruger med denne email eksisterer allerede')
@@ -445,7 +443,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     }
 
     try {
-      await window.spark.kv.set('users', usersData)
+      await window.kv.set('users', usersData)
     } catch (error) {
       console.error('Failed to save new user:', error)
       toast.error(`Kunne ikke gemme bruger: ${error instanceof Error ? error.message : String(error)}`)
@@ -464,63 +462,28 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const deleteSickLeave = async (id: string) => {
-    const entries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
+    const entries = await window.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
     const updatedEntries = entries.filter(e => e.id !== id)
-    await window.spark.kv.set('sick-leave-entries', updatedEntries)
+    await window.kv.set('sick-leave-entries', updatedEntries)
     await loadSickLeaveEntries()
     toast.success('Sygemelding slettet')
   }
 
   const handleApproveVacation = async (vacation: VacationEntry) => {
-    const allVacations = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
+    const allVacations = await window.kv.get<VacationEntry[]>('vacation-entries') || []
     const updatedVacations = allVacations.map((v) =>
       v.id === vacation.id
         ? { ...v, status: 'approved' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString() }
         : v
     )
-    await window.spark.kv.set('vacation-entries', updatedVacations)
+    await window.kv.set('vacation-entries', updatedVacations)
     await loadVacationEntries()
     toast.success('Ferie godkendt')
 
-    const startDateFormatted = new Date(vacation.startDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-    const endDateFormatted = new Date(vacation.endDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-
     try {
-      const prompt = llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being APPROVED.
+      const emailContent = vacationApprovedEmail(vacation.startDate, vacation.endDate, userEmail, vacation.notes)
 
-Vacation Request Details:
-Start Date: ${startDateFormatted}
-End Date: ${endDateFormatted}
-${vacation.notes ? `Notes: ${vacation.notes}` : 'No notes'}
-Approved by: ${userEmail}
-
-The email should be in Danish, friendly yet professional, and include:
-- A clear subject line that indicates approval
-- Confirmation that the vacation request has been approved
-- The vacation period details
-- The name/email of who approved it
-- A congratulatory or positive tone
-- A brief note that this is an automatic notification
-- DO NOT include any closing signature like "Med venlig hilsen" or similar - just provide the information without a closing
-
-Return ONLY a JSON object with this exact structure:
-{
-  "subject": "subject line here",
-  "body": "email body here with proper line breaks"
-}`
-
-      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
-      const emailContent = JSON.parse(emailContentJson)
-
-      const emails = await window.spark.kv.get<Array<{
+      const emails = await window.kv.get<Array<{
         id: string
         from: string
         to: string
@@ -540,7 +503,7 @@ Return ONLY a JSON object with this exact structure:
         read: false
       }
 
-      await window.spark.kv.set('emails', [...emails, newEmail])
+      await window.kv.set('emails', [...emails, newEmail])
 
       const notification = {
         id: Date.now().toString(),
@@ -552,64 +515,28 @@ Return ONLY a JSON object with this exact structure:
         emailId: newEmail.id
       }
 
-      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
-      await window.spark.kv.set('email-notifications', [...notifications, notification])
+      const notifications = await window.kv.get<any[]>('email-notifications') || []
+      await window.kv.set('email-notifications', [...notifications, notification])
     } catch (emailError) {
       console.error('Error sending vacation approval email:', emailError)
     }
   }
 
   const handleRejectVacation = async (vacation: VacationEntry) => {
-    const allVacations = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
+    const allVacations = await window.kv.get<VacationEntry[]>('vacation-entries') || []
     const updatedVacations = allVacations.map((v) =>
       v.id === vacation.id
         ? { ...v, status: 'rejected' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString() }
         : v
     )
-    await window.spark.kv.set('vacation-entries', updatedVacations)
+    await window.kv.set('vacation-entries', updatedVacations)
     await loadVacationEntries()
     toast.error('Ferie afvist')
 
-    const startDateFormatted = new Date(vacation.startDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-    const endDateFormatted = new Date(vacation.endDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-
     try {
-      const prompt = llmPrompt`Generate a professional email notification to send to ${vacation.userEmail} about their vacation request being REJECTED.
+      const emailContent = vacationRejectedEmail(vacation.startDate, vacation.endDate, userEmail, vacation.notes)
 
-Vacation Request Details:
-Start Date: ${startDateFormatted}
-End Date: ${endDateFormatted}
-${vacation.notes ? `Notes: ${vacation.notes}` : 'No notes'}
-Rejected by: ${userEmail}
-
-The email should be in Danish, professional and respectful, and include:
-- A clear subject line that indicates rejection
-- Polite notification that the vacation request has been rejected
-- The vacation period details
-- The name/email of who rejected it
-- A professional and understanding tone
-- Suggestion that they can contact the manager for more information or to discuss alternative dates
-- A brief note that this is an automatic notification
-- DO NOT include any closing signature like "Med venlig hilsen" or similar - just provide the information without a closing
-
-Return ONLY a JSON object with this exact structure:
-{
-  "subject": "subject line here",
-  "body": "email body here with proper line breaks"
-}`
-
-      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
-      const emailContent = JSON.parse(emailContentJson)
-
-      const emails = await window.spark.kv.get<Array<{
+      const emails = await window.kv.get<Array<{
         id: string
         from: string
         to: string
@@ -629,7 +556,7 @@ Return ONLY a JSON object with this exact structure:
         read: false
       }
 
-      await window.spark.kv.set('emails', [...emails, newEmail])
+      await window.kv.set('emails', [...emails, newEmail])
 
       const notification = {
         id: Date.now().toString(),
@@ -641,8 +568,8 @@ Return ONLY a JSON object with this exact structure:
         emailId: newEmail.id
       }
 
-      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
-      await window.spark.kv.set('email-notifications', [...notifications, notification])
+      const notifications = await window.kv.get<any[]>('email-notifications') || []
+      await window.kv.set('email-notifications', [...notifications, notification])
     } catch (emailError) {
       console.error('Error sending vacation rejection email:', emailError)
     }
@@ -667,7 +594,7 @@ Return ONLY a JSON object with this exact structure:
       return
     }
 
-    const allVacationsData = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
+    const allVacationsData = await window.kv.get<VacationEntry[]>('vacation-entries') || []
     const updatedVacations = allVacationsData.map((v) =>
       v.id === editingVacation.id
         ? { 
@@ -678,65 +605,21 @@ Return ONLY a JSON object with this exact structure:
           }
         : v
     )
-    await window.spark.kv.set('vacation-entries', updatedVacations)
+    await window.kv.set('vacation-entries', updatedVacations)
     await loadVacationEntries()
     setIsEditVacationDialogOpen(false)
-    
-    const originalStartDate = new Date(editingVacation.startDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-    const originalEndDate = new Date(editingVacation.endDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-    const newStartDate = editVacationStartDate.toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-    const newEndDate = editVacationEndDate.toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
 
     try {
-      const prompt = llmPrompt`Generate a professional email notification to send to ${editingVacation.userEmail} about their vacation being EDITED/MODIFIED by a manager.
+      const emailContent = vacationEditedEmail(
+        editingVacation.startDate,
+        editingVacation.endDate,
+        editVacationStartDate,
+        editVacationEndDate,
+        userEmail,
+        editVacationNotes.trim() || undefined,
+      )
 
-Original Vacation Details:
-Original Start Date: ${originalStartDate}
-Original End Date: ${originalEndDate}
-${editingVacation.notes ? `Original Notes: ${editingVacation.notes}` : 'No original notes'}
-
-New Vacation Details:
-New Start Date: ${newStartDate}
-New End Date: ${newEndDate}
-${editVacationNotes.trim() ? `New Notes: ${editVacationNotes.trim()}` : 'No new notes'}
-Modified by: ${userEmail}
-
-The email should be in Danish, professional and informative, and include:
-- A clear subject line that indicates vacation modification
-- Notification that their vacation dates have been changed by a manager
-- Clear comparison showing original dates vs new dates
-- The name/email of who made the changes
-- A professional tone
-- Suggestion that they can contact the manager if they have questions
-- A brief note that this is an automatic notification
-- DO NOT include any closing signature like "Med venlig hilsen" or similar - just provide the information without a closing
-
-Return ONLY a JSON object with this exact structure:
-{
-  "subject": "subject line here",
-  "body": "email body here with proper line breaks"
-}`
-
-      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
-      const emailContent = JSON.parse(emailContentJson)
-
-      const emails = await window.spark.kv.get<Array<{
+      const emails = await window.kv.get<Array<{
         id: string
         from: string
         to: string
@@ -756,7 +639,7 @@ Return ONLY a JSON object with this exact structure:
         read: false
       }
 
-      await window.spark.kv.set('emails', [...emails, newEmail])
+      await window.kv.set('emails', [...emails, newEmail])
 
       const notification = {
         id: Date.now().toString(),
@@ -768,8 +651,8 @@ Return ONLY a JSON object with this exact structure:
         emailId: newEmail.id
       }
 
-      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
-      await window.spark.kv.set('email-notifications', [...notifications, notification])
+      const notifications = await window.kv.get<any[]>('email-notifications') || []
+      await window.kv.set('email-notifications', [...notifications, notification])
     } catch (emailError) {
       console.error('Error sending vacation edit email:', emailError)
     }
@@ -782,7 +665,7 @@ Return ONLY a JSON object with this exact structure:
   }
 
   const deleteVacation = async (id: string) => {
-    const allVacationsData = await window.spark.kv.get<VacationEntry[]>('vacation-entries') || []
+    const allVacationsData = await window.kv.get<VacationEntry[]>('vacation-entries') || []
     const vacationToDelete = allVacationsData.find(v => v.id === id)
     
     if (!vacationToDelete) {
@@ -791,52 +674,20 @@ Return ONLY a JSON object with this exact structure:
     }
 
     const updatedVacations = allVacationsData.filter(v => v.id !== id)
-    await window.spark.kv.set('vacation-entries', updatedVacations)
+    await window.kv.set('vacation-entries', updatedVacations)
     await loadVacationEntries()
     toast.success('Ferie slettet')
 
-    const startDateFormatted = new Date(vacationToDelete.startDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-    const endDateFormatted = new Date(vacationToDelete.endDate).toLocaleDateString('da-DK', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-
     try {
-      const prompt = llmPrompt`Generate a professional email notification to send to ${vacationToDelete.userEmail} about their vacation being DELETED by a manager.
+      const emailContent = vacationDeletedEmail(
+        vacationToDelete.startDate,
+        vacationToDelete.endDate,
+        vacationToDelete.status,
+        userEmail,
+        vacationToDelete.notes,
+      )
 
-Deleted Vacation Details:
-Start Date: ${startDateFormatted}
-End Date: ${endDateFormatted}
-${vacationToDelete.notes ? `Notes: ${vacationToDelete.notes}` : 'No notes'}
-Status at deletion: ${vacationToDelete.status === 'approved' ? 'Godkendt (Approved)' : vacationToDelete.status === 'pending' ? 'Afventende (Pending)' : 'Status ukendt'}
-Deleted by: ${userEmail}
-
-The email should be in Danish, professional and clear, and include:
-- A clear subject line that indicates vacation deletion
-- Clear notification that their vacation has been removed from the system
-- The vacation period that was deleted
-- The status it had before deletion (approved/pending)
-- The name/email of who deleted it
-- A professional and understanding tone
-- Suggestion that they can contact the manager if they have questions or if this was done in error
-- A brief note that this is an automatic notification
-- DO NOT include any closing signature like "Med venlig hilsen" or similar - just provide the information without a closing
-
-Return ONLY a JSON object with this exact structure:
-{
-  "subject": "subject line here",
-  "body": "email body here with proper line breaks"
-}`
-
-      const emailContentJson = await window.spark.llm(prompt, "gpt-4o-mini", true)
-      const emailContent = JSON.parse(emailContentJson)
-
-      const emails = await window.spark.kv.get<Array<{
+      const emails = await window.kv.get<Array<{
         id: string
         from: string
         to: string
@@ -856,7 +707,7 @@ Return ONLY a JSON object with this exact structure:
         read: false
       }
 
-      await window.spark.kv.set('emails', [...emails, newEmail])
+      await window.kv.set('emails', [...emails, newEmail])
 
       const notification = {
         id: Date.now().toString(),
@@ -868,15 +719,15 @@ Return ONLY a JSON object with this exact structure:
         emailId: newEmail.id
       }
 
-      const notifications = await window.spark.kv.get<any[]>('email-notifications') || []
-      await window.spark.kv.set('email-notifications', [...notifications, notification])
+      const notifications = await window.kv.get<any[]>('email-notifications') || []
+      await window.kv.set('email-notifications', [...notifications, notification])
     } catch (emailError) {
       console.error('Error sending vacation deletion email:', emailError)
     }
   }
 
   const loadGameLeaderboard = async () => {
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
@@ -885,12 +736,12 @@ Return ONLY a JSON object with this exact structure:
     
     setGameLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
     
-    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('hit-n-miss-play-counts')
+    const playCounts = await window.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('hit-n-miss-play-counts')
     setGamePlayCounts(playCounts || {})
   }
 
   const loadEndlessDodgerLeaderboard = async () => {
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
@@ -899,7 +750,7 @@ Return ONLY a JSON object with this exact structure:
     
     setEndlessDodgerLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
     
-    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('endless-dodger-play-counts')
+    const playCounts = await window.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('endless-dodger-play-counts')
     setDodgerPlayCounts(playCounts || {})
   }
 
@@ -918,7 +769,7 @@ Return ONLY a JSON object with this exact structure:
       return
     }
 
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
@@ -947,7 +798,7 @@ Return ONLY a JSON object with this exact structure:
         [editingScore.difficulty]: board
       }
       
-      await window.spark.kv.set('hit-n-miss-global-leaderboard', updatedLeaderboard)
+      await window.kv.set('hit-n-miss-global-leaderboard', updatedLeaderboard)
       await loadGameLeaderboard()
       
       setIsEditScoreDialogOpen(false)
@@ -960,7 +811,7 @@ Return ONLY a JSON object with this exact structure:
   }
 
   const deleteScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
@@ -971,7 +822,7 @@ Return ONLY a JSON object with this exact structure:
 
     leaderboard[difficulty] = leaderboard[difficulty].filter((entry: { email: string }) => entry.email !== email)
     
-    await window.spark.kv.set('hit-n-miss-global-leaderboard', leaderboard)
+    await window.kv.set('hit-n-miss-global-leaderboard', leaderboard)
     await loadGameLeaderboard()
     toast.success('Score slettet')
   }
@@ -991,7 +842,7 @@ Return ONLY a JSON object with this exact structure:
       return
     }
 
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
@@ -1020,7 +871,7 @@ Return ONLY a JSON object with this exact structure:
         [editingDodgerScore.difficulty]: board
       }
       
-      await window.spark.kv.set('endless-dodger-global-leaderboard', updatedLeaderboard)
+      await window.kv.set('endless-dodger-global-leaderboard', updatedLeaderboard)
       await loadEndlessDodgerLeaderboard()
       
       setIsEditDodgerScoreDialogOpen(false)
@@ -1033,7 +884,7 @@ Return ONLY a JSON object with this exact structure:
   }
 
   const deleteDodgerScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
@@ -1044,13 +895,13 @@ Return ONLY a JSON object with this exact structure:
 
     leaderboard[difficulty] = leaderboard[difficulty].filter((entry: { email: string }) => entry.email !== email)
     
-    await window.spark.kv.set('endless-dodger-global-leaderboard', leaderboard)
+    await window.kv.set('endless-dodger-global-leaderboard', leaderboard)
     await loadEndlessDodgerLeaderboard()
     toast.success('Score slettet')
   }
 
   const loadNexiFlyerLeaderboard = async () => {
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
@@ -1059,7 +910,7 @@ Return ONLY a JSON object with this exact structure:
 
     setNexiFlyerLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
 
-    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('nexi-flyer-play-counts')
+    const playCounts = await window.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('nexi-flyer-play-counts')
     setNexiFlyerPlayCounts(playCounts || {})
   }
 
@@ -1078,7 +929,7 @@ Return ONLY a JSON object with this exact structure:
       return
     }
 
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
@@ -1107,7 +958,7 @@ Return ONLY a JSON object with this exact structure:
         [editingNexiFlyerScore.difficulty]: board
       }
 
-      await window.spark.kv.set('nexi-flyer-global-leaderboard', updatedLeaderboard)
+      await window.kv.set('nexi-flyer-global-leaderboard', updatedLeaderboard)
       await loadNexiFlyerLeaderboard()
 
       setIsEditNexiFlyerScoreDialogOpen(false)
@@ -1120,7 +971,7 @@ Return ONLY a JSON object with this exact structure:
   }
 
   const deleteNexiFlyerScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
@@ -1131,13 +982,13 @@ Return ONLY a JSON object with this exact structure:
 
     leaderboard[difficulty] = leaderboard[difficulty].filter((entry: { email: string }) => entry.email !== email)
 
-    await window.spark.kv.set('nexi-flyer-global-leaderboard', leaderboard)
+    await window.kv.set('nexi-flyer-global-leaderboard', leaderboard)
     await loadNexiFlyerLeaderboard()
     toast.success('Score slettet')
   }
 
   const loadBrickBreakLeaderboard = async () => {
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; level: number; timestamp: number }>
       medium: Array<{ email: string; score: number; level: number; timestamp: number }>
       hard: Array<{ email: string; score: number; level: number; timestamp: number }>
@@ -1146,7 +997,7 @@ Return ONLY a JSON object with this exact structure:
     
     setBrickBreakLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
     
-    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('brickbreak-play-counts')
+    const playCounts = await window.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('brickbreak-play-counts')
     setBrickBreakPlayCounts(playCounts || {})
   }
 
@@ -1167,7 +1018,7 @@ Return ONLY a JSON object with this exact structure:
       return
     }
 
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; level: number; timestamp: number }>
       medium: Array<{ email: string; score: number; level: number; timestamp: number }>
       hard: Array<{ email: string; score: number; level: number; timestamp: number }>
@@ -1197,7 +1048,7 @@ Return ONLY a JSON object with this exact structure:
         [editingBrickBreakScore.difficulty]: board
       }
       
-      await window.spark.kv.set('brickbreak-global-leaderboard', updatedLeaderboard)
+      await window.kv.set('brickbreak-global-leaderboard', updatedLeaderboard)
       await loadBrickBreakLeaderboard()
       
       setIsEditBrickBreakScoreDialogOpen(false)
@@ -1211,7 +1062,7 @@ Return ONLY a JSON object with this exact structure:
   }
 
   const deleteBrickBreakScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; level: number; timestamp: number }>
       medium: Array<{ email: string; score: number; level: number; timestamp: number }>
       hard: Array<{ email: string; score: number; level: number; timestamp: number }>
@@ -1222,13 +1073,13 @@ Return ONLY a JSON object with this exact structure:
 
     leaderboard[difficulty] = leaderboard[difficulty].filter((entry: { email: string }) => entry.email !== email)
     
-    await window.spark.kv.set('brickbreak-global-leaderboard', leaderboard)
+    await window.kv.set('brickbreak-global-leaderboard', leaderboard)
     await loadBrickBreakLeaderboard()
     toast.success('Score slettet')
   }
 
   const loadTetrisLeaderboard = async () => {
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; level: number; timestamp: number }>
       medium: Array<{ email: string; score: number; level: number; timestamp: number }>
       hard: Array<{ email: string; score: number; level: number; timestamp: number }>
@@ -1237,7 +1088,7 @@ Return ONLY a JSON object with this exact structure:
 
     setTetrisLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
 
-    const playCounts = await window.spark.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('tetris-play-counts')
+    const playCounts = await window.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('tetris-play-counts')
     setTetrisPlayCounts(playCounts || {})
   }
 
@@ -1258,7 +1109,7 @@ Return ONLY a JSON object with this exact structure:
       return
     }
 
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; level: number; timestamp: number }>
       medium: Array<{ email: string; score: number; level: number; timestamp: number }>
       hard: Array<{ email: string; score: number; level: number; timestamp: number }>
@@ -1288,7 +1139,7 @@ Return ONLY a JSON object with this exact structure:
         [editingTetrisScore.difficulty]: board
       }
 
-      await window.spark.kv.set('tetris-global-leaderboard', updatedLeaderboard)
+      await window.kv.set('tetris-global-leaderboard', updatedLeaderboard)
       await loadTetrisLeaderboard()
 
       setIsEditTetrisScoreDialogOpen(false)
@@ -1302,7 +1153,7 @@ Return ONLY a JSON object with this exact structure:
   }
 
   const deleteTetrisScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
-    const leaderboard = await window.spark.kv.get<{
+    const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; level: number; timestamp: number }>
       medium: Array<{ email: string; score: number; level: number; timestamp: number }>
       hard: Array<{ email: string; score: number; level: number; timestamp: number }>
@@ -1313,7 +1164,7 @@ Return ONLY a JSON object with this exact structure:
 
     leaderboard[difficulty] = leaderboard[difficulty].filter((entry: { email: string }) => entry.email !== email)
 
-    await window.spark.kv.set('tetris-global-leaderboard', leaderboard)
+    await window.kv.set('tetris-global-leaderboard', leaderboard)
     await loadTetrisLeaderboard()
     toast.success('Score slettet')
   }

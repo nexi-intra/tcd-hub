@@ -24,7 +24,7 @@ export async function getUserRole(email: string): Promise<UserRole> {
 
   let usersData: Record<string, UserData> | undefined
   try {
-    usersData = await window.spark.kv.get<Record<string, UserData>>('users')
+    usersData = await window.kv.get<Record<string, UserData>>('users')
   } catch (error) {
     console.error('Kunne ikke hente brugerroller fra KV:', error)
     return 'user'

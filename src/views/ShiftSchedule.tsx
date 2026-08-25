@@ -171,12 +171,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
 
   useEffect(() => {
     const loadUserAndCheckAdmin = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: string }>>('users')
+      const usersData = await window.kv.get<Record<string, { email: string; fullName: string; role?: string }>>('users')
       if (usersData && usersData[userEmail]?.role === 'admin') {
         setIsAdmin(true)
       }
 
-      const birthdaysData = await window.spark.kv.get<BirthdayEntry[]>('employee-birthdays') || []
+      const birthdaysData = await window.kv.get<BirthdayEntry[]>('employee-birthdays') || []
       setBirthdays(birthdaysData)
     }
     if (userEmail) {
@@ -189,8 +189,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
   }, [])
 
   const loadEmployees = async () => {
-    const usersData = await window.spark.kv.get<Record<string, { email: string; fullName: string; role?: string; phone?: string }>>('users')
-    const userSettings = (await window.spark.kv.get<Record<string, { phoneNumber?: string }>>('user-settings')) || {}
+    const usersData = await window.kv.get<Record<string, { email: string; fullName: string; role?: string; phone?: string }>>('users')
+    const userSettings = (await window.kv.get<Record<string, { phoneNumber?: string }>>('user-settings')) || {}
     
     if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
       const userList: TeamEmployee[] = Object.values(usersData).map(user => {

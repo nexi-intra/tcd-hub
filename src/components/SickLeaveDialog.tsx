@@ -75,7 +75,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
+      const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
       if (usersData) {
         const usersList = Object.keys(usersData).map(email => ({
           email,
@@ -116,7 +116,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
   useEffect(() => {
     const fetchSelectedUserName = async () => {
       if (selectedUserEmail) {
-        const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
+        const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
         if (usersData && usersData[selectedUserEmail]) {
           setUserName(usersData[selectedUserEmail].fullName || selectedUserEmail)
         }
@@ -140,7 +140,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
     const dateToUse = selectedDate
     
     try {
-      const sickLeaveEntries = await window.spark.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
+      const sickLeaveEntries = await window.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
       
       if (editEntry) {
         const updatedEntries = sickLeaveEntries.map(entry => 
@@ -148,7 +148,7 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
             ? { ...entry, startDate: dateToUse.toISOString(), reason, userEmail: selectedUserEmail, userName, type: sickLeaveType }
             : entry
         )
-        await window.spark.kv.set('sick-leave-entries', updatedEntries)
+        await window.kv.set('sick-leave-entries', updatedEntries)
 
         toast.success(t.sickLeaveDialog.updated, {
           description: t.sickLeaveDialog.updatedDescription.replace('{date}', format(dateToUse, 'd. MMMM yyyy', { locale: da })),
@@ -176,11 +176,11 @@ export function SickLeaveDialog({ open, onOpenChange, userEmail, editEntry = nul
         type: sickLeaveType,
       }
 
-      await window.spark.kv.set('sick-leave-entries', [...sickLeaveEntries, newEntry])
+      await window.kv.set('sick-leave-entries', [...sickLeaveEntries, newEntry])
 
       const dateFormatted = format(dateToUse, 'd. MMMM yyyy', { locale: da })
       
-      const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
+      const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string }>>('users')
       const reporterName = usersData && usersData[userEmail] ? usersData[userEmail].fullName : userEmail
       
       const sickTypeText = sickLeaveType === 'child' ? 'Barn syg' : 'Sygemelding'
@@ -204,7 +204,7 @@ Dato: ${dateFormatted}
 ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk genereret fra Terminal Configuration & Dispatch Hub.`
 
       try {
-        const emailNotifications = await window.spark.kv.get<Array<{
+        const emailNotifications = await window.kv.get<Array<{
           id: string
           to: string
           subject: string
@@ -214,7 +214,7 @@ ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk
           read: boolean
         }>>('email-notifications') || []
         
-        await window.spark.kv.set('email-notifications', [...emailNotifications, {
+        await window.kv.set('email-notifications', [...emailNotifications, {
           id: `email-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           to: 'Jacob.remmer@nexigroup.com',
           subject: emailSubject,

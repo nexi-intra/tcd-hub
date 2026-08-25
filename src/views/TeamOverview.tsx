@@ -42,7 +42,7 @@ export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
 
   const loadRegisteredUsers = async () => {
     setIsLoading(true)
-    const usersData = await window.spark.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean; phone?: string }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean; phone?: string }>>('users')
     
     if (usersData && typeof usersData === 'object' && !Array.isArray(usersData)) {
       const userList: TeamEmployee[] = Object.values(usersData).map(user => {

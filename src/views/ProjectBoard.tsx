@@ -54,7 +54,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
 
   useEffect(() => {
     const loadUserName = async () => {
-      const users = await window.spark.kv.get<Record<string, { fullName: string }>>('users') || {}
+      const users = await window.kv.get<Record<string, { fullName: string }>>('users') || {}
       const userName = users[userEmail]?.fullName || userEmail
       setCurrentUserName(userName)
     }
