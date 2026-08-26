@@ -29,9 +29,9 @@ Appen understøtter tre roller (**Admin**, **Manager**, **Bruger**), to sprog (*
 
 ## � Installation og kørsel
 
-Appen er en selvstændig React-app uden eksterne backend-afhængigheder. Alle data gemmes **lokalt** på din maskine (localStorage).
+Appen er en selvstændig React-app uden eksterne backend-afhængigheder. I browseren gemmes data lokalt (localStorage); i desktop-appen gemmes data som filer i en **datamappe, der kan deles på et netværksdrev**, så flere computere arbejder på de samme data.
 
-**Krav:** [Node.js](https://nodejs.org/) 20 eller nyere.
+**Krav (kun til at bygge):** [Node.js](https://nodejs.org/) 20 eller nyere.
 
 ### Kør i browseren (udvikling)
 
@@ -49,14 +49,38 @@ npm install
 npm run electron:dev
 ```
 
-### Byg en Windows .exe
+### Byg desktop-appen til Windows
 
 ```bash
 npm install
 npm run electron:build
 ```
 
-Den færdige fil ligger derefter i `release/TCD Hub <version>.exe` — en portable .exe der kan køres direkte uden installation. Data gemmes automatisk lokalt i din brugerprofil og bevares mellem genstarter.
+Resultatet er `release/TCD Hub-<version>-win.zip`. Pak den ud, og kør **TCD Hub.exe** fra mappen — appen starter på få sekunder.
+
+> **Undgå portable .exe'en** (`npm run electron:build:portable`): den udpakker hele appen ved *hvert* opstart og er derfor meget langsom at åbne.
+
+### Udrulning til flere computere med fælles data
+
+Sådan sættes appen op på 10-15 maskiner, der deler samme data via et netværksdrev:
+
+1. **Opret en datamappe på det fælles drev**, fx `\\SERVER\Faelles\tcd-hub-data`, og giv alle brugere skriverettigheder.
+2. **Kopiér den udpakkede app-mappe** (fra ZIP'en) til hver enkelt computer — kør **ikke** .exe'en direkte fra netværksdrevet, det gør opstarten langsom.
+3. **Læg en fil ved navn `tcd-hub.config.json` ved siden af `TCD Hub.exe`** på hver computer med indholdet:
+
+```json
+{
+  "dataDir": "\\\\SERVER\\Faelles\\tcd-hub-data"
+}
+```
+
+4. Start appen. Alle klienter læser og skriver nu i samme mappe, og ændringer fra én klient vises automatisk hos de andre inden for få sekunder.
+
+**Noter:**
+- Uden config-fil gemmer appen data lokalt i brugerens profil (fungerer stadig, bare ikke delt).
+- Datamappens sti kan også sættes med miljøvariablen `TCD_HUB_DATA_DIR` (har forrang over config-filen).
+- Første gang appen startes med en tom fælles mappe, kopieres eventuelle eksisterende lokale data automatisk over.
+- Tag backup af datamappen som enhver anden mappe på drevet — det er hele appens database.
 
 ## �🔐 Login og adgang
 
