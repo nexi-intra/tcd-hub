@@ -1533,7 +1533,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                         </div>
                         {sortedStats.length > 0 ? (
                           <>
-                            <div className="text-lg font-bold text-primary truncate">{sortedStats[0].name}</div>
+                            <div className="text-sm leading-snug font-bold text-primary break-words line-clamp-2" title={sortedStats[0].name}>{sortedStats[0].name}</div>
                             <div className="text-xs text-muted-foreground mt-1">
                               {sortedStats[0].count} {sortedStats[0].count === 1 ? 'sygemelding' : 'sygemeldinger'}
                             </div>

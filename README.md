@@ -263,7 +263,3 @@ Systemadministration – kun for admins.
 ## 👤 Administrator
 
 Jacob Remmer (Jacob.remmer@nexigroup.com) er systemets administrator.
-
-## 📄 License
-
-The Spark Template files and resources from GitHub are licensed under the terms of the MIT license, Copyright GitHub, Inc.
