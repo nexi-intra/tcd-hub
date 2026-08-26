@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactElement } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { vacationApprovedEmail, vacationRejectedEmail } from '@/lib/emailTemplates'
 import { 
@@ -579,7 +579,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
     const monthName = new Date(yearToShow, monthToShow).toLocaleDateString('da-DK', { month: 'long', year: 'numeric' })
 
     const weekdays = ['Søn', 'Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør']
-    const days = []
+    const days: ReactElement[] = []
 
     for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="h-10" />)
@@ -1184,20 +1184,20 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between mb-1">
+                                  <div className="flex items-center justify-between gap-2 mb-1">
                                     <span className={cn(
-                                      "text-sm",
+                                      "text-sm truncate min-w-0",
                                       !email.read && view === 'inbox' && "font-bold"
                                     )}>
                                       {view === 'inbox' ? email.from : email.to}
                                     </span>
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
                                       <Clock size={14} />
                                       {formatTimestamp(email.timestamp)}
                                     </div>
                                   </div>
                                   <div className={cn(
-                                    "text-sm mb-1",
+                                    "text-sm mb-1 truncate",
                                     !email.read && view === 'inbox' ? "font-semibold" : "font-medium"
                                   )}>
                                     {email.subject}

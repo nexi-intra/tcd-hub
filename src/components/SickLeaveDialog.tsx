@@ -259,7 +259,7 @@ ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] flex items-center justify-center">
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.16_25)] to-[oklch(0.62_0.13_30)] flex items-center justify-center">
               <FirstAidKit size={24} weight="duotone" className="text-white" />
             </div>
             <div>
@@ -368,7 +368,7 @@ ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white gap-2"
+            className="bg-gradient-to-r from-[oklch(0.55_0.16_25)] to-[oklch(0.62_0.13_30)] hover:from-[oklch(0.50_0.16_25)] hover:to-[oklch(0.58_0.13_30)] text-white gap-2"
           >
             <FirstAidKit size={18} weight="duotone" />
             {isSubmitting ? (editEntry ? t.sickLeaveDialog.updating : t.sickLeaveDialog.submitting) : (editEntry ? t.sickLeaveDialog.update : t.sickLeaveDialog.submit)}

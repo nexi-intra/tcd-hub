@@ -1,9 +1,119 @@
 // Electron main process. Loads the Vite dev server during development
 // (ELECTRON_START_URL) and the built dist/index.html in production.
-// localStorage (used by the app's local KV store) is persisted automatically
-// by Electron in the OS user-data directory, so saved data survives restarts.
-const { app, BrowserWindow, shell } = require('electron')
+//
+// Data is stored as JSON files in a shared data directory (see resolveDataDir)
+// so multiple machines can point at the same folder on a network share and
+// stay in sync. A polling watcher broadcasts external changes to all windows.
+const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron')
 const path = require('path')
+const fs = require('fs')
+const { createStore } = require('./store.cjs')
+
+// Brugerens mappevalg fra Manager Panel gemmes her og overlever opdateringer.
+function userConfigPath() {
+  return path.join(app.getPath('userData'), 'storage-config.json')
+}
+
+/**
+ * Resolve the shared data directory, in priority order:
+ *  1. TCD_HUB_DATA_DIR environment variable
+ *  2. "dataDir" in tcd-hub.config.json placed next to the executable
+ *  3. Folder chosen in the app (Manager Panel), stored in userData
+ *  4. Local per-user fallback: <userData>/data
+ * If a configured directory can't be created/accessed, falls back to local.
+ */
+function resolveDataDir() {
+  const candidates = []
+
+  if (process.env.TCD_HUB_DATA_DIR) {
+    candidates.push({ dir: process.env.TCD_HUB_DATA_DIR, source: 'env' })
+  }
+
+  const exeDir = process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath('exe'))
+  for (const configDir of [exeDir, path.join(__dirname, '..')]) {
+    try {
+      const configPath = path.join(configDir, 'tcd-hub.config.json')
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+      if (config.dataDir) {
+        // Relative paths resolve against the config file's directory.
+        candidates.push({ dir: path.resolve(configDir, config.dataDir), source: 'config' })
+        break
+      }
+    } catch {
+      // No config file here — try the next location.
+    }
+  }
+
+  try {
+    const userConfig = JSON.parse(fs.readFileSync(userConfigPath(), 'utf8'))
+    if (userConfig.dataDir) {
+      candidates.push({ dir: userConfig.dataDir, source: 'user' })
+    }
+  } catch {
+    // No user-chosen folder yet.
+  }
+
+  candidates.push({ dir: path.join(app.getPath('userData'), 'data'), source: 'default' })
+
+  for (const candidate of candidates) {
+    try {
+      fs.mkdirSync(candidate.dir, { recursive: true })
+      fs.accessSync(candidate.dir, fs.constants.W_OK)
+      return candidate
+    } catch (err) {
+      console.error(`TCD Hub: data dir "${candidate.dir}" is not usable (${err.code}), trying next`)
+    }
+  }
+  throw new Error('No writable data directory available')
+}
+
+let store
+let dataDirSource = 'default'
+let stopWatcher = null
+
+function startWatcher() {
+  if (stopWatcher) stopWatcher()
+  stopWatcher = store.watch((changedKeys) => broadcast('kv:changed', changedKeys))
+}
+
+/** Kopierer alle datafiler til den nye mappe og skifter storen over. */
+function switchDataDir(newDir) {
+  const oldDir = store.dataDir
+  if (path.resolve(newDir) === path.resolve(oldDir)) {
+    return { dataDir: oldDir, migratedFiles: 0 }
+  }
+
+  fs.mkdirSync(newDir, { recursive: true })
+  fs.accessSync(newDir, fs.constants.W_OK)
+
+  let migratedFiles = 0
+  for (const name of fs.readdirSync(oldDir)) {
+    if (!name.endsWith('.json')) continue
+    // Eksisterende filer i målmappen bevares — den nye mappe kan allerede
+    // være i brug af andre klienter.
+    const target = path.join(newDir, name)
+    if (!fs.existsSync(target)) {
+      fs.copyFileSync(path.join(oldDir, name), target)
+      migratedFiles++
+    }
+  }
+
+  fs.writeFileSync(userConfigPath(), JSON.stringify({ dataDir: newDir }, null, 2))
+
+  store = createStore(newDir)
+  dataDirSource = 'user'
+  startWatcher()
+
+  // Alle keys kan have ændret sig — bed alle vinduer om at genindlæse.
+  broadcast('kv:changed', store.keys())
+  return { dataDir: newDir, migratedFiles }
+}
+
+function broadcast(channel, payload) {
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send(channel, payload)
+  }
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -15,6 +125,7 @@ function createWindow() {
     // Avoid a blank white window while the app bundle loads.
     show: false,
     webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -38,6 +149,31 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  const resolved = resolveDataDir()
+  store = createStore(resolved.dir)
+  dataDirSource = resolved.source
+  console.log('TCD Hub: using data directory', store.dataDir)
+
+  ipcMain.handle('kv:get', (_event, key) => store.get(key))
+  ipcMain.handle('kv:set', (_event, key, value) => store.set(key, value))
+  ipcMain.handle('kv:delete', (_event, key) => store.delete(key))
+  ipcMain.handle('kv:keys', () => store.keys())
+  ipcMain.handle('kv:data-dir', () => store.dataDir)
+  ipcMain.handle('kv:storage-info', () => ({ dataDir: store.dataDir, source: dataDirSource }))
+  ipcMain.handle('kv:choose-data-dir', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Vælg mappe til appens data',
+      buttonLabel: 'Brug denne mappe',
+      properties: ['openDirectory', 'createDirectory'],
+      defaultPath: store.dataDir,
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return switchDataDir(result.filePaths[0])
+  })
+
+  startWatcher()
+
   createWindow()
 
   app.on('activate', () => {

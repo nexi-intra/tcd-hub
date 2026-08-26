@@ -8,11 +8,26 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import nexiLogo from '@/assets/images/nexi-logo.svg'
+import nexiLogoWhite from '@/assets/images/nexi-logo-white.svg'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { ADMIN_EMAIL } from '@/lib/userRoles'
+import { userSignupRequestEmail } from '@/lib/emailTemplates'
+import { hashPassword, verifyPassword, isHashedPassword } from '@/lib/passwords'
 
 const ADMIN_PASSWORD = 'Sylvester.Severin09'
+
+type AccountStatus = 'pending' | 'approved' | 'rejected'
+
+interface StoredUser {
+  email: string
+  password: string
+  fullName: string
+  phone?: string
+  isManager: boolean
+  role?: string
+  status?: AccountStatus
+}
 
 interface AuthProps {
   onAuthenticated: (userId: string, email: string, rememberMe: boolean) => void
@@ -58,35 +73,85 @@ export function Auth({ onAuthenticated }: AuthProps) {
         return
       }
 
-      const usersData = (await window.kv.get<Record<string, { email: string; password: string; fullName: string; phone: string; isManager: boolean }>>('users')) || {}
-      
-      if (usersData[email]) {
+      const usersData = (await window.kv.get<Record<string, StoredUser>>('users')) || {}
+
+      const normalizedSignupEmail = email.trim().toLowerCase()
+      if (usersData[email] || usersData[normalizedSignupEmail]) {
         toast.error('En bruger med denne email eksisterer allerede')
         setIsLoading(false)
         return
       }
 
-      const userId = `user_${Date.now()}`
-      const role = email.toLowerCase() === 'jacob.remmer@nexigroup.com' ? 'admin' : 'user'
-      usersData[email] = { email, password, fullName, phone: phoneNumber.trim(), isManager: role === 'admin' }
+      const isHardcodedAdmin = normalizedSignupEmail === ADMIN_EMAIL.toLowerCase()
+      usersData[normalizedSignupEmail] = {
+        email: normalizedSignupEmail,
+        password: await hashPassword(password),
+        fullName,
+        phone: phoneNumber.trim(),
+        isManager: isHardcodedAdmin,
+        role: isHardcodedAdmin ? 'admin' : 'user',
+        status: isHardcodedAdmin ? 'approved' : 'pending',
+      }
       await window.kv.set('users', usersData)
-      
-      toast.success('Konto oprettet!')
-      setTimeout(() => {
-        onAuthenticated(userId, email, rememberMe)
-      }, 300)
+
+      if (isHardcodedAdmin) {
+        toast.success('Konto oprettet!')
+        setTimeout(() => {
+          onAuthenticated(`user_${Date.now()}`, normalizedSignupEmail, rememberMe)
+        }, 300)
+        return
+      }
+
+      // Notify all managers about the pending signup request.
+      try {
+        const emailContent = userSignupRequestEmail(fullName, normalizedSignupEmail, phoneNumber.trim())
+        const managers = Object.values(usersData).filter((u) => u.isManager)
+        const emails = (await window.kv.get<Array<{ id: string; from: string; to: string; subject: string; message: string; timestamp: number; read: boolean }>>('emails')) || []
+        const notifications = (await window.kv.get<unknown[]>('email-notifications')) || []
+        for (const manager of managers) {
+          emails.push({
+            id: `${Date.now()}-signup-${manager.email}`,
+            from: normalizedSignupEmail,
+            to: manager.email,
+            subject: emailContent.subject,
+            message: emailContent.body,
+            timestamp: Date.now(),
+            read: false,
+          })
+          notifications.push({
+            id: `${Date.now()}-signup-notif-${manager.email}`,
+            to: manager.email,
+            subject: emailContent.subject,
+            body: emailContent.body,
+            timestamp: new Date().toISOString(),
+            type: 'user-signup',
+            read: false,
+          })
+        }
+        await window.kv.set('emails', emails)
+        await window.kv.set('email-notifications', notifications)
+      } catch (error) {
+        console.error('Kunne ikke sende signup-notifikation til managere:', error)
+      }
+
+      toast.success('Anmodning sendt! Din konto skal godkendes af en manager, før du kan logge ind.', { duration: 8000 })
+      setMode('login')
+      setPassword('')
+      setConfirmPassword('')
+      setIsLoading(false)
     } else {
       const normalizedEmail = email.trim().toLowerCase()
 
       // Hardcoded admin login works even if the local KV store is unavailable.
       if (normalizedEmail === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD) {
         try {
-          const usersData = (await window.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
+          const usersData = (await window.kv.get<Record<string, StoredUser>>('users')) || {}
           usersData[ADMIN_EMAIL] = {
             email: ADMIN_EMAIL,
-            password: ADMIN_PASSWORD,
+            password: await hashPassword(ADMIN_PASSWORD),
             fullName: usersData[ADMIN_EMAIL]?.fullName || 'Jacob Remmer',
             isManager: true,
+            status: 'approved',
           }
           await window.kv.set('users', usersData)
         } catch (error) {
@@ -100,9 +165,9 @@ export function Auth({ onAuthenticated }: AuthProps) {
         return
       }
 
-      let usersData: Record<string, { email: string; password: string; fullName: string; isManager: boolean }> = {}
+      let usersData: Record<string, StoredUser> = {}
       try {
-        usersData = (await window.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')) || {}
+        usersData = (await window.kv.get<Record<string, StoredUser>>('users')) || {}
       } catch (error) {
         console.error('Kunne ikke hente brugere fra KV:', error)
         toast.error('Kunne ikke oprette forbindelse. Prøv igen.')
@@ -111,8 +176,31 @@ export function Auth({ onAuthenticated }: AuthProps) {
       }
 
       const user = usersData[email] || usersData[normalizedEmail]
-      if (!user || user.password !== password) {
+      if (!user || !(await verifyPassword(password, user.password))) {
         toast.error('Forkert email eller adgangskode')
+        setIsLoading(false)
+        return
+      }
+
+      // Gamle klartekst-passwords opgraderes til hash ved første login.
+      if (!isHashedPassword(user.password)) {
+        try {
+          user.password = await hashPassword(password)
+          usersData[user.email] = user
+          await window.kv.set('users', usersData)
+        } catch (error) {
+          console.error('Kunne ikke opgradere password til hash:', error)
+        }
+      }
+
+      // Accounts created before the approval flow have no status and stay valid.
+      if (user.status === 'pending') {
+        toast.error('Din konto afventer godkendelse af en manager.')
+        setIsLoading(false)
+        return
+      }
+      if (user.status === 'rejected') {
+        toast.error('Din anmodning om adgang er blevet afvist. Kontakt en manager.')
         setIsLoading(false)
         return
       }
@@ -150,10 +238,8 @@ export function Auth({ onAuthenticated }: AuthProps) {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="relative flex justify-center mb-6"
             >
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 blur-2xl" />
-              </div>
-              <img src={nexiLogo} alt="Nexi Logo" className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 drop-shadow-lg" />
+              <img src={nexiLogo} alt="Nexi" className="relative h-12 sm:h-14 md:h-16 w-auto dark:hidden" />
+              <img src={nexiLogoWhite} alt="Nexi" className="relative h-12 sm:h-14 md:h-16 w-auto hidden dark:block" />
             </motion.div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent mb-2">Terminal Configuration & Dispatch Hub</h1>
             <p className="text-muted-foreground text-sm sm:text-base">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, Target, RocketLaunch, Cube, Gift, Bird, SquaresFour, GameController } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, WaveSine, RocketLaunch, Cube, Gift, Bird, SquaresFour, GameController, HardDrives } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,15 +18,18 @@ import { da } from 'date-fns/locale'
 import { UserRole, ADMIN_EMAIL, hasManagerAccess, getRoleDisplayName, getRoleDescription } from '@/lib/userRoles'
 import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
+import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
 import React from 'react'
 import { ManualVacationGrant } from '@/components/ManualVacationGrant'
-import { vacationApprovedEmail, vacationRejectedEmail, vacationEditedEmail, vacationDeletedEmail } from '@/lib/emailTemplates'
+import { DataStorageManager } from '@/components/DataStorageManager'
+import { vacationApprovedEmail, vacationRejectedEmail, vacationEditedEmail, vacationDeletedEmail, userApprovedEmail, userRejectedEmail } from '@/lib/emailTemplates'
 
 interface User {
   email: string
   fullName: string
   role: UserRole
   phone?: string
+  status?: 'pending' | 'approved' | 'rejected'
 }
 
 interface BirthdayEntry {
@@ -70,6 +73,7 @@ interface ManagerPanelProps {
 
 export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPanelProps) {
   const [users, setUsers] = useState<User[]>([])
+  const [pendingUsers, setPendingUsers] = useState<User[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
   const [vacationEntries, setVacationEntries] = useState<VacationEntry[]>([])
   const [allVacations, setAllVacations] = useState<VacationEntry[]>([])
@@ -96,16 +100,16 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false)
   const [previewMonth, setPreviewMonth] = useState(new Date().getMonth())
   const [previewYear, setPreviewYear] = useState(new Date().getFullYear())
-  const [gameLeaderboard, setGameLeaderboard] = useState<{
+  const [snakeLeaderboard, setSnakeLeaderboard] = useState<{
     easy: Array<{ email: string; score: number; timestamp: number }>
     medium: Array<{ email: string; score: number; timestamp: number }>
     hard: Array<{ email: string; score: number; timestamp: number }>
     expert: Array<{ email: string; score: number; timestamp: number }>
   } | null>(null)
-  const [editingScore, setEditingScore] = useState<{ difficulty: 'easy' | 'medium' | 'hard' | 'expert'; email: string; score: number } | null>(null)
-  const [isEditScoreDialogOpen, setIsEditScoreDialogOpen] = useState(false)
-  const [newScore, setNewScore] = useState('')
-  const [gamePlayCounts, setGamePlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
+  const [editingSnakeScore, setEditingSnakeScore] = useState<{ difficulty: 'easy' | 'medium' | 'hard' | 'expert'; email: string; score: number } | null>(null)
+  const [isEditSnakeScoreDialogOpen, setIsEditSnakeScoreDialogOpen] = useState(false)
+  const [newSnakeScore, setNewSnakeScore] = useState('')
+  const [snakePlayCounts, setSnakePlayCounts] = useState<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>> | null>(null)
   const [endlessDodgerLeaderboard, setEndlessDodgerLeaderboard] = useState<{
     easy: Array<{ email: string; score: number; timestamp: number }>
     medium: Array<{ email: string; score: number; timestamp: number }>
@@ -163,7 +167,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         loadUsers()
         loadSickLeaveEntries()
         loadVacationEntries()
-        loadGameLeaderboard()
+        loadSnakeLeaderboard()
         loadEndlessDodgerLeaderboard()
         loadBrickBreakLeaderboard()
         loadNexiFlyerLeaderboard()
@@ -187,9 +191,9 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
   const loadUsers = async () => {
     setIsLoading(true)
-    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; phone?: string; role?: UserRole; isManager?: boolean; status?: 'pending' | 'approved' | 'rejected' }>>('users')
     if (usersData) {
-      const userList = Object.values(usersData).map(u => {
+      const allUsers = Object.values(usersData).map(u => {
         let role: UserRole = 'user'
         if (u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           role = 'admin'
@@ -198,19 +202,68 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         } else if (u.isManager) {
           role = 'manager'
         }
-        
+
         return {
           email: u.email,
           fullName: u.fullName,
-          role
+          role,
+          phone: u.phone,
+          status: u.status,
         }
-      }).sort((a, b) => {
+      })
+
+      setPendingUsers(allUsers.filter(u => u.status === 'pending'))
+      setUsers(allUsers.filter(u => u.status !== 'pending').sort((a, b) => {
         const roleOrder = { admin: 0, manager: 1, user: 2 }
         return roleOrder[a.role] - roleOrder[b.role]
-      })
-      setUsers(userList)
+      }))
     }
     setIsLoading(false)
+  }
+
+  const sendUserDecisionEmail = async (user: User, approved: boolean) => {
+    try {
+      const emailContent = approved ? userApprovedEmail(user.fullName, userEmail) : userRejectedEmail(user.fullName, userEmail)
+      const emails = (await window.kv.get<Array<{ id: string; from: string; to: string; subject: string; message: string; timestamp: number; read: boolean }>>('emails')) || []
+      emails.push({
+        id: `${Date.now()}-user-decision`,
+        from: userEmail,
+        to: user.email,
+        subject: emailContent.subject,
+        message: emailContent.body,
+        timestamp: Date.now(),
+        read: false,
+      })
+      await window.kv.set('emails', emails)
+    } catch (error) {
+      console.error('Error sending user decision email:', error)
+    }
+  }
+
+  const handleApproveUser = async (user: User) => {
+    const usersData = await window.kv.get<Record<string, { status?: string } & Record<string, unknown>>>('users')
+    if (!usersData?.[user.email]) {
+      toast.error('Bruger ikke fundet')
+      return
+    }
+    usersData[user.email].status = 'approved'
+    await window.kv.set('users', usersData)
+    await loadUsers()
+    await sendUserDecisionEmail(user, true)
+    toast.success(`${user.fullName} er godkendt og kan nu logge ind`)
+  }
+
+  const handleRejectUser = async (user: User) => {
+    const usersData = await window.kv.get<Record<string, { status?: string } & Record<string, unknown>>>('users')
+    if (!usersData?.[user.email]) {
+      toast.error('Bruger ikke fundet')
+      return
+    }
+    usersData[user.email].status = 'rejected'
+    await window.kv.set('users', usersData)
+    await loadUsers()
+    await sendUserDecisionEmail(user, false)
+    toast.success(`Anmodningen fra ${user.fullName} er afvist`)
   }
 
   const loadSickLeaveEntries = async () => {
@@ -426,7 +479,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users') || {}
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string; status?: 'pending' | 'approved' | 'rejected' }>>('users') || {}
     
     if (usersData[newUserEmail.toLowerCase()]) {
       toast.error('En bruger med denne email eksisterer allerede')
@@ -439,7 +492,9 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       fullName: newUserName.trim(),
       role: 'user',
       isManager: false,
-      phone: newUserPhone.trim()
+      phone: newUserPhone.trim(),
+      // Manager-created accounts skip the approval flow.
+      status: 'approved'
     }
 
     try {
@@ -726,18 +781,18 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     }
   }
 
-  const loadGameLeaderboard = async () => {
+  const loadSnakeLeaderboard = async () => {
     const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
       expert: Array<{ email: string; score: number; timestamp: number }>
-    }>('hit-n-miss-global-leaderboard')
+    }>('neon-snake-global-leaderboard')
     
-    setGameLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
+    setSnakeLeaderboard(leaderboard || { easy: [], medium: [], hard: [], expert: [] })
     
-    const playCounts = await window.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('hit-n-miss-play-counts')
-    setGamePlayCounts(playCounts || {})
+    const playCounts = await window.kv.get<Record<string, Record<'easy' | 'medium' | 'hard' | 'expert', number>>>('neon-snake-play-counts')
+    setSnakePlayCounts(playCounts || {})
   }
 
   const loadEndlessDodgerLeaderboard = async () => {
@@ -754,16 +809,16 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     setDodgerPlayCounts(playCounts || {})
   }
 
-  const openEditScoreDialog = (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string, score: number) => {
-    setEditingScore({ difficulty, email, score })
-    setNewScore(score.toString())
-    setIsEditScoreDialogOpen(true)
+  const openEditSnakeScoreDialog = (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string, score: number) => {
+    setEditingSnakeScore({ difficulty, email, score })
+    setNewSnakeScore(score.toString())
+    setIsEditSnakeScoreDialogOpen(true)
   }
 
-  const handleSaveScore = async () => {
-    if (!editingScore) return
+  const handleSaveSnakeScore = async () => {
+    if (!editingSnakeScore) return
 
-    const scoreValue = parseInt(newScore)
+    const scoreValue = parseInt(newSnakeScore)
     if (isNaN(scoreValue) || scoreValue < 0) {
       toast.error('Ugyldig score')
       return
@@ -774,15 +829,15 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
       expert: Array<{ email: string; score: number; timestamp: number }>
-    }>('hit-n-miss-global-leaderboard')
+    }>('neon-snake-global-leaderboard')
 
     if (!leaderboard) {
       toast.error('Leaderboard ikke fundet')
       return
     }
 
-    const board = leaderboard[editingScore.difficulty]
-    const entryIndex = board.findIndex((entry: { email: string; score: number; timestamp: number }) => entry.email === editingScore.email)
+    const board = leaderboard[editingSnakeScore.difficulty]
+    const entryIndex = board.findIndex((entry: { email: string; score: number; timestamp: number }) => entry.email === editingSnakeScore.email)
     
     if (entryIndex !== -1) {
       board[entryIndex] = {
@@ -795,35 +850,35 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       
       const updatedLeaderboard = {
         ...leaderboard,
-        [editingScore.difficulty]: board
+        [editingSnakeScore.difficulty]: board
       }
       
-      await window.kv.set('hit-n-miss-global-leaderboard', updatedLeaderboard)
-      await loadGameLeaderboard()
+      await window.kv.set('neon-snake-global-leaderboard', updatedLeaderboard)
+      await loadSnakeLeaderboard()
       
-      setIsEditScoreDialogOpen(false)
-      setEditingScore(null)
-      setNewScore('')
+      setIsEditSnakeScoreDialogOpen(false)
+      setEditingSnakeScore(null)
+      setNewSnakeScore('')
       toast.success('Score opdateret')
     } else {
       toast.error('Score entry ikke fundet')
     }
   }
 
-  const deleteScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
+  const deleteSnakeScore = async (difficulty: 'easy' | 'medium' | 'hard' | 'expert', email: string) => {
     const leaderboard = await window.kv.get<{
       easy: Array<{ email: string; score: number; timestamp: number }>
       medium: Array<{ email: string; score: number; timestamp: number }>
       hard: Array<{ email: string; score: number; timestamp: number }>
       expert: Array<{ email: string; score: number; timestamp: number }>
-    }>('hit-n-miss-global-leaderboard')
+    }>('neon-snake-global-leaderboard')
 
     if (!leaderboard) return
 
     leaderboard[difficulty] = leaderboard[difficulty].filter((entry: { email: string }) => entry.email !== email)
     
-    await window.kv.set('hit-n-miss-global-leaderboard', leaderboard)
-    await loadGameLeaderboard()
+    await window.kv.set('neon-snake-global-leaderboard', leaderboard)
+    await loadSnakeLeaderboard()
     toast.success('Score slettet')
   }
 
@@ -1198,7 +1253,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   if (!hasAccess) {
     return (
       <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.55_0.22_265/0.15),transparent_50%),radial-gradient(ellipse_at_bottom_right,oklch(0.65_0.26_340/0.12),transparent_50%),radial-gradient(ellipse_at_bottom_left,oklch(0.55_0.24_192/0.10),transparent_50%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.45_0.18_270/0.12),transparent_50%),radial-gradient(ellipse_at_bottom_right,oklch(0.55_0.13_255/0.10),transparent_50%),radial-gradient(ellipse_at_bottom_left,oklch(0.60_0.10_250/0.08),transparent_50%)] pointer-events-none" />
         <div className="absolute inset-0" style={{
           backgroundImage: `repeating-linear-gradient(90deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px),
                            repeating-linear-gradient(0deg, oklch(0.55 0.22 265 / 0.02) 0px, transparent 1px, transparent 100px, oklch(0.55 0.22 265 / 0.02) 101px)`
@@ -1259,10 +1314,15 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         </motion.div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 max-w-5xl">
+          <TabsList className="grid w-full grid-cols-7 max-w-6xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
+              {pendingUsers.length > 0 && (
+                <Badge className="ml-1 h-5 px-1.5 bg-accent text-accent-foreground">
+                  {pendingUsers.length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="sick-leave" className="gap-2">
               <FirstAidKit size={18} />
@@ -1289,9 +1349,63 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               <GameController size={18} />
               Spil
             </TabsTrigger>
+            <TabsTrigger value="data-storage" className="gap-2">
+              <HardDrives size={18} />
+              Datalagring
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="permissions" className="space-y-6">
+            {pendingUsers.length > 0 && (
+              <Card className="p-6 border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/40 dark:to-amber-900/20 dark:border-amber-600">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <UserIcon size={28} className="text-amber-600 dark:text-amber-400" weight="duotone" />
+                    <h2 className="text-2xl font-bold">Nye brugeranmodninger</h2>
+                  </div>
+                  <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
+                    {pendingUsers.length} {pendingUsers.length === 1 ? 'anmodning' : 'anmodninger'}
+                  </Badge>
+                </div>
+                <div className="mb-4 p-3 bg-background/60 rounded-lg border text-sm text-muted-foreground">
+                  Disse personer har oprettet en konto og venter på din godkendelse, før de kan logge ind.
+                </div>
+                <div className="space-y-3">
+                  {pendingUsers.map((user) => (
+                    <motion.div
+                      key={user.email}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border-2 bg-card"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-lg">{user.fullName}</div>
+                        <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                        {user.phone && <div className="text-xs text-muted-foreground mt-0.5">Telefon: {user.phone}</div>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handleApproveUser(user)}
+                          className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
+                        >
+                          <Check size={18} weight="bold" />
+                          Godkend
+                        </Button>
+                        <Button
+                          onClick={() => handleRejectUser(user)}
+                          variant="destructive"
+                          className="gap-2"
+                        >
+                          <X size={18} weight="bold" />
+                          Afvis
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
             <Card className="p-6 border-2">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
@@ -1337,6 +1451,9 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                           <div className="text-xs text-muted-foreground mt-1">{getRoleDescription(user.role)}</div>
                         </div>
                         <div className="flex items-center gap-3">
+                          {user.status === 'rejected' && (
+                            <Badge variant="destructive" className="text-xs">Afvist</Badge>
+                          )}
                           {getRoleBadge(user.role)}
                         </div>
                       </div>
@@ -1533,7 +1650,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                         </div>
                         {sortedStats.length > 0 ? (
                           <>
-                            <div className="text-lg font-bold text-primary truncate">{sortedStats[0].name}</div>
+                            <div className="text-sm leading-snug font-bold text-primary break-words line-clamp-2" title={sortedStats[0].name}>{sortedStats[0].name}</div>
                             <div className="text-xs text-muted-foreground mt-1">
                               {sortedStats[0].count} {sortedStats[0].count === 1 ? 'sygemelding' : 'sygemeldinger'}
                             </div>
@@ -1647,7 +1764,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                       className="flex items-center justify-between p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all group"
                     >
                       <div className="flex items-center gap-4 flex-1">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)] flex items-center justify-center text-white font-bold text-lg shadow-lg">
                         </div>
                         <div className="flex-1">
                           <div className="font-bold text-lg mb-1">{entry.userName}</div>
@@ -2159,15 +2276,15 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           </TabsContent>
 
           <TabsContent value="games" className="space-y-6">
-            <Tabs defaultValue="game-scores" className="space-y-6">
+            <Tabs defaultValue="neon-snake-scores" className="space-y-6">
               <TabsList className="grid w-full grid-cols-5 max-w-4xl">
-                <TabsTrigger value="game-scores" className="gap-2">
-                  <Target size={18} />
-                  Hit N Miss
+                <TabsTrigger value="neon-snake-scores" className="gap-2">
+                  <WaveSine size={18} />
+                  Neon Snake
                 </TabsTrigger>
                 <TabsTrigger value="dodger-scores" className="gap-2">
                   <RocketLaunch size={18} />
-                  Endless Dodger
+                  Hønseinvasionen
                 </TabsTrigger>
                 <TabsTrigger value="brick-break-scores" className="gap-2">
                   <Cube size={18} />
@@ -2183,26 +2300,26 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                 </TabsTrigger>
               </TabsList>
 
-          <TabsContent value="game-scores" className="space-y-6">
+          <TabsContent value="neon-snake-scores" className="space-y-6">
             <Card className="p-6 border-2">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                  <Target size={28} className="text-accent" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Hit N Miss Highscores</h2>
+                  <WaveSine size={28} className="text-accent" weight="duotone" />
+                  <h2 className="text-2xl font-bold">Neon Snake Highscores</h2>
                 </div>
               </div>
 
               <Card className="p-6 border-2 mb-6 bg-gradient-to-br from-primary/5 to-accent/5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Target size={24} className="text-primary" weight="duotone" />
+                  <WaveSine size={24} className="text-primary" weight="duotone" />
                   <h3 className="text-xl font-bold">Spil Statistik</h3>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Oversigt over hvor mange gange hver bruger har spillet Hit N Miss.
+                  Oversigt over hvor mange gange hver bruger har spillet Neon Snake.
                 </p>
-                {gamePlayCounts && Object.keys(gamePlayCounts).length > 0 ? (
+                {snakePlayCounts && Object.keys(snakePlayCounts).length > 0 ? (
                   <div className="space-y-3">
-                    {Object.entries(gamePlayCounts)
+                    {Object.entries(snakePlayCounts)
                       .sort((a, b) => {
                         const totalA = (a[1].easy || 0) + (a[1].medium || 0) + (a[1].hard || 0)
                         const totalB = (b[1].easy || 0) + (b[1].medium || 0) + (b[1].hard || 0)
@@ -2259,18 +2376,18 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   <div className="text-center py-12">
                     <Trophy size={64} className="text-muted-foreground/30 mx-auto mb-4" weight="duotone" />
                     <p className="text-muted-foreground">Ingen spil statistik endnu</p>
-                    <p className="text-sm text-muted-foreground mt-2">Statistik vil vises når brugere begynder at spille Hit N Miss</p>
+                    <p className="text-sm text-muted-foreground mt-2">Statistik vil vises når brugere begynder at spille Neon Snake</p>
                   </div>
                 )}
               </Card>
 
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
-                  Her kan du redigere og slette highscores fra Hit N Miss spillet. Du kan ændre score værdier eller fjerne hele entries.
+                  Her kan du redigere og slette highscores fra Neon Snake spillet. Du kan ændre score værdier eller fjerne hele entries.
                 </p>
               </div>
 
-              {!gameLeaderboard ? (
+              {!snakeLeaderboard ? (
                 <div className="text-center py-12">
                   <Trophy size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
                   <p className="text-muted-foreground">Indlæser highscores...</p>
@@ -2278,7 +2395,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               ) : (
                 <div className="space-y-8">
                   {(['easy', 'medium', 'hard', 'expert'] as const).map((difficulty) => {
-                    const board = gameLeaderboard[difficulty] || []
+                    const board = snakeLeaderboard[difficulty] || []
                     const difficultyLabels = {
                       easy: { da: 'Let', color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/30' },
                       medium: { da: 'Mellem', color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
@@ -2304,7 +2421,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
                           {board.length === 0 ? (
                             <div className="text-center py-6">
-                              <Target size={32} className="text-muted-foreground/30 mx-auto mb-2" />
+                              <WaveSine size={32} className="text-muted-foreground/30 mx-auto mb-2" />
                               <p className="text-sm text-muted-foreground">Ingen scores endnu</p>
                             </div>
                           ) : (
@@ -2338,7 +2455,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                                       <Button 
                                         variant="ghost" 
                                         size="icon" 
-                                        onClick={() => openEditScoreDialog(difficulty, entry.email, entry.score)}
+                                        onClick={() => openEditSnakeScoreDialog(difficulty, entry.email, entry.score)}
                                         className="hover:bg-primary/10"
                                       >
                                         <PencilSimple size={20} />
@@ -2363,7 +2480,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                                           <AlertDialogFooter>
                                             <AlertDialogCancel>Annuller</AlertDialogCancel>
                                             <AlertDialogAction
-                                              onClick={() => deleteScore(difficulty, entry.email)}
+                                              onClick={() => deleteSnakeScore(difficulty, entry.email)}
                                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                             >
                                               Slet score
@@ -2390,7 +2507,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             <Card className="p-6 border-2">
               <div className="flex items-center gap-3 mb-6">
                 <RocketLaunch size={28} className="text-primary" weight="duotone" />
-                <h2 className="text-2xl font-bold">Endless Dodger Spil Statistik</h2>
+                <h2 className="text-2xl font-bold">Hønseinvasionen Spil Statistik</h2>
               </div>
 
               {dodgerPlayCounts && Object.keys(dodgerPlayCounts).length > 0 ? (
@@ -2453,7 +2570,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   <div className="text-center py-12">
                     <Trophy size={64} className="text-muted-foreground/30 mx-auto mb-4" weight="duotone" />
                     <p className="text-muted-foreground">Ingen spil statistik endnu</p>
-                    <p className="text-sm text-muted-foreground mt-2">Statistik vil vises når brugere begynder at spille Endless Dodger</p>
+                    <p className="text-sm text-muted-foreground mt-2">Statistik vil vises når brugere begynder at spille Hønseinvasionen</p>
                   </div>
                 )}
             </Card>
@@ -2461,7 +2578,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             <Card className="p-6 border-2">
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
-                  Her kan du redigere og slette highscores fra Endless Dodger spillet. Du kan ændre score værdier eller fjerne hele entries.
+                  Her kan du redigere og slette highscores fra Hønseinvasionen spillet. Du kan ændre score værdier eller fjerne hele entries.
                 </p>
               </div>
 
@@ -3183,6 +3300,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             </Tabs>
           </TabsContent>
 
+          <TabsContent value="data-storage" className="space-y-6">
+            <DataStorageManager />
+          </TabsContent>
+
         </Tabs>
       </div>
 
@@ -3414,9 +3535,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             }
 
             const getWeekNumber = (date: Date) => {
-              const firstDayOfYear = new Date(date.getFullYear(), 0, 1)
-              const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000
-              return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7)
+              return getISOWeekNumber(date)
             }
 
             const isDateInVacation = (day: number, vacation: VacationEntry, month: number, year: number) => {
@@ -3656,12 +3775,12 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isEditScoreDialogOpen} onOpenChange={setIsEditScoreDialogOpen}>
+      <Dialog open={isEditSnakeScoreDialogOpen} onOpenChange={setIsEditSnakeScoreDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Rediger score</DialogTitle>
+            <DialogTitle>Rediger Neon Snake score</DialogTitle>
             <DialogDescription>
-              Rediger scoren for {editingScore?.email}
+              Rediger scoren for {editingSnakeScore?.email}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -3670,8 +3789,8 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               <Input
                 id="edit-score"
                 type="number"
-                value={newScore}
-                onChange={(e) => setNewScore(e.target.value)}
+                value={newSnakeScore}
+                onChange={(e) => setNewSnakeScore(e.target.value)}
                 placeholder="Indtast score"
                 min="0"
               />
@@ -3679,13 +3798,13 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => {
-              setIsEditScoreDialogOpen(false)
-              setEditingScore(null)
-              setNewScore('')
+              setIsEditSnakeScoreDialogOpen(false)
+              setEditingSnakeScore(null)
+              setNewSnakeScore('')
             }}>
               Annuller
             </Button>
-            <Button onClick={handleSaveScore} className="gap-2">
+            <Button onClick={handleSaveSnakeScore} className="gap-2">
               <Check size={18} weight="bold" />
               Gem ændringer
             </Button>
@@ -3696,7 +3815,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       <Dialog open={isEditDodgerScoreDialogOpen} onOpenChange={setIsEditDodgerScoreDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Rediger Endless Dodger score</DialogTitle>
+            <DialogTitle>Rediger Hønseinvasionen score</DialogTitle>
             <DialogDescription>
               Rediger scoren for {editingDodgerScore?.email}
             </DialogDescription>

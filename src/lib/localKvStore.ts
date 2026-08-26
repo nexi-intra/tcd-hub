@@ -1,8 +1,16 @@
 // Local persistent key/value store backed by localStorage. Data survives
-// reloads and app restarts (in Electron, localStorage is persisted to the
-// app's userData directory automatically). Falls back to an in-memory Map
-// in environments where Web Storage is blocked (e.g. strict privacy modes),
-// so the app degrades gracefully instead of crashing.
+// reloads and app restarts. Used in the browser; in the desktop app the
+// Electron file-based store (shared network folder) takes over instead.
+// Falls back to an in-memory Map where Web Storage is blocked.
+
+export interface KvStore {
+  get<T>(key: string): Promise<T | undefined>
+  set<T>(key: string, value: T): Promise<void>
+  delete(key: string): Promise<void>
+  keys(): Promise<string[]>
+  /** Notifies when keys change (other tabs/clients, and local writes). Returns unsubscribe. */
+  subscribe(listener: (changedKeys: string[]) => void): () => void
+}
 
 const PREFIX = 'tcd-hub:'
 
@@ -56,8 +64,21 @@ function allKeys(): string[] {
   return Array.from(memoryFallback.keys())
 }
 
-// Async API kept for call-site compatibility (the previous store was remote).
-export const localKv = {
+const listeners = new Set<(changedKeys: string[]) => void>()
+
+function notify(changedKeys: string[]) {
+  listeners.forEach((listener) => listener(changedKeys))
+}
+
+// Cross-tab sync: the 'storage' event fires in *other* tabs on writes.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key?.startsWith(PREFIX)) notify([event.key.slice(PREFIX.length)])
+  })
+}
+
+// Async API kept for call-site compatibility.
+export const localKv: KvStore = {
   async get<T>(key: string): Promise<T | undefined> {
     const raw = read(key)
     if (raw === undefined) return undefined
@@ -70,29 +91,20 @@ export const localKv = {
 
   async set<T>(key: string, value: T): Promise<void> {
     write(key, JSON.stringify(value))
+    notify([key])
   },
 
   async delete(key: string): Promise<void> {
     remove(key)
+    notify([key])
   },
 
   async keys(): Promise<string[]> {
     return allKeys()
   },
 
-  async getAll<T = unknown>(): Promise<Record<string, T>> {
-    const result: Record<string, T> = {}
-    for (const key of allKeys()) {
-      const raw = read(key)
-      if (raw === undefined) continue
-      try {
-        result[key] = JSON.parse(raw) as T
-      } catch {
-        // Skip unparsable entries.
-      }
-    }
-    return result
+  subscribe(listener) {
+    listeners.add(listener)
+    return () => listeners.delete(listener)
   },
 }
-
-export type LocalKv = typeof localKv

@@ -186,3 +186,50 @@ export function manualVacationGrantEmail(grantedBy: string, start: Date | string
     ].filter((line, i, arr) => line !== '' || arr[i - 1] !== '').join('\n'),
   }
 }
+
+export function userSignupRequestEmail(fullName: string, email: string, phone: string): EmailContent {
+  return {
+    subject: `Ny brugeranmodning: ${fullName}`,
+    body: [
+      'En ny bruger har anmodet om adgang til TCD Hub.',
+      '',
+      `Navn: ${fullName}`,
+      `Email: ${email}`,
+      `Telefon: ${phone}`,
+      '',
+      'Gå til Manager Panelet under "Rettigheder" for at godkende eller afvise anmodningen.',
+      '',
+      AUTO_NOTE,
+    ].join('\n'),
+  }
+}
+
+export function userApprovedEmail(fullName: string, approvedBy: string): EmailContent {
+  return {
+    subject: 'Din adgang til TCD Hub er godkendt',
+    body: [
+      `Hej ${fullName},`,
+      '',
+      'Din konto er blevet godkendt, og du kan nu logge ind på TCD Hub.',
+      `Godkendt af: ${approvedBy}`,
+      '',
+      AUTO_NOTE,
+    ].join('\n'),
+  }
+}
+
+export function userRejectedEmail(fullName: string, rejectedBy: string): EmailContent {
+  return {
+    subject: 'Din anmodning om adgang til TCD Hub er afvist',
+    body: [
+      `Hej ${fullName},`,
+      '',
+      'Din anmodning om adgang er desværre blevet afvist.',
+      `Afvist af: ${rejectedBy}`,
+      '',
+      'Kontakt en manager, hvis du mener, det er en fejl.',
+      '',
+      AUTO_NOTE,
+    ].join('\n'),
+  }
+}

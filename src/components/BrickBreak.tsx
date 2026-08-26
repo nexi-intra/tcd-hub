@@ -226,7 +226,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   })
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const gameLoopRef = useRef<number>()
+  const gameLoopRef = useRef<number | undefined>(undefined)
   const mouseXRef = useRef<number>(GAME_WIDTH / 2)
   const ballsRef = useRef<Ball[]>([])
   const bricksRef = useRef<Brick[]>([])

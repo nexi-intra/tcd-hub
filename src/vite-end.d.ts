@@ -1,9 +1,12 @@
 /// <reference types="vite/client" />
-import type { LocalKv } from './lib/localKvStore'
+import type { KvStore } from './lib/localKvStore'
+import type { ElectronKvApi } from './lib/electronKvBridge'
 
 declare global {
   interface Window {
-    kv: LocalKv
+    kv: KvStore
+    /** Present only when running inside the Electron desktop app. */
+    electronKv?: ElectronKvApi
   }
 }
 

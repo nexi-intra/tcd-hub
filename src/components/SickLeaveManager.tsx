@@ -87,7 +87,7 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] flex items-center justify-center">
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.16_25)] to-[oklch(0.62_0.13_30)] flex items-center justify-center">
               <FirstAidKit size={24} weight="duotone" className="text-white" />
             </div>
             <div>

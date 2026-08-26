@@ -1,14 +1,14 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import { GameController, Target, ArrowLeft, RocketLaunch, Cube, Bird, SquaresFour } from '@phosphor-icons/react'
+import { GameController, ArrowLeft, RocketLaunch, Cube, Bird, SquaresFour, WaveSine } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { HitNMiss } from '@/components/HitNMiss'
 import { EndlessDodger } from '@/components/EndlessDodger'
 import { BrickBreak } from '@/components/BrickBreak'
 import { NexiFlyer } from '@/components/NexiFlyer'
 import { Tetris } from '@/components/Tetris'
+import { NeonSnake } from '@/components/NeonSnake'
 import { cn } from '@/lib/utils'
 
 interface GameCornerProps {
@@ -16,7 +16,7 @@ interface GameCornerProps {
   userEmail?: string
 }
 
-type GameView = 'hub' | 'hitnmiss' | 'endlessdodger' | 'brickbreak' | 'nexiflyer' | 'tetris'
+type GameView = 'hub' | 'endlessdodger' | 'brickbreak' | 'nexiflyer' | 'tetris' | 'neonsnake'
 
 interface GameModule {
   id: string
@@ -34,25 +34,14 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
 
   const games: GameModule[] = [
     {
-      id: 'hitnmiss',
-      title: language === 'da' ? 'Hit N Miss' : 'Hit N Miss',
-      description: language === 'da' 
-        ? 'Test din reaktionstid og præcision. Klik på skydeskiverne så hurtigt som muligt!'
-        : 'Test your reaction time and precision. Click the targets as fast as you can!',
-      icon: <Target size={48} weight="duotone" />,
-      color: 'oklch(0.72 0.20 310)',
-      gradient: 'from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)]',
-      available: true,
-    },
-    {
       id: 'endlessdodger',
-      title: language === 'da' ? 'Endless Dodger' : 'Endless Dodger',
+      title: 'Hønseinvasionen',
       description: language === 'da' 
         ? 'Skyd bølge efter bølge af høns ned og undgå deres æg. Hvor langt kan du nå?'
         : 'Blast wave after wave of chickens and dodge their falling eggs. How far can you get?',
       icon: <RocketLaunch size={48} weight="duotone" />,
-      color: 'oklch(0.65 0.22 280)',
-      gradient: 'from-[oklch(0.65_0.22_280)] via-[oklch(0.70_0.20_250)] to-[oklch(0.65_0.22_280)]',
+      color: 'oklch(0.50 0.14 275)',
+      gradient: 'from-[oklch(0.50_0.14_275)] via-[oklch(0.56_0.12_262)] to-[oklch(0.46_0.15_276)]',
       available: true,
     },
     {
@@ -62,8 +51,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
         ? 'Ødelæg alle brikkerne og klar så mange levels som muligt!'
         : 'Destroy all bricks and clear as many levels as possible!',
       icon: <Cube size={48} weight="duotone" />,
-      color: 'oklch(0.68 0.20 340)',
-      gradient: 'from-[oklch(0.68_0.20_340)] via-[oklch(0.70_0.18_310)] to-[oklch(0.68_0.20_340)]',
+      color: 'oklch(0.52 0.12 330)',
+      gradient: 'from-[oklch(0.52_0.12_330)] via-[oklch(0.55_0.11_305)] to-[oklch(0.48_0.12_332)]',
       available: true,
     },
     {
@@ -73,8 +62,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
         ? 'Flyv gennem rørene og sæt ny rekord i dette klassiske arkadespil!'
         : 'Fly through the pipes and set a new record in this classic arcade game!',
       icon: <Bird size={48} weight="duotone" />,
-      color: 'oklch(0.75 0.18 90)',
-      gradient: 'from-[oklch(0.75_0.18_90)] via-[oklch(0.78_0.16_60)] to-[oklch(0.75_0.18_90)]',
+      color: 'oklch(0.68 0.11 80)',
+      gradient: 'from-[oklch(0.68_0.11_80)] via-[oklch(0.72_0.10_65)] to-[oklch(0.64_0.11_82)]',
       available: true,
     },
     {
@@ -84,8 +73,19 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
         ? 'Det klassiske klodsespil. Ryd så mange linjer som muligt!'
         : 'The classic block game. Clear as many lines as possible!',
       icon: <SquaresFour size={48} weight="duotone" />,
-      color: 'oklch(0.62 0.20 230)',
-      gradient: 'from-[oklch(0.62_0.20_230)] via-[oklch(0.65_0.18_200)] to-[oklch(0.62_0.20_230)]',
+      color: 'oklch(0.52 0.13 248)',
+      gradient: 'from-[oklch(0.52_0.13_248)] via-[oklch(0.56_0.11_240)] to-[oklch(0.48_0.13_250)]',
+      available: true,
+    },
+    {
+      id: 'neonsnake',
+      title: 'Neon Snake',
+      description: language === 'da'
+        ? 'Styr den glødende slange, spis æbler og jagt de gyldne bonusfrugter — uden at bide dig selv!'
+        : 'Steer the glowing snake, eat apples and chase golden bonus fruit — without biting yourself!',
+      icon: <WaveSine size={48} weight="duotone" />,
+      color: 'oklch(0.56 0.12 155)',
+      gradient: 'from-[oklch(0.56_0.12_155)] via-[oklch(0.60_0.10_170)] to-[oklch(0.52_0.12_157)]',
       available: true,
     },
   ]
@@ -131,87 +131,13 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     }
   }
 
-  if (currentView === 'hitnmiss') {
-    return (
-      <div className="min-h-screen" style={{
-        background: `
-          radial-gradient(circle at 20% 30%, oklch(0.60 0.15 280 / 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 80% 60%, oklch(0.65 0.12 210 / 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 50% 90%, oklch(0.55 0.10 150 / 0.12) 0%, transparent 50%),
-          linear-gradient(
-            135deg,
-            oklch(0.98 0.01 250) 0%,
-            oklch(0.97 0.02 280) 25%,
-            oklch(0.98 0.01 210) 50%,
-            oklch(0.97 0.02 240) 75%,
-            oklch(0.98 0.01 250) 100%
-          )
-        `
-      }}>
-        <div style={{
-          background: `
-            repeating-linear-gradient(
-              90deg,
-              transparent,
-              transparent 100px,
-              oklch(0.96 0.01 240 / 0.3) 100px,
-              oklch(0.96 0.01 240 / 0.3) 101px
-            ),
-            repeating-linear-gradient(
-              0deg,
-              transparent,
-              transparent 100px,
-              oklch(0.96 0.01 240 / 0.3) 100px,
-              oklch(0.96 0.01 240 / 0.3) 101px
-            )
-          `
-        }}>
-          <div className="relative bg-gradient-to-r from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)] py-8 shadow-xl border-b-4 border-white/10">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
-            <div className="container mx-auto px-4 sm:px-6 relative z-10">
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={() => setCurrentView('hub')}
-                  variant="ghost"
-                  size="lg"
-                  className="text-white hover:bg-white/20 transition-colors"
-                >
-                  <ArrowLeft size={24} weight="bold" />
-                </Button>
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-sm shadow-xl">
-                    <Target size={32} weight="duotone" className="text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">
-                      Hit N Miss
-                    </h1>
-                    <p className="text-white/90 text-sm sm:text-base">
-                      {language === 'da' 
-                        ? 'Test din reaktionstid og præcision'
-                        : 'Test your reaction time and precision'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
-            <HitNMiss userEmail={userEmail} />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   if (currentView === 'endlessdodger') {
     return (
       <div className="min-h-screen" style={{
         background: `
-          radial-gradient(circle at 20% 30%, oklch(0.60 0.15 280 / 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 80% 60%, oklch(0.65 0.12 210 / 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 50% 90%, oklch(0.55 0.10 150 / 0.12) 0%, transparent 50%),
+          radial-gradient(circle at 20% 30%, oklch(0.45 0.14 270 / 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 80% 60%, oklch(0.55 0.11 255 / 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 50% 90%, oklch(0.60 0.08 250 / 0.05) 0%, transparent 50%),
           linear-gradient(
             135deg,
             oklch(0.98 0.01 250) 0%,
@@ -240,7 +166,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
             )
           `
         }}>
-          <div className="relative bg-gradient-to-r from-[oklch(0.65_0.22_280)] via-[oklch(0.70_0.20_250)] to-[oklch(0.65_0.22_280)] py-8 shadow-xl border-b-4 border-white/10">
+          <div className="relative bg-gradient-to-r from-[oklch(0.50_0.14_275)] via-[oklch(0.56_0.12_262)] to-[oklch(0.46_0.15_276)] py-8 shadow-xl border-b-4 border-white/10">
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
             <div className="container mx-auto px-4 sm:px-6 relative z-10">
               <div className="flex items-center gap-4">
@@ -258,7 +184,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                   </div>
                   <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">
-                      Endless Dodger
+                      Hønseinvasionen
                     </h1>
                     <p className="text-white/90 text-sm sm:text-base">
                       {language === 'da' 
@@ -283,9 +209,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     return (
       <div className="min-h-screen" style={{
         background: `
-          radial-gradient(circle at 20% 30%, oklch(0.60 0.15 280 / 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 80% 60%, oklch(0.65 0.12 210 / 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 50% 90%, oklch(0.55 0.10 150 / 0.12) 0%, transparent 50%),
+          radial-gradient(circle at 20% 30%, oklch(0.45 0.14 270 / 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 80% 60%, oklch(0.55 0.11 255 / 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 50% 90%, oklch(0.60 0.08 250 / 0.05) 0%, transparent 50%),
           linear-gradient(
             135deg,
             oklch(0.98 0.01 250) 0%,
@@ -314,7 +240,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
             )
           `
         }}>
-          <div className="relative bg-gradient-to-r from-[oklch(0.68_0.20_340)] via-[oklch(0.70_0.18_310)] to-[oklch(0.68_0.20_340)] py-8 shadow-xl border-b-4 border-white/10">
+          <div className="relative bg-gradient-to-r from-[oklch(0.52_0.12_330)] via-[oklch(0.55_0.11_305)] to-[oklch(0.48_0.12_332)] py-8 shadow-xl border-b-4 border-white/10">
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
             <div className="container mx-auto px-4 sm:px-6 relative z-10">
               <div className="flex items-center gap-4">
@@ -357,9 +283,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     return (
       <div className="min-h-screen" style={{
         background: `
-          radial-gradient(circle at 20% 30%, oklch(0.60 0.15 280 / 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 80% 60%, oklch(0.65 0.12 210 / 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 50% 90%, oklch(0.55 0.10 150 / 0.12) 0%, transparent 50%),
+          radial-gradient(circle at 20% 30%, oklch(0.45 0.14 270 / 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 80% 60%, oklch(0.55 0.11 255 / 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 50% 90%, oklch(0.60 0.08 250 / 0.05) 0%, transparent 50%),
           linear-gradient(
             135deg,
             oklch(0.98 0.01 250) 0%,
@@ -388,7 +314,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
             )
           `
         }}>
-          <div className="relative bg-gradient-to-r from-[oklch(0.75_0.18_90)] via-[oklch(0.78_0.16_60)] to-[oklch(0.75_0.18_90)] py-8 shadow-xl border-b-4 border-white/10">
+          <div className="relative bg-gradient-to-r from-[oklch(0.68_0.11_80)] via-[oklch(0.72_0.10_65)] to-[oklch(0.64_0.11_82)] py-8 shadow-xl border-b-4 border-white/10">
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
             <div className="container mx-auto px-4 sm:px-6 relative z-10">
               <div className="flex items-center gap-4">
@@ -431,9 +357,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
     return (
       <div className="min-h-screen" style={{
         background: `
-          radial-gradient(circle at 20% 30%, oklch(0.60 0.15 280 / 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 80% 60%, oklch(0.65 0.12 210 / 0.15) 0%, transparent 50%),
-          radial-gradient(circle at 50% 90%, oklch(0.55 0.10 150 / 0.12) 0%, transparent 50%),
+          radial-gradient(circle at 20% 30%, oklch(0.45 0.14 270 / 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 80% 60%, oklch(0.55 0.11 255 / 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 50% 90%, oklch(0.60 0.08 250 / 0.05) 0%, transparent 50%),
           linear-gradient(
             135deg,
             oklch(0.98 0.01 250) 0%,
@@ -462,7 +388,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
             )
           `
         }}>
-          <div className="relative bg-gradient-to-r from-[oklch(0.62_0.20_230)] via-[oklch(0.65_0.18_200)] to-[oklch(0.62_0.20_230)] py-8 shadow-xl border-b-4 border-white/10">
+          <div className="relative bg-gradient-to-r from-[oklch(0.52_0.13_248)] via-[oklch(0.56_0.11_240)] to-[oklch(0.48_0.13_250)] py-8 shadow-xl border-b-4 border-white/10">
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
             <div className="container mx-auto px-4 sm:px-6 relative z-10">
               <div className="flex items-center gap-4">
@@ -495,6 +421,80 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
 
           <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
             <Tetris userEmail={userEmail} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (currentView === 'neonsnake') {
+    return (
+      <div className="min-h-screen" style={{
+        background: `
+          radial-gradient(circle at 20% 30%, oklch(0.45 0.14 270 / 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 80% 60%, oklch(0.55 0.11 255 / 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 50% 90%, oklch(0.60 0.08 250 / 0.05) 0%, transparent 50%),
+          linear-gradient(
+            135deg,
+            oklch(0.98 0.01 250) 0%,
+            oklch(0.97 0.02 280) 25%,
+            oklch(0.98 0.01 210) 50%,
+            oklch(0.97 0.02 240) 75%,
+            oklch(0.98 0.01 250) 100%
+          )
+        `
+      }}>
+        <div style={{
+          background: `
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              transparent 100px,
+              oklch(0.96 0.01 240 / 0.3) 100px,
+              oklch(0.96 0.01 240 / 0.3) 101px
+            ),
+            repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent 100px,
+              oklch(0.96 0.01 240 / 0.3) 100px,
+              oklch(0.96 0.01 240 / 0.3) 101px
+            )
+          `
+        }}>
+          <div className="relative bg-gradient-to-r from-[oklch(0.56_0.12_155)] via-[oklch(0.60_0.10_170)] to-[oklch(0.52_0.12_157)] py-8 shadow-xl border-b-4 border-white/10">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
+            <div className="container mx-auto px-4 sm:px-6 relative z-10">
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={() => setCurrentView('hub')}
+                  variant="ghost"
+                  size="lg"
+                  className="text-white hover:bg-white/20 transition-colors"
+                >
+                  <ArrowLeft size={24} weight="bold" />
+                </Button>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-sm shadow-xl">
+                    <WaveSine size={32} weight="duotone" className="text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">
+                      Neon Snake
+                    </h1>
+                    <p className="text-white/90 text-sm sm:text-base">
+                      {language === 'da'
+                        ? 'Spis æbler, voks dig lang og slå rekorden'
+                        : 'Eat apples, grow long and beat the record'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
+            <NeonSnake userEmail={userEmail} />
           </div>
         </div>
       </div>
@@ -536,12 +536,12 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="flex justify-center mb-6"
           >
-            <div className="p-6 rounded-3xl bg-gradient-to-br from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)] shadow-2xl">
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-[oklch(0.42_0.19_270)] via-[oklch(0.50_0.16_265)] to-[oklch(0.38_0.19_272)] shadow-2xl">
               <GameController size={64} weight="duotone" className="text-white" />
             </div>
           </motion.div>
           <motion.h1 
-            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-br from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)] bg-clip-text text-transparent mb-4"
+            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-br from-[oklch(0.42_0.19_270)] via-[oklch(0.50_0.16_265)] to-[oklch(0.38_0.19_272)] bg-clip-text text-transparent mb-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
