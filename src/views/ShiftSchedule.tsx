@@ -244,41 +244,25 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
     if (activeTab === 'schedule' && scheduleScrollRef.current && (!hasScrolledToToday.current || scrollToToday)) {
       const scrollToCurrentWeek = () => {
         const today = new Date()
-        const currentWeekNumber = getWeekNumber(today)
         const currentMonth = today.getMonth()
         const currentYear = today.getFullYear()
-        
+
         if (selectedMonth !== currentMonth || selectedYear !== currentYear) {
           hasScrolledToToday.current = true
           setScrollToToday(false)
           return
         }
-        
-        const daysInMonth = getDaysInMonth(selectedMonth, selectedYear)
-        let targetDay = 1
-        let foundCurrentWeek = false
-        
-        for (let day = 1; day <= daysInMonth; day++) {
-          const date = new Date(selectedYear, selectedMonth, day)
-          if (getWeekNumber(date) === currentWeekNumber && date.getFullYear() === today.getFullYear()) {
-            targetDay = day
-            foundCurrentWeek = true
-            break
-          }
+
+        const container = scheduleScrollRef.current
+        const row = container?.querySelector<HTMLElement>('[data-current-week]')
+        if (container && row) {
+          const headerHeight = container.querySelector('thead')?.offsetHeight ?? 0
+          const containerRect = container.getBoundingClientRect()
+          const rowRect = row.getBoundingClientRect()
+          const top = Math.max(0, rowRect.top - containerRect.top + container.scrollTop - headerHeight - 8)
+          container.scrollTo({ top, behavior: 'smooth' })
         }
-        
-        if (foundCurrentWeek) {
-          const rowHeight = 80
-          const headerHeight = 60
-          const offsetRows = 2
-          const scrollPosition = Math.max(0, (targetDay - 1 - offsetRows) * rowHeight)
-          
-          scheduleScrollRef.current?.scrollTo({
-            top: scrollPosition,
-            behavior: 'smooth'
-          })
-        }
-        
+
         hasScrolledToToday.current = true
         setScrollToToday(false)
       }
@@ -1225,6 +1209,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                           rows.push(
                             <tr 
                               key={day} 
+                              data-current-week={currentWeek ? 'true' : undefined}
                               className={cn(
                                 "border-b-2 border-border transition-all",
                                 isLocked && "bg-muted/30",
@@ -1349,7 +1334,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                             return (
                                               <div key={assignment.id} className="group relative">
                                                 <div
-                                                  className="px-1.5 py-1.5 rounded text-[11px] font-medium truncate bg-muted/70 text-foreground border border-border hover:bg-muted transition-colors"
+                                                  className="px-1.5 py-1.5 rounded text-[11px] font-semibold truncate text-white border transition-all"
+                                                  style={{
+                                                    backgroundColor: role.color || '#8b5cf6',
+                                                    borderColor: `${role.color || '#8b5cf6'}CC`,
+                                                    boxShadow: `0 2px 6px ${role.color || '#8b5cf6'}40`
+                                                  }}
                                                   title={role.name}
                                                 >
                                                   {role.name}
