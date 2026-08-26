@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, WaveSine, RocketLaunch, Cube, Gift, Bird, SquaresFour, GameController } from '@phosphor-icons/react'
+import { ArrowLeft, ShieldCheck, Check, Crown, User as UserIcon, Trash, FirstAidKit, X, Umbrella, ClockCounterClockwise, PencilSimple, Plus, Phone, CalendarBlank, Eye, Trophy, WaveSine, RocketLaunch, Cube, Gift, Bird, SquaresFour, GameController, HardDrives } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,8 +18,10 @@ import { da } from 'date-fns/locale'
 import { UserRole, ADMIN_EMAIL, hasManagerAccess, getRoleDisplayName, getRoleDescription } from '@/lib/userRoles'
 import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
+import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
 import React from 'react'
 import { ManualVacationGrant } from '@/components/ManualVacationGrant'
+import { DataStorageManager } from '@/components/DataStorageManager'
 import { vacationApprovedEmail, vacationRejectedEmail, vacationEditedEmail, vacationDeletedEmail, userApprovedEmail, userRejectedEmail } from '@/lib/emailTemplates'
 
 interface User {
@@ -1312,7 +1314,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         </motion.div>
 
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 max-w-5xl">
+          <TabsList className="grid w-full grid-cols-7 max-w-6xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
@@ -1346,6 +1348,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             <TabsTrigger value="games" className="gap-2">
               <GameController size={18} />
               Spil
+            </TabsTrigger>
+            <TabsTrigger value="data-storage" className="gap-2">
+              <HardDrives size={18} />
+              Datalagring
             </TabsTrigger>
           </TabsList>
 
@@ -3294,6 +3300,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             </Tabs>
           </TabsContent>
 
+          <TabsContent value="data-storage" className="space-y-6">
+            <DataStorageManager />
+          </TabsContent>
+
         </Tabs>
       </div>
 
@@ -3525,9 +3535,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             }
 
             const getWeekNumber = (date: Date) => {
-              const firstDayOfYear = new Date(date.getFullYear(), 0, 1)
-              const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000
-              return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7)
+              return getISOWeekNumber(date)
             }
 
             const isDateInVacation = (day: number, vacation: VacationEntry, month: number, year: number) => {

@@ -13,6 +13,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { ADMIN_EMAIL } from '@/lib/userRoles'
 import { userSignupRequestEmail } from '@/lib/emailTemplates'
+import { hashPassword, verifyPassword, isHashedPassword } from '@/lib/passwords'
 
 const ADMIN_PASSWORD = 'Sylvester.Severin09'
 
@@ -84,7 +85,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
       const isHardcodedAdmin = normalizedSignupEmail === ADMIN_EMAIL.toLowerCase()
       usersData[normalizedSignupEmail] = {
         email: normalizedSignupEmail,
-        password,
+        password: await hashPassword(password),
         fullName,
         phone: phoneNumber.trim(),
         isManager: isHardcodedAdmin,
@@ -147,7 +148,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
           const usersData = (await window.kv.get<Record<string, StoredUser>>('users')) || {}
           usersData[ADMIN_EMAIL] = {
             email: ADMIN_EMAIL,
-            password: ADMIN_PASSWORD,
+            password: await hashPassword(ADMIN_PASSWORD),
             fullName: usersData[ADMIN_EMAIL]?.fullName || 'Jacob Remmer',
             isManager: true,
             status: 'approved',
@@ -175,10 +176,21 @@ export function Auth({ onAuthenticated }: AuthProps) {
       }
 
       const user = usersData[email] || usersData[normalizedEmail]
-      if (!user || user.password !== password) {
+      if (!user || !(await verifyPassword(password, user.password))) {
         toast.error('Forkert email eller adgangskode')
         setIsLoading(false)
         return
+      }
+
+      // Gamle klartekst-passwords opgraderes til hash ved første login.
+      if (!isHashedPassword(user.password)) {
+        try {
+          user.password = await hashPassword(password)
+          usersData[user.email] = user
+          await window.kv.set('users', usersData)
+        } catch (error) {
+          console.error('Kunne ikke opgradere password til hash:', error)
+        }
       }
 
       // Accounts created before the approval flow have no status and stay valid.

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactElement } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { vacationApprovedEmail, vacationRejectedEmail } from '@/lib/emailTemplates'
 import { 
@@ -579,7 +579,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
     const monthName = new Date(yearToShow, monthToShow).toLocaleDateString('da-DK', { month: 'long', year: 'numeric' })
 
     const weekdays = ['Søn', 'Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør']
-    const days = []
+    const days: ReactElement[] = []
 
     for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="h-10" />)

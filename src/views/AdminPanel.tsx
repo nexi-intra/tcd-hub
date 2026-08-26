@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { UserRole, ADMIN_EMAIL, hasAdminAccess, getRoleDisplayName, getRoleDescription } from '@/lib/userRoles'
+import { hashPassword } from '@/lib/passwords'
 
 interface User {
   email: string
@@ -214,9 +215,10 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
       delete usersData[editingEmployee.email]
     }
 
+    const trimmedPassword = employeeForm.password.trim()
     usersData[employeeForm.email] = {
       email: employeeForm.email,
-      password: employeeForm.password.trim() || usersData[employeeForm.email]?.password || '',
+      password: trimmedPassword ? await hashPassword(trimmedPassword) : usersData[employeeForm.email]?.password || '',
       fullName: employeeForm.fullName,
       role: employeeForm.role,
       isManager: employeeForm.role === 'manager' || employeeForm.role === 'admin'

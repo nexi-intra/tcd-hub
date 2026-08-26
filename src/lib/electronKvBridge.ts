@@ -7,6 +7,8 @@ export interface ElectronKvApi {
   delete(key: string): Promise<void>
   keys(): Promise<string[]>
   getDataDir(): Promise<string>
+  getStorageInfo(): Promise<{ dataDir: string; source: 'env' | 'config' | 'user' | 'default' }>
+  chooseDataDir(): Promise<{ dataDir: string; migratedFiles: number } | null>
   onChanged(callback: (changedKeys: string[]) => void): () => void
 }
 

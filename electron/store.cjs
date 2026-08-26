@@ -8,8 +8,45 @@
 // (mtime scans) because fs.watch is unreliable on network shares.
 const fs = require('fs')
 const path = require('path')
+const crypto = require('crypto')
 
 const FILE_EXT = '.json'
+
+// Kryptering på disken (AES-256-GCM): beskytter mod at data/passwords kan
+// læses direkte af alle med adgang til mappen på et delt drev. Nøglen er
+// indbygget i appen, så alle klienter kan læse samme delte mappe.
+const ENC_KEY = crypto.scryptSync('tcd-hub-storage-v1', 'tcd-hub-static-salt', 32)
+
+function encryptPayload(json) {
+  const iv = crypto.randomBytes(12)
+  const cipher = crypto.createCipheriv('aes-256-gcm', ENC_KEY, iv)
+  const data = Buffer.concat([cipher.update(json, 'utf8'), cipher.final()])
+  return JSON.stringify({
+    __enc: 1,
+    iv: iv.toString('base64'),
+    tag: cipher.getAuthTag().toString('base64'),
+    data: data.toString('base64'),
+  })
+}
+
+function decryptPayload(parsed) {
+  const decipher = crypto.createDecipheriv('aes-256-gcm', ENC_KEY, Buffer.from(parsed.iv, 'base64'))
+  decipher.setAuthTag(Buffer.from(parsed.tag, 'base64'))
+  const json = Buffer.concat([
+    decipher.update(Buffer.from(parsed.data, 'base64')),
+    decipher.final(),
+  ])
+  return json.toString('utf8')
+}
+
+function parseFileContents(raw) {
+  const parsed = JSON.parse(raw)
+  if (parsed && typeof parsed === 'object' && parsed.__enc === 1) {
+    return JSON.parse(decryptPayload(parsed))
+  }
+  // Legacy ukrypteret fil fra tidligere versioner.
+  return parsed
+}
 
 function keyToFilename(key) {
   return encodeURIComponent(key) + FILE_EXT
@@ -29,13 +66,13 @@ function createStore(dataDir) {
   function get(key) {
     try {
       const raw = fs.readFileSync(filePath(key), 'utf8')
-      return JSON.parse(raw)
+      return parseFileContents(raw)
     } catch (err) {
       if (err.code === 'ENOENT') return undefined
       // Torn/partial read on a flaky share: one short retry, then give up.
       try {
         const raw = fs.readFileSync(filePath(key), 'utf8')
-        return JSON.parse(raw)
+        return parseFileContents(raw)
       } catch {
         return undefined
       }
@@ -45,7 +82,7 @@ function createStore(dataDir) {
   function set(key, value) {
     const target = filePath(key)
     const tmp = target + '.' + process.pid + '.tmp'
-    fs.writeFileSync(tmp, JSON.stringify(value))
+    fs.writeFileSync(tmp, encryptPayload(JSON.stringify(value)))
     fs.renameSync(tmp, target)
   }
 

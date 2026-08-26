@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('electronKv', {
   delete: (key) => ipcRenderer.invoke('kv:delete', key),
   keys: () => ipcRenderer.invoke('kv:keys'),
   getDataDir: () => ipcRenderer.invoke('kv:data-dir'),
+  getStorageInfo: () => ipcRenderer.invoke('kv:storage-info'),
+  chooseDataDir: () => ipcRenderer.invoke('kv:choose-data-dir'),
   onChanged: (callback) => {
     const listener = (_event, changedKeys) => callback(changedKeys)
     ipcRenderer.on('kv:changed', listener)

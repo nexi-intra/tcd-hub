@@ -13,6 +13,7 @@ import { VacationRequestDialog } from '@/components/VacationRequestDialog'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
+import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { vacationApprovedEmail, vacationRejectedEmail, vacationCancelledByEmployeeEmail } from '@/lib/emailTemplates'
 
@@ -372,9 +373,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
   }
 
   const getWeekNumber = (date: Date) => {
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1)
-    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000
-    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7)
+    return getISOWeekNumber(date)
   }
 
   const myVacations = (vacations || []).filter(v => v.userEmail === userEmail && v.status !== 'rejected')

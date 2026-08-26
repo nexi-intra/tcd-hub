@@ -771,7 +771,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           },
           transition: {
             duration: 0.5,
-            ease: "easeInOut"
+            ease: "easeInOut" as const
           }
         }
       case 'social':
@@ -786,7 +786,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           },
           transition: {
             duration: 0.6,
-            ease: "easeInOut"
+            ease: "easeInOut" as const
           }
         }
       case 'admin':
@@ -801,7 +801,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           },
           transition: {
             duration: 0.7,
-            ease: "easeInOut"
+            ease: "easeInOut" as const
           }
         }
       case 'leisure':
@@ -818,7 +818,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           },
           transition: {
             duration: 0.8,
-            ease: "easeInOut"
+            ease: "easeInOut" as const
           }
         }
     }
@@ -839,7 +839,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           tap: { scale: 0.98 },
           transition: {
             duration: 0.3,
-            ease: "easeInOut"
+            ease: "easeInOut" as const
           }
         }
       case 'social':
@@ -857,7 +857,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           tap: { scale: 0.95 },
           transition: {
             duration: 0.3,
-            ease: "easeInOut"
+            ease: "easeInOut" as const
           }
         }
       case 'admin':
@@ -875,7 +875,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           tap: { scale: 0.97 },
           transition: {
             duration: 0.3,
-            ease: "easeInOut"
+            ease: "easeInOut" as const
           }
         }
       case 'leisure':
@@ -895,7 +895,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           tap: { scale: 0.92 },
           transition: {
             duration: 0.3,
-            ease: "easeInOut"
+            ease: "easeInOut" as const
           }
         }
     }
