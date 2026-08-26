@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import nexiLogo from '@/assets/images/nexi-logo.svg'
+import nexiLogoWhite from '@/assets/images/nexi-logo-white.svg'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { ADMIN_EMAIL } from '@/lib/userRoles'
@@ -225,10 +226,8 @@ export function Auth({ onAuthenticated }: AuthProps) {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="relative flex justify-center mb-6"
             >
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 blur-2xl" />
-              </div>
-              <img src={nexiLogo} alt="Nexi Logo" className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 drop-shadow-lg" />
+              <img src={nexiLogo} alt="Nexi" className="relative h-12 sm:h-14 md:h-16 w-auto dark:hidden" />
+              <img src={nexiLogoWhite} alt="Nexi" className="relative h-12 sm:h-14 md:h-16 w-auto hidden dark:block" />
             </motion.div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent mb-2">Terminal Configuration & Dispatch Hub</h1>
             <p className="text-muted-foreground text-sm sm:text-base">

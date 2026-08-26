@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { hasManagerAccess } from '@/lib/userRoles'
 import { useLanguage } from '@/contexts/LanguageContext'
 import nexiLogo from '@/assets/images/nexi-logo.svg'
+import nexiLogoWhite from '@/assets/images/nexi-logo-white.svg'
 import { format, isSameDay, parseISO } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 
@@ -637,8 +638,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.shifts,
       description: t.hub.descriptions.shifts,
       icon: <ClipboardText size={48} weight="duotone" />,
-      color: 'oklch(0.60 0.22 220)',
-      gradient: 'from-[oklch(0.60_0.22_220)] via-[oklch(0.65_0.26_340)] to-[oklch(0.60_0.22_220)]',
+      color: 'oklch(0.42 0.19 270)',
+      gradient: 'from-[oklch(0.42_0.19_270)] via-[oklch(0.50_0.16_265)] to-[oklch(0.38_0.19_272)]',
       available: true,
       category: 'work',
     },
@@ -647,8 +648,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.calendar,
       description: t.hub.descriptions.calendar,
       icon: <Calendar size={48} weight="duotone" />,
-      color: 'oklch(0.65 0.26 340)',
-      gradient: 'from-[oklch(0.65_0.26_340)] via-[oklch(0.70_0.20_20)] to-[oklch(0.65_0.26_340)]',
+      color: 'oklch(0.50 0.15 262)',
+      gradient: 'from-[oklch(0.50_0.15_262)] via-[oklch(0.56_0.13_258)] to-[oklch(0.46_0.16_265)]',
       available: true,
       category: 'work',
     },
@@ -657,8 +658,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.meals,
       description: t.hub.descriptions.meals,
       icon: <ForkKnife size={48} weight="duotone" />,
-      color: 'oklch(0.70 0.18 90)',
-      gradient: 'from-[oklch(0.70_0.18_90)] via-[oklch(0.75_0.15_60)] to-[oklch(0.70_0.18_90)]',
+      color: 'oklch(0.55 0.11 245)',
+      gradient: 'from-[oklch(0.55_0.11_245)] via-[oklch(0.60_0.09_240)] to-[oklch(0.50_0.12_250)]',
       available: true,
       category: 'leisure',
     },
@@ -667,8 +668,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.team,
       description: t.hub.descriptions.team,
       icon: <Users size={48} weight="duotone" />,
-      color: 'oklch(0.55 0.24 192)',
-      gradient: 'from-[oklch(0.55_0.24_192)] via-[oklch(0.60_0.22_220)] to-[oklch(0.55_0.24_192)]',
+      color: 'oklch(0.52 0.13 252)',
+      gradient: 'from-[oklch(0.52_0.13_252)] via-[oklch(0.58_0.11_248)] to-[oklch(0.47_0.14_256)]',
       available: true,
       category: 'social',
     },
@@ -677,8 +678,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.email,
       description: t.hub.descriptions.email,
       icon: <Envelope size={48} weight="duotone" />,
-      color: 'oklch(0.68 0.14 340)',
-      gradient: 'from-[oklch(0.68_0.14_340)] via-[oklch(0.75_0.12_180)] to-[oklch(0.68_0.14_340)]',
+      color: 'oklch(0.48 0.10 260)',
+      gradient: 'from-[oklch(0.48_0.10_260)] via-[oklch(0.55_0.08_255)] to-[oklch(0.44_0.11_263)]',
       available: true,
       category: 'social',
     },
@@ -687,8 +688,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.guides,
       description: t.hub.descriptions.guides,
       icon: <Books size={48} weight="duotone" />,
-      color: 'oklch(0.50 0.27 262)',
-      gradient: 'from-[oklch(0.50_0.27_262)] via-[oklch(0.55_0.24_192)] to-[oklch(0.50_0.27_262)]',
+      color: 'oklch(0.38 0.19 272)',
+      gradient: 'from-[oklch(0.38_0.19_272)] via-[oklch(0.46_0.17_268)] to-[oklch(0.34_0.17_274)]',
       available: true,
       category: 'work',
     },
@@ -697,8 +698,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.documents,
       description: t.hub.descriptions.documents,
       icon: <FileText size={48} weight="duotone" />,
-      color: 'oklch(0.62 0.20 150)',
-      gradient: 'from-[oklch(0.62_0.20_150)] via-[oklch(0.55_0.24_192)] to-[oklch(0.62_0.20_150)]',
+      color: 'oklch(0.50 0.09 255)',
+      gradient: 'from-[oklch(0.50_0.09_255)] via-[oklch(0.56_0.07_250)] to-[oklch(0.46_0.10_258)]',
       available: false,
       category: 'work',
     },
@@ -707,8 +708,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.projects,
       description: t.hub.descriptions.projects,
       icon: <Folder size={48} weight="duotone" />,
-      color: 'oklch(0.75 0.15 60)',
-      gradient: 'from-[oklch(0.75_0.15_60)] via-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]',
+      color: 'oklch(0.46 0.15 262)',
+      gradient: 'from-[oklch(0.46_0.15_262)] via-[oklch(0.53_0.13_258)] to-[oklch(0.42_0.16_266)]',
       available: true,
       category: 'work',
     },
@@ -717,8 +718,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.notebook,
       description: t.hub.descriptions.notebook,
       icon: <Notebook size={48} weight="duotone" />,
-      color: 'oklch(0.68 0.18 150)',
-      gradient: 'from-[oklch(0.68_0.18_150)] via-[oklch(0.72_0.16_180)] to-[oklch(0.68_0.18_150)]',
+      color: 'oklch(0.53 0.12 240)',
+      gradient: 'from-[oklch(0.53_0.12_240)] via-[oklch(0.58_0.10_236)] to-[oklch(0.48_0.13_244)]',
       available: true,
       category: 'work',
     },
@@ -727,8 +728,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.chat,
       description: t.hub.descriptions.chat,
       icon: <ChatCircle size={48} weight="duotone" />,
-      color: 'oklch(0.58 0.25 25)',
-      gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
+      color: 'oklch(0.45 0.13 268)',
+      gradient: 'from-[oklch(0.45_0.13_268)] via-[oklch(0.52_0.11_263)] to-[oklch(0.41_0.14_270)]',
       available: false,
       category: 'social',
     },
@@ -737,8 +738,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.games,
       description: t.hub.descriptions.games,
       icon: <GameController size={48} weight="duotone" />,
-      color: 'oklch(0.72 0.20 310)',
-      gradient: 'from-[oklch(0.72_0.20_310)] via-[oklch(0.68_0.22_280)] to-[oklch(0.72_0.20_310)]',
+      color: 'oklch(0.45 0.17 278)',
+      gradient: 'from-[oklch(0.45_0.17_278)] via-[oklch(0.52_0.15_272)] to-[oklch(0.41_0.17_280)]',
       available: true,
       category: 'leisure',
     },
@@ -747,8 +748,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       title: t.hub.modules.manager,
       description: isAdminOrManager ? t.hub.descriptions.manager : t.hub.descriptions.managerLocked,
       icon: <ShieldCheck size={48} weight="duotone" />,
-      color: 'oklch(0.58 0.25 25)',
-      gradient: 'from-[oklch(0.58_0.25_25)] via-[oklch(0.65_0.26_340)] to-[oklch(0.58_0.25_25)]',
+      color: 'oklch(0.34 0.14 273)',
+      gradient: 'from-[oklch(0.34_0.14_273)] via-[oklch(0.42_0.13_270)] to-[oklch(0.30_0.13_275)]',
       available: isAdminOrManager,
       category: 'admin',
     },
@@ -933,7 +934,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                 <Envelope size={20} weight="duotone" />
                 {t.email.notifications}
                 {unreadInboxCount > 0 && (
-                  <Badge className="absolute -top-2 -right-2 bg-[oklch(0.58_0.25_25)] text-white px-2 py-0.5 text-xs">
+                  <Badge className="absolute -top-2 -right-2 bg-[oklch(0.55_0.16_25)] text-white px-2 py-0.5 text-xs">
                     {unreadInboxCount}
                   </Badge>
                 )}
@@ -948,7 +949,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             <Button
               onClick={() => setShowSickLeaveDialog(true)}
               size="lg"
-              className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold w-full sm:w-auto px-6 py-3 text-base"
+              className="bg-gradient-to-r from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)] hover:from-[oklch(0.38_0.19_272)] hover:to-[oklch(0.48_0.15_264)] text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold w-full sm:w-auto px-6 py-3 text-base"
             >
               <FirstAidKit size={24} weight="duotone" />
               {t.shifts.sickLeave}
@@ -1001,7 +1002,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                 >
                   <Envelope size={20} weight="duotone" />
                   {unreadInboxCount > 0 && (
-                    <Badge className="absolute -top-2 -right-2 bg-[oklch(0.58_0.25_25)] text-white px-2 py-0.5 text-xs">
+                    <Badge className="absolute -top-2 -right-2 bg-[oklch(0.55_0.16_25)] text-white px-2 py-0.5 text-xs">
                       {unreadInboxCount}
                     </Badge>
                   )}
@@ -1016,7 +1017,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               <Button
                 onClick={() => setShowSickLeaveDialog(true)}
                 size="lg"
-                className="bg-gradient-to-r from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)] hover:from-[oklch(0.55_0.25_25)] hover:to-[oklch(0.62_0.26_340)] text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
+                className="bg-gradient-to-r from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)] hover:from-[oklch(0.38_0.19_272)] hover:to-[oklch(0.48_0.15_264)] text-white shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
               >
                 <FirstAidKit size={24} weight="duotone" />
               </Button>
@@ -1057,10 +1058,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="relative flex justify-center mb-6"
           >
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 blur-2xl" />
-            </div>
-            <img src={nexiLogo} alt="Nexi Logo" className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 drop-shadow-lg" />
+            <img src={nexiLogo} alt="Nexi" className="relative h-10 sm:h-12 md:h-14 w-auto dark:hidden" />
+            <img src={nexiLogoWhite} alt="Nexi" className="relative h-10 sm:h-12 md:h-14 w-auto hidden dark:block" />
           </motion.div>
           <motion.h1 
             className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent mb-4"
@@ -1078,7 +1077,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         >
           <Card className="p-5 md:p-7 bg-card border-2 hover:border-primary/40 transition-all duration-300 mb-4 md:mb-6">
             <div className="flex items-center gap-3 md:gap-4 mb-5 md:mb-7">
-              <div className="p-2 md:p-2.5 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.12_250)] to-[oklch(0.60_0.15_250)]">
+              <div className="p-2 md:p-2.5 rounded-lg bg-gradient-to-br from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)]">
                 <Users size={24} weight="duotone" className="text-white md:hidden" />
                 <Users size={28} weight="duotone" className="text-white hidden md:block" />
               </div>
@@ -1210,7 +1209,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
               <div className="flex items-center justify-center gap-2 md:gap-3 mb-3 md:mb-4">
-                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.26_340)] to-[oklch(0.70_0.20_20)]">
+                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.50_0.15_262)] to-[oklch(0.58_0.12_255)]">
                   <Calendar size={20} weight="duotone" className="text-white md:hidden" />
                   <Calendar size={24} weight="duotone" className="text-white hidden md:block" />
                 </div>
@@ -1233,7 +1232,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
             <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
               <div className="flex items-center justify-center gap-2 md:gap-3 mb-3 md:mb-4">
-                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]">
+                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.55_0.11_245)] to-[oklch(0.60_0.09_240)]">
                   <ForkKnife size={20} weight="duotone" className="text-white md:hidden" />
                   <ForkKnife size={24} weight="duotone" className="text-white hidden md:block" />
                 </div>
@@ -1248,7 +1247,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
             <Card className="p-4 md:p-6 bg-card border-2 hover:border-primary/40 transition-all duration-300">
               <div className="flex items-center justify-center gap-2 md:gap-3 mb-3 md:mb-4">
-                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.58_0.25_25)] to-[oklch(0.65_0.26_340)]">
+                <div className="p-1.5 md:p-2 rounded-lg bg-gradient-to-br from-[oklch(0.55_0.16_25)] to-[oklch(0.60_0.13_30)]">
                   <FirstAidKit size={20} weight="duotone" className="text-white md:hidden" />
                   <FirstAidKit size={24} weight="duotone" className="text-white hidden md:block" />
                 </div>
@@ -1299,12 +1298,12 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     onClick={() => handleModuleClick(module.id)}
                   >
                     {module.id === 'email' && unreadInboxCount > 0 && (
-                      <Badge className="absolute top-4 right-4 md:top-5 md:right-5 z-10 bg-[oklch(0.58_0.25_25)] text-white px-3 py-1.5 md:px-4 md:py-2 text-xs max-w-[calc(100%-2rem)] text-center whitespace-nowrap">
+                      <Badge className="absolute top-4 right-4 md:top-5 md:right-5 z-10 bg-[oklch(0.55_0.16_25)] text-white px-3 py-1.5 md:px-4 md:py-2 text-xs max-w-[calc(100%-2rem)] text-center whitespace-nowrap">
                         {unreadInboxCount} {unreadInboxCount > 1 ? t.hub.newMessagesPlural : t.hub.newMessages}
                       </Badge>
                     )}
                     {module.id === 'manager' && pendingVacationRequests > 0 && (
-                      <Badge className="absolute top-4 right-4 md:top-5 md:right-5 z-10 bg-[oklch(0.58_0.25_25)] text-white px-3 py-1.5 md:px-4 md:py-2 text-xs max-w-[calc(100%-2rem)] text-center whitespace-nowrap">
+                      <Badge className="absolute top-4 right-4 md:top-5 md:right-5 z-10 bg-[oklch(0.55_0.16_25)] text-white px-3 py-1.5 md:px-4 md:py-2 text-xs max-w-[calc(100%-2rem)] text-center whitespace-nowrap">
                         {pendingVacationRequests} {pendingVacationRequests > 1 ? (language === 'da' ? 'anmodninger' : 'requests') : (language === 'da' ? 'anmodning' : 'request')}
                       </Badge>
                     )}
@@ -1387,7 +1386,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             </Button>
             <Button
               onClick={handleQuickAssign}
-              className="bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] text-white"
+              className="bg-gradient-to-r from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)] text-white"
             >
               {language === 'da' ? 'Tildel' : 'Assign'}
             </Button>
@@ -1438,7 +1437,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             </Button>
             <Button
               onClick={handleAddOrUpdateComment}
-              className="bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] text-white"
+              className="bg-gradient-to-r from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)] text-white"
             >
               {language === 'da' ? 'Gem' : 'Save'}
             </Button>

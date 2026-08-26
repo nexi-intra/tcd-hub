@@ -194,11 +194,11 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
   const getStatusColor = (status: ProjectStatus) => {
     switch (status) {
       case 'open':
-        return 'bg-[oklch(0.55_0.10_210)] text-white'
+        return 'bg-[oklch(0.52_0.11_255)] text-white'
       case 'in-progress':
-        return 'bg-[oklch(0.70_0.18_90)] text-white'
+        return 'bg-[oklch(0.65_0.13_75)] text-white'
       case 'completed':
-        return 'bg-[oklch(0.62_0.20_150)] text-white'
+        return 'bg-[oklch(0.55_0.13_150)] text-white'
     }
   }
 
@@ -257,7 +257,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
             </div>
             <div className="flex items-center gap-2">
               {isOnTeam && (
-                <Badge className="bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] text-white text-xs font-semibold">
+                <Badge className="bg-gradient-to-r from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)] text-white text-xs font-semibold">
                   {language === 'da' ? 'Dit projekt' : 'Your project'}
                 </Badge>
               )}
@@ -352,7 +352,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
             {!isOnTeam && project.status !== 'completed' && (
               <Button
                 onClick={() => handleJoinProject(project.id)}
-                className="flex-1 bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] hover:from-[oklch(0.48_0.12_250)] hover:to-[oklch(0.53_0.10_210)] text-white"
+                className="flex-1 bg-gradient-to-r from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)] hover:from-[oklch(0.38_0.19_272)] hover:to-[oklch(0.48_0.15_264)] text-white"
                 size="sm"
               >
                 <UserPlus size={16} weight="duotone" className="mr-2" />
@@ -363,7 +363,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
             {project.status === 'in-progress' && isOnTeam && (
               <Button
                 onClick={() => handleCompleteProject(project.id)}
-                className="flex-1 bg-gradient-to-r from-[oklch(0.62_0.20_150)] to-[oklch(0.55_0.24_192)] hover:from-[oklch(0.60_0.20_150)] hover:to-[oklch(0.53_0.24_192)] text-white"
+                className="flex-1 bg-gradient-to-r from-[oklch(0.55_0.13_150)] to-[oklch(0.60_0.11_160)] hover:from-[oklch(0.50_0.13_150)] hover:to-[oklch(0.55_0.11_160)] text-white"
                 size="sm"
               >
                 <CheckCircle size={16} weight="duotone" className="mr-2" />
@@ -407,7 +407,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
             <DialogTrigger asChild>
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] hover:from-[oklch(0.48_0.12_250)] hover:to-[oklch(0.53_0.10_210)] text-white shadow-lg"
+                className="bg-gradient-to-r from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)] hover:from-[oklch(0.38_0.19_272)] hover:to-[oklch(0.48_0.15_264)] text-white shadow-lg"
               >
                 <Plus size={20} weight="bold" className="mr-2" />
                 {language === 'da' ? 'Opret projekt' : 'Create project'}
@@ -446,7 +446,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
                 </Button>
                 <Button
                   onClick={handleCreateProject}
-                  className="bg-gradient-to-r from-[oklch(0.50_0.12_250)] to-[oklch(0.55_0.10_210)] text-white"
+                  className="bg-gradient-to-r from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)] text-white"
                 >
                   {language === 'da' ? 'Opret' : 'Create'}
                 </Button>
@@ -495,7 +495,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.55_0.10_210)] to-[oklch(0.60_0.22_220)]">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)]">
                 <FolderOpen size={24} weight="duotone" className="text-white" />
               </div>
               <h2 className="text-xl font-bold text-foreground">
@@ -507,7 +507,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
 
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.70_0.18_90)] to-[oklch(0.75_0.15_60)]">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.65_0.13_75)] to-[oklch(0.70_0.11_70)]">
                 <Clock size={24} weight="duotone" className="text-white" />
               </div>
               <h2 className="text-xl font-bold text-foreground">
@@ -519,7 +519,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
 
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.62_0.20_150)] to-[oklch(0.55_0.24_192)]">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-[oklch(0.55_0.13_150)] to-[oklch(0.60_0.11_160)]">
                 <CheckCircle size={24} weight="duotone" className="text-white" />
               </div>
               <h2 className="text-xl font-bold text-foreground">

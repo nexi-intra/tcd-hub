@@ -160,7 +160,7 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
       <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[oklch(0.50_0.27_262)] to-[oklch(0.55_0.24_192)] flex items-center justify-center">
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[oklch(0.42_0.19_270)] to-[oklch(0.52_0.15_262)] flex items-center justify-center">
               <Envelope size={24} weight="duotone" className="text-white" />
             </div>
             <div>
@@ -196,7 +196,7 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
                         <p className="font-semibold text-sm truncate">{getSenderName(email.from)}</p>
                         <p className="text-xs text-muted-foreground truncate">{email.from}</p>
                       </div>
-                      <Badge variant="secondary" className="bg-[oklch(0.50_0.27_262)] text-white shrink-0">
+                      <Badge variant="secondary" className="bg-[oklch(0.42_0.19_270)] text-white shrink-0">
                         {t.emailNotifications.new}
                       </Badge>
                     </div>
@@ -242,7 +242,7 @@ export function EmailNotifications({ open, onOpenChange, userEmail }: EmailNotif
 
                   <Button
                     onClick={() => handleMarkAsRead(selectedEmail.id)}
-                    className="w-full gap-2 bg-[oklch(0.50_0.27_262)] hover:bg-[oklch(0.45_0.27_262)]"
+                    className="w-full gap-2 bg-[oklch(0.42_0.19_270)] hover:bg-[oklch(0.38_0.19_272)]"
                     size="lg"
                   >
                     <CheckCircle size={20} weight="duotone" />

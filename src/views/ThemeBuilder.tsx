@@ -46,28 +46,34 @@ interface CustomTheme {
 }
 
 const defaultTheme: CustomTheme['colors'] = {
-  background: 'oklch(0.97 0.01 220)',
-  foreground: 'oklch(0.25 0.02 250)',
+  background: 'oklch(0.985 0.003 260)',
+  foreground: 'oklch(0.25 0.05 275)',
   card: 'oklch(1.00 0 0)',
-  cardForeground: 'oklch(0.25 0.02 250)',
+  cardForeground: 'oklch(0.25 0.05 275)',
   popover: 'oklch(1.00 0 0)',
-  popoverForeground: 'oklch(0.25 0.02 250)',
-  primary: 'oklch(0.50 0.12 250)',
+  popoverForeground: 'oklch(0.25 0.05 275)',
+  primary: 'oklch(0.40 0.20 272)',
   primaryForeground: 'oklch(0.99 0 0)',
-  secondary: 'oklch(0.92 0.02 250)',
-  secondaryForeground: 'oklch(0.30 0.02 250)',
-  muted: 'oklch(0.95 0.01 250)',
-  mutedForeground: 'oklch(0.50 0.02 250)',
-  accent: 'oklch(0.52 0.105 223.128)',
+  secondary: 'oklch(0.95 0.012 265)',
+  secondaryForeground: 'oklch(0.32 0.08 272)',
+  muted: 'oklch(0.965 0.006 260)',
+  mutedForeground: 'oklch(0.50 0.03 265)',
+  accent: 'oklch(0.50 0.16 265)',
   accentForeground: 'oklch(0.99 0 0)',
-  destructive: 'oklch(0.55 0.15 25)',
+  destructive: 'oklch(0.55 0.19 25)',
   destructiveForeground: 'oklch(0.99 0 0)',
-  border: 'oklch(0.88 0.02 250)',
-  input: 'oklch(0.88 0.02 250)',
-  ring: 'oklch(0.50 0.12 250)',
+  border: 'oklch(0.90 0.010 262)',
+  input: 'oklch(0.90 0.010 262)',
+  ring: 'oklch(0.40 0.20 272)',
 }
 
 const presetThemes = [
+  {
+    name: 'Nexi Blue',
+    colors: {
+      ...defaultTheme,
+    }
+  },
   {
     name: 'Ocean Breeze',
     colors: {
@@ -120,7 +126,7 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
   const [activeTheme, setActiveTheme] = useKV<string>(`active-theme-${userEmail}`, 'default')
   const [themeName, setThemeName] = useState('')
   const [colors, setColors] = useState<CustomTheme['colors']>(defaultTheme)
-  const [radius, setRadius] = useState('0.75rem')
+  const [radius, setRadius] = useState('0.625rem')
   const [previewMode, setPreviewMode] = useState(false)
 
   useEffect(() => {
@@ -145,11 +151,11 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
 
   const resetTheme = () => {
     const root = document.documentElement
-    Object.entries(defaultTheme).forEach(([key, value]) => {
+    Object.keys(defaultTheme).forEach((key) => {
       const cssVar = key.replace(/([A-Z])/g, '-$1').toLowerCase()
-      root.style.setProperty(`--${cssVar}`, value)
+      root.style.removeProperty(`--${cssVar}`)
     })
-    root.style.setProperty('--radius', '0.75rem')
+    root.style.removeProperty('--radius')
   }
 
   const handleColorChange = (colorKey: keyof CustomTheme['colors'], value: string) => {
