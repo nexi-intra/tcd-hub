@@ -1087,7 +1087,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             {teamTasks.length === 0 ? (
               <p className="text-muted-foreground text-sm md:text-base text-center py-2">{t.hub.overview.noTasks}</p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                 {teamTasks.map((task, idx) => (
                   <motion.div
                     key={idx}
@@ -1095,17 +1095,17 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
                     className={cn(
-                      "flex flex-col gap-3 p-5 rounded-xl border-2 shadow-sm transition-all duration-300",
+                      "flex flex-col gap-2 p-3 rounded-xl border-2 shadow-sm transition-all duration-300",
                       task.people.length === 0 
                         ? "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-400 dark:from-amber-950/40 dark:to-amber-900/30 dark:border-amber-600" 
                         : "bg-gradient-to-br from-card to-muted/30 border-border hover:border-primary/30 hover:shadow-md"
                     )}
                   >
-                    <div className="flex items-center justify-center gap-3 pb-3 border-b-2"
+                    <div className="flex items-center justify-center gap-3 pb-2 border-b-2"
                       style={{ borderColor: task.taskColor + '40' }}
                     >
                       <Badge
-                        className="text-white text-sm md:text-base font-bold px-4 py-1.5 shadow-sm"
+                        className="text-white text-xs md:text-sm font-bold px-3 py-1 shadow-sm"
                         style={{ 
                           backgroundColor: task.taskColor,
                           boxShadow: `0 2px 8px ${task.taskColor}40`
@@ -1115,46 +1115,46 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                       </Badge>
                     </div>
                     {task.people.length === 0 ? (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 py-2 justify-center">
-                          <Warning size={20} weight="fill" />
-                          <span className="text-sm md:text-base font-semibold">{language === 'da' ? 'Ingen tildelt' : 'No one assigned'}</span>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 py-1 justify-center">
+                          <Warning size={16} weight="fill" />
+                          <span className="text-xs md:text-sm font-semibold">{language === 'da' ? 'Ingen tildelt' : 'No one assigned'}</span>
                         </div>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="w-full text-sm"
+                          className="w-full h-7 text-xs"
                           onClick={() => {
                             setSelectedTaskForAssign({ roleId: task.roleId, roleName: task.taskName })
                             setShowQuickAssignDialog(true)
                           }}
                         >
-                          <UserPlus size={18} weight="duotone" className="mr-1.5" />
+                          <UserPlus size={14} weight="duotone" className="mr-1" />
                           {language === 'da' ? 'Tildel' : 'Assign'}
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-1.5">
                         {task.people.map((person, personIdx) => (
                           <motion.div
                             key={personIdx}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.1 + personIdx * 0.05 }}
-                            className="flex flex-col gap-2"
+                            className="flex flex-col gap-1"
                           >
-                            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-background/60 hover:bg-background transition-colors duration-200">
+                            <div className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg bg-background/60 hover:bg-background transition-colors duration-200">
                               <div 
-                                className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
                                 style={{ backgroundColor: task.taskColor }}
                               >
                                 {person.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                               </div>
-                              <span className="text-sm md:text-base text-foreground font-semibold truncate flex-1">{person.name}</span>
+                              <span className="text-xs md:text-sm text-foreground font-semibold flex-1 min-w-0 break-words leading-tight">{person.name}</span>
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 w-7 p-0 flex-shrink-0 hover:bg-primary/20 hover:text-primary"
+                                className="h-6 w-6 p-0 flex-shrink-0 hover:bg-primary/20 hover:text-primary"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   setSelectedUserForComment({ name: person.name, roleId: task.roleId, currentComment: person.comment })
@@ -1163,25 +1163,25 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                                 }}
                                 title={language === 'da' ? 'Tilføj kommentar' : 'Add comment'}
                               >
-                                <PencilSimple size={16} weight="bold" />
+                                <PencilSimple size={14} weight="bold" />
                               </Button>
                               {person.comment && (
-                                <ChatText size={18} weight="fill" className="text-primary flex-shrink-0" />
+                                <ChatText size={14} weight="fill" className="text-primary flex-shrink-0" />
                               )}
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 w-7 p-0 flex-shrink-0 hover:bg-destructive/20 hover:text-destructive"
+                                className="h-6 w-6 p-0 flex-shrink-0 hover:bg-destructive/20 hover:text-destructive"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleRemoveUserFromTask(person.name, task.roleId)
                                 }}
                               >
-                                <X size={16} weight="bold" />
+                                <X size={14} weight="bold" />
                               </Button>
                             </div>
                             {person.comment && (
-                              <div className="ml-11 px-3 py-2 rounded bg-muted text-sm text-muted-foreground italic">
+                              <div className="ml-8 px-2 py-1 rounded bg-muted text-xs text-muted-foreground italic">
                                 {person.comment}
                               </div>
                             )}
@@ -1190,13 +1190,13 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="w-full text-sm mt-1"
+                          className="w-full h-7 text-xs"
                           onClick={() => {
                             setSelectedTaskForAssign({ roleId: task.roleId, roleName: task.taskName })
                             setShowQuickAssignDialog(true)
                           }}
                         >
-                          <UserPlus size={18} weight="duotone" className="mr-1.5" />
+                          <UserPlus size={14} weight="duotone" className="mr-1" />
                           {language === 'da' ? 'Tilføj' : 'Add'}
                         </Button>
                       </div>
