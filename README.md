@@ -7,6 +7,7 @@ Appen understøtter tre roller (**Admin**, **Manager**, **Bruger**), to sprog (*
 ## 📑 Indhold
 
 - [Installation og kørsel](#-installation-og-kørsel)
+- [Datalagring, opdatering og backup](#-datalagring-opdatering-og-backup)
 - [Login og adgang](#-login-og-adgang)
 - [Gennemgående funktioner](#-gennemgående-funktioner)
 - [Moduler](#-moduler)
@@ -76,16 +77,31 @@ Sådan sættes appen op på 10-15 maskiner, der deler samme data via et netværk
 
 4. Start appen. Alle klienter læser og skriver nu i samme mappe, og ændringer fra én klient vises automatisk hos de andre inden for få sekunder.
 
+> **Tip:** Datamappen kan også vælges direkte i appen — se [Datalagring, opdatering og backup](#-datalagring-opdatering-og-backup). Config-filen er mest til IT-styrede opsætninger.
+
 **Noter:**
-- Uden config-fil gemmer appen data lokalt i brugerens profil (fungerer stadig, bare ikke delt).
+- Uden config-fil eller mappevalg gemmer appen data lokalt i brugerens profil (fungerer stadig, bare ikke delt).
 - Datamappens sti kan også sættes med miljøvariablen `TCD_HUB_DATA_DIR` (har forrang over config-filen).
-- Første gang appen startes med en tom fælles mappe, kopieres eventuelle eksisterende lokale data automatisk over.
 - Tag backup af datamappen som enhver anden mappe på drevet — det er hele appens database.
+
+## 💾 Datalagring, opdatering og backup
+
+Al data (vagtplan, ferie, brugere, projekter, noter osv.) gemmes samlet ét sted. Den simple model:
+
+- **Desktop-appen gemmer alt som filer i ÉN datamappe.** Peger du appen på en fast mappe (fx et netværksdrev), læser enhver ny version automatisk de samme data — **du mister intet ved at opdatere appen**.
+- **Vælg mappen direkte i appen:** Manager Panel → fanen **Datalagring** → “Vælg datamappe…”. Eksisterende data kopieres automatisk med over, og valget huskes på tværs af app-versioner.
+- **Opdatering til en ny version:** Pak den nye ZIP ud og start appen — den læser samme datamappe som før. Al historik følger med, helt uden manuelle skridt.
+- **Backup:** Under Datalagring kan alt eksporteres som **én fil** (“Eksportér backup”) og genskabes igen (“Importér backup”). Backup-filen bruges også til at flytte data fra browser-udgaven til desktop-appen.
+
+**Sikkerhed:**
+- Alle datafiler på disken er **krypterede** (AES-256-GCM), så indholdet ikke kan læses direkte af alle med adgang til mappen.
+- Adgangskoder gemmes **aldrig i klartekst** — de gemmes som PBKDF2-hash med salt. Eksisterende konti opgraderes automatisk ved næste login.
 
 ## �🔐 Login og adgang
 
 - **Log ind** med email og adgangskode.
 - **Opret konto** med fulde navn, email, telefonnummer og adgangskode (min. 6 tegn).
+- **Godkendelsesflow** — nye konti skal godkendes af en manager/admin, før der kan logges ind. Managere får automatisk en notifikation ved nye anmodninger.
 - **Bliv logget ind** mellem sessioner via "Husk mig".
 - Nye brugere får som udgangspunkt rollen **Bruger**; roller kan efterfølgende tildeles af en admin.
 - Adgang til funktioner styres af rollebaserede rettigheder (admin / manager / bruger).
@@ -123,7 +139,7 @@ Central startside med overblik over dagen og genveje til alle moduler.
 Planlæg og administrer ferie med godkendelsesworkflow.
 
 - Månedskalender med navigation via dropdowns eller piletaster.
-- Visuelle markeringer for **godkendt ferie**, **afventende anmodninger**, weekender, danske helligdage (2024–2026) og fødselsdage.
+- Visuelle markeringer for **godkendt ferie**, **afventende anmodninger**, weekender, danske helligdage (beregnes automatisk for alle år) og fødselsdage.
 - **Anmod om ferie** — Vælg start- og slutdato samt valgfrie noter. Sender automatisk en notifikation til managere.
 - **Anmod om en enkelt fridag** — Vælg en enkelt dag (weekender tillades ikke).
 - **Annuller egne anmodninger** — Fjern afventende/godkendte anmodninger; managere notificeres.
@@ -134,8 +150,9 @@ Planlæg og administrer ferie med godkendelsesworkflow.
 Administrer daglige vagttildelinger og koordinér dækning.
 
 - Kalenderbaseret overblik pr. måned.
-- Se tildelinger pr. dag med medarbejder, rolle (farvekodet) og kommentarer.
-- **Managere/admins:** opret, rediger og slet vagttildelinger (medarbejder, rolle, dato, kommentar) samt oprette og slette **vagtroller** med egen farve.
+- **Åbner automatisk på nuværende uge** — skemaet scroller selv ned til ugen i dag, og "Gå til i dag"-knappen hopper tilbage når som helst.
+- Se tildelinger pr. dag med medarbejder og opgave — **opgaverne vises i den farve, de fik ved oprettelsen**, så skemaet er nemt at aflæse.
+- **Managere/admins:** opret, rediger og slet vagttildelinger (medarbejder, opgave, dato, kommentar), tildel opgaver for hele uger, samt opret og slet **opgaver** med egen farve.
 - Integreret visning af sygemeldinger, ferie, fødselsdage og danske helligdage direkte i kalenderen for nem planlægning af dækning.
 
 ### Team Oversigt
@@ -203,7 +220,7 @@ Ugentlig madplanlægning til pauser.
 Opret og tilpas visuelle temaer.
 
 - **Opret eget tema** med navn og op til 19 farveegenskaber (baggrund, tekst, kort, primær/sekundær, accent, destruktiv, kant, input, fokusring m.fl.) samt kantradius.
-- **Færdige temaer** (fx Ocean Breeze, Sunset Glow, Forest Green, Royal Purple) samt standardtema.
+- **Færdige temaer** (Nexi Blue — appens standard — samt fx Ocean Breeze, Sunset Glow, Forest Green, Royal Purple).
 - **Anvend** et tema med det samme, med live-preview af komponenter.
 - **Rediger, slet, eksportér og importér** egne temaer (færdige temaer kan ikke slettes).
 
@@ -212,10 +229,12 @@ Opret og tilpas visuelle temaer.
 Administrativt dashboard for managere og admins.
 
 - **Teammedlemmer** — opret, rediger og slet medarbejdere (navn, email, telefon, adgangskode).
+- **Rettigheder** — godkend eller afvis nye kontoanmodninger og tildel roller.
 - **Ferieanmodninger** — se, filtrér (alle/afventende/godkendt), godkend, afvis, rediger og slet anmodninger. Kalender-preview af de ønskede datoer. **Manuel ferietildeling** (enkelt dag eller periode) uden forudgående anmodning.
 - **Sygemeldinger** — se, godkend, afvis, rediger og slet sygemeldinger (egen sygdom eller barns sygedag).
 - **Fødselsdage** — tilføj, rediger og slet medarbejderes fødselsdage med aldersvisning.
 - **Feriekalender-preview** — farvekodet månedsvisning af teamets ferie.
+- **Datalagring** — se hvor appens data ligger, vælg datamappe (desktop) og eksportér/importér backup. Se [Datalagring, opdatering og backup](#-datalagring-opdatering-og-backup).
 - Alle godkendelser/afvisninger genererer automatisk email notifikationer.
 
 ### Admin Panel
