@@ -20,13 +20,14 @@ import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import React from 'react'
 import { ManualVacationGrant } from '@/components/ManualVacationGrant'
-import { vacationApprovedEmail, vacationRejectedEmail, vacationEditedEmail, vacationDeletedEmail } from '@/lib/emailTemplates'
+import { vacationApprovedEmail, vacationRejectedEmail, vacationEditedEmail, vacationDeletedEmail, userApprovedEmail, userRejectedEmail } from '@/lib/emailTemplates'
 
 interface User {
   email: string
   fullName: string
   role: UserRole
   phone?: string
+  status?: 'pending' | 'approved' | 'rejected'
 }
 
 interface BirthdayEntry {
@@ -70,6 +71,7 @@ interface ManagerPanelProps {
 
 export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPanelProps) {
   const [users, setUsers] = useState<User[]>([])
+  const [pendingUsers, setPendingUsers] = useState<User[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
   const [vacationEntries, setVacationEntries] = useState<VacationEntry[]>([])
   const [allVacations, setAllVacations] = useState<VacationEntry[]>([])
@@ -187,9 +189,9 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
   const loadUsers = async () => {
     setIsLoading(true)
-    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role?: UserRole; isManager?: boolean }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; phone?: string; role?: UserRole; isManager?: boolean; status?: 'pending' | 'approved' | 'rejected' }>>('users')
     if (usersData) {
-      const userList = Object.values(usersData).map(u => {
+      const allUsers = Object.values(usersData).map(u => {
         let role: UserRole = 'user'
         if (u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           role = 'admin'
@@ -198,19 +200,68 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         } else if (u.isManager) {
           role = 'manager'
         }
-        
+
         return {
           email: u.email,
           fullName: u.fullName,
-          role
+          role,
+          phone: u.phone,
+          status: u.status,
         }
-      }).sort((a, b) => {
+      })
+
+      setPendingUsers(allUsers.filter(u => u.status === 'pending'))
+      setUsers(allUsers.filter(u => u.status !== 'pending').sort((a, b) => {
         const roleOrder = { admin: 0, manager: 1, user: 2 }
         return roleOrder[a.role] - roleOrder[b.role]
-      })
-      setUsers(userList)
+      }))
     }
     setIsLoading(false)
+  }
+
+  const sendUserDecisionEmail = async (user: User, approved: boolean) => {
+    try {
+      const emailContent = approved ? userApprovedEmail(user.fullName, userEmail) : userRejectedEmail(user.fullName, userEmail)
+      const emails = (await window.kv.get<Array<{ id: string; from: string; to: string; subject: string; message: string; timestamp: number; read: boolean }>>('emails')) || []
+      emails.push({
+        id: `${Date.now()}-user-decision`,
+        from: userEmail,
+        to: user.email,
+        subject: emailContent.subject,
+        message: emailContent.body,
+        timestamp: Date.now(),
+        read: false,
+      })
+      await window.kv.set('emails', emails)
+    } catch (error) {
+      console.error('Error sending user decision email:', error)
+    }
+  }
+
+  const handleApproveUser = async (user: User) => {
+    const usersData = await window.kv.get<Record<string, { status?: string } & Record<string, unknown>>>('users')
+    if (!usersData?.[user.email]) {
+      toast.error('Bruger ikke fundet')
+      return
+    }
+    usersData[user.email].status = 'approved'
+    await window.kv.set('users', usersData)
+    await loadUsers()
+    await sendUserDecisionEmail(user, true)
+    toast.success(`${user.fullName} er godkendt og kan nu logge ind`)
+  }
+
+  const handleRejectUser = async (user: User) => {
+    const usersData = await window.kv.get<Record<string, { status?: string } & Record<string, unknown>>>('users')
+    if (!usersData?.[user.email]) {
+      toast.error('Bruger ikke fundet')
+      return
+    }
+    usersData[user.email].status = 'rejected'
+    await window.kv.set('users', usersData)
+    await loadUsers()
+    await sendUserDecisionEmail(user, false)
+    toast.success(`Anmodningen fra ${user.fullName} er afvist`)
   }
 
   const loadSickLeaveEntries = async () => {
@@ -439,7 +490,9 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       fullName: newUserName.trim(),
       role: 'user',
       isManager: false,
-      phone: newUserPhone.trim()
+      phone: newUserPhone.trim(),
+      // Manager-created accounts skip the approval flow.
+      status: 'approved'
     }
 
     try {
@@ -1263,6 +1316,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
               Rettigheder
+              {pendingUsers.length > 0 && (
+                <Badge className="ml-1 h-5 px-1.5 bg-accent text-accent-foreground">
+                  {pendingUsers.length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="sick-leave" className="gap-2">
               <FirstAidKit size={18} />
@@ -1292,6 +1350,56 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           </TabsList>
 
           <TabsContent value="permissions" className="space-y-6">
+            {pendingUsers.length > 0 && (
+              <Card className="p-6 border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/40 dark:to-amber-900/20 dark:border-amber-600">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <UserIcon size={28} className="text-amber-600 dark:text-amber-400" weight="duotone" />
+                    <h2 className="text-2xl font-bold">Nye brugeranmodninger</h2>
+                  </div>
+                  <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
+                    {pendingUsers.length} {pendingUsers.length === 1 ? 'anmodning' : 'anmodninger'}
+                  </Badge>
+                </div>
+                <div className="mb-4 p-3 bg-background/60 rounded-lg border text-sm text-muted-foreground">
+                  Disse personer har oprettet en konto og venter på din godkendelse, før de kan logge ind.
+                </div>
+                <div className="space-y-3">
+                  {pendingUsers.map((user) => (
+                    <motion.div
+                      key={user.email}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border-2 bg-card"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-lg">{user.fullName}</div>
+                        <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                        {user.phone && <div className="text-xs text-muted-foreground mt-0.5">Telefon: {user.phone}</div>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handleApproveUser(user)}
+                          className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
+                        >
+                          <Check size={18} weight="bold" />
+                          Godkend
+                        </Button>
+                        <Button
+                          onClick={() => handleRejectUser(user)}
+                          variant="destructive"
+                          className="gap-2"
+                        >
+                          <X size={18} weight="bold" />
+                          Afvis
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
             <Card className="p-6 border-2">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
@@ -1337,6 +1445,9 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                           <div className="text-xs text-muted-foreground mt-1">{getRoleDescription(user.role)}</div>
                         </div>
                         <div className="flex items-center gap-3">
+                          {user.status === 'rejected' && (
+                            <Badge variant="destructive" className="text-xs">Afvist</Badge>
+                          )}
                           {getRoleBadge(user.role)}
                         </div>
                       </div>
