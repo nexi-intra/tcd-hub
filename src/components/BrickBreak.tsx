@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { upsertInNestedKvArray } from '@/lib/kvArrays'
+import { nextParticleId } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface Brick {
@@ -247,6 +248,17 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameLoopRef = useRef<number | undefined>(undefined)
+  // Powerup-nedt\u00e6llinger (skjold/fireball/osv.) k\u00f8rer hver deres setInterval — samlet her
+  // s\u00e5 alle bliver ryddet, hvis komponenten unmountes midt i et powerup (fx spilleren
+  // navigerer v\u00e6k), i stedet for at l\u00e6kke en kørende timer der aldrig selv-clearer.
+  const activePowerupIntervalsRef = useRef<Set<ReturnType<typeof setInterval>>>(new Set())
+
+  useEffect(() => {
+    return () => {
+      activePowerupIntervalsRef.current.forEach((id) => clearInterval(id))
+      activePowerupIntervalsRef.current.clear()
+    }
+  }, [])
   const mouseXRef = useRef<number>(GAME_WIDTH / 2)
   const ballsRef = useRef<Ball[]>([])
   const bricksRef = useRef<Brick[]>([])
@@ -459,6 +471,11 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   }
 
   const startGame = () => {
+    // Ryd evt. igangværende powerup-nedtællinger fra en tidligere runde, så de
+    // ikke uventet nulstiller state midt i det nye spil.
+    activePowerupIntervalsRef.current.forEach((id) => clearInterval(id))
+    activePowerupIntervalsRef.current.clear()
+
     const newPaddle = {
       x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
       y: GAME_HEIGHT - 40,
@@ -696,6 +713,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setShieldTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(shieldInterval)
+              activePowerupIntervalsRef.current.delete(shieldInterval)
               setHasShield(false)
               hasShieldRef.current = false
               return 0
@@ -703,6 +721,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(shieldInterval)
         break
         
       case 'fireball':
@@ -715,6 +734,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setFireballTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(fireballInterval)
+              activePowerupIntervalsRef.current.delete(fireballInterval)
               setIsFireball(false)
               isFireballRef.current = false
               return 0
@@ -722,6 +742,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(fireballInterval)
         break
         
       case 'shrinkPaddle':
@@ -738,6 +759,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setShrinkPaddleTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(shrinkInterval)
+              activePowerupIntervalsRef.current.delete(shrinkInterval)
               const resetPaddle = {
                 ...paddleRef.current,
                 width: INITIAL_PADDLE_WIDTH
@@ -749,6 +771,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(shrinkInterval)
         break
         
       case 'enlargePaddle':
@@ -765,6 +788,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setEnlargePaddleTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(enlargeInterval)
+              activePowerupIntervalsRef.current.delete(enlargeInterval)
               const resetPaddle = {
                 ...paddleRef.current,
                 width: INITIAL_PADDLE_WIDTH
@@ -776,6 +800,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(enlargeInterval)
         break
         
       case 'slowMotion':
@@ -788,6 +813,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setSpeedPowerupTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(slowMotionInterval)
+              activePowerupIntervalsRef.current.delete(slowMotionInterval)
               ballSpeedMultiplierRef.current = 1
               setBallSpeedMultiplier(1)
               return 0
@@ -795,6 +821,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(slowMotionInterval)
         break
         
       case 'speedBoost':
@@ -807,6 +834,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setSpeedPowerupTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(speedBoostInterval)
+              activePowerupIntervalsRef.current.delete(speedBoostInterval)
               ballSpeedMultiplierRef.current = 1
               setBallSpeedMultiplier(1)
               return 0
@@ -814,6 +842,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(speedBoostInterval)
         break
         
       case 'laser':
@@ -826,6 +855,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setLaserTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(laserInterval)
+              activePowerupIntervalsRef.current.delete(laserInterval)
               setHasLaser(false)
               hasLaserRef.current = false
               return 0
@@ -833,6 +863,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(laserInterval)
         break
         
       case 'stickyPaddle':
@@ -845,6 +876,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setStickyPaddleTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(stickyInterval)
+              activePowerupIntervalsRef.current.delete(stickyInterval)
               setIsStickyPaddle(false)
               isStickyPaddleRef.current = false
               return 0
@@ -852,6 +884,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(stickyInterval)
         break
         
       case 'explosiveBall':
@@ -864,6 +897,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setExplosiveBallTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(explosiveInterval)
+              activePowerupIntervalsRef.current.delete(explosiveInterval)
               setIsExplosiveBall(false)
               isExplosiveBallRef.current = false
               return 0
@@ -871,6 +905,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(explosiveInterval)
         break
         
       case 'reverseControls':
@@ -883,6 +918,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setReverseControlsTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(reverseInterval)
+              activePowerupIntervalsRef.current.delete(reverseInterval)
               setIsReverseControls(false)
               isReverseControlsRef.current = false
               return 0
@@ -890,6 +926,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(reverseInterval)
         break
     }
   }
@@ -1058,7 +1095,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             if (Math.random() < POWERUP_SPAWN_CHANCE) {
               const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
               const newPowerUp: PowerUp = {
-                id: Date.now() + Math.random(),
+                id: nextParticleId(),
                 x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
                 y: brick.y,
                 width: POWERUP_SIZE,
@@ -1091,7 +1128,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             if (Math.random() < POWERUP_SPAWN_CHANCE) {
               const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
               const newPowerUp: PowerUp = {
-                id: Date.now() + Math.random(),
+                id: nextParticleId(),
                 x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
                 y: brick.y,
                 width: POWERUP_SIZE,
@@ -1149,7 +1186,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               if (Math.random() < POWERUP_SPAWN_CHANCE) {
                 const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
                 const newPowerUp: PowerUp = {
-                  id: Date.now() + Math.random(),
+                  id: nextParticleId(),
                   x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
                   y: brick.y,
                   width: POWERUP_SIZE,
@@ -1205,7 +1242,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       const currentTime = Date.now()
       if (currentTime - lastLaserTimeRef.current > 150) {
         const leftLaser: Laser = {
-          id: Date.now() + Math.random(),
+          id: nextParticleId(),
           x: currentPaddle.x + 5,
           y: currentPaddle.y - 10,
           width: 4,
@@ -1213,7 +1250,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           dy: -10
         }
         const rightLaser: Laser = {
-          id: Date.now() + Math.random() + 0.1,
+          id: nextParticleId(),
           x: currentPaddle.x + currentPaddle.width - 9,
           y: currentPaddle.y - 10,
           width: 4,
@@ -1261,7 +1298,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             if (Math.random() < POWERUP_SPAWN_CHANCE) {
               const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
               const newPowerUp: PowerUp = {
-                id: Date.now() + Math.random(),
+                id: nextParticleId(),
                 x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
                 y: brick.y,
                 width: POWERUP_SIZE,

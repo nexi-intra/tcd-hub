@@ -19,6 +19,7 @@ import { BirthdayCelebration } from '@/components/BirthdayCelebration'
 import { UpdateNotification } from '@/components/UpdateNotification'
 import { GuideImportStatus } from '@/components/GuideImportStatus'
 import { toast, Toaster } from 'sonner'
+import { setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
 
 type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games' | 'projects' | 'notebook'
 
@@ -76,10 +77,9 @@ async function createSession(userId: string, email: string, duration: number): P
   // Ryd udløbne sessioner, så den delte fil ikke vokser ubegrænset.
   const now = Date.now()
   for (const key of Object.keys(sessions)) {
-    if (sessions[key].expiresAt < now) delete sessions[key]
+    if (sessions[key].expiresAt < now) await deleteKvObjectField('active-sessions', key)
   }
-  sessions[token] = { token, email, userId, expiresAt, createdAt }
-  await window.kv.set('active-sessions', sessions)
+  await setKvObjectField('active-sessions', token, { token, email, userId, expiresAt, createdAt })
   
   return token
 }
@@ -88,15 +88,12 @@ async function createSession(userId: string, email: string, duration: number): P
 async function renewSession(token: string): Promise<void> {
   const sessions = await window.kv.get<Record<string, StoredSession>>('active-sessions') || {}
   if (sessions[token]) {
-    sessions[token].expiresAt = Date.now() + REMEMBERED_SESSION_DURATION
-    await window.kv.set('active-sessions', sessions)
+    await setKvObjectField('active-sessions', token, { ...sessions[token], expiresAt: Date.now() + REMEMBERED_SESSION_DURATION })
   }
 }
 
 async function deleteSession(token: string): Promise<void> {
-  const sessions = await window.kv.get<Record<string, StoredSession>>('active-sessions') || {}
-  delete sessions[token]
-  await window.kv.set('active-sessions', sessions)
+  await deleteKvObjectField('active-sessions', token)
 }
 
 function App() {

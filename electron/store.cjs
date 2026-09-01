@@ -171,11 +171,27 @@ function createStore(dataDir) {
    * Valgfri `path` (array af nøgler) navigerer ned i et objekt til et nested
    * array, fx { path: ['easy'] } for et leaderboard opdelt pr. sværhedsgrad —
    * resten af objektet bevares, kun arrayet på den sti opdateres.
-   * Returnerer det opdaterede array. Kaster hvis nøglen (på stien) ikke er et array.
+   *
+   * To ekstra ops arbejder i stedet på et almindeligt objekt (fx 'users', keyet
+   * pr. email) under samme fil-lås:
+   *   { op: 'setField', field, value }  — sæt/erstat én nøgle i objektet
+   *   { op: 'deleteField', field }      — fjern én nøgle fra objektet
+   *
+   * Returnerer det opdaterede array/objekt. Kaster hvis nøglen (på stien) ikke
+   * har den forventede type (array for array-ops, objekt for felt-ops).
    */
   function update(key, operation) {
     acquireLock(key)
     try {
+      if (operation.op === 'setField' || operation.op === 'deleteField') {
+        const current = get(key)
+        const root = current && typeof current === 'object' && !Array.isArray(current) ? current : {}
+        if (operation.op === 'setField') root[operation.field] = operation.value
+        else delete root[operation.field]
+        set(key, root)
+        return root
+      }
+
       const current = get(key)
       const path = operation.path && operation.path.length > 0 ? operation.path : null
       let root

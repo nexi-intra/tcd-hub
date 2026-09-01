@@ -20,7 +20,7 @@ import { UserRole, ADMIN_EMAIL, hasManagerAccess, getRoleDisplayName, getRoleDes
 import { hashPassword } from '@/lib/passwords'
 import { newId } from '@/lib/utils'
 import { parseLocalDate } from '@/lib/dateUtils'
-import { appendToKvArray, updateKvArrayItem } from '@/lib/kvArrays'
+import { appendToKvArray, updateKvArrayItem, removeFromKvArray, upsertInKvArray, setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
 import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
@@ -145,8 +145,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const sendUserDecisionEmail = async (user: User, approved: boolean) => {
     try {
       const emailContent = approved ? userApprovedEmail(user.fullName, userEmail) : userRejectedEmail(user.fullName, userEmail)
-      const emails = (await window.kv.get<Array<{ id: string; from: string; to: string; subject: string; message: string; timestamp: number; read: boolean }>>('emails')) || []
-      emails.push({
+      await appendToKvArray('emails', [{
         id: `${Date.now()}-user-decision`,
         from: userEmail,
         to: user.email,
@@ -154,8 +153,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         message: emailContent.body,
         timestamp: Date.now(),
         read: false,
-      })
-      await window.kv.set('emails', emails)
+      }])
     } catch (error) {
       console.error('Error sending user decision email:', error)
     }
@@ -167,8 +165,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       toast.error('Bruger ikke fundet')
       return
     }
-    usersData[user.email].status = 'approved'
-    await window.kv.set('users', usersData)
+    await setKvObjectField('users', user.email, { ...usersData[user.email], status: 'approved' })
     await loadUsers()
     await sendUserDecisionEmail(user, true)
     toast.success(`${user.fullName} er godkendt og kan nu logge ind`)
@@ -180,8 +177,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       toast.error('Bruger ikke fundet')
       return
     }
-    usersData[user.email].status = 'rejected'
-    await window.kv.set('users', usersData)
+    await setKvObjectField('users', user.email, { ...usersData[user.email], status: 'rejected' })
     await loadUsers()
     await sendUserDecisionEmail(user, false)
     toast.success(`Anmodningen fra ${user.fullName} er afvist`)
@@ -235,23 +231,14 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const birthdaysData = await window.kv.get<BirthdayEntry[]>('employee-birthdays') || []
-    const index = birthdaysData.findIndex(b => b.email === editingBirthday.email)
-    
     const updatedEntry: BirthdayEntry = {
       email: editingBirthday.email,
       fullName: editingBirthday.fullName,
       birthday: birthdayDate,
       birthYear: birthYear ? parseInt(birthYear) : undefined
     }
-    
-    if (index !== -1) {
-      birthdaysData[index] = updatedEntry
-    } else {
-      birthdaysData.push(updatedEntry)
-    }
 
-    await window.kv.set('employee-birthdays', birthdaysData)
+    await upsertInKvArray('employee-birthdays', [{ ...updatedEntry, id: updatedEntry.email }])
     await loadBirthdays()
     
     setIsEditBirthdayDialogOpen(false)
@@ -262,9 +249,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const deleteBirthday = async (email: string) => {
-    const birthdaysData = await window.kv.get<BirthdayEntry[]>('employee-birthdays') || []
-    const updated = birthdaysData.filter(b => b.email !== email)
-    await window.kv.set('employee-birthdays', updated)
+    await removeFromKvArray('employee-birthdays', [email])
     await loadBirthdays()
     toast.success('Fødselsdag slettet')
   }
@@ -277,9 +262,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
     const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
-      usersData[email].role = newRole
-      usersData[email].isManager = newRole === 'manager' || newRole === 'admin'
-      await window.kv.set('users', usersData)
+      await setKvObjectField('users', email, {
+        ...usersData[email],
+        role: newRole,
+        isManager: newRole === 'manager' || newRole === 'admin',
+      })
       await loadUsers()
       
       toast.success(`Bruger ændret til ${getRoleDisplayName(newRole)}`)
@@ -296,12 +283,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     if (usersData && usersData[email]) {
       const userFullName = usersData[email].fullName
       
-      delete usersData[email]
-      await window.kv.set('users', usersData)
+      await deleteKvObjectField('users', email)
       
       const assignments = (await window.kv.get<Array<{ id: string; employeeId: string; employeeName: string; roleId: string; date: string; comment?: string }>>('shift-assignments')) || []
-      const updatedAssignments = assignments.filter(a => a.employeeName !== userFullName)
-      await window.kv.set('shift-assignments', updatedAssignments)
+      const assignmentIdsToRemove = assignments.filter(a => a.employeeName === userFullName).map(a => a.id)
+      await removeFromKvArray('shift-assignments', assignmentIdsToRemove)
       
       await loadUsers()
       toast.success('Bruger slettet')
@@ -377,13 +363,12 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     }
 
     if (newEmail.trim().toLowerCase() !== editingUser.email.toLowerCase()) {
-      delete usersData[editingUser.email]
-      usersData[newEmail.trim().toLowerCase()] = updatedUserData
+      await deleteKvObjectField('users', editingUser.email)
+      await setKvObjectField('users', newEmail.trim().toLowerCase(), updatedUserData)
     } else {
-      usersData[editingUser.email] = updatedUserData
+      await setKvObjectField('users', editingUser.email, updatedUserData)
     }
 
-    await window.kv.set('users', usersData)
     await loadUsers()
     setIsEditDialogOpen(false)
     setEditingUser(null)
@@ -426,19 +411,17 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    usersData[newUserEmail.toLowerCase()] = {
-      email: newUserEmail.toLowerCase(),
-      password: await hashPassword(newUserPassword.trim()),
-      fullName: newUserName.trim(),
-      role: 'user',
-      isManager: false,
-      phone: newUserPhone.trim(),
-      // Manager-created accounts skip the approval flow.
-      status: 'approved'
-    }
-
     try {
-      await window.kv.set('users', usersData)
+      await setKvObjectField('users', newUserEmail.toLowerCase(), {
+        email: newUserEmail.toLowerCase(),
+        password: await hashPassword(newUserPassword.trim()),
+        fullName: newUserName.trim(),
+        role: 'user',
+        isManager: false,
+        phone: newUserPhone.trim(),
+        // Manager-created accounts skip the approval flow.
+        status: 'approved'
+      })
     } catch (error) {
       console.error('Failed to save new user:', error)
       toast.error(`Kunne ikke gemme bruger: ${error instanceof Error ? error.message : String(error)}`)
@@ -457,9 +440,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const deleteSickLeave = async (id: string) => {
-    const entries = await window.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
-    const updatedEntries = entries.filter(e => e.id !== id)
-    await window.kv.set('sick-leave-entries', updatedEntries)
+    await removeFromKvArray('sick-leave-entries', [id])
     await loadSickLeaveEntries()
     toast.success('Sygemelding slettet')
   }

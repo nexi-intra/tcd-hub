@@ -47,3 +47,17 @@ export async function upsertInNestedKvArray<T extends { id: string }>(
 ): Promise<T[]> {
   return window.kv.update<T>(key, { op: 'upsert', items, path })
 }
+
+/**
+ * Atomar opdatering af ét felt i et objekt (fx 'users', keyet pr. email) under
+ * samme fil-lås som array-helperne ovenfor — bruges hvor data ikke er et array
+ * af {id}-objekter, men et opslagsobjekt.
+ */
+export async function setKvObjectField(key: string, field: string, value: unknown): Promise<Record<string, unknown>> {
+  return window.kv.updateField(key, { op: 'setField', field, value })
+}
+
+/** Fjerner ét felt (fx én bruger) fra et opslagsobjekt under fil-lås. */
+export async function deleteKvObjectField(key: string, field: string): Promise<Record<string, unknown>> {
+  return window.kv.updateField(key, { op: 'deleteField', field })
+}

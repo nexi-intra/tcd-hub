@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
+import { appendToKvArray, removeFromKvArray, setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -130,8 +131,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
       color: newRoleColor
     }
 
-    const updatedRoles = [...shiftRoles, newRole]
-    await window.kv.set('shift-roles', updatedRoles)
+    const updatedRoles = await appendToKvArray<ShiftRole>('shift-roles', [newRole])
     setShiftRoles(updatedRoles)
     setNewRoleName('')
     setNewRoleColor('#8b5cf6')
@@ -140,14 +140,13 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
   }
 
   const handleDeleteRole = async (roleId: string) => {
-    const updatedRoles = shiftRoles.filter(r => r.id !== roleId)
-    await window.kv.set('shift-roles', updatedRoles)
+    const updatedRoles = await removeFromKvArray<ShiftRole>('shift-roles', [roleId])
     setShiftRoles(updatedRoles)
-    
-    const assignments = await window.kv.get<any[]>('shift-assignments') || []
-    const updatedAssignments = assignments.filter(a => a.roleId !== roleId)
-    await window.kv.set('shift-assignments', updatedAssignments)
-    
+
+    const assignments = await window.kv.get<{ id: string; roleId: string }[]>('shift-assignments') || []
+    const assignmentIdsToRemove = assignments.filter(a => a.roleId === roleId).map(a => a.id)
+    await removeFromKvArray('shift-assignments', assignmentIdsToRemove)
+
     toast.success('Opgave slettet')
   }
 
@@ -196,19 +195,18 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
     }
 
     if (editingEmployee && editingEmployee.email !== employeeForm.email) {
-      delete usersData[editingEmployee.email]
+      await deleteKvObjectField('users', editingEmployee.email)
     }
 
     const trimmedPassword = employeeForm.password.trim()
-    usersData[employeeForm.email] = {
+    await setKvObjectField('users', employeeForm.email, {
       email: employeeForm.email,
       password: trimmedPassword ? await hashPassword(trimmedPassword) : usersData[employeeForm.email]?.password || '',
       fullName: employeeForm.fullName,
       role: employeeForm.role,
       isManager: employeeForm.role === 'manager' || employeeForm.role === 'admin'
-    }
+    })
 
-    await window.kv.set('users', usersData)
     await loadUsers()
     setShowEmployeeDialog(false)
     toast.success(editingEmployee ? 'Medarbejder opdateret' : 'Medarbejder oprettet')
@@ -222,8 +220,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
 
     const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
-      delete usersData[email]
-      await window.kv.set('users', usersData)
+      await deleteKvObjectField('users', email)
       await loadUsers()
       toast.success('Medarbejder slettet')
     }
@@ -237,9 +234,11 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
 
     const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
-      usersData[email].role = newRole
-      usersData[email].isManager = newRole === 'manager' || newRole === 'admin'
-      await window.kv.set('users', usersData)
+      await setKvObjectField('users', email, {
+        ...usersData[email],
+        role: newRole,
+        isManager: newRole === 'manager' || newRole === 'admin',
+      })
       await loadUsers()
       
       toast.success(`Bruger ændret til ${getRoleDisplayName(newRole)}`)

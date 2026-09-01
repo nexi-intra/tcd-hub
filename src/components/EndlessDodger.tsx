@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { upsertInNestedKvArray } from '@/lib/kvArrays'
+import { nextParticleId } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface Chicken {
@@ -300,7 +301,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       const angle = Math.random() * Math.PI * 2
       const velocity = speed * (0.4 + Math.random() * 0.6)
       particlesRef.current.push({
-        id: Date.now() + Math.random() + i,
+        id: nextParticleId(),
         x,
         y,
         vx: Math.cos(angle) * velocity,
@@ -315,7 +316,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
 
   const spawnThrusterParticle = (x: number, y: number) => {
     particlesRef.current.push({
-      id: Date.now() + Math.random(),
+      id: nextParticleId(),
       x,
       y,
       vx: (Math.random() - 0.5) * 1.2,
@@ -570,7 +571,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     if (frontLine.length > 0 && Math.random() < formationEggChanceRef.current * frontLine.length) {
       const shooter = frontLine[Math.floor(Math.random() * frontLine.length)]
       eggsRef.current.push({
-        id: Date.now() + Math.random(),
+        id: nextParticleId(),
         x: shooter.x + CHICKEN_SIZE / 2 - EGG_SIZE / 2,
         y: shooter.y + CHICKEN_SIZE
       })
@@ -602,7 +603,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           spawnParticles(c.x + CHICKEN_SIZE / 2, c.y + CHICKEN_SIZE / 2, 14, ['#fff3d6', '#ffb703', '#ff4d6d', '#ffffff'], 5)
           if (Math.random() < POWERUP_DROP_CHANCE) {
             powerUpsRef.current.push({
-              id: Date.now() + Math.random(),
+              id: nextParticleId(),
               x: c.x + CHICKEN_SIZE / 2 - POWERUP_SIZE / 2,
               y: c.y,
               type: Math.random() < 0.5 ? 'shield' : 'rapidfire'

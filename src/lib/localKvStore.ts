@@ -13,6 +13,11 @@ export interface KvStore {
    * fil-lås på tværs af klienter, så samtidige skrivninger ikke taber elementer.
    */
   update<T extends { id: string }>(key: string, operation: KvArrayOperation<T>): Promise<T[]>
+  /**
+   * Atomar opdatering af ét felt i et objekt (fx 'users', keyet pr. email) —
+   * samme fil-lås som `update()`, men til data der ikke er et array af {id}-objekter.
+   */
+  updateField(key: string, operation: KvFieldOperation): Promise<Record<string, unknown>>
   /** Notifies when keys change (other tabs/clients, and local writes). Returns unsubscribe. */
   subscribe(listener: (changedKeys: string[]) => void): () => void
 }
@@ -21,6 +26,10 @@ export type KvArrayOperation<T extends { id: string }> =
   | { op: 'append'; items: T[]; path?: string[] }
   | { op: 'upsert'; items: T[]; path?: string[] }
   | { op: 'remove'; ids: string[]; path?: string[] }
+
+export type KvFieldOperation =
+  | { op: 'setField'; field: string; value: unknown }
+  | { op: 'deleteField'; field: string }
 
 const PREFIX = 'tcd-hub:'
 
@@ -164,5 +173,16 @@ export const localKv: KvStore = {
   subscribe(listener) {
     listeners.add(listener)
     return () => listeners.delete(listener)
+  },
+
+  // Browser kører single-client pr. origin — simpel read-modify-write rækker her.
+  async updateField(key: string, operation: KvFieldOperation): Promise<Record<string, unknown>> {
+    const current = await localKv.get<Record<string, unknown>>(key)
+    const root: Record<string, unknown> = current && typeof current === 'object' && !Array.isArray(current) ? current : {}
+    if (operation.op === 'setField') root[operation.field] = operation.value
+    else delete root[operation.field]
+    write(key, JSON.stringify(root))
+    notify([key])
+    return root
   },
 }

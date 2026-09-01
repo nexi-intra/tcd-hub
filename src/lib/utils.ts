@@ -14,3 +14,10 @@ export function newId(prefix: string): string {
 export function yieldToBrowser(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0))
 }
+
+let particleIdCounter = 0
+/** Monotont stigende numerisk id til kortlivede visuelle elementer (partikler, projektiler i spillene) — undgår kollisioner fra `Date.now() + Math.random()` når flere spawner i samme millisekund. */
+export function nextParticleId(): number {
+  particleIdCounter += 1
+  return particleIdCounter
+}

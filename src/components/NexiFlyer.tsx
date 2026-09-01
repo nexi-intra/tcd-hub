@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { upsertInNestedKvArray } from '@/lib/kvArrays'
+import { nextParticleId } from '@/lib/utils'
 
 interface Pipe {
   id: number
@@ -241,7 +242,7 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
     const gapY = minGapY + Math.random() * Math.max(1, maxGapY - minGapY)
 
     pipesRef.current.push({
-      id: Date.now() + Math.random(),
+      id: nextParticleId(),
       x: GAME_WIDTH + PIPE_WIDTH,
       gapY,
       passed: false

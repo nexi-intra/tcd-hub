@@ -1,4 +1,4 @@
-import type { KvStore, KvArrayOperation } from './localKvStore'
+import type { KvStore, KvArrayOperation, KvFieldOperation } from './localKvStore'
 
 // Raw API exposed by electron/preload.cjs via contextBridge.
 export interface ElectronKvApi {
@@ -30,6 +30,9 @@ export function createElectronKv(api: ElectronKvApi): KvStore {
     },
     async update<T extends { id: string }>(key: string, operation: KvArrayOperation<T>): Promise<T[]> {
       return (await api.update(key, operation)) as T[]
+    },
+    async updateField(key: string, operation: KvFieldOperation): Promise<Record<string, unknown>> {
+      return (await api.update(key, operation)) as Record<string, unknown>
     },
     subscribe(listener) {
       return api.onChanged(listener)
