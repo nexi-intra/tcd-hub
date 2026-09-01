@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { useKV } from '@/hooks/useKV'
 import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
+import { AutoText } from '@/components/AutoText'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
@@ -883,7 +884,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                             title={cellComment}
                                           >
                                             <ChatText size={11} weight="duotone" className="text-muted-foreground" />
-                                            <span className="truncate flex-1">{cellComment}</span>
+                                            <span className="truncate flex-1"><AutoText text={cellComment} /></span>
                                           </div>
                                           <Button
                                             size="sm"
@@ -1156,7 +1157,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                           <Tag size={28} style={{ color: role.color }} weight="duotone" />
                         </div>
                         <div className="flex-1">
-                          <div className="font-bold text-lg mb-1">{role.name}</div>
+                          <div className="font-bold text-lg mb-1"><AutoText text={role.name} /></div>
                         </div>
                         <div
                           className="px-5 py-2.5 rounded-lg font-semibold text-sm"

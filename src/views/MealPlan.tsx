@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useKV } from '@/hooks/useKV'
+import { AutoText } from '@/components/AutoText'
 import { toast } from 'sonner'
 import { getWeekNumber, getStartOfWeek, formatDate } from '@/lib/dateUtils'
 import type { WeekMenu } from '@/lib/types'
@@ -361,7 +362,9 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                           />
                         ) : (
                           <div className="text-foreground whitespace-pre-wrap min-h-[60px] p-3 rounded-md bg-card">
-                            {currentMenu?.meals[day.key] || (
+                            {currentMenu?.meals[day.key] ? (
+                              <AutoText text={currentMenu.meals[day.key]} />
+                            ) : (
                               <span className="text-muted-foreground italic">
                                 Ingen menu planlagt
                               </span>

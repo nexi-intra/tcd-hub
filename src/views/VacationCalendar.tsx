@@ -11,6 +11,7 @@ import { UserProfile } from '@/components/UserProfile'
 import { SingleDayOffDialog } from '@/components/SingleDayOffDialog'
 import { VacationRequestDialog } from '@/components/VacationRequestDialog'
 import { toast } from 'sonner'
+import { AutoText } from '@/components/AutoText'
 import { cn, newId } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import { getWeekNumber as getISOWeekNumber, parseLocalDate } from '@/lib/dateUtils'
@@ -413,7 +414,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
             })}
           </div>
           {vacation.notes && (
-            <div className="text-sm text-muted-foreground">{vacation.notes}</div>
+            <div className="text-sm text-muted-foreground"><AutoText text={vacation.notes} /></div>
           )}
           {showReviewActions && (
             <div className="text-xs text-muted-foreground mt-1">

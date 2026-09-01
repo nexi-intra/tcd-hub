@@ -1,0 +1,35 @@
+# App-wide indholdsoversættelse (Bergamot)
+
+Mål: Sprogvælgeren i hovedhubben (DA/EN) skal ikke kun skifte UI-tekster, men også
+automatisk oversætte brugerens frie tekst-indhold (projekter, madplan, e-mails,
+notesbog, ferienoter, vagtkommentarer osv.) via samme neurale Bergamot-motor som
+guiderne bruger. Original tekst ændres ALDRIG i lageret — kun visningen oversættes.
+
+## Fase 1 — Fundament
+- [x] `src/lib/useAutoTranslate.ts`: hook der detekterer kildesprog, sammenligner med
+      valgt app-sprog, og kalder `translateTextAsync` hvis de er forskellige. In-memory
+      cache (`Map`) deler resultater på tværs af hele appen.
+- [x] `src/components/AutoText.tsx`: lille wrapper-komponent til at droppe direkte i JSX
+      (`<AutoText text={project.title} />`), understøtter `as`-prop for tag/element.
+
+## Fase 2 — Projekter
+- [x] `src/views/ProjectBoard.tsx`: titel + beskrivelse på projektkort/-liste bruger `AutoText`.
+
+## Fase 3 — Madplan
+- [x] `src/views/MealPlan.tsx`: de 5 ugedags-tekstfelter bruger `AutoText`.
+
+## Fase 4 — E-mail
+- [x] `src/views/EmailSystem.tsx`: emne + besked i mail-visning bruger `AutoText`.
+
+## Fase 5 — Notesbog
+- [x] `src/views/VirtualNotebook.tsx`: note-titel + indhold bruger `AutoText`.
+
+## Fase 6 — Ferie & vagter
+- [x] `src/views/VacationCalendar.tsx`: valgfri notes-felt bruger `AutoText`.
+- [x] `src/views/ShiftSchedule.tsx`: vagtkommentar + rollenavn bruger `AutoText`.
+
+## Fase 7 — Validering
+- [x] `npm run build` + `npm test`
+- [x] Pak + deploy til `TCD-Hub 1.4.0` (samme pipeline som guide-oversættelsen)
+- [ ] Manuel test (BRUGER): skift sprog i hub-headeren, tjek at projekter/madplan/mails
+      m.fl. viser oversat tekst uden at ændre det gemte originalindhold.

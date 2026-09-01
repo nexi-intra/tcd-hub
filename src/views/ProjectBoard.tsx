@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { AutoText } from '@/components/AutoText'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { newId } from '@/lib/utils'
@@ -220,7 +221,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
         >
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex-1">
-              <h3 className="text-lg font-bold text-foreground mb-2">{project.title}</h3>
+              <h3 className="text-lg font-bold text-foreground mb-2"><AutoText text={project.title} /></h3>
               <Badge className={`${getStatusColor(project.status)} text-xs font-semibold`}>
                 {getStatusLabel(project.status)}
               </Badge>
@@ -263,7 +264,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
           </div>
 
           {project.description && (
-            <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{project.description}</p>
+            <p className="text-sm text-muted-foreground mb-4 leading-relaxed"><AutoText text={project.description} /></p>
           )}
 
           <div className="space-y-2 mb-4">

@@ -35,6 +35,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useKV } from '@/hooks/useKV'
 import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
+import { AutoText } from '@/components/AutoText'
 import { cn, newId } from '@/lib/utils'
 import { appendToKvArray } from '@/lib/kvArrays'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -1168,10 +1169,10 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                     "text-sm mb-1 truncate",
                                     !email.read && view === 'inbox' ? "font-semibold" : "font-medium"
                                   )}>
-                                    {email.subject}
+                                    <AutoText text={email.subject} />
                                   </div>
                                   <p className="text-sm text-muted-foreground truncate">
-                                    {email.message}
+                                    <AutoText text={email.message} />
                                   </p>
                                 </div>
                                 {!email.read && view === 'inbox' && (
@@ -1246,7 +1247,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                     </div>
 
                     <div className="border rounded-lg p-6">
-                      <h2 className="text-2xl font-bold mb-4">{selectedEmail.subject}</h2>
+                      <h2 className="text-2xl font-bold mb-4"><AutoText text={selectedEmail.subject} /></h2>
                       
                       <div className="flex items-start gap-3 mb-6">
                         <Avatar className="h-12 w-12">
@@ -1276,7 +1277,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
 
                       <div className="prose prose-sm max-w-none">
                         <p className="whitespace-pre-wrap text-foreground leading-relaxed">
-                          {selectedEmail.message}
+                          <AutoText text={selectedEmail.message} />
                         </p>
                       </div>
                     </div>

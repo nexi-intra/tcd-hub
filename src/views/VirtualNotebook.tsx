@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
+import { AutoText } from '@/components/AutoText'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { newId } from '@/lib/utils'
 import { appendToKvArray, upsertInKvArray, removeFromKvArray } from '@/lib/kvArrays'
@@ -426,7 +427,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                           <Card className="p-3 h-[280px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
                             <div className="flex justify-between items-start mb-1.5 gap-2 flex-shrink-0">
                               <h3 className="font-semibold text-sm line-clamp-2 flex-1">
-                                {note.title}
+                                <AutoText text={note.title} />
                               </h3>
                               {canEditNote(note) && (
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -452,7 +453,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                             
                             <div className="flex-1 mb-1.5 overflow-hidden relative">
                               <p className="text-xs leading-[1.4] text-muted-foreground whitespace-pre-wrap line-clamp-[12]">
-                                {preview}
+                                <AutoText text={preview} />
                               </p>
                               {isTruncated && (
                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-card/95">
@@ -521,7 +522,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                           <Card className="p-3 h-[280px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
                             <div className="flex justify-between items-start mb-1.5 gap-2 flex-shrink-0">
                               <h3 className="font-semibold text-sm line-clamp-2 flex-1">
-                                {note.title}
+                                <AutoText text={note.title} />
                               </h3>
                               {canEditNote(note) && (
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -547,7 +548,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                             
                             <div className="flex-1 mb-1.5 overflow-hidden relative">
                               <p className="text-xs leading-[1.4] text-muted-foreground whitespace-pre-wrap line-clamp-[12]">
-                                {preview}
+                                <AutoText text={preview} />
                               </p>
                               {isTruncated && (
                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-card/95">
@@ -668,7 +669,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle className="text-2xl">{selectedNote?.title}</DialogTitle>
+            <DialogTitle className="text-2xl"><AutoText text={selectedNote?.title} /></DialogTitle>
             <DialogDescription className="flex items-center gap-2 mt-2">
               <Badge variant="secondary">{selectedNote?.creatorName}</Badge>
               <span>•</span>
@@ -677,7 +678,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
           </DialogHeader>
           <div className="overflow-y-auto max-h-[50vh] pr-2">
             <p className="text-sm whitespace-pre-wrap leading-relaxed">
-              {selectedNote?.content}
+              <AutoText text={selectedNote?.content} />
             </p>
           </div>
           {selectedNote && selectedNote.lastEditedBy && selectedNote.createdAt !== selectedNote.updatedAt && (
