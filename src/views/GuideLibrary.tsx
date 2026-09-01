@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useSyncExternalStore } from 'react'
 import { useKV } from '@/hooks/useKV'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,9 +10,9 @@ import { GuideSearchIndex } from '@/lib/searchIndex'
 import { deleteGuideArtifacts } from '@/lib/guideStore'
 import { guideToDocModel, resolveAuthorName } from '@/lib/docModel'
 import { isExportAvailable, getExportRoot, chooseAndSaveExportRoot, exportGuideToLibrary } from '@/lib/guideExporter'
-import type { GuideImportDraft, ImportProgress } from '@/lib/docxImporter'
+import { guideImportManager } from '@/lib/guideImportManager'
+import type { GuideImportDraft } from '@/lib/docxImporter'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Progress } from '@/components/ui/progress'
 import { GuideCard } from '@/components/GuideCard'
 import { GuideEditor } from '@/components/GuideEditor'
 import { GuideViewer } from '@/components/GuideViewer'
@@ -21,7 +21,7 @@ import { CategoryManager } from '@/components/CategoryManager'
 import { UserProfile } from '@/components/UserProfile'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { toast, Toaster } from 'sonner'
+import { toast } from 'sonner'
 
 const defaultCategories: string[] = ['Procedures', 'Technical', 'HR', 'Safety', 'General']
 
@@ -40,10 +40,8 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
   const [editGuide, setEditGuide] = useState<Guide | undefined>()
   const [viewGuide, setViewGuide] = useState<Guide | null>(null)
   const [importDraft, setImportDraft] = useState<GuideImportDraft | null>(null)
-  const [isImporting, setIsImporting] = useState(false)
-  const [importProgress, setImportProgress] = useState<ImportProgress | null>(null)
-  const [importFileName, setImportFileName] = useState('')
-  const [importElapsedMs, setImportElapsedMs] = useState(0)
+  const importJob = useSyncExternalStore(guideImportManager.subscribe, guideImportManager.getJob)
+  const isImporting = importJob !== null
   const importInputRef = useRef<HTMLInputElement>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('All')
@@ -172,34 +170,28 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
     setDialogOpen(true)
   }
 
-  const handleImportFileSelected = async (file: File | undefined) => {
+  const handleImportFileSelected = (file: File | undefined) => {
     if (!file) return
-    setIsImporting(true)
-    setImportFileName(file.name)
-    setImportProgress(null)
-    setImportElapsedMs(0)
-    const startedAt = Date.now()
-    const ticker = window.setInterval(() => setImportElapsedMs(Date.now() - startedAt), 200)
-    try {
-      // mammoth (docx-parser) er tung og bruges kun ved import — hentes lazily i egen chunk.
-      const { importGuideFromDocx } = await import('@/lib/docxImporter')
-      const draft = await importGuideFromDocx(file, setImportProgress)
-      if (draft.sections.length === 0) {
-        toast.error('Kunne ikke finde noget indhold i dokumentet — prøv at redigere det manuelt i editoren')
-      }
-      setEditGuide(undefined)
-      setImportDraft(draft)
-      setDialogOpen(true)
-      toast.success(`"${draft.title}" importeret — gennemgå og gem for at tilføje den til biblioteket`)
-    } catch (error) {
-      console.error('Import af Word-dokument fejlede:', error)
-      toast.error(error instanceof Error ? error.message : 'Kunne ikke importere dokumentet')
-    } finally {
-      window.clearInterval(ticker)
-      setIsImporting(false)
-      setImportProgress(null)
-    }
+    // Importen kører i den globale guideImportManager (ikke lokal state), så den
+    // fortsætter selvom brugeren navigerer væk fra Guide Biblioteket.
+    guideImportManager.startImport(file).catch((error) => {
+      toast.error(error instanceof Error ? error.message : 'Kunne ikke starte importen')
+    })
   }
+
+  // Henter en færdig import-draft — enten lige nu (import fuldført mens vi var
+  // her) eller ved mount (import fuldført mens brugeren var et andet sted i appen).
+  useEffect(() => {
+    if (isImporting) return
+    const draft = guideImportManager.takePendingDraft()
+    if (!draft) return
+    if (draft.sections.length === 0) {
+      toast.error('Kunne ikke finde noget indhold i dokumentet — prøv at redigere det manuelt i editoren')
+    }
+    setEditGuide(undefined)
+    setImportDraft(draft)
+    setDialogOpen(true)
+  }, [isImporting])
 
   const handleViewGuide = (guide: Guide) => {
     setViewGuide(guide)
@@ -278,9 +270,6 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      
-      <Toaster position="top-center" richColors />
-      
       <div className="absolute top-6 right-6 left-6 z-20">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-16">
           <div className="flex items-center gap-3">
@@ -570,41 +559,6 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
       >
         <ChatCircleDots size={26} weight="duotone" />
       </motion.button>
-
-      {/* Ikke-blokerende fremdriftspanel for Word-import — resten af appen forbliver klikbar mens den kører. */}
-      <AnimatePresence>
-        {isImporting && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-6 z-30 w-80 max-w-[calc(100vw-3rem)] rounded-2xl border-2 border-border bg-card/95 backdrop-blur-md shadow-2xl p-4 space-y-3"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                <FileArrowUp size={18} weight="bold" className="text-primary animate-pulse" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold truncate">Importerer guide…</div>
-                <div className="text-xs text-muted-foreground truncate">{importFileName}</div>
-              </div>
-              <div className="text-xs font-mono text-muted-foreground shrink-0">
-                {(importElapsedMs / 1000).toFixed(1)}s
-              </div>
-            </div>
-            <Progress value={importProgress?.percent ?? 3} className="h-2" />
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground truncate">
-                {importProgress?.message || 'Starter…'}
-              </p>
-              <p className="text-xs font-semibold text-primary shrink-0">{Math.round(importProgress?.percent ?? 0)} %</p>
-            </div>
-            <p className="text-[11px] text-muted-foreground/70">
-              Du kan roligt bruge resten af appen imens.
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <GuideChat
         open={chatOpen}
