@@ -7,10 +7,11 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { DownloadSimple, FileDoc, Timer, Image as ImageIcon, FileArrowDown } from '@phosphor-icons/react'
+import { DownloadSimple, FileDoc, Timer, Image as ImageIcon, FileArrowDown, FolderOpen } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
 import { getReviewStatus, REVIEW_INTERVAL_CHOICES } from '@/lib/guideTypes'
 import { guideToDocModel, resolveAuthorName } from '@/lib/docModel'
+import { isExportAvailable, getExportRoot, chooseAndSaveExportRoot, exportGuideToLibrary } from '@/lib/guideExporter'
 import { fileStorage } from '@/lib/fileStorage'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -74,6 +75,7 @@ function StepImage({ imageId, className }: { imageId: string; className?: string
 export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
   const [authorName, setAuthorName] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   const model = useMemo(() => (guide ? guideToDocModel(guide) : null), [guide])
 
@@ -98,6 +100,25 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
       toast.error('Kunne ikke generere DOCX-filen')
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleExportToLibrary = async () => {
+    if (!model) return
+    setIsExporting(true)
+    try {
+      let root = await getExportRoot()
+      if (!root) {
+        root = await chooseAndSaveExportRoot()
+        if (!root) return
+      }
+      const filePath = await exportGuideToLibrary(model, authorName || model.authorEmail, root)
+      toast.success(`Eksporteret til ${filePath}`)
+    } catch (error) {
+      console.error('Eksport fejlede:', error)
+      toast.error(error instanceof Error ? error.message : 'Kunne ikke eksportere guiden')
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -208,6 +229,18 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
                 >
                   <FileArrowDown size={16} weight="bold" />
                   {isGenerating ? 'Genererer…' : 'Download DOCX'}
+                </Button>
+              )}
+              {hasSections && isExportAvailable() && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportToLibrary}
+                  disabled={isExporting}
+                  className="w-full sm:w-auto gap-2"
+                >
+                  <FolderOpen size={16} weight="regular" />
+                  {isExporting ? 'Eksporterer…' : 'Eksportér til bibliotek'}
                 </Button>
               )}
               {(guide.fileUrl || guide.wordFileData) && (

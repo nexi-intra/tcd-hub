@@ -194,6 +194,36 @@ app.whenReady().then(() => {
     return switchDataDir(result.filePaths[0])
   })
 
+  ipcMain.handle('guides:choose-export-dir', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Vælg rodmappe til guidebiblioteket',
+      buttonLabel: 'Brug denne mappe',
+      properties: ['openDirectory', 'createDirectory'],
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
+  // Skriver en genereret DOCX til <rod>/<kategori>/<filnavn> og opretter kategorimappen.
+  ipcMain.handle('guides:export-docx', async (_event, payload) => {
+    const sanitize = (value) => String(value || '').replace(/[\\/:*?"<>|]/g, '-').replace(/^\.+|\.+$/g, '').trim()
+    const root = String(payload?.root || '')
+    if (!root || !fs.existsSync(root)) {
+      throw new Error(`Eksport-mappen findes ikke: ${root}`)
+    }
+    const category = sanitize(payload?.category) || 'Ukategoriseret'
+    const fileName = sanitize(payload?.fileName) || 'guide.docx'
+    const targetDir = path.join(root, category)
+    if (!path.resolve(targetDir).startsWith(path.resolve(root))) {
+      throw new Error('Ugyldig kategoristi')
+    }
+    fs.mkdirSync(targetDir, { recursive: true })
+    const filePath = path.join(targetDir, fileName)
+    await fs.promises.writeFile(filePath, Buffer.from(payload.data))
+    return filePath
+  })
+
   ipcMain.handle('updates:status', () => {
     const manifest = updater.readManifest(store.dataDir)
     return {

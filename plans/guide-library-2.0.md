@@ -166,9 +166,11 @@ Opdaterings-interval [Intet ▾]  (Intet | 1 md | 2 mdr | 3 mdr | 6 mdr | 1 år)
 - [x] Download-knap i preview — docx-pakken lazy-loades (egen chunk, 364 KB) så app-opstart ikke påvirkes
 - [ ] Manuel verifikation i Word mod DESK3500 (kræver bruger-smoke-test)
 ### Fase 4 — Lokalt guidebibliotek (eksport)
-- [ ] IPC `guides:choose-export-dir` + `guides:export` (main: skriv DOCX til `<rod>/<kategori>/<titel> vX.XX.docx`, opret mapper)
-- [ ] Indstillinger i GuideLibrary (vis/skift sti, KV `guide-library-settings`)
-- [ ] "Eksportér alle" + eksport ved gemning (valgfrit)
+- [x] IPC `guides:choose-export-dir` + `guides:export-docx` (main: skriv DOCX til `<rod>/<kategori>/<titel> vX.XX.docx`, opret mapper, path-traversal-værn)
+- [x] `src/lib/guideExporter.ts` m. `ExportTarget`-interface (filsystem nu; SharePoint/OneDrive/Teams kan tilføjes som nye targets) + KV `guide-library-settings`
+- [x] Eksport-dialog i GuideLibrary (vis/skift mappe, "Eksportér alle" m. fremdrift og fejlopsamling)
+- [x] "Eksportér til bibliotek"-knap i preview (vælger mappe første gang)
+- Note: eksport-knapper vises kun i desktop-appen (window.electronGuides)
 ### Fase 5 — Søgning
 - [ ] `src/lib/searchIndex.ts` (BM25, chunks, synonymer, fuzzy) + subscribe-rebuild
 - [ ] Søge-UI: fritekst + tag/kategori-filtre + resultat-highlights

@@ -34,3 +34,8 @@ contextBridge.exposeInMainWorld('electronUpdates', {
     return () => ipcRenderer.removeListener('updates:progress', listener)
   },
 })
+
+contextBridge.exposeInMainWorld('electronGuides', {
+  chooseExportDir: () => ipcRenderer.invoke('guides:choose-export-dir'),
+  exportDocx: (payload) => ipcRenderer.invoke('guides:export-docx', payload),
+})

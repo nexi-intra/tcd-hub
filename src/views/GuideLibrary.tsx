@@ -3,10 +3,13 @@ import { useKV } from '@/hooks/useKV'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Plus, MagnifyingGlass, Books, Gear, ArrowLeft, Timer } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, Books, Gear, ArrowLeft, Timer, FolderOpen } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
 import { guidePlainText, getReviewStatus, computeNextReviewAt } from '@/lib/guideTypes'
 import { deleteGuideArtifacts } from '@/lib/guideStore'
+import { guideToDocModel, resolveAuthorName } from '@/lib/docModel'
+import { isExportAvailable, getExportRoot, chooseAndSaveExportRoot, exportGuideToLibrary } from '@/lib/guideExporter'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { GuideCard } from '@/components/GuideCard'
 import { GuideEditor } from '@/components/GuideEditor'
 import { GuideViewer } from '@/components/GuideViewer'
@@ -35,6 +38,16 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('All')
   const [showNeedsReview, setShowNeedsReview] = useState(false)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [exportRoot, setExportRootState] = useState<string | null>(null)
+  const [isExportingAll, setIsExportingAll] = useState(false)
+  const [exportProgress, setExportProgress] = useState('')
+
+  useEffect(() => {
+    if (exportDialogOpen) {
+      getExportRoot().then(setExportRootState).catch(() => setExportRootState(null))
+    }
+  }, [exportDialogOpen])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -118,6 +131,52 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
   const handleViewGuide = (guide: Guide) => {
     setViewGuide(guide)
     setViewerOpen(true)
+  }
+
+  const handleChooseExportRoot = async () => {
+    try {
+      const root = await chooseAndSaveExportRoot()
+      if (root) {
+        setExportRootState(root)
+        toast.success('Eksport-mappe valgt')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Kunne ikke vælge mappe')
+    }
+  }
+
+  const handleExportAll = async () => {
+    if (!exportRoot) {
+      toast.error('Vælg først en eksport-mappe')
+      return
+    }
+    const exportable = (guides || []).map(guideToDocModel).filter((m) => m.sections.length > 0)
+    if (exportable.length === 0) {
+      toast.error('Ingen guides med sektioner at eksportere')
+      return
+    }
+    setIsExportingAll(true)
+    let ok = 0
+    let failed = 0
+    for (let i = 0; i < exportable.length; i++) {
+      const model = exportable[i]
+      setExportProgress(`Eksporterer ${i + 1}/${exportable.length}: ${model.title}`)
+      try {
+        const authorName = await resolveAuthorName(model.authorEmail)
+        await exportGuideToLibrary(model, authorName || model.authorEmail, exportRoot)
+        ok++
+      } catch (error) {
+        console.error(`Eksport af "${model.title}" fejlede:`, error)
+        failed++
+      }
+    }
+    setExportProgress('')
+    setIsExportingAll(false)
+    if (failed === 0) {
+      toast.success(`${ok} guide${ok === 1 ? '' : 's'} eksporteret til biblioteket`)
+    } else {
+      toast.warning(`${ok} eksporteret, ${failed} fejlede — se konsollen for detaljer`)
+    }
   }
 
   const handleUpdateCategories = (updatedCategories: string[]) => {
@@ -273,6 +332,20 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
                 <span className="sm:hidden">Kategorier</span>
               </Button>
             </motion.div>
+            {isExportAvailable() && (
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExportDialogOpen(true)}
+                  className="h-10 px-4 font-semibold border-2 rounded-xl backdrop-blur-md hover:bg-muted hover:border-primary/40"
+                >
+                  <FolderOpen size={18} weight="bold" className="sm:mr-2" />
+                  <span className="hidden sm:inline">Eksport-bibliotek</span>
+                  <span className="sm:hidden">Eksport</span>
+                </Button>
+              </motion.div>
+            )}
           </div>
         </header>
 
@@ -367,6 +440,46 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
         onUpdateCategories={handleUpdateCategories}
         guides={guides || []}
       />
+
+      <Dialog open={exportDialogOpen} onOpenChange={(open) => { if (!isExportingAll) setExportDialogOpen(open) }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FolderOpen size={22} weight="duotone" />
+              Eksport-bibliotek
+            </DialogTitle>
+            <DialogDescription>
+              Guides eksporteres som DOCX til en mappe (lokal eller netværksdrev) med automatisk kategoristruktur:
+              <span className="block font-mono text-xs mt-1">&lt;mappe&gt;\&lt;kategori&gt;\&lt;titel&gt; vX.XX.docx</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <div className="text-sm font-semibold">Eksport-mappe</div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0 px-3 py-2 rounded-lg border bg-muted/40 text-sm truncate" title={exportRoot || undefined}>
+                  {exportRoot || 'Ingen mappe valgt'}
+                </div>
+                <Button variant="outline" size="sm" onClick={handleChooseExportRoot} disabled={isExportingAll} className="shrink-0">
+                  Vælg mappe
+                </Button>
+              </div>
+            </div>
+            {exportProgress && (
+              <div className="text-sm text-muted-foreground animate-pulse">{exportProgress}</div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportDialogOpen(false)} disabled={isExportingAll}>
+              Luk
+            </Button>
+            <Button onClick={handleExportAll} disabled={!exportRoot || isExportingAll} className="gap-2">
+              <FolderOpen size={16} weight="bold" />
+              {isExportingAll ? 'Eksporterer…' : 'Eksportér alle guides'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
