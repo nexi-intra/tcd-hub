@@ -1,0 +1,85 @@
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const fs = require('fs')
+const os = require('os')
+const path = require('path')
+const { execFileSync } = require('child_process')
+const { publishUpdate, prepareUpdate, isNewerVersion, readManifest } = require('./updater.cjs')
+
+const EXE_NAME = 'TCD Hub.exe'
+
+function makeTempDir(t, prefix) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix))
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  return dir
+}
+
+/** Builds a minimal release zip that looks like a packaged TCD Hub build. */
+function buildReleaseZip(t) {
+  const sourceDir = makeTempDir(t, 'tcd-release-src-')
+  fs.writeFileSync(path.join(sourceDir, EXE_NAME), 'binary-placeholder')
+  fs.mkdirSync(path.join(sourceDir, 'resources'))
+  fs.writeFileSync(path.join(sourceDir, 'resources', 'app.asar'), 'asar-placeholder')
+
+  const zipDir = makeTempDir(t, 'tcd-release-zip-')
+  const zipPath = path.join(zipDir, 'TCD Hub-9.9.9-win.zip')
+  execFileSync('tar.exe', ['-a', '-c', '-f', zipPath, '-C', sourceDir, '.'], { windowsHide: true })
+  return zipPath
+}
+
+test('publishUpdate writes a manifest that clients detect as newer', async (t) => {
+  const dataDir = makeTempDir(t, 'tcd-data-')
+  const zipPath = buildReleaseZip(t)
+
+  const manifest = await publishUpdate(dataDir, {
+    zipPath,
+    version: '9.9.9',
+    notes: 'test',
+    publishedBy: 'tester',
+  })
+
+  assert.equal(manifest.version, '9.9.9')
+  assert.equal(readManifest(dataDir).sha256, manifest.sha256)
+  assert.ok(isNewerVersion(manifest.version, '1.2.2'))
+})
+
+test('prepareUpdate downloads and extracts without touching the installed app', async (t) => {
+  const dataDir = makeTempDir(t, 'tcd-data-')
+  const installDir = makeTempDir(t, 'tcd-install-')
+  const zipPath = buildReleaseZip(t)
+
+  fs.writeFileSync(path.join(installDir, EXE_NAME), 'current-version')
+
+  const manifest = await publishUpdate(dataDir, { zipPath, version: '9.9.9', notes: '', publishedBy: '' })
+
+  const phases = []
+  const prepared = await prepareUpdate({
+    dataDir,
+    manifest,
+    exePath: path.join(installDir, EXE_NAME),
+    onProgress: (progress) => phases.push(progress.phase),
+  })
+  t.after(() => fs.rmSync(prepared.workDir, { recursive: true, force: true }))
+
+  assert.ok(fs.existsSync(path.join(prepared.stagingDir, EXE_NAME)))
+  assert.ok(phases.includes('downloading'))
+  assert.ok(phases.includes('verifying'))
+  assert.ok(phases.includes('extracting'))
+  assert.equal(phases.at(-1), 'ready')
+  // The running installation must stay untouched until the restart step.
+  assert.equal(fs.readFileSync(path.join(installDir, EXE_NAME), 'utf8'), 'current-version')
+})
+
+test('prepareUpdate rejects a package whose checksum does not match', async (t) => {
+  const dataDir = makeTempDir(t, 'tcd-data-')
+  const installDir = makeTempDir(t, 'tcd-install-')
+  const zipPath = buildReleaseZip(t)
+
+  const manifest = await publishUpdate(dataDir, { zipPath, version: '9.9.9', notes: '', publishedBy: '' })
+  const tampered = { ...manifest, sha256: 'f'.repeat(64) }
+
+  await assert.rejects(
+    prepareUpdate({ dataDir, manifest: tampered, exePath: path.join(installDir, EXE_NAME) }),
+    /Checksum-fejl/
+  )
+})

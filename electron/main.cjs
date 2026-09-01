@@ -72,12 +72,15 @@ let store
 let dataDirSource = 'default'
 let stopWatcher = null
 let updateCheckTimer = null
+let updateInProgress = false
 
 const UPDATE_CHECK_INTERVAL = 15 * 60 * 1000
 
 /** Tjekker manifestet i den fælles mappe og notificerer alle vinduer ved ny version. */
 function checkForUpdates() {
   try {
+    // Undgå at afbryde en opdatering, der allerede henter i baggrunden.
+    if (updateInProgress) return null
     const manifest = updater.readManifest(store.dataDir)
     if (manifest && updater.isNewerVersion(manifest.version, app.getVersion())) {
       broadcast('updates:available', manifest)
@@ -237,19 +240,36 @@ app.whenReady().then(() => {
     if (!app.isPackaged) {
       throw new Error('Opdatering kan kun installeres fra den byggede app (ikke i udviklingstilstand)')
     }
+    if (updateInProgress) return
     const manifest = updater.readManifest(store.dataDir)
     if (!manifest || !updater.isNewerVersion(manifest.version, app.getVersion())) {
       throw new Error('Der er ingen nyere version at installere')
     }
+
+    updateInProgress = true
     const exePath = app.getPath('exe')
-    await updater.installUpdate({
-      dataDir: store.dataDir,
-      manifest,
-      installDir: path.dirname(exePath),
-      exePath,
-    })
-    // Scriptet venter på at processen lukker og kopierer derefter filerne over.
-    setTimeout(() => app.quit(), 200)
+    try {
+      // Hentes og udpakkes i baggrunden; appen forbliver brugbar imens.
+      const prepared = await updater.prepareUpdate({
+        dataDir: store.dataDir,
+        manifest,
+        exePath,
+        onProgress: (progress) => broadcast('updates:progress', progress),
+      })
+
+      broadcast('updates:progress', { phase: 'restarting', percent: 100 })
+      updater.applyPreparedUpdate({
+        ...prepared,
+        installDir: path.dirname(exePath),
+        exePath,
+      })
+      // Giv vinduet et øjeblik til at vise beskeden før appen lukker og byttes ud.
+      setTimeout(() => app.quit(), 1200)
+    } catch (error) {
+      updateInProgress = false
+      broadcast('updates:progress', { phase: 'error', percent: 0, message: error.message })
+      throw error
+    }
   })
 
   startWatcher()

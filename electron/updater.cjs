@@ -12,10 +12,12 @@
 // nye filer over den lokale appmappe (fx C:\TCD TOOLS\...) og genstarter appen.
 // Alt foregår i brugerens egne mapper — ingen administrator-rettigheder kræves.
 const fs = require('fs')
+const fsp = require('fs/promises')
 const path = require('path')
 const os = require('os')
 const crypto = require('crypto')
-const { spawn, execFileSync } = require('child_process')
+const { pipeline } = require('stream/promises')
+const { spawn } = require('child_process')
 
 const UPDATES_DIR = 'updates'
 const MANIFEST_FILE = 'manifest.json'
@@ -127,55 +129,110 @@ function psQuote(value) {
   return value.replace(/'/g, "''")
 }
 
+/** Kører et konsolprogram uden at der blinker et vindue frem hos brugeren. */
+function runHidden(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { windowsHide: true, stdio: 'ignore' })
+    child.once('error', reject)
+    child.once('exit', (code) => {
+      if (code === 0) resolve()
+      else reject(new Error(`${command} afsluttede med kode ${code}`))
+    })
+  })
+}
+
 /** Udpakker en zip med tar.exe (Windows 10+) og PowerShell som fallback. */
-function extractZip(zipPath, destDir) {
-  fs.mkdirSync(destDir, { recursive: true })
+async function extractZip(zipPath, destDir) {
+  await fsp.mkdir(destDir, { recursive: true })
   try {
-    execFileSync('tar.exe', ['-xf', zipPath, '-C', destDir], { windowsHide: true })
+    await runHidden('tar.exe', ['-xf', zipPath, '-C', destDir])
     return
   } catch {
     // tar.exe mangler eller fejlede — prøv PowerShell i stedet.
   }
-  execFileSync(
-    'powershell.exe',
-    [
-      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command',
-      `Expand-Archive -LiteralPath '${psQuote(zipPath)}' -DestinationPath '${psQuote(destDir)}' -Force`,
-    ],
-    { windowsHide: true }
-  )
+  await runHidden('powershell.exe', [
+    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command',
+    `Expand-Archive -LiteralPath '${psQuote(zipPath)}' -DestinationPath '${psQuote(destDir)}' -Force`,
+  ])
 }
 
 /**
- * Forbereder opdateringen og starter det løsrevne script, der udfører den,
- * når appen er lukket. Kalderen skal selv kalde app.quit() bagefter.
+ * Kopierer og checksummer i én gennemlæsning via streams, så main-processen
+ * aldrig blokeres og brugeren kan følge med undervejs.
  */
-async function installUpdate({ dataDir, manifest, installDir, exePath }) {
+async function copyAndHash(sourcePath, targetPath, onProgress) {
+  const { size } = await fsp.stat(sourcePath)
+  const hash = crypto.createHash('sha256')
+  let copied = 0
+  let lastReported = 0
+
+  const source = fs.createReadStream(sourcePath)
+  source.on('data', (chunk) => {
+    hash.update(chunk)
+    copied += chunk.length
+    const percent = size > 0 ? Math.round((copied / size) * 100) : 0
+    if (percent !== lastReported) {
+      lastReported = percent
+      onProgress(percent)
+    }
+  })
+
+  await pipeline(source, fs.createWriteStream(targetPath))
+  return hash.digest('hex')
+}
+
+/**
+ * Henter og udpakker opdateringen i baggrunden. Appen forbliver brugbar
+ * imens; intet erstattes før applyPreparedUpdate() kaldes.
+ */
+async function prepareUpdate({ dataDir, manifest, exePath, onProgress = () => {} }) {
   const sourceZip = path.join(updatesDir(dataDir), manifest.file)
   if (!fs.existsSync(sourceZip)) {
     throw new Error('Opdateringsfilen findes ikke længere i den fælles mappe')
   }
 
-  const workDir = fs.mkdtempSync(path.join(os.tmpdir(), WORK_DIR_PREFIX))
+  const workDir = await fsp.mkdtemp(path.join(os.tmpdir(), WORK_DIR_PREFIX))
   const localZip = path.join(workDir, manifest.file)
-  // Kopiér til lokal disk først — udpakning direkte fra netværksdrev er skrøbelig.
-  fs.copyFileSync(sourceZip, localZip)
 
-  const actualSha = await sha256File(localZip)
-  if (actualSha !== manifest.sha256) {
-    fs.rmSync(workDir, { recursive: true, force: true })
-    throw new Error('Checksum-fejl: filen er beskadiget eller ændret. Prøv igen senere.')
+  try {
+    // Kopiér til lokal disk først — udpakning direkte fra netværksdrev er skrøbelig.
+    onProgress({ phase: 'downloading', percent: 0 })
+    const actualSha = await copyAndHash(sourceZip, localZip, (percent) => {
+      onProgress({ phase: 'downloading', percent })
+    })
+
+    onProgress({ phase: 'verifying', percent: 100 })
+    if (actualSha !== manifest.sha256) {
+      throw new Error('Checksum-fejl: filen er beskadiget eller ændret. Prøv igen senere.')
+    }
+
+    onProgress({ phase: 'extracting', percent: 0 })
+    const stagingDir = path.join(workDir, 'app')
+    await extractZip(localZip, stagingDir)
+
+    const exeName = path.basename(exePath)
+    if (!fs.existsSync(path.join(stagingDir, exeName))) {
+      throw new Error(`Zip-filen ligner ikke en TCD Hub-udgivelse (mangler ${exeName})`)
+    }
+
+    // Zip'en fylder meget og er ikke nødvendig efter udpakning.
+    await fsp.rm(localZip, { force: true })
+
+    onProgress({ phase: 'ready', percent: 100 })
+    return { workDir, stagingDir }
+  } catch (error) {
+    await fsp.rm(workDir, { recursive: true, force: true }).catch(() => {})
+    throw error
   }
+}
 
-  const stagingDir = path.join(workDir, 'app')
-  extractZip(localZip, stagingDir)
-
-  const exeName = path.basename(exePath)
-  if (!fs.existsSync(path.join(stagingDir, exeName))) {
-    fs.rmSync(workDir, { recursive: true, force: true })
-    throw new Error(`Zip-filen ligner ikke en TCD Hub-udgivelse (mangler ${exeName})`)
-  }
-
+/**
+ * Starter det løsrevne script, der bytter filerne og genstarter appen, når
+ * den er lukket. Scriptet køres via wscript.exe, fordi en detached cmd.exe
+ * åbner et synligt konsolvindue selv med windowsHide.
+ * Kalderen skal selv kalde app.quit() bagefter.
+ */
+function applyPreparedUpdate({ workDir, stagingDir, installDir, exePath }) {
   // "ping -n 2" bruges som 1 sekunds pause — timeout.exe virker ikke uden stdin.
   const script = [
     '@echo off',
@@ -190,7 +247,7 @@ async function installUpdate({ dataDir, manifest, installDir, exePath }) {
     '  goto wait',
     ')',
     'echo Kopierer nye filer... >> "%LOG%"',
-    `robocopy "${stagingDir}" "${installDir}" /E /R:10 /W:2 >> "%LOG%" 2>&1`,
+    `robocopy "${stagingDir}" "${installDir}" /E /R:10 /W:2 /NFL /NDL /NJH /NJS /NP >> "%LOG%" 2>&1`,
     'if %ERRORLEVEL% GEQ 8 (',
     '  echo Opdatering fejlede - robocopy exit %ERRORLEVEL% >> "%LOG%"',
     ') else (',
@@ -204,7 +261,17 @@ async function installUpdate({ dataDir, manifest, installDir, exePath }) {
   const scriptPath = path.join(workDir, 'apply-update.cmd')
   fs.writeFileSync(scriptPath, script)
 
-  const child = spawn('cmd.exe', ['/c', scriptPath], {
+  // WindowStyle 0 = fuldstændig skjult; False = vent ikke på at scriptet slutter.
+  const launcher = [
+    'Set shell = CreateObject("WScript.Shell")',
+    `shell.Run Chr(34) & "${scriptPath}" & Chr(34), 0, False`,
+    '',
+  ].join('\r\n')
+
+  const launcherPath = path.join(workDir, 'apply-update.vbs')
+  fs.writeFileSync(launcherPath, launcher)
+
+  const child = spawn('wscript.exe', [launcherPath], {
     detached: true,
     stdio: 'ignore',
     windowsHide: true,
@@ -237,7 +304,8 @@ module.exports = {
   isNewerVersion,
   versionFromFilename,
   publishUpdate,
-  installUpdate,
+  prepareUpdate,
+  applyPreparedUpdate,
   cleanupOldWorkDirs,
   sha256File,
 }

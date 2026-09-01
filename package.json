@@ -1,7 +1,7 @@
 {
     "name": "tcd-hub",
     "private": true,
-    "version": "1.2.1",
+    "version": "1.2.2",
     "type": "module",
     "main": "electron/main.cjs",
     "scripts": {
@@ -16,7 +16,9 @@
         "electron:build:updater": "npm run build && electron-builder --win nsis --publish never",
         "electron:build:portable": "npm run build && electron-builder --win portable",
         "electron:build:installer": "npm run build && electron-builder --win nsis",
-        "test:store": "node --test electron/store.test.cjs"
+        "test:store": "node --test electron/store.test.cjs",
+        "test:updater": "node --test electron/updater.test.cjs",
+        "test": "node --test electron/*.test.cjs"
     },
     "build": {
         "appId": "com.nexigroup.tcdhub",

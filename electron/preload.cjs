@@ -28,4 +28,9 @@ contextBridge.exposeInMainWorld('electronUpdates', {
     ipcRenderer.on('updates:available', listener)
     return () => ipcRenderer.removeListener('updates:available', listener)
   },
+  onProgress: (callback) => {
+    const listener = (_event, progress) => callback(progress)
+    ipcRenderer.on('updates:progress', listener)
+    return () => ipcRenderer.removeListener('updates:progress', listener)
+  },
 })

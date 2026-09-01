@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import { DownloadSimple, Sparkle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useLanguage } from '@/contexts/LanguageContext'
-import type { UpdateManifest } from '@/lib/electronUpdatesBridge'
+import type { UpdateManifest, UpdateProgress } from '@/lib/electronUpdatesBridge'
 
 // Global opdaterings-popup: lytter på broadcasts fra main-processen og viser
 // en dialog, når der ligger en nyere version i den fælles updates-mappe.
@@ -15,6 +16,7 @@ export function UpdateNotification() {
   const [currentVersion, setCurrentVersion] = useState('')
   const [dismissedVersion, setDismissedVersion] = useState<string | null>(null)
   const [isInstalling, setIsInstalling] = useState(false)
+  const [progress, setProgress] = useState<UpdateProgress | null>(null)
 
   const da = language === 'da'
 
@@ -29,20 +31,51 @@ export function UpdateNotification() {
       }
     }).catch(() => {})
 
-    return api.onUpdateAvailable((newManifest) => {
+    const unsubscribeAvailable = api.onUpdateAvailable((newManifest) => {
       setManifest(newManifest)
     })
+    const unsubscribeProgress = api.onProgress((update) => {
+      setProgress(update)
+      if (update.phase === 'error') setIsInstalling(false)
+    })
+
+    return () => {
+      unsubscribeAvailable()
+      unsubscribeProgress()
+    }
   }, [])
 
   if (!window.electronUpdates || !manifest) return null
 
   const open = manifest.version !== dismissedVersion
 
+  const phaseLabel = (phase: UpdateProgress['phase']) => {
+    if (da) {
+      return {
+        downloading: 'Henter opdatering…',
+        verifying: 'Kontrollerer filen…',
+        extracting: 'Pakker ud…',
+        ready: 'Klar — genstarter…',
+        restarting: 'Genstarter appen…',
+        error: 'Opdateringen fejlede',
+      }[phase]
+    }
+    return {
+      downloading: 'Downloading update…',
+      verifying: 'Verifying file…',
+      extracting: 'Extracting…',
+      ready: 'Ready — restarting…',
+      restarting: 'Restarting the app…',
+      error: 'The update failed',
+    }[phase]
+  }
+
   const handleInstall = async () => {
     setIsInstalling(true)
+    setProgress({ phase: 'downloading', percent: 0 })
     try {
       await window.electronUpdates!.install()
-      // Appen lukker selv — herefter sker der ikke mere i denne proces.
+      // Appen genstarter selv — herefter sker der ikke mere i denne proces.
     } catch (error) {
       console.error('Opdatering fejlede:', error)
       toast.error(
@@ -64,8 +97,8 @@ export function UpdateNotification() {
           </DialogTitle>
           <DialogDescription>
             {da
-              ? 'En ny version af TCD Hub er klar. Opdateringen tager under et minut — appen genstarter selv, og alle data bevares.'
-              : 'A new version of TCD Hub is ready. The update takes less than a minute — the app restarts itself and all data is kept.'}
+              ? 'Opdateringen hentes i baggrunden, mens du kan arbejde videre. Når den er klar, genstarter appen selv — alle data bevares.'
+              : 'The update downloads in the background while you keep working. When it is ready the app restarts itself and all data is kept.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -75,7 +108,7 @@ export function UpdateNotification() {
             <span className="text-muted-foreground">→</span>
             <Badge>{da ? 'Ny' : 'New'}: {manifest.version}</Badge>
           </div>
-          {manifest.notes && (
+          {manifest.notes && !isInstalling && (
             <div className="rounded-lg border bg-muted/40 p-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                 {da ? 'Nyt i denne version' : "What's new"}
@@ -83,12 +116,16 @@ export function UpdateNotification() {
               <p className="text-sm whitespace-pre-wrap">{manifest.notes}</p>
             </div>
           )}
-          {isInstalling && (
-            <p className="text-sm text-muted-foreground animate-pulse">
-              {da
-                ? 'Opdaterer… Appen lukker og genstarter selv om et øjeblik.'
-                : 'Updating… The app will close and restart by itself shortly.'}
-            </p>
+          {isInstalling && progress && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{phaseLabel(progress.phase)}</span>
+                {progress.phase === 'downloading' && (
+                  <span className="font-medium tabular-nums">{progress.percent}%</span>
+                )}
+              </div>
+              <Progress value={progress.phase === 'downloading' ? progress.percent : 100} />
+            </div>
           )}
         </div>
 

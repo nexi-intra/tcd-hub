@@ -25,6 +25,14 @@ export interface SelectedZip {
   version: string | null
 }
 
+export type UpdatePhase = 'downloading' | 'verifying' | 'extracting' | 'ready' | 'restarting' | 'error'
+
+export interface UpdateProgress {
+  phase: UpdatePhase
+  percent: number
+  message?: string
+}
+
 export interface ElectronUpdatesApi {
   getStatus(): Promise<UpdateStatus>
   check(): Promise<UpdateManifest | null>
@@ -32,4 +40,5 @@ export interface ElectronUpdatesApi {
   publish(payload: { zipPath: string; version: string; notes: string; publishedBy: string }): Promise<UpdateManifest>
   install(): Promise<void>
   onUpdateAvailable(callback: (manifest: UpdateManifest) => void): () => void
+  onProgress(callback: (progress: UpdateProgress) => void): () => void
 }
