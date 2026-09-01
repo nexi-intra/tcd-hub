@@ -16,27 +16,7 @@ import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { vacationApprovedEmail, vacationRejectedEmail, vacationCancelledByEmployeeEmail } from '@/lib/emailTemplates'
-
-type VacationStatus = 'pending' | 'approved' | 'rejected'
-
-interface VacationEntry {
-  id: string
-  userId: string
-  userEmail: string
-  startDate: string
-  endDate: string
-  notes?: string
-  status: VacationStatus
-  reviewedBy?: string
-  reviewedAt?: string
-}
-
-interface BirthdayEntry {
-  email: string
-  fullName: string
-  birthday: string
-  birthYear?: number
-}
+import type { VacationStatus, VacationEntry, BirthdayEntry } from '@/lib/types'
 
 interface VacationCalendarProps {
   onNavigateBack: () => void

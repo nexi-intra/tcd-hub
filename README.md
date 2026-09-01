@@ -93,6 +93,16 @@ Al data (vagtplan, ferie, brugere, projekter, noter osv.) gemmes samlet ét sted
 - **Opdatering til en ny version:** Pak den nye ZIP ud og start appen — den læser samme datamappe som før. Al historik følger med, helt uden manuelle skridt.
 - **Backup:** Under Datalagring kan alt eksporteres som **én fil** (“Eksportér backup”) og genskabes igen (“Importér backup”). Backup-filen bruges også til at flytte data fra browser-udgaven til desktop-appen.
 
+### Automatiske app-opdateringer (fra version 1.2.0)
+
+Appen kan opdatere sig selv via den fælles datamappe — **helt uden installation eller admin-rettigheder**:
+
+1. **Publicering:** En manager bygger den nye version (`npm run electron:build`) og publicerer zip-filen fra appen: Manager Panel → **Datalagring** → **App-opdateringer** → “Vælg ny app-pakke (.zip)…” → udfyld version og release-noter → “Publicér opdatering”. Zip'en kopieres til `updates/`-undermappen i den fælles datamappe sammen med et manifest (version, sha256-checksum, noter).
+2. **Klienterne opdager det selv:** Alle åbne apps tjekker manifestet ved opstart og derefter hvert 15. minut. Er der en nyere version, får brugeren et vindue op med release-noterne og knappen **“Opdater nu”**.
+3. **Installation:** Zip'en kopieres til lokal disk, checksummen verificeres, filerne pakkes ud, og et lille script venter på at appen lukker, kopierer de nye filer over den lokale appmappe (fx `C:\TCD TOOLS\...`) og genstarter appen automatisk. Data røres ikke — den ligger i datamappen.
+
+> Opdateringen kræver kun skriveadgang til brugerens egen appmappe — ingen administrator-rettigheder.
+
 **Sikkerhed:**
 - Alle datafiler på disken er **krypterede** (AES-256-GCM), så indholdet ikke kan læses direkte af alle med adgang til mappen.
 - Adgangskoder gemmes **aldrig i klartekst** — de gemmes som PBKDF2-hash med salt. Eksisterende konti opgraderes automatisk ved næste login.
@@ -102,7 +112,7 @@ Al data (vagtplan, ferie, brugere, projekter, noter osv.) gemmes samlet ét sted
 - **Log ind** med email og adgangskode.
 - **Opret konto** med fulde navn, email, telefonnummer og adgangskode (min. 6 tegn).
 - **Godkendelsesflow** — nye konti skal godkendes af en manager/admin, før der kan logges ind. Managere får automatisk en notifikation ved nye anmodninger.
-- **Bliv logget ind** mellem sessioner via "Husk mig".
+- **Husk mig** (fra 1.2.0) — markeres “Husk mig på denne computer” ved login, logges man automatisk ind, når appen åbnes. Tokenet gemmes kun lokalt på den enkelte computer (aldrig i den fælles datamappe), så hver maskine husker sin egen bruger. Ved manuelt log ud glemmes maskinen igen, og slettede/afviste brugere afvises altid ved opstart.
 - Nye brugere får som udgangspunkt rollen **Bruger**; roller kan efterfølgende tildeles af en admin.
 - Adgang til funktioner styres af rollebaserede rettigheder (admin / manager / bruger).
 

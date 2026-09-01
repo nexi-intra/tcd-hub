@@ -16,6 +16,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
 import { BirthdayCelebration } from '@/components/BirthdayCelebration'
+import { UpdateNotification } from '@/components/UpdateNotification'
 import { toast } from 'sonner'
 
 type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games' | 'projects' | 'notebook'
@@ -25,6 +26,7 @@ interface UserSession {
   email: string
   token: string
   expiresAt: number
+  remembered: boolean
 }
 
 interface StoredSession {
@@ -36,7 +38,12 @@ interface StoredSession {
 }
 
 const SESSION_DURATION = 24 * 60 * 60 * 1000
+const REMEMBERED_SESSION_DURATION = 365 * 24 * 60 * 60 * 1000
 const SESSION_TIMEOUT = 30 * 60 * 1000
+
+// "Husk mig"-tokenet gemmes LOKALT på maskinen (localStorage) — aldrig i den
+// fælles datamappe, hvor det ville gælde på tværs af alle klienter.
+const REMEMBER_TOKEN_KEY = 'tcd-hub:remember-token'
 
 function generateSessionToken(): string {
   return `session_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
@@ -59,16 +66,30 @@ async function validateSession(token: string): Promise<{ valid: boolean; session
   return { valid: true, session }
 }
 
-async function createSession(userId: string, email: string): Promise<string> {
+async function createSession(userId: string, email: string, duration: number): Promise<string> {
   const token = generateSessionToken()
-  const expiresAt = Date.now() + SESSION_DURATION
+  const expiresAt = Date.now() + duration
   const createdAt = Date.now()
   
   const sessions = await window.kv.get<Record<string, StoredSession>>('active-sessions') || {}
+  // Ryd udløbne sessioner, så den delte fil ikke vokser ubegrænset.
+  const now = Date.now()
+  for (const key of Object.keys(sessions)) {
+    if (sessions[key].expiresAt < now) delete sessions[key]
+  }
   sessions[token] = { token, email, userId, expiresAt, createdAt }
   await window.kv.set('active-sessions', sessions)
   
   return token
+}
+
+/** Forlænger en husket sessions udløb (glidende vindue ved hver app-start). */
+async function renewSession(token: string): Promise<void> {
+  const sessions = await window.kv.get<Record<string, StoredSession>>('active-sessions') || {}
+  if (sessions[token]) {
+    sessions[token].expiresAt = Date.now() + REMEMBERED_SESSION_DURATION
+    await window.kv.set('active-sessions', sessions)
+  }
 }
 
 async function deleteSession(token: string): Promise<void> {
@@ -84,17 +105,41 @@ function App() {
   const [lastActivity, setLastActivity] = useState(Date.now())
 
   useEffect(() => {
-    const clearSessionOnStart = async () => {
+    // Auto-login: gyldigt lokalt "husk mig"-token logger brugeren direkte ind.
+    const restoreSession = async () => {
       try {
-        await window.kv.delete('last-session-token')
+        const token = localStorage.getItem(REMEMBER_TOKEN_KEY)
+        if (token) {
+          const { valid, session } = await validateSession(token)
+          if (valid && session) {
+            // Brugeren skal stadig findes og være godkendt i den delte brugerliste.
+            const users = await window.kv.get<Record<string, { status?: string }>>('users') || {}
+            const user = users[session.email] || users[session.email.toLowerCase()]
+            if (user && user.status !== 'pending' && user.status !== 'rejected') {
+              await renewSession(token)
+              setUserSession({
+                userId: session.userId,
+                email: session.email,
+                token,
+                expiresAt: Date.now() + REMEMBERED_SESSION_DURATION,
+                remembered: true,
+              })
+            } else {
+              localStorage.removeItem(REMEMBER_TOKEN_KEY)
+              await deleteSession(token)
+            }
+          } else {
+            localStorage.removeItem(REMEMBER_TOKEN_KEY)
+          }
+        }
       } catch (error) {
-        console.error('Error clearing session:', error)
+        console.error('Kunne ikke genskabe session:', error)
       }
       
       setIsCheckingAuth(false)
     }
     
-    clearSessionOnStart()
+    restoreSession()
   }, [])
 
   useEffect(() => {
@@ -117,7 +162,8 @@ function App() {
   }, [userSession])
 
   useEffect(() => {
-    if (!userSession) return
+    // Huskede sessioner logges ikke ud ved inaktivitet — maskinen er personlig.
+    if (!userSession || userSession.remembered) return
 
     const checkSessionTimeout = setInterval(() => {
       const timeSinceActivity = Date.now() - lastActivity
@@ -132,24 +178,35 @@ function App() {
   }, [userSession, lastActivity])
 
   const handleAuthenticated = async (userId: string, email: string, rememberMe: boolean) => {
-    const expiresAt = Date.now() + SESSION_DURATION
+    const duration = rememberMe ? REMEMBERED_SESSION_DURATION : SESSION_DURATION
+    const expiresAt = Date.now() + duration
     let token = generateSessionToken()
 
     try {
-      token = await createSession(userId, email)
+      token = await createSession(userId, email, duration)
     } catch (error) {
       console.error('Kunne ikke oprette session i KV:', error)
     }
 
-    setUserSession({ userId, email, token, expiresAt })
+    if (rememberMe) {
+      try {
+        localStorage.setItem(REMEMBER_TOKEN_KEY, token)
+      } catch (error) {
+        console.error('Kunne ikke gemme "husk mig"-token lokalt:', error)
+      }
+    } else {
+      localStorage.removeItem(REMEMBER_TOKEN_KEY)
+    }
+
+    setUserSession({ userId, email, token, expiresAt, remembered: rememberMe })
     setLastActivity(Date.now())
   }
 
   const handleLogout = async () => {
     if (userSession?.token) {
       await deleteSession(userSession.token)
-      await window.kv.delete('last-session-token')
     }
+    localStorage.removeItem(REMEMBER_TOKEN_KEY)
     
     setUserSession(null)
     setCurrentView('hub')
@@ -207,6 +264,7 @@ function App() {
       <ThemeProvider>
         <LanguageProvider>
           <AnimatedBackground />
+          <UpdateNotification />
           <Auth onAuthenticated={handleAuthenticated} />
         </LanguageProvider>
       </ThemeProvider>
@@ -217,6 +275,7 @@ function App() {
     <ThemeProvider userId={userSession.userId}>
       <LanguageProvider userId={userSession.userId}>
         <AnimatedBackground />
+        <UpdateNotification />
         <BirthdayCelebration userEmail={userSession.email} />
         {currentView === 'hub' && <Hub onNavigate={handleNavigate} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}

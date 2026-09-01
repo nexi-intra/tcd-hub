@@ -10,20 +10,7 @@ import { Gift, CalendarCheck } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
-
-interface VacationEntry {
-  id: string
-  userId: string
-  userEmail: string
-  startDate: string
-  endDate: string
-  notes?: string
-  status: 'pending' | 'approved' | 'rejected'
-  reviewedBy?: string
-  reviewedAt?: string
-  isSingleDay?: boolean
-  manuallyGranted?: boolean
-}
+import type { VacationEntry } from '@/lib/types'
 
 interface User {
   email: string

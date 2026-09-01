@@ -11,24 +11,13 @@ import { da } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
+import type { SickLeaveEntry } from '@/lib/types'
 
 interface SickLeaveDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   userEmail: string
   editEntry?: SickLeaveEntry | null
-}
-
-interface SickLeaveEntry {
-  id: string
-  userEmail: string
-  userName: string
-  startDate: string
-  reason?: string
-  status: 'pending' | 'approved' | 'rejected'
-  submittedAt: string
-  reportedBy?: string
-  type?: 'self' | 'child'
 }
 
 interface User {

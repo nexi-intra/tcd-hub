@@ -23,50 +23,7 @@ import { Textarea } from '@/components/ui/textarea'
 import type { TeamEmployee } from '@/views/TeamOverview'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import { useLanguage } from '@/contexts/LanguageContext'
-
-interface ShiftRole {
-  id: string
-  name: string
-  color: string
-}
-
-interface ShiftAssignment {
-  id: string
-  employeeId: string
-  employeeName: string
-  roleId: string
-  date: string
-  comment?: string
-}
-
-interface SickLeaveEntry {
-  id: string
-  userEmail: string
-  userName: string
-  startDate: string
-  reason?: string
-  status: 'pending' | 'approved' | 'rejected'
-  submittedAt: string
-}
-
-interface VacationEntry {
-  id: string
-  userId: string
-  userEmail: string
-  startDate: string
-  endDate: string
-  notes?: string
-  status: 'pending' | 'approved' | 'rejected'
-  reviewedBy?: string
-  reviewedAt?: string
-}
-
-interface BirthdayEntry {
-  email: string
-  fullName: string
-  birthday: string
-  birthYear?: number
-}
+import type { ShiftRole, ShiftAssignment, SickLeaveEntry, VacationEntry, BirthdayEntry } from '@/lib/types'
 
 interface ShiftScheduleProps {
   onNavigateBack: () => void

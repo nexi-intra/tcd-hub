@@ -9,22 +9,10 @@ import { Separator } from '@/components/ui/separator'
 import { useKV } from '@/hooks/useKV'
 import { toast } from 'sonner'
 import { getWeekNumber, getStartOfWeek, formatDate } from '@/lib/dateUtils'
+import type { WeekMenu } from '@/lib/types'
 
 interface MealPlanProps {
   onNavigateBack: () => void
-}
-
-interface WeekMenu {
-  weekNumber: number
-  year: number
-  weekStart: string
-  meals: {
-    monday: string
-    tuesday: string
-    wednesday: string
-    thursday: string
-    friday: string
-  }
 }
 
 const weekDays = [

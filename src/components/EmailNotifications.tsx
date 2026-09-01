@@ -10,16 +10,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 import { useLanguage } from '@/contexts/LanguageContext'
-
-interface Email {
-  id: string
-  from: string
-  to: string
-  subject: string
-  message: string
-  timestamp: number
-  read: boolean
-}
+import type { Email } from '@/lib/types'
 
 interface EmailNotificationsProps {
   open: boolean

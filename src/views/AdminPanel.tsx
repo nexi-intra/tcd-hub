@@ -16,28 +16,12 @@ import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { UserRole, ADMIN_EMAIL, hasAdminAccess, getRoleDisplayName, getRoleDescription } from '@/lib/userRoles'
 import { hashPassword } from '@/lib/passwords'
+import type { SickLeaveEntry, ShiftRole } from '@/lib/types'
 
 interface User {
   email: string
   fullName: string
   role: UserRole
-}
-
-interface SickLeaveEntry {
-  id: string
-  userEmail: string
-  userName: string
-  startDate: string
-  endDate: string
-  reason?: string
-  status: 'pending' | 'approved' | 'rejected'
-  submittedAt: string
-}
-
-interface ShiftRole {
-  id: string
-  name: string
-  color: string
 }
 
 interface AdminPanelProps {
@@ -573,7 +557,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                           <div className="text-sm text-muted-foreground">{entry.userEmail}</div>
                           <div className="flex flex-col gap-1 mt-2 text-sm">
                             <span className="font-medium">
-                              {format(new Date(entry.startDate), 'd. MMM', { locale: da })} - {format(new Date(entry.endDate), 'd. MMM yyyy', { locale: da })}
+                              {format(new Date(entry.startDate), 'd. MMM', { locale: da })} - {format(new Date(entry.endDate || entry.startDate), 'd. MMM yyyy', { locale: da })}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               Indsendt: {format(new Date(entry.submittedAt), 'd. MMM yyyy HH:mm', { locale: da })}

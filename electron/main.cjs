@@ -8,6 +8,7 @@ const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { createStore } = require('./store.cjs')
+const updater = require('./updater.cjs')
 
 // Brugerens mappevalg fra Manager Panel gemmes her og overlever opdateringer.
 function userConfigPath() {
@@ -70,6 +71,24 @@ function resolveDataDir() {
 let store
 let dataDirSource = 'default'
 let stopWatcher = null
+let updateCheckTimer = null
+
+const UPDATE_CHECK_INTERVAL = 15 * 60 * 1000
+
+/** Tjekker manifestet i den fælles mappe og notificerer alle vinduer ved ny version. */
+function checkForUpdates() {
+  try {
+    const manifest = updater.readManifest(store.dataDir)
+    if (manifest && updater.isNewerVersion(manifest.version, app.getVersion())) {
+      broadcast('updates:available', manifest)
+      return manifest
+    }
+    return null
+  } catch (err) {
+    console.error('TCD Hub: update check failed', err)
+    return null
+  }
+}
 
 function startWatcher() {
   if (stopWatcher) stopWatcher()
@@ -172,9 +191,76 @@ app.whenReady().then(() => {
     return switchDataDir(result.filePaths[0])
   })
 
+  ipcMain.handle('updates:status', () => {
+    const manifest = updater.readManifest(store.dataDir)
+    return {
+      currentVersion: app.getVersion(),
+      isPackaged: app.isPackaged,
+      manifest,
+      updateAvailable: !!manifest && updater.isNewerVersion(manifest.version, app.getVersion()),
+    }
+  })
+
+  ipcMain.handle('updates:check', () => checkForUpdates())
+
+  ipcMain.handle('updates:select-zip', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Vælg app-pakke (.zip) der skal publiceres',
+      buttonLabel: 'Vælg denne pakke',
+      properties: ['openFile'],
+      filters: [{ name: 'App-pakke (zip)', extensions: ['zip'] }],
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    const zipPath = result.filePaths[0]
+    const stat = fs.statSync(zipPath)
+    return {
+      path: zipPath,
+      fileName: path.basename(zipPath),
+      size: stat.size,
+      version: updater.versionFromFilename(zipPath),
+    }
+  })
+
+  ipcMain.handle('updates:publish', async (_event, payload) => {
+    const manifest = await updater.publishUpdate(store.dataDir, {
+      zipPath: String(payload.zipPath),
+      version: String(payload.version),
+      notes: String(payload.notes || ''),
+      publishedBy: String(payload.publishedBy || ''),
+    })
+    checkForUpdates()
+    return manifest
+  })
+
+  ipcMain.handle('updates:install', async () => {
+    if (!app.isPackaged) {
+      throw new Error('Opdatering kan kun installeres fra den byggede app (ikke i udviklingstilstand)')
+    }
+    const manifest = updater.readManifest(store.dataDir)
+    if (!manifest || !updater.isNewerVersion(manifest.version, app.getVersion())) {
+      throw new Error('Der er ingen nyere version at installere')
+    }
+    const exePath = app.getPath('exe')
+    await updater.installUpdate({
+      dataDir: store.dataDir,
+      manifest,
+      installDir: path.dirname(exePath),
+      exePath,
+    })
+    // Scriptet venter på at processen lukker og kopierer derefter filerne over.
+    setTimeout(() => app.quit(), 200)
+  })
+
   startWatcher()
 
   createWindow()
+
+  updater.cleanupOldWorkDirs()
+  // Første tjek kort efter opstart (når vinduet er indlæst), derefter fast interval.
+  setTimeout(checkForUpdates, 10 * 1000)
+  updateCheckTimer = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL)
+  updateCheckTimer.unref?.()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

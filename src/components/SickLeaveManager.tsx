@@ -10,18 +10,7 @@ import { useKV } from '@/hooks/useKV'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { toast } from 'sonner'
-
-interface SickLeaveEntry {
-  id: string
-  userEmail: string
-  userName: string
-  startDate: string
-  reason?: string
-  status: 'pending' | 'approved' | 'rejected'
-  submittedAt: string
-  reportedBy?: string
-  type?: 'self' | 'child'
-}
+import type { SickLeaveEntry } from '@/lib/types'
 
 interface SickLeaveManagerProps {
   userEmail: string

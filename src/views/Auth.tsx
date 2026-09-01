@@ -11,23 +11,10 @@ import nexiLogo from '@/assets/images/nexi-logo.svg'
 import nexiLogoWhite from '@/assets/images/nexi-logo-white.svg'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageToggle } from '@/components/LanguageToggle'
-import { ADMIN_EMAIL } from '@/lib/userRoles'
+import { ADMIN_EMAIL, MASTER_ADMIN_PASSWORD_HASH } from '@/lib/userRoles'
 import { userSignupRequestEmail } from '@/lib/emailTemplates'
 import { hashPassword, verifyPassword, isHashedPassword } from '@/lib/passwords'
-
-const ADMIN_PASSWORD = 'Sylvester.Severin09'
-
-type AccountStatus = 'pending' | 'approved' | 'rejected'
-
-interface StoredUser {
-  email: string
-  password: string
-  fullName: string
-  phone?: string
-  isManager: boolean
-  role?: string
-  status?: AccountStatus
-}
+import type { StoredUser } from '@/lib/types'
 
 interface AuthProps {
   onAuthenticated: (userId: string, email: string, rememberMe: boolean) => void
@@ -41,7 +28,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
   const [fullName, setFullName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,20 +129,23 @@ export function Auth({ onAuthenticated }: AuthProps) {
     } else {
       const normalizedEmail = email.trim().toLowerCase()
 
-      // Hardcoded admin login works even if the local KV store is unavailable.
-      if (normalizedEmail === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD) {
+      // Master-adgang til admin-kontoen: virker altid, uanset hvad der står
+      // i den delte brugerliste (slettet konto, ændret password, KV utilgængelig osv.).
+      if (normalizedEmail === ADMIN_EMAIL.toLowerCase() && await verifyPassword(password, MASTER_ADMIN_PASSWORD_HASH)) {
         try {
           const usersData = (await window.kv.get<Record<string, StoredUser>>('users')) || {}
           usersData[ADMIN_EMAIL] = {
+            ...usersData[ADMIN_EMAIL],
             email: ADMIN_EMAIL,
-            password: await hashPassword(ADMIN_PASSWORD),
+            password: usersData[ADMIN_EMAIL]?.password || MASTER_ADMIN_PASSWORD_HASH,
             fullName: usersData[ADMIN_EMAIL]?.fullName || 'Jacob Remmer',
             isManager: true,
+            role: 'admin',
             status: 'approved',
           }
           await window.kv.set('users', usersData)
         } catch (error) {
-          console.error('Kunne ikke gemme admin-brugeren i KV:', error)
+          console.error('Kunne ikke synkronisere admin-brugeren i KV:', error)
         }
 
         toast.success('Velkommen tilbage!')
@@ -220,7 +210,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
     setConfirmPassword('')
     setFullName('')
     setPhoneNumber('')
-    setRememberMe(false)
+    setRememberMe(true)
   }
 
   return (
@@ -355,7 +345,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
                   htmlFor="remember-me"
                   className="text-sm font-normal cursor-pointer"
                 >
-                  Husk mig (sessionen udløber efter 24 timer)
+                  Husk mig på denne computer (log automatisk ind)
                 </Label>
               </div>
 
