@@ -34,6 +34,7 @@ import {
 } from '@/lib/guideTypes'
 import { detectLanguage, type GuideLanguage } from '@/lib/translator'
 import { bumpVersion, saveVersionSnapshot, getVersionHistory } from '@/lib/guideStore'
+import type { GuideImportDraft } from '@/lib/docxImporter'
 
 interface GuideEditorProps {
   open: boolean
@@ -43,6 +44,8 @@ interface GuideEditorProps {
   categories: string[]
   /** Opretter en ny kategori i det delte kategorisæt og returnerer om det lykkedes. */
   onCreateCategory?: (category: string) => boolean
+  /** Forudsætter en ny guide med indhold parset fra et importeret Word-dokument. */
+  importDraft?: GuideImportDraft | null
   userEmail: string
 }
 
@@ -144,7 +147,7 @@ function ImageDropZone({ onUploaded, compact }: { onUploaded: (fileIds: string[]
   )
 }
 
-export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories, onCreateCategory, userEmail }: GuideEditorProps) {
+export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories, onCreateCategory, importDraft, userEmail }: GuideEditorProps) {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string>(categories[0] || 'General')
   const [tags, setTags] = useState('')
@@ -180,23 +183,25 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
       setReviewInterval(migrated.reviewIntervalMonths ?? null)
       getVersionHistory(migrated.id).then(setHistory).catch(() => setHistory([]))
     } else {
-      setTitle('')
+      setTitle(importDraft?.title || '')
       setCategory(categories[0] || 'General')
       setTags('')
-      setLanguage('auto')
-      setSections([emptySection()])
+      setLanguage(importDraft?.language || 'auto')
+      setSections(importDraft?.sections.length ? importDraft.sections : [emptySection()])
       setCoverImageId(undefined)
       setReviewInterval(null)
       setHistory([])
     }
     setChangeNote('')
-    setWordFile(null)
+    setWordFile(importDraft?.originalFile || null)
     setRemoveWordAttachment(false)
     setShowHistory(false)
     setIsCreatingCategory(false)
     setNewCategoryName('')
-    sessionImagesRef.current = []
-  }, [open, migrated, categories])
+    // Billeder fra et importeret dokument uploades allerede før editoren \u00e5bner \u2014
+    // de skal ryddes op p\u00e5 lige fod med session-billeder, hvis brugeren fortryder.
+    sessionImagesRef.current = importDraft ? importDraft.sections.flatMap((s) => s.steps.flatMap((st) => st.imageIds)) : []
+  }, [open, migrated, categories, importDraft])
 
   const hasUnsavedChanges = useMemo(() => {
     if (!open) return false

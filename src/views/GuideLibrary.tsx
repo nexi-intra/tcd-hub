@@ -1,15 +1,16 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useKV } from '@/hooks/useKV'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Plus, MagnifyingGlass, Books, Gear, ArrowLeft, Timer, FolderOpen, ChatCircleDots } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, Books, Gear, ArrowLeft, Timer, FolderOpen, ChatCircleDots, FileArrowUp } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
 import { guidePlainText, getReviewStatus, computeNextReviewAt } from '@/lib/guideTypes'
 import { GuideSearchIndex } from '@/lib/searchIndex'
 import { deleteGuideArtifacts } from '@/lib/guideStore'
 import { guideToDocModel, resolveAuthorName } from '@/lib/docModel'
 import { isExportAvailable, getExportRoot, chooseAndSaveExportRoot, exportGuideToLibrary } from '@/lib/guideExporter'
+import type { GuideImportDraft } from '@/lib/docxImporter'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { GuideCard } from '@/components/GuideCard'
 import { GuideEditor } from '@/components/GuideEditor'
@@ -37,6 +38,9 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false)
   const [editGuide, setEditGuide] = useState<Guide | undefined>()
   const [viewGuide, setViewGuide] = useState<Guide | null>(null)
+  const [importDraft, setImportDraft] = useState<GuideImportDraft | null>(null)
+  const [isImporting, setIsImporting] = useState(false)
+  const importInputRef = useRef<HTMLInputElement>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('All')
   const [showNeedsReview, setShowNeedsReview] = useState(false)
@@ -160,7 +164,30 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
 
   const handleAddNew = () => {
     setEditGuide(undefined)
+    setImportDraft(null)
     setDialogOpen(true)
+  }
+
+  const handleImportFileSelected = async (file: File | undefined) => {
+    if (!file) return
+    setIsImporting(true)
+    try {
+      // mammoth (docx-parser) er tung og bruges kun ved import — hentes lazily i egen chunk.
+      const { importGuideFromDocx } = await import('@/lib/docxImporter')
+      const draft = await importGuideFromDocx(file)
+      if (draft.sections.length === 0) {
+        toast.error('Kunne ikke finde noget indhold i dokumentet — prøv at redigere det manuelt i editoren')
+      }
+      setEditGuide(undefined)
+      setImportDraft(draft)
+      setDialogOpen(true)
+      toast.success(`"${draft.title}" importeret — gennemgå og gem for at tilføje den til biblioteket`)
+    } catch (error) {
+      console.error('Import af Word-dokument fejlede:', error)
+      toast.error(error instanceof Error ? error.message : 'Kunne ikke importere dokumentet')
+    } finally {
+      setIsImporting(false)
+    }
   }
 
   const handleViewGuide = (guide: Guide) => {
@@ -290,6 +317,27 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
               </div>
             </div>
             <div className="flex gap-2 flex-shrink-0 items-center">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="outline"
+                  onClick={() => importInputRef.current?.click()}
+                  disabled={isImporting}
+                  className="h-11 px-5 font-semibold border-2 rounded-xl backdrop-blur-md bg-card/80 hover:bg-muted hover:border-primary/40"
+                >
+                  <FileArrowUp size={20} weight="bold" className="sm:mr-2" />
+                  <span className="hidden sm:inline">{isImporting ? 'Importerer…' : 'Importér Word-guide'}</span>
+                </Button>
+              </motion.div>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".docx"
+                className="hidden"
+                onChange={(e) => {
+                  handleImportFileSelected(e.target.files?.[0])
+                  e.target.value = ''
+                }}
+              />
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button onClick={handleAddNew} className="h-11 px-5 bg-gradient-to-r from-primary via-accent to-primary hover:from-primary/90 hover:via-accent/90 hover:to-primary/90 shadow-xl shadow-primary/30 font-semibold transition-all">
                   <Plus size={20} weight="bold" className="sm:mr-2" />
@@ -470,12 +518,16 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open)
-          if (!open) setEditGuide(undefined)
+          if (!open) {
+            setEditGuide(undefined)
+            setImportDraft(null)
+          }
         }}
         onSave={handleSaveGuide}
         editGuide={editGuide}
         categories={categories || defaultCategories}
         onCreateCategory={handleCreateCategory}
+        importDraft={importDraft}
         userEmail={userEmail}
       />
 
