@@ -160,10 +160,11 @@ Opdaterings-interval [Intet ▾]  (Intet | 1 md | 2 mdr | 3 mdr | 6 mdr | 1 år)
 - [x] Filter "Skal opdateres" (m. antal), sortering efter nextReviewAt (mest presserende først)
 - [x] "Markér som gennemgået"-handling (resetter timer uden versionsbump) — knap på kort ved overskredet/snart-deadline
 ### Fase 3 — Preview & DOCX-generator
-- [ ] `src/lib/docModel.ts`: `guideToDocModel()` (fælles model for preview+DOCX)
-- [ ] `GuidePreview.tsx`: A4-HTML-rendering (TOC, 1.0/1.1-numre, billeder, header-info)
-- [ ] `npm i docx` + `src/lib/docxGenerator.ts` efter template-spec (forside, TOC-felt, Heading3 1.0-numre, trin X.Y, header m. logo+forfatter+version, PAGE-felt, updateFields, A4/marginer)
-- [ ] Download-knap (browser) — verificér i Word mod DESK3500
+- [x] `src/lib/docModel.ts`: `guideToDocModel()` (fælles model for preview+DOCX) + `resolveAuthorName()`
+- [x] `GuidePreview` (implementeret som opgraderet `GuideViewer.tsx`): A4-HTML-rendering — header-strip m. logo/forfatter/titel/version, indholdsfortegnelse, forsidebillede, sideskift-markering, 1.0/1.1-numre, trin-billeder; lys "Word-agtig" visning uanset tema
+- [x] `npm i docx` (9.7.1) + `src/lib/docxGenerator.ts` efter template-spec (A4/marginer, TOC-felt m. updateFields, multilevel-nummerering %1.0/%1.%2, Heading3 #1F3763 Calibri Light, header m. logo+forfatter+"Titel, Merchant Services Version X.XX", tom førsteside-header (titlePg), PAGE-felt i footer, centrerede skalerede billeder, dokument-metadata)
+- [x] Download-knap i preview — docx-pakken lazy-loades (egen chunk, 364 KB) så app-opstart ikke påvirkes
+- [ ] Manuel verifikation i Word mod DESK3500 (kræver bruger-smoke-test)
 ### Fase 4 — Lokalt guidebibliotek (eksport)
 - [ ] IPC `guides:choose-export-dir` + `guides:export` (main: skriv DOCX til `<rod>/<kategori>/<titel> vX.XX.docx`, opret mapper)
 - [ ] Indstillinger i GuideLibrary (vis/skift sti, KV `guide-library-settings`)
