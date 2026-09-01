@@ -4,7 +4,7 @@ import { manualVacationGrantEmail } from '@/lib/emailTemplates'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
+import { DatePickerField } from '@/components/DatePickerField'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Gift, CalendarCheck } from '@phosphor-icons/react'
 import { toast } from 'sonner'
@@ -204,25 +204,21 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
 
           <div className="space-y-2">
             <Label htmlFor="start-date">{grantType === 'single' ? 'Dato *' : 'Startdato *'}</Label>
-            <Input
+            <DatePickerField
               id="start-date"
-              type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full"
+              onChange={setStartDate}
             />
           </div>
 
           {grantType === 'vacation' && (
             <div className="space-y-2">
               <Label htmlFor="end-date">Slutdato *</Label>
-              <Input
+              <DatePickerField
                 id="end-date"
-                type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={setEndDate}
                 min={startDate}
-                className="w-full"
               />
             </div>
           )}

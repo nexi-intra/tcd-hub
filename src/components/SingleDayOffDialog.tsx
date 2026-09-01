@@ -4,7 +4,7 @@ import { singleDayOffRequestEmail, singleDayOffConfirmationEmail } from '@/lib/e
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
+import { DatePickerField } from '@/components/DatePickerField'
 import { PaperPlaneTilt, CalendarX } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/useKV'
@@ -193,12 +193,10 @@ export function SingleDayOffDialog({ userEmail }: SingleDayOffDialogProps) {
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
             <Label htmlFor="single-date">{t.singleDayOffDialog.date}</Label>
-            <Input
+            <DatePickerField
               id="single-date"
-              type="date"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full"
+              onChange={setSelectedDate}
             />
             <p className="text-xs text-muted-foreground">
               {t.singleDayOffDialog.weekdayOnly}

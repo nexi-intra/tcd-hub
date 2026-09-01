@@ -4,7 +4,7 @@ import { vacationRequestEmail, vacationRequestConfirmationEmail } from '@/lib/em
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
+import { DatePickerField } from '@/components/DatePickerField'
 import { PaperPlaneTilt, Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/useKV'
@@ -193,24 +193,20 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
             <Label htmlFor="start-date">{t.vacationRequestDialog.startDate || 'Startdato'}</Label>
-            <Input
+            <DatePickerField
               id="start-date"
-              type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full"
+              onChange={setStartDate}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="end-date">{t.vacationRequestDialog.endDate || 'Slutdato'}</Label>
-            <Input
+            <DatePickerField
               id="end-date"
-              type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={setEndDate}
               min={startDate}
-              className="w-full"
             />
           </div>
 

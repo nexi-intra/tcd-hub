@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { DatePickerField } from '@/components/DatePickerField'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -1868,21 +1869,17 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Startdato *</Label>
-              <Input
-                type="date"
+              <DatePickerField
                 value={editVacationStartDate ? format(editVacationStartDate, 'yyyy-MM-dd') : ''}
-                onChange={(e) => setEditVacationStartDate(e.target.value ? new Date(e.target.value) : undefined)}
-                className="w-full"
+                onChange={(value) => setEditVacationStartDate(value ? new Date(value) : undefined)}
               />
             </div>
             <div className="space-y-2">
               <Label>Slutdato *</Label>
-              <Input
-                type="date"
+              <DatePickerField
                 value={editVacationEndDate ? format(editVacationEndDate, 'yyyy-MM-dd') : ''}
-                onChange={(e) => setEditVacationEndDate(e.target.value ? new Date(e.target.value) : undefined)}
+                onChange={(value) => setEditVacationEndDate(value ? new Date(value) : undefined)}
                 min={editVacationStartDate ? format(editVacationStartDate, 'yyyy-MM-dd') : undefined}
-                className="w-full"
               />
             </div>
             <div className="space-y-2">
