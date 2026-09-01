@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useKV } from '@/hooks/useKV'
+import type { SickLeaveEntry, VacationEntry, ShiftRole, ShiftAssignment } from '@/lib/types'
+
+export type { SickLeaveEntry, VacationEntry, ShiftRole, ShiftAssignment }
 
 export interface TeamEmployee {
   id: string
@@ -8,44 +11,6 @@ export interface TeamEmployee {
   phone?: string
   role?: string
   avatarUrl?: string
-}
-
-export interface SickLeaveEntry {
-  id: string
-  userEmail: string
-  userName: string
-  startDate: string
-  reason?: string
-  status: 'pending' | 'approved' | 'rejected'
-  submittedAt: string
-  type?: 'self' | 'child'
-}
-
-export interface VacationEntry {
-  id: string
-  userId: string
-  userEmail: string
-  startDate: string
-  endDate: string
-  notes?: string
-  status: 'pending' | 'approved' | 'rejected'
-  reviewedBy?: string
-  reviewedAt?: string
-}
-
-export interface ShiftRole {
-  id: string
-  name: string
-  color: string
-}
-
-export interface ShiftAssignment {
-  id: string
-  employeeId: string
-  employeeName: string
-  roleId: string
-  date: string
-  comment?: string
 }
 
 export function useTeamData() {

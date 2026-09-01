@@ -12,19 +12,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
-
-interface VacationEntry {
-  id: string
-  userId: string
-  userEmail: string
-  startDate: string
-  endDate: string
-  notes?: string
-  status: 'pending' | 'approved' | 'rejected'
-  reviewedBy?: string
-  reviewedAt?: string
-  isSingleDay?: boolean
-}
+import type { VacationEntry } from '@/lib/types'
 
 interface SingleDayOffDialogProps {
   userEmail: string

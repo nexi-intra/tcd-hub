@@ -37,40 +37,7 @@ import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
-
-interface Email {
-  id: string
-  from: string
-  to: string
-  subject: string
-  message: string
-  timestamp: number
-  read: boolean
-  starred?: boolean
-  folderId?: string
-}
-
-interface EmailFolder {
-  id: string
-  name: string
-  userId: string
-  createdAt: number
-  color?: string
-}
-
-type VacationStatus = 'pending' | 'approved' | 'rejected'
-
-interface VacationEntry {
-  id: string
-  userId: string
-  userEmail: string
-  startDate: string
-  endDate: string
-  notes?: string
-  status: VacationStatus
-  reviewedBy?: string
-  reviewedAt?: string
-}
+import type { Email, EmailFolder, VacationEntry, VacationStatus } from '@/lib/types'
 
 interface EmailSystemProps {
   onNavigateBack: () => void

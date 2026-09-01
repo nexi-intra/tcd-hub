@@ -3,6 +3,12 @@ export type UserRole = 'admin' | 'manager' | 'user'
 export const ADMIN_EMAIL = 'jacob.remmer@nexigroup.com'
 export const MANAGER_EMAILS = ['jacob.remmer@nexigroup.com']
 
+// Garanteret adgang for administratoren, uanset tilstanden af den delte
+// KV-store (fx hvis brugerens konto ved et uheld bliver slettet/ændret).
+// Kun en PBKDF2-hash er bagt ind i koden — IKKE selve adgangskoden — så
+// den ikke kan læses direkte af nogen med adgang til kildekoden.
+export const MASTER_ADMIN_PASSWORD_HASH = 'pbkdf2$150000$yDMn6LPFNdPCNXoGCeHVWg==$7gOEKz3Ovs7I8o2MfwMqJXzSC+uc91L+/BDC/+dPhUY='
+
 interface UserData {
   email: string
   password: string

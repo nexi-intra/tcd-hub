@@ -21,6 +21,7 @@ import nexiLogo from '@/assets/images/nexi-logo.svg'
 import nexiLogoWhite from '@/assets/images/nexi-logo-white.svg'
 import { format, isSameDay, parseISO } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
+import type { ShiftRole, ShiftAssignment, SickLeaveEntry, VacationEntry, WeekMenu } from '@/lib/types'
 
 interface HubModule {
   id: string
@@ -36,43 +37,6 @@ interface HubProps {
   onNavigate: (moduleId: string) => void
   onLogout: () => void
   userEmail: string
-}
-
-interface ShiftRole {
-  id: string
-  name: string
-  color: string
-}
-
-interface ShiftAssignment {
-  id: string
-  employeeId: string
-  employeeName: string
-  roleId: string
-  date: string
-  comment?: string
-}
-
-interface SickLeaveEntry {
-  id: string
-  userEmail: string
-  userName: string
-  startDate: string
-  reason?: string
-  status: 'pending' | 'approved' | 'rejected'
-  submittedAt: string
-}
-
-interface VacationEntry {
-  id: string
-  userId: string
-  userEmail: string
-  startDate: string
-  endDate: string
-  notes?: string
-  status: 'pending' | 'approved' | 'rejected'
-  reviewedBy?: string
-  reviewedAt?: string
 }
 
 export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
@@ -112,9 +76,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       setUnreadInboxCount(unreadInbox)
     }
     loadUnreadCount()
-    
-    const interval = setInterval(loadUnreadCount, 5000)
-    return () => clearInterval(interval)
+
+    const unsubscribe = window.kv.subscribe((changedKeys) => {
+      if (changedKeys.includes('emails')) loadUnreadCount()
+    })
+    return () => unsubscribe()
   }, [userEmail])
 
   useEffect(() => {
@@ -134,9 +100,13 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     }
     
     loadPendingVacationRequests()
-    
-    const interval = setInterval(loadPendingVacationRequests, 5000)
-    return () => clearInterval(interval)
+
+    const unsubscribe = window.kv.subscribe((changedKeys) => {
+      if (changedKeys.includes('vacation-entries') || changedKeys.includes('sick-leave-entries')) {
+        loadPendingVacationRequests()
+      }
+    })
+    return () => unsubscribe()
   }, [isAdminOrManager])
 
   useEffect(() => {
@@ -241,19 +211,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       
       setPeopleOff(todayOff)
       
-      interface WeekMenu {
-        weekNumber: number
-        year: number
-        weekStart: string
-        meals: {
-          monday: string
-          tuesday: string
-          wednesday: string
-          thursday: string
-          friday: string
-        }
-      }
-      
       const weekMenus = (await window.kv.get<WeekMenu[]>('meal-plan-weeks')) || []
       const getWeekNumber = (date: Date): number => {
         const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -283,8 +240,17 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     }
     
     loadOverviewData()
-    const interval = setInterval(loadOverviewData, 30000)
-    return () => clearInterval(interval)
+
+    const overviewKeys = ['shift-assignments', 'shift-roles', 'sick-leave-entries', 'vacation-entries', 'users', 'meal-plan-weeks']
+    const unsubscribe = window.kv.subscribe((changedKeys) => {
+      if (changedKeys.some((key) => overviewKeys.includes(key))) loadOverviewData()
+    })
+    // Langsomt fallback-interval så "i dag" ruller korrekt over ved midnat.
+    const interval = setInterval(loadOverviewData, 5 * 60 * 1000)
+    return () => {
+      unsubscribe()
+      clearInterval(interval)
+    }
   }, [userEmail])
 
   const handleModuleClick = (moduleId: string) => {

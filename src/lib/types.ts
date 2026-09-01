@@ -1,3 +1,5 @@
+import type { UserRole } from './userRoles'
+
 export type GuideCategory = 'Procedures' | 'Technical' | 'HR' | 'Safety' | 'General'
 
 export interface Guide {
@@ -20,4 +22,110 @@ export interface ChatMessage {
   content: string
   timestamp: number
   relatedGuides?: string[]
+}
+
+// ---- Fælles domænetyper (KV-storens datamodel) ----
+
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
+export type VacationStatus = ApprovalStatus
+
+/** Bruger som gemt i KV-nøglen 'users' (Record<email, StoredUser>). */
+export interface StoredUser {
+  email: string
+  password: string
+  fullName: string
+  phone?: string
+  isManager?: boolean
+  role?: UserRole
+  status?: ApprovalStatus
+}
+
+/** KV: 'sick-leave-entries'. endDate sættes ikke af indmeldingsdialogen og kan mangle. */
+export interface SickLeaveEntry {
+  id: string
+  userEmail: string
+  userName: string
+  startDate: string
+  endDate?: string
+  reason?: string
+  status: ApprovalStatus
+  submittedAt: string
+  reportedBy?: string
+  type?: 'self' | 'child'
+}
+
+/** KV: 'vacation-entries'. */
+export interface VacationEntry {
+  id: string
+  userId: string
+  userEmail: string
+  startDate: string
+  endDate: string
+  notes?: string
+  status: ApprovalStatus
+  reviewedBy?: string
+  reviewedAt?: string
+  isSingleDay?: boolean
+  manuallyGranted?: boolean
+}
+
+/** KV: 'shift-roles'. */
+export interface ShiftRole {
+  id: string
+  name: string
+  color: string
+}
+
+/** KV: 'shift-assignments'. */
+export interface ShiftAssignment {
+  id: string
+  employeeId: string
+  employeeName: string
+  roleId: string
+  date: string
+  comment?: string
+}
+
+/** KV: 'employee-birthdays'. */
+export interface BirthdayEntry {
+  email: string
+  fullName: string
+  birthday: string
+  birthYear?: number
+}
+
+/** KV: 'emails' (internt beskedsystem). */
+export interface Email {
+  id: string
+  from: string
+  to: string
+  subject: string
+  message: string
+  timestamp: number
+  read: boolean
+  starred?: boolean
+  folderId?: string
+}
+
+/** KV: 'email-folders'. */
+export interface EmailFolder {
+  id: string
+  name: string
+  userId: string
+  createdAt: number
+  color?: string
+}
+
+/** KV: 'meal-plan-weeks'. */
+export interface WeekMenu {
+  weekNumber: number
+  year: number
+  weekStart: string
+  meals: {
+    monday: string
+    tuesday: string
+    wednesday: string
+    thursday: string
+    friday: string
+  }
 }
