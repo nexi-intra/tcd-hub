@@ -193,7 +193,7 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col p-0">
+      <DialogContent className="max-w-[96vw] xl:max-w-[1400px] w-[96vw] h-[94vh] max-h-[94vh] flex flex-col p-0">
         <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 border-b border-border">
           <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
             <div className="flex-1 min-w-0 w-full">
@@ -317,7 +317,7 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
         <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 py-4 sm:py-6 bg-muted/40">
           {hasSections ? (
             // A4-lignende ark der spejler den genererede DOCX (lys uanset tema, som Word).
-            <div className="max-w-[210mm] mx-auto bg-white text-gray-900 rounded-sm shadow-xl border border-gray-300 overflow-hidden">
+            <div className="max-w-[1000px] mx-auto bg-white text-gray-900 rounded-sm shadow-xl border border-gray-300 overflow-hidden">
               <div className="px-10 pt-6 pb-2 border-b border-gray-200">
                 <div className="flex items-start justify-between gap-4">
                   <div className="text-[11px] leading-snug text-gray-500">
