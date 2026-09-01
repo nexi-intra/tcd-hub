@@ -60,6 +60,8 @@ export function DatePickerField({ id, value, onChange, min, max, placeholder, di
           mode="single"
           selected={selected}
           weekStartsOn={1}
+          ISOWeek
+          showWeekNumber
           locale={da}
           disabled={(date) => (minDate ? date < minDate : false) || (maxDate ? date > maxDate : false)}
           onSelect={(date) => {

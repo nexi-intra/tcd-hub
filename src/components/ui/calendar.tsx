@@ -53,7 +53,8 @@ function Calendar({
         range_start: "rounded-l-md bg-primary text-primary-foreground [&>button]:bg-primary [&>button]:text-primary-foreground",
         range_middle: "rounded-none bg-accent/30 [&>button]:bg-transparent",
         range_end: "rounded-r-md bg-primary text-primary-foreground [&>button]:bg-primary [&>button]:text-primary-foreground",
-        week_number: "w-9 h-9 flex items-center justify-center text-xs font-semibold text-muted-foreground bg-muted/30 rounded-md",
+        week_number: "w-9 h-9 flex items-center justify-center text-xs font-semibold text-primary/70 bg-muted/40 rounded-md mr-1",
+        week_number_header: "w-9 h-9 flex items-center justify-center text-[10px] font-bold uppercase text-muted-foreground/60 mr-1",
         ...classNames,
       }}
       components={{
