@@ -13,7 +13,7 @@ Status: **UNDER UDVIKLING — MÅ IKKE RELEASES ENDNU**. Vent med release/build 
 - [x] Tetris: fjernet sværhedsgrads-valg og levels - ét samlet highscores; spillet bliver nu selv gradvist sværere (fart stiger ud fra linjer ryddet + forløbet spilletid), med automatisk migrering af gammel opdelt highscore-/spilstatistik-data
 - [x] ManagerPanel: admin/manager kan sætte et valgfrit brugernavn på en bruger; login virker med både email og brugernavn
 - [x] Sikkerhedsfix (fundet undervejs): manager-oprettede/-redigerede adgangskoder blev gemt i klartekst i stedet for hashet - rettet til at bruge `hashPassword`
-- [ ] **Guide Bibliotek 2.0** (stor ombygning) — se separat plan: `plans/guide-library-2.0.md` (editor m. sektioner/trin, DOCX-generator efter DESK3500-template, preview, eksport-bibliotek, BM25-søgning, RAG-chatbot, opdaterings-interval/vedligeholdelses-timer)
+- [x] **Guide Bibliotek 2.0** (stor ombygning) — se separat plan: `plans/guide-library-2.0.md` — Fase 1-6 implementeret (editor m. sektioner/trin + billeder + versionering, opdaterings-interval m. badges/filter/gennemgået, A4-preview, DOCX-generator efter DESK3500-template, eksport-bibliotek m. kategorimapper, BM25-søgning, RAG-chatbot m. citater). UDESTÅR: manuel smoke-test i Word + mod delt datamappe
 
 ## Fase 3 — Test & validering
 - [x] `npm test` (10/10 bestået)

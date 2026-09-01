@@ -178,8 +178,9 @@ Opdaterings-interval [Intet ▾]  (Intet | 1 md | 2 mdr | 3 mdr | 6 mdr | 1 år)
 - [x] Retrieval-logik indbygget i `GuideChat.tsx` via BM25-indekset (top-chunks m. min-relevans-tærskel)
 - [x] Ny `GuideChat.tsx` (erstatter slettet, u-monteret ChatAssistant): citatkort m. guide-titel, §-reference, citat, relevans-% og [Åbn guide] — svarer KUN med guide-citater (ingen hallucination); flydende chat-knap i biblioteket
 ### Fase 7 — Polering & validering
-- [ ] Ydelse: memoisering, virtualiseret liste ved mange guides
-- [ ] `npm test` + `npm run build` + manuel smoke-test (editor, preview, DOCX i Word, eksport til M:-drev, chat)
-- [ ] Migrationstest med eksisterende `guides.json` fra TCD HUB STORAGE
+- [x] Ydelse: BM25-indeks og doc-model memoiseret; docx-pakke lazy-loaded i egen chunk; objekt-URL-cache for billeder. (Virtualiseret liste udeladt — unødvendigt ved realistisk guide-antal)
+- [x] `npm test` (10/10) + `npm run build` — kørt grønt efter hver fase
+- [ ] Manuel smoke-test (BRUGER): opret guide m. sektioner/billeder → preview → Download DOCX → åbn i Word og sammenlign med DESK3500 (TOC opdateres ved åbning) → eksportér til M:-drev → chat-spørgsmål m. citater
+- [ ] Migrationstest med eksisterende guides.json fra TCD HUB STORAGE (åbn biblioteket i appen — v1-guides skal vises uændret og få v2-struktur ved første redigering)
 
 **Anbefaling: start med Fase 1.**
