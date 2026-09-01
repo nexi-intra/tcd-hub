@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DownloadSimple, FileDoc, Timer, Image as ImageIcon, FileArrowDown, FolderOpen } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
-import { getReviewStatus, REVIEW_INTERVAL_CHOICES } from '@/lib/guideTypes'
+import { getReviewStatus, REVIEW_INTERVAL_CHOICES, guidePlainText } from '@/lib/guideTypes'
 import { guideToDocModel, resolveAuthorName } from '@/lib/docModel'
+import { detectLanguage, translateText, type GuideLanguage } from '@/lib/translator'
 import { isExportAvailable, getExportRoot, chooseAndSaveExportRoot, exportGuideToLibrary } from '@/lib/guideExporter'
 import { fileStorage } from '@/lib/fileStorage'
 import { toast } from 'sonner'
@@ -76,8 +77,38 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
   const [authorName, setAuthorName] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [viewLanguage, setViewLanguage] = useState<GuideLanguage | null>(null)
 
-  const model = useMemo(() => (guide ? guideToDocModel(guide) : null), [guide])
+  const guideLanguage: GuideLanguage = useMemo(
+    () => guide?.language || (guide ? detectLanguage(guidePlainText(guide)) : 'da'),
+    [guide]
+  )
+
+  useEffect(() => {
+    setViewLanguage(null)
+  }, [guide?.id])
+
+  const baseModel = useMemo(() => (guide ? guideToDocModel(guide) : null), [guide])
+
+  const isTranslated = viewLanguage !== null && viewLanguage !== guideLanguage
+
+  // Vist model — oversættes ordbogsbaseret når der er valgt et andet sprog end guidens.
+  const model = useMemo(() => {
+    if (!baseModel) return null
+    if (!isTranslated || !viewLanguage) return baseModel
+    return {
+      ...baseModel,
+      title: translateText(baseModel.title, guideLanguage, viewLanguage),
+      sections: baseModel.sections.map((section) => ({
+        ...section,
+        heading: translateText(section.heading, guideLanguage, viewLanguage),
+        steps: section.steps.map((step) => ({
+          ...step,
+          text: translateText(step.text, guideLanguage, viewLanguage),
+        })),
+      })),
+    }
+  }, [baseModel, isTranslated, viewLanguage, guideLanguage])
 
   useEffect(() => {
     if (!model?.authorEmail) { setAuthorName(''); return }
@@ -220,6 +251,31 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
               )}
             </div>
             <div className="flex flex-col gap-2 flex-shrink-0 w-full sm:w-auto">
+              {hasSections && (
+                <div className="flex items-center gap-1 rounded-lg border p-0.5 bg-muted/40 self-stretch sm:self-end">
+                  <Button
+                    variant={!isTranslated ? 'default' : 'ghost'}
+                    size="sm"
+                    className="h-7 px-2.5 text-xs flex-1"
+                    onClick={() => setViewLanguage(null)}
+                  >
+                    {guideLanguage === 'da' ? 'Dansk (original)' : 'English (original)'}
+                  </Button>
+                  <Button
+                    variant={isTranslated ? 'default' : 'ghost'}
+                    size="sm"
+                    className="h-7 px-2.5 text-xs flex-1"
+                    onClick={() => setViewLanguage(guideLanguage === 'da' ? 'en' : 'da')}
+                  >
+                    {guideLanguage === 'da' ? 'English' : 'Dansk'}
+                  </Button>
+                </div>
+              )}
+              {hasSections && isTranslated && (
+                <p className="text-[10px] text-muted-foreground text-center sm:text-right">
+                  Automatisk oversat (ordbogsbaseret) — original: {guideLanguage === 'da' ? 'dansk' : 'engelsk'}
+                </p>
+              )}
               {hasSections && (
                 <Button
                   size="sm"

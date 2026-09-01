@@ -30,8 +30,9 @@ import { fileStorage } from '@/lib/fileStorage'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import type { Guide, GuideSection, GuideVersionEntry } from '@/lib/guideTypes'
 import {
-  REVIEW_INTERVAL_CHOICES, newId, migrateGuide, computeNextReviewAt,
+  REVIEW_INTERVAL_CHOICES, newId, migrateGuide, computeNextReviewAt, guidePlainText,
 } from '@/lib/guideTypes'
+import { detectLanguage, type GuideLanguage } from '@/lib/translator'
 import { bumpVersion, saveVersionSnapshot, getVersionHistory } from '@/lib/guideStore'
 
 interface GuideEditorProps {
@@ -40,6 +41,8 @@ interface GuideEditorProps {
   onSave: (guide: Guide) => void
   editGuide?: Guide
   categories: string[]
+  /** Opretter en ny kategori i det delte kategorisæt og returnerer om det lykkedes. */
+  onCreateCategory?: (category: string) => boolean
   userEmail: string
 }
 
@@ -141,10 +144,13 @@ function ImageDropZone({ onUploaded, compact }: { onUploaded: (fileIds: string[]
   )
 }
 
-export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories, userEmail }: GuideEditorProps) {
+export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories, onCreateCategory, userEmail }: GuideEditorProps) {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string>(categories[0] || 'General')
   const [tags, setTags] = useState('')
+  const [language, setLanguage] = useState<GuideLanguage | 'auto'>('auto')
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
   const [sections, setSections] = useState<GuideSection[]>([emptySection()])
   const [coverImageId, setCoverImageId] = useState<string | undefined>()
   const [reviewInterval, setReviewInterval] = useState<number | null>(null)
@@ -166,6 +172,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
       setTitle(migrated.title)
       setCategory(migrated.category)
       setTags(migrated.tags.join(', '))
+      setLanguage(migrated.language || 'auto')
       setSections(migrated.sections && migrated.sections.length > 0
         ? migrated.sections.map((s) => ({ ...s, steps: s.steps.map((st) => ({ ...st, imageIds: [...st.imageIds] })) }))
         : [emptySection()])
@@ -176,6 +183,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
       setTitle('')
       setCategory(categories[0] || 'General')
       setTags('')
+      setLanguage('auto')
       setSections([emptySection()])
       setCoverImageId(undefined)
       setReviewInterval(null)
@@ -185,6 +193,8 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
     setWordFile(null)
     setRemoveWordAttachment(false)
     setShowHistory(false)
+    setIsCreatingCategory(false)
+    setNewCategoryName('')
     sessionImagesRef.current = []
   }, [open, migrated, categories])
 
@@ -194,6 +204,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
       return title !== migrated.title
         || category !== migrated.category
         || tags !== migrated.tags.join(', ')
+        || language !== (migrated.language || 'auto')
         || JSON.stringify(sections) !== JSON.stringify(migrated.sections?.length ? migrated.sections : [emptySection()])
         || coverImageId !== migrated.coverImageId
         || reviewInterval !== (migrated.reviewIntervalMonths ?? null)
@@ -298,6 +309,24 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
     toast.success(`Version ${entry.version} gendannet — gem for at oprette en ny version`)
   }
 
+  const handleCreateCategory = () => {
+    const name = newCategoryName.trim()
+    if (!name) {
+      toast.error('Kategorinavn kan ikke være tomt')
+      return
+    }
+    if (categories.some((c) => c.toLowerCase() === name.toLowerCase())) {
+      toast.error('Kategorien findes allerede')
+      return
+    }
+    if (onCreateCategory?.(name)) {
+      setCategory(name)
+      setIsCreatingCategory(false)
+      setNewCategoryName('')
+      toast.success(`Kategorien "${name}" oprettet`)
+    }
+  }
+
   const handleSave = async () => {
     if (!title.trim()) {
       toast.error('Titel er påkrævet')
@@ -339,12 +368,16 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
       }
 
       const version = migrated ? bumpVersion(migrated.version) : '1.00'
+      const resolvedLanguage: GuideLanguage = language === 'auto'
+        ? detectLanguage(guidePlainText({ ...(migrated || {}), title, tags: tagArray, category, sections: cleanedSections, content: migrated?.content || '', id: '', createdAt: 0, updatedAt: 0 } as Guide))
+        : language
       const guide: Guide = {
         id: migrated?.id || Date.now().toString(),
         schemaVersion: 2,
         title: title.trim(),
         category,
         tags: tagArray,
+        language: resolvedLanguage,
         content: migrated?.content || '',
         sections: cleanedSections,
         coverImageId,
@@ -378,7 +411,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o && hasUnsavedChanges) return; if (!o) cleanupSessionImages(); onOpenChange(o) }}>
-      <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col p-0">
+      <DialogContent className="max-w-[96vw] xl:max-w-[1400px] w-[96vw] h-[94vh] max-h-[94vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -426,8 +459,8 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2 sm:col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2 sm:col-span-2 lg:col-span-4">
                 <Label htmlFor="guide-title">Titel *</Label>
                 <Input
                   id="guide-title"
@@ -438,12 +471,37 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
               </div>
               <div className="space-y-2">
                 <Label>Kategori</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                {isCreatingCategory ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory() } }}
+                      placeholder="Ny kategori…"
+                      autoFocus
+                    />
+                    <Button size="icon" className="shrink-0 h-9 w-9" onClick={handleCreateCategory} aria-label="Opret kategori">
+                      <Plus size={16} weight="bold" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="shrink-0 h-9 w-9" onClick={() => { setIsCreatingCategory(false); setNewCategoryName('') }} aria-label="Annuller">
+                      <X size={16} />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    {onCreateCategory && (
+                      <Button size="icon" variant="outline" className="shrink-0 h-9 w-9" onClick={() => setIsCreatingCategory(true)} title="Opret ny kategori">
+                        <Plus size={16} weight="bold" />
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="guide-tags">Tags (kommasepareret)</Label>
@@ -454,7 +512,18 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
                   placeholder="terminal, opsætning, SAP"
                 />
               </div>
-              <div className="space-y-2 sm:col-span-2">
+              <div className="space-y-2">
+                <Label>Sprog</Label>
+                <Select value={language} onValueChange={(v) => setLanguage(v as GuideLanguage | 'auto')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Automatisk (registreres ved gemning)</SelectItem>
+                    <SelectItem value="da">Dansk</SelectItem>
+                    <SelectItem value="en">Engelsk</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Timer size={16} />
                   Opdaterings-interval

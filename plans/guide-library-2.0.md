@@ -178,6 +178,9 @@ Opdaterings-interval [Intet ▾]  (Intet | 1 md | 2 mdr | 3 mdr | 6 mdr | 1 år)
 - [x] Retrieval-logik indbygget i `GuideChat.tsx` via BM25-indekset (top-chunks m. min-relevans-tærskel)
 - [x] Ny `GuideChat.tsx` (erstatter slettet, u-monteret ChatAssistant): citatkort m. guide-titel, §-reference, citat, relevans-% og [Åbn guide] — svarer KUN med guide-citater (ingen hallucination); flydende chat-knap i biblioteket
 ### Fase 7 — Polering & validering
+- [x] Editor-vindue forstørret til næsten fuldskærm (96vw × 94vh, felter i 4-kolonne-grid på store skærme)
+- [x] Inline kategori-oprettelse i editoren (+-knap ved kategori-vælgeren, gemmes i delt categories-KV)
+- [x] Sprog pr. guide (da/en, auto-detekteres ved gemning) + ordbogsbaseret da↔en-oversætter (`src/lib/translator.ts`, domæne-ordbog): DA/EN-toggle i preview (oversætter også DOCX-eksport af vist sprog, markeret "Automatisk oversat"), tosproget søgning (ordbogen indgår i BM25-synonymer) og chatbot der svarer på spørgsmålets sprog m. oversatte citater
 - [x] Ydelse: BM25-indeks og doc-model memoiseret; docx-pakke lazy-loaded i egen chunk; objekt-URL-cache for billeder. (Virtualiseret liste udeladt — unødvendigt ved realistisk guide-antal)
 - [x] `npm test` (10/10) + `npm run build` — kørt grønt efter hver fase
 - [ ] Manuel smoke-test (BRUGER): opret guide m. sektioner/billeder → preview → Download DOCX → åbn i Word og sammenlign med DESK3500 (TOC opdateres ved åbning) → eksportér til M:-drev → chat-spørgsmål m. citater

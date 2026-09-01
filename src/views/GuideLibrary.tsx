@@ -228,6 +228,14 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
     setCategories(updatedCategories)
   }
 
+  // Kaldes fra editoren når brugeren opretter en kategori inline.
+  const handleCreateCategory = (name: string): boolean => {
+    const existing = categories || defaultCategories
+    if (existing.some((c) => c.toLowerCase() === name.toLowerCase())) return false
+    setCategories([...existing, name])
+    return true
+  }
+
   const allCategories = ['All', ...(categories || defaultCategories)]
 
   return (
@@ -467,6 +475,7 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
         onSave={handleSaveGuide}
         editGuide={editGuide}
         categories={categories || defaultCategories}
+        onCreateCategory={handleCreateCategory}
         userEmail={userEmail}
       />
 

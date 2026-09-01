@@ -10,7 +10,9 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { PaperPlaneRight, Robot, User, ArrowSquareOut, Quotes } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
+import { guidePlainText } from '@/lib/guideTypes'
 import type { GuideSearchIndex, SearchHit } from '@/lib/searchIndex'
+import { detectLanguage, translateText, type GuideLanguage } from '@/lib/translator'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
@@ -20,6 +22,8 @@ interface Citation {
   reference: string
   heading: string
   quote: string
+  /** Ordbogsbaseret oversættelse af citatet, når guide- og spørgesprog er forskellige. */
+  translatedQuote?: string
   relevance: number
 }
 
@@ -41,22 +45,49 @@ interface GuideChatProps {
 
 const MIN_RELEVANCE = 0.25
 
-function hitsToCitations(hits: SearchHit[]): Citation[] {
+const UI_TEXT = {
+  da: {
+    found: (count: number, guides: number) =>
+      `Jeg fandt ${count} relevant${count === 1 ? '' : 'e'} afsnit i ${guides} guide${guides === 1 ? '' : 's'}. Svaret er citeret direkte fra biblioteket:`,
+    noHits: (q: string) => `Jeg fandt ikke noget i guidebiblioteket, der matcher "${q}". Prøv andre søgeord — eller opret en guide om emnet, hvis det mangler.`,
+    empty: 'Der er ingen guides i biblioteket endnu. Opret den første guide via "Ny guide"-knappen.',
+    translated: 'Oversat fra engelsk',
+    openGuide: 'Åbn guide',
+  },
+  en: {
+    found: (count: number, guides: number) =>
+      `I found ${count} relevant section${count === 1 ? '' : 's'} in ${guides} guide${guides === 1 ? '' : 's'}. The answer is quoted directly from the library:`,
+    noHits: (q: string) => `I couldn't find anything in the guide library matching "${q}". Try different keywords — or create a guide on the topic if it's missing.`,
+    empty: 'There are no guides in the library yet. Create the first one via the "Ny guide" button.',
+    translated: 'Translated from Danish',
+    openGuide: 'Open guide',
+  },
+} as const
+
+function hitsToCitations(hits: SearchHit[], guides: Guide[], answerLanguage: GuideLanguage): Citation[] {
+  const languageById = new Map(guides.map((g) => [g.id, g.language || detectLanguage(guidePlainText(g))]))
   return hits
     .filter((hit) => hit.normalizedScore >= MIN_RELEVANCE)
     .slice(0, 4)
-    .map((hit) => ({
-      guideId: hit.chunk.guideId,
-      guideTitle: hit.chunk.guideTitle,
-      reference: hit.chunk.stepNumber
-        ? `§${hit.chunk.stepNumber}`
-        : hit.chunk.sectionNumber
-          ? `§${hit.chunk.sectionNumber}`
-          : '',
-      heading: hit.chunk.heading,
-      quote: hit.chunk.text.length > 220 ? hit.chunk.text.slice(0, 220) + '…' : hit.chunk.text,
-      relevance: Math.round(hit.normalizedScore * 100),
-    }))
+    .map((hit) => {
+      const quote = hit.chunk.text.length > 220 ? hit.chunk.text.slice(0, 220) + '…' : hit.chunk.text
+      const sourceLanguage = languageById.get(hit.chunk.guideId) || detectLanguage(hit.chunk.text)
+      return {
+        guideId: hit.chunk.guideId,
+        guideTitle: hit.chunk.guideTitle,
+        reference: hit.chunk.stepNumber
+          ? `§${hit.chunk.stepNumber}`
+          : hit.chunk.sectionNumber
+            ? `§${hit.chunk.sectionNumber}`
+            : '',
+        heading: hit.chunk.heading,
+        quote,
+        translatedQuote: sourceLanguage !== answerLanguage
+          ? translateText(quote, sourceLanguage, answerLanguage)
+          : undefined,
+        relevance: Math.round(hit.normalizedScore * 100),
+      }
+    })
 }
 
 export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide }: GuideChatProps) {
@@ -89,21 +120,23 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
     }
 
     let assistantMessage: RagMessage
+    const answerLanguage = detectLanguage(question)
+    const t = UI_TEXT[answerLanguage]
     if (guides.length === 0) {
       assistantMessage = {
         id: `${Date.now()}-a`,
         role: 'assistant',
-        content: 'Der er ingen guides i biblioteket endnu. Opret den første guide via "Ny guide"-knappen.',
+        content: t.empty,
         timestamp: Date.now(),
       }
     } else {
       const hits = searchIndex.search(question, 12)
-      const citations = hitsToCitations(hits)
+      const citations = hitsToCitations(hits, guides, answerLanguage)
       if (citations.length === 0) {
         assistantMessage = {
           id: `${Date.now()}-a`,
           role: 'assistant',
-          content: `Jeg fandt ikke noget i guidebiblioteket, der matcher "${question}". Prøv andre søgeord — eller opret en guide om emnet, hvis det mangler.`,
+          content: t.noHits(question),
           timestamp: Date.now(),
         }
       } else {
@@ -111,7 +144,7 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
         assistantMessage = {
           id: `${Date.now()}-a`,
           role: 'assistant',
-          content: `Jeg fandt ${citations.length} relevant${citations.length === 1 ? 'e' : 'e'} afsnit i ${guideCount} guide${guideCount === 1 ? '' : 's'}. Svaret er citeret direkte fra biblioteket:`,
+          content: t.found(citations.length, guideCount),
           citations,
           timestamp: Date.now(),
         }
@@ -206,6 +239,14 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
                       <blockquote className="text-xs text-foreground/90 border-l-2 border-primary/40 pl-2 italic break-words">
                         “{citation.quote}”
                       </blockquote>
+                      {citation.translatedQuote && (
+                        <div className="rounded-lg bg-muted/60 px-2 py-1.5 space-y-0.5">
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                            {detectLanguage(citation.quote) === 'da' ? UI_TEXT.en.translated : UI_TEXT.da.translated}
+                          </div>
+                          <p className="text-xs break-words">{citation.translatedQuote}</p>
+                        </div>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"

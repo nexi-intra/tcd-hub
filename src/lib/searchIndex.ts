@@ -5,6 +5,7 @@
 
 import type { Guide } from './guideTypes'
 import { migrateGuide } from './guideTypes'
+import { getDictionaryPairs } from './translator'
 
 export interface SearchChunk {
   guideId: string
@@ -70,6 +71,15 @@ for (const group of SYNONYM_GROUPS) {
   for (const word of group) {
     SYNONYMS.set(word, group.filter((w) => w !== word))
   }
+}
+// Dansk↔engelsk ordbog fra oversætteren, så danske søgninger rammer engelske
+// guides og omvendt (tosproget retrieval til søgning + chatbot).
+for (const [da, en] of getDictionaryPairs()) {
+  if (da === en) continue
+  const existingDa = SYNONYMS.get(da) || []
+  if (!existingDa.includes(en)) SYNONYMS.set(da, [...existingDa, en])
+  const existingEn = SYNONYMS.get(en) || []
+  if (!existingEn.includes(da)) SYNONYMS.set(en, [...existingEn, da])
 }
 
 /** Let suffiks-stemming for dansk/engelsk — bevidst konservativ. */

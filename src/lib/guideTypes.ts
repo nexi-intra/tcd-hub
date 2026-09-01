@@ -22,6 +22,8 @@ export interface Guide {
   title: string
   category: string
   tags: string[]
+  /** Guidens primære sprog — bruges af oversættelse og chatbot. */
+  language?: 'da' | 'en'
   /** v1-brødtekst; bevares efter migrering som reserve/ekstra noter */
   content: string
   sections?: GuideSection[]
