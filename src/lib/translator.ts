@@ -180,3 +180,27 @@ export function translateText(text: string, from: GuideLanguage, to: GuideLangua
 function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
+
+export type TranslationEngine = 'neural' | 'dictionary'
+
+export interface AsyncTranslationResult {
+  text: string
+  /** Hvilken motor der leverede oversættelsen — UI viser det som badge. */
+  engine: TranslationEngine
+}
+
+/**
+ * Foretrukken oversættelse: Bergamot (neural, offline WASM — kræver modeller i
+ * <datamappe>/translation-models/) med ordbogs-oversætteren som fallback.
+ */
+export async function translateTextAsync(text: string, from: GuideLanguage, to: GuideLanguage): Promise<AsyncTranslationResult> {
+  if (from === to || !text.trim()) return { text, engine: 'dictionary' }
+  try {
+    const { bergamotTranslate } = await import('./bergamotTranslator')
+    const neural = await bergamotTranslate(text, from, to)
+    if (neural !== null) return { text: neural, engine: 'neural' }
+  } catch (error) {
+    console.error('Neural oversættelse utilgængelig — bruger ordbog:', error)
+  }
+  return { text: translateText(text, from, to), engine: 'dictionary' }
+}

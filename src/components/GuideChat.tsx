@@ -11,7 +11,7 @@ import { PaperPlaneRight, Robot, User, ArrowSquareOut, Quotes } from '@phosphor-
 import { Guide } from '@/lib/types'
 import { guidePlainText } from '@/lib/guideTypes'
 import type { GuideSearchIndex, SearchHit } from '@/lib/searchIndex'
-import { detectLanguage, translateText, type GuideLanguage } from '@/lib/translator'
+import { detectLanguage, translateTextAsync, type GuideLanguage, type TranslationEngine } from '@/lib/translator'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
@@ -24,8 +24,10 @@ interface Citation {
   quote: string
   /** Guidens sprog — bruges til "oversat fra"-etiketten. */
   sourceLanguage: GuideLanguage
-  /** Ordbogsbaseret oversættelse af citatet, når guide- og spørgesprog er forskellige. */
+  /** Oversættelse af citatet, når guide- og spørgesprog er forskellige. */
   translatedQuote?: string
+  /** Motor bag translatedQuote (neural/ordbog). */
+  translationEngine?: TranslationEngine
   relevance: number
 }
 
@@ -70,33 +72,38 @@ const UI_TEXT = {
   },
 } as const
 
-function hitsToCitations(hits: SearchHit[], guides: Guide[], answerLanguage: GuideLanguage): Citation[] {
+async function hitsToCitations(hits: SearchHit[], guides: Guide[], answerLanguage: GuideLanguage): Promise<Citation[]> {
   const languageById = new Map(guides.map((g) => [g.id, g.language || detectLanguage(guidePlainText(g), 'da')]))
-  return hits
-    .filter((hit) => hit.normalizedScore >= MIN_RELEVANCE)
-    .slice(0, 4)
-    .map((hit) => {
-      const quote = hit.chunk.text.length > 220 ? hit.chunk.text.slice(0, 220) + '…' : hit.chunk.text
-      const sourceLanguage = languageById.get(hit.chunk.guideId) || detectLanguage(hit.chunk.text, 'da')
-      const translated = sourceLanguage !== answerLanguage
-        ? translateText(quote, sourceLanguage, answerLanguage)
-        : undefined
-      return {
-        guideId: hit.chunk.guideId,
-        guideTitle: hit.chunk.guideTitle,
-        reference: hit.chunk.stepNumber
-          ? `§${hit.chunk.stepNumber}`
-          : hit.chunk.sectionNumber
-            ? `§${hit.chunk.sectionNumber}`
-            : '',
-        heading: hit.chunk.heading,
-        quote,
-        sourceLanguage,
-        // Vis kun oversættelsen hvis den reelt adskiller sig fra originalen.
-        translatedQuote: translated && translated.toLowerCase() !== quote.toLowerCase() ? translated : undefined,
-        relevance: Math.round(hit.normalizedScore * 100),
+  const relevant = hits.filter((hit) => hit.normalizedScore >= MIN_RELEVANCE).slice(0, 4)
+  return Promise.all(relevant.map(async (hit) => {
+    const quote = hit.chunk.text.length > 220 ? hit.chunk.text.slice(0, 220) + '…' : hit.chunk.text
+    const sourceLanguage = languageById.get(hit.chunk.guideId) || detectLanguage(hit.chunk.text, 'da')
+    let translatedQuote: string | undefined
+    let translationEngine: TranslationEngine | undefined
+    if (sourceLanguage !== answerLanguage) {
+      const result = await translateTextAsync(quote, sourceLanguage, answerLanguage)
+      // Vis kun oversættelsen hvis den reelt adskiller sig fra originalen.
+      if (result.text.toLowerCase() !== quote.toLowerCase()) {
+        translatedQuote = result.text
+        translationEngine = result.engine
       }
-    })
+    }
+    return {
+      guideId: hit.chunk.guideId,
+      guideTitle: hit.chunk.guideTitle,
+      reference: hit.chunk.stepNumber
+        ? `§${hit.chunk.stepNumber}`
+        : hit.chunk.sectionNumber
+          ? `§${hit.chunk.sectionNumber}`
+          : '',
+      heading: hit.chunk.heading,
+      quote,
+      sourceLanguage,
+      translatedQuote,
+      translationEngine,
+      relevance: Math.round(hit.normalizedScore * 100),
+    }
+  }))
 }
 
 export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide }: GuideChatProps) {
@@ -119,7 +126,7 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
     }
   }, [messages])
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const question = input.trim()
     if (!question) return
 
@@ -129,6 +136,9 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
       content: question,
       timestamp: Date.now(),
     }
+    // Vis brugerens besked med det samme; svaret følger når oversættelsen er klar.
+    setMessages((prev) => [...prev, userMessage])
+    setInput('')
 
     let assistantMessage: RagMessage
     // Spørgsmålets sprog afgør svarsproget; ved tvetydige/korte spørgsmål bruges appens sprog.
@@ -143,7 +153,7 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
       }
     } else {
       const hits = searchIndex.search(question, 12)
-      const citations = hitsToCitations(hits, guides, answerLanguage)
+      const citations = await hitsToCitations(hits, guides, answerLanguage)
       if (citations.length === 0) {
         assistantMessage = {
           id: `${Date.now()}-a`,
@@ -163,8 +173,7 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
       }
     }
 
-    setMessages((prev) => [...prev, userMessage, assistantMessage])
-    setInput('')
+    setMessages((prev) => [...prev, assistantMessage])
   }
 
   return (
@@ -255,6 +264,7 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
                         <div className="rounded-lg bg-muted/60 px-2 py-1.5 space-y-0.5">
                           <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                             {UI_TEXT[appLanguage].translatedFrom[citation.sourceLanguage]}
+                            {citation.translationEngine === 'neural' ? ' · neural' : ''}
                           </div>
                           <p className="text-xs break-words">{citation.translatedQuote}</p>
                         </div>

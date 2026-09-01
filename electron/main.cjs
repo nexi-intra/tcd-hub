@@ -270,6 +270,49 @@ app.whenReady().then(() => {
     return result.filePaths[0]
   })
 
+  // --- Neural oversættelse (Bergamot) -------------------------------------
+  // Worker/WASM ligger i dist/translation (inde i app.asar); modellerne ligger
+  // i den delte datamappe, så én download tjener alle klienter.
+
+  // Renderer kører under file:// hvor fetch() er blokeret — filerne læses derfor her.
+  ipcMain.handle('translation:worker-assets', () => {
+    const assetDir = path.join(__dirname, '..', 'dist', 'translation')
+    return {
+      workerJs: fs.readFileSync(path.join(assetDir, 'translator-worker.js'), 'utf8'),
+      glueJs: fs.readFileSync(path.join(assetDir, 'bergamot-translator-worker.js'), 'utf8'),
+      wasm: fs.readFileSync(path.join(assetDir, 'bergamot-translator-worker.wasm')).buffer,
+    }
+  })
+
+  // Registry: scanner <datamappe>/translation-models/ for sprogpar-mapper (fx 'daen', 'enda').
+  ipcMain.handle('translation:registry', () => {
+    const modelsDir = path.join(store.dataDir, 'translation-models')
+    if (!fs.existsSync(modelsDir)) return []
+    return fs.readdirSync(modelsDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && /^[a-z]{4}$/.test(entry.name))
+      .map((entry) => ({ from: entry.name.slice(0, 2), to: entry.name.slice(2, 4) }))
+  })
+
+  // Modelfiler for ét sprogpar: model*.bin, lex*.bin (shortlist), vocab*.spm.
+  ipcMain.handle('translation:model-files', (_event, pair) => {
+    if (!/^[a-z]{4}$/.test(String(pair))) throw new Error(`Ugyldigt sprogpar: ${pair}`)
+    const dir = path.join(store.dataDir, 'translation-models', pair)
+    const names = fs.readdirSync(dir)
+    const find = (pattern) => {
+      const name = names.find((n) => pattern.test(n))
+      if (!name) throw new Error(`Manglende modelfil (${pattern}) i ${dir}`)
+      return fs.readFileSync(path.join(dir, name)).buffer
+    }
+    const modelName = names.find((n) => /^model.*\.bin$/.test(n)) || ''
+    return {
+      model: find(/^model.*\.bin$/),
+      shortlist: find(/^lex.*\.bin$/),
+      vocabs: names.filter((n) => /\.spm$/.test(n)).sort().map((n) => fs.readFileSync(path.join(dir, n)).buffer),
+      // intgemm8-modeller (uden alphas) kræver denne gemm-præcision.
+      gemmPrecision: /intgemm8\.bin$/.test(modelName) ? 'int8shiftAll' : undefined,
+    }
+  })
+
   // Skriver en genereret DOCX til <rod>/<kategori>/<filnavn> og opretter kategorimappen.
   ipcMain.handle('guides:export-docx', async (_event, payload) => {
     const sanitize = (value) => String(value || '').replace(/[\\/:*?"<>|]/g, '-').replace(/^\.+|\.+$/g, '').trim()

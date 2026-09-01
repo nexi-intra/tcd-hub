@@ -13,3 +13,10 @@ export interface ElectronGuidesApi {
   /** Skriver DOCX til <root>/<kategori>/<filnavn>; returnerer den fulde sti. */
   exportDocx(payload: GuideExportPayload): Promise<string>
 }
+
+// Typer for window.electronTranslation (preload.cjs) — Bergamot-assets og modeller.
+export interface ElectronTranslationApi {
+  workerAssets(): Promise<{ workerJs: string; glueJs: string; wasm: ArrayBuffer }>
+  registry(): Promise<Array<{ from: string; to: string }>>
+  modelFiles(pair: string): Promise<{ model: ArrayBuffer; shortlist: ArrayBuffer; vocabs: ArrayBuffer[]; gemmPrecision?: string }>
+}

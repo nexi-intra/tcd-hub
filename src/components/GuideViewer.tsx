@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { DownloadSimple, FileDoc, Timer, Image as ImageIcon, FileArrowDown, FolderOpen } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
 import { getReviewStatus, REVIEW_INTERVAL_CHOICES, guidePlainText } from '@/lib/guideTypes'
-import { guideToDocModel, resolveAuthorName } from '@/lib/docModel'
-import { detectLanguage, translateText, type GuideLanguage } from '@/lib/translator'
+import { guideToDocModel, resolveAuthorName, type DocModel } from '@/lib/docModel'
+import { detectLanguage, translateTextAsync, type GuideLanguage, type TranslationEngine } from '@/lib/translator'
 import { isExportAvailable, getExportRoot, chooseAndSaveExportRoot, exportGuideToLibrary } from '@/lib/guideExporter'
 import { fileStorage } from '@/lib/fileStorage'
 import { toast } from 'sonner'
@@ -92,23 +92,51 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
 
   const isTranslated = viewLanguage !== null && viewLanguage !== guideLanguage
 
-  // Vist model — oversættes ordbogsbaseret når der er valgt et andet sprog end guidens.
-  const model = useMemo(() => {
-    if (!baseModel) return null
-    if (!isTranslated || !viewLanguage) return baseModel
-    return {
-      ...baseModel,
-      title: translateText(baseModel.title, guideLanguage, viewLanguage),
-      sections: baseModel.sections.map((section) => ({
-        ...section,
-        heading: translateText(section.heading, guideLanguage, viewLanguage),
-        steps: section.steps.map((step) => ({
-          ...step,
-          text: translateText(step.text, guideLanguage, viewLanguage),
-        })),
-      })),
+  // Oversat model bygges async: Bergamot (neural) hvis modeller findes, ellers ordbog.
+  const [translatedModel, setTranslatedModel] = useState<DocModel | null>(null)
+  const [translationEngine, setTranslationEngine] = useState<TranslationEngine>('dictionary')
+  const [isTranslating, setIsTranslating] = useState(false)
+
+  useEffect(() => {
+    if (!baseModel || !isTranslated || !viewLanguage) {
+      setTranslatedModel(null)
+      return
     }
+    let cancelled = false
+    setIsTranslating(true)
+    const run = async () => {
+      try {
+        const engines = new Set<TranslationEngine>()
+        const translate = async (text: string) => {
+          const result = await translateTextAsync(text, guideLanguage, viewLanguage)
+          engines.add(result.engine)
+          return result.text
+        }
+        const title = await translate(baseModel.title)
+        const sections: DocModel['sections'] = []
+        for (const section of baseModel.sections) {
+          const heading = await translate(section.heading)
+          const steps: DocModel['sections'][number]['steps'] = []
+          for (const step of section.steps) {
+            steps.push({ ...step, text: step.text ? await translate(step.text) : step.text })
+          }
+          sections.push({ ...section, heading, steps })
+        }
+        if (cancelled) return
+        setTranslatedModel({ ...baseModel, title, sections })
+        setTranslationEngine(engines.has('neural') ? 'neural' : 'dictionary')
+      } catch (error) {
+        console.error('Oversættelse af guide fejlede:', error)
+        if (!cancelled) setTranslatedModel(null)
+      } finally {
+        if (!cancelled) setIsTranslating(false)
+      }
+    }
+    run()
+    return () => { cancelled = true }
   }, [baseModel, isTranslated, viewLanguage, guideLanguage])
+
+  const model = isTranslated ? (translatedModel ?? baseModel) : baseModel
 
   useEffect(() => {
     if (!model?.authorEmail) { setAuthorName(''); return }
@@ -273,7 +301,11 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
               )}
               {hasSections && isTranslated && (
                 <p className="text-[10px] text-muted-foreground text-center sm:text-right">
-                  Automatisk oversat (ordbogsbaseret) — original: {guideLanguage === 'da' ? 'dansk' : 'engelsk'}
+                  {isTranslating
+                    ? 'Oversætter…'
+                    : translationEngine === 'neural'
+                      ? `Neural oversættelse (offline) — original: ${guideLanguage === 'da' ? 'dansk' : 'engelsk'}`
+                      : `Automatisk oversat (ordbogsbaseret) — original: ${guideLanguage === 'da' ? 'dansk' : 'engelsk'}`}
                 </p>
               )}
               {hasSections && (

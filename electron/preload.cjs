@@ -40,3 +40,9 @@ contextBridge.exposeInMainWorld('electronGuides', {
   chooseExportDir: () => ipcRenderer.invoke('guides:choose-export-dir'),
   exportDocx: (payload) => ipcRenderer.invoke('guides:export-docx', payload),
 })
+
+contextBridge.exposeInMainWorld('electronTranslation', {
+  workerAssets: () => ipcRenderer.invoke('translation:worker-assets'),
+  registry: () => ipcRenderer.invoke('translation:registry'),
+  modelFiles: (pair) => ipcRenderer.invoke('translation:model-files', pair),
+})
