@@ -2,6 +2,10 @@
 // Guide-typen dækker både v1 (flad content) og v2 (sektioner/trin); migrateGuide
 // opgraderer lazy ved load og er idempotent.
 
+import { newId } from './utils'
+
+export { newId }
+
 export interface GuideStep {
   id: string
   text: string
@@ -72,10 +76,6 @@ export const REVIEW_INTERVAL_CHOICES: Array<{ value: number | null; label: strin
   { value: 6, label: '6 måneder' },
   { value: 12, label: '1 år' },
 ]
-
-export function newId(prefix: string): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
-}
 
 export function addMonths(timestamp: number, months: number): number {
   const date = new Date(timestamp)

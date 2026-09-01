@@ -98,6 +98,63 @@ function startWatcher() {
   stopWatcher = store.watch((changedKeys) => broadcast('kv:changed', changedKeys))
 }
 
+// --- Automatisk daglig backup -------------------------------------------
+// Skriver hele storen (dekrypteret) til <datamappe>/Backup/tcd-hub-auto-backup-YYYY-MM-DD.json.
+// Exclusive create ('wx') sikrer at kun én af de delte klienter skriver dagens fil.
+const AUTO_BACKUP_KEEP = 14
+const AUTO_BACKUP_CHECK_INTERVAL = 60 * 60 * 1000
+let autoBackupTimer = null
+
+function runAutoBackup() {
+  try {
+    const backupDir = path.join(store.dataDir, 'Backup')
+    fs.mkdirSync(backupDir, { recursive: true })
+    const today = new Date().toISOString().slice(0, 10)
+    const target = path.join(backupDir, `tcd-hub-auto-backup-${today}.json`)
+    if (fs.existsSync(target)) return
+
+    const payload = JSON.stringify({
+      app: 'tcd-hub',
+      formatVersion: 1,
+      exportedAt: new Date().toISOString(),
+      auto: true,
+      data: store.dumpAll(),
+    }, null, 2)
+
+    let fd
+    try {
+      fd = fs.openSync(target, 'wx')
+    } catch (err) {
+      if (err.code === 'EEXIST') return // En anden klient nåede det først.
+      throw err
+    }
+    try {
+      fs.writeSync(fd, payload)
+    } finally {
+      fs.closeSync(fd)
+    }
+    console.log(`TCD Hub: automatisk backup skrevet: ${target}`)
+
+    // Rotation: behold de nyeste AUTO_BACKUP_KEEP auto-backups.
+    const autoBackups = fs.readdirSync(backupDir)
+      .filter((name) => /^tcd-hub-auto-backup-\d{4}-\d{2}-\d{2}\.json$/.test(name))
+      .sort()
+    for (const name of autoBackups.slice(0, Math.max(0, autoBackups.length - AUTO_BACKUP_KEEP))) {
+      try { fs.unlinkSync(path.join(backupDir, name)) } catch {}
+    }
+  } catch (err) {
+    console.error('TCD Hub: automatisk backup fejlede', err)
+  }
+}
+
+function startAutoBackup() {
+  if (autoBackupTimer) clearInterval(autoBackupTimer)
+  runAutoBackup()
+  // Timetjek dækker både midnat og klienter, der bare får lov at køre.
+  autoBackupTimer = setInterval(runAutoBackup, AUTO_BACKUP_CHECK_INTERVAL)
+  autoBackupTimer.unref?.()
+}
+
 /** Kopierer alle datafiler til den nye mappe og skifter storen over. */
 function switchDataDir(newDir) {
   const oldDir = store.dataDir
@@ -125,6 +182,7 @@ function switchDataDir(newDir) {
   store = createStore(newDir)
   dataDirSource = 'user'
   startWatcher()
+  startAutoBackup()
 
   // Alle keys kan have ændret sig — bed alle vinduer om at genindlæse.
   broadcast('kv:changed', store.keys())
@@ -180,6 +238,13 @@ app.whenReady().then(() => {
   ipcMain.handle('kv:set', (_event, key, value) => store.set(key, value))
   ipcMain.handle('kv:delete', (_event, key) => store.delete(key))
   ipcMain.handle('kv:keys', () => store.keys())
+  // Atomar array-opdatering under fil-lås; broadcast med det samme så dette
+  // vindues useKV-abonnenter opdaterer uden at vente på 2s-polleren.
+  ipcMain.handle('kv:update', (_event, key, operation) => {
+    const result = store.update(key, operation)
+    broadcast('kv:changed', [key])
+    return result
+  })
   ipcMain.handle('kv:data-dir', () => store.dataDir)
   ipcMain.handle('kv:storage-info', () => ({ dataDir: store.dataDir, source: dataDirSource }))
   ipcMain.handle('kv:choose-data-dir', async (event) => {
@@ -309,6 +374,8 @@ app.whenReady().then(() => {
   createWindow()
 
   updater.cleanupOldWorkDirs()
+  // Backup kører først når appen har haft et øjeblik til at starte færdig.
+  setTimeout(startAutoBackup, 30 * 1000)
   // Første tjek kort efter opstart (når vinduet er indlæst), derefter fast interval.
   setTimeout(checkForUpdates, 10 * 1000)
   updateCheckTimer = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL)

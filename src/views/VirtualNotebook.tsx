@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { newId } from '@/lib/utils'
+import { appendToKvArray, upsertInKvArray, removeFromKvArray } from '@/lib/kvArrays'
 import { format, parseISO, formatDistanceToNow } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 
@@ -146,8 +148,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
       isPersonal: isCreatingPersonal,
     }
 
-    const updatedNotes = [...notes, newNote]
-    await window.kv.set('notebook-notes', updatedNotes)
+    const updatedNotes = await appendToKvArray('notebook-notes', [newNote])
     setNotes(updatedNotes)
 
     setNoteTitle('')
@@ -176,13 +177,13 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
       lastEditedByName: userName,
     }
 
-    const updatedNotes = notes.map(n => n.id === selectedNote.id ? updatedNote : n)
-    await window.kv.set('notebook-notes', updatedNotes)
+    // Atomar pr.-note-opdatering — to brugere der redigerer forskellige noter samtidig taber ikke hinandens ændringer.
+    const updatedNotes = await upsertInKvArray('notebook-notes', [updatedNote])
     setNotes(updatedNotes)
 
     if (!selectedNote.isPersonal) {
       const notification = {
-        id: `notification_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        id: newId('notification'),
         type: 'note-edited' as const,
         noteId: selectedNote.id,
         noteTitle: updatedNote.title,
@@ -193,8 +194,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
         read: false,
       }
 
-      const existingNotifications = (await window.kv.get<Notification[]>('notebook-notifications')) || []
-      await window.kv.set('notebook-notifications', [...existingNotifications, notification])
+      await appendToKvArray('notebook-notifications', [notification])
       
       if (selectedNote.creatorEmail !== userEmail) {
         toast.info(
@@ -215,8 +215,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   const handleDeleteNote = async () => {
     if (!selectedNote) return
 
-    const updatedNotes = notes.filter(n => n.id !== selectedNote.id)
-    await window.kv.set('notebook-notes', updatedNotes)
+    const updatedNotes = await removeFromKvArray<Note>('notebook-notes', [selectedNote.id])
     setNotes(updatedNotes)
 
     setSelectedNote(null)

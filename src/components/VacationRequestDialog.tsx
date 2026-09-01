@@ -7,9 +7,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { DatePickerField } from '@/components/DatePickerField'
 import { PaperPlaneTilt, Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
+import { newId } from '@/lib/utils'
+import { appendToKvArray } from '@/lib/kvArrays'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import type { VacationEntry } from '@/lib/types'
@@ -24,7 +25,6 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
   const [endDate, setEndDate] = useState('')
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [vacations, setVacations] = useKV<VacationEntry[]>('vacation-entries', [])
   const { t } = useLanguage()
 
   const hasUnsavedChanges = useMemo(() => {
@@ -62,7 +62,7 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
       const endDateStr = endDate
 
       const newVacation: VacationEntry = {
-        id: Date.now().toString(),
+        id: newId('vacation'),
         userId: userEmail,
         userEmail,
         startDate: startDateStr,
@@ -71,73 +71,48 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
         status: 'pending'
       }
 
-      setVacations((current) => [...(current || []), newVacation])
+      await appendToKvArray('vacation-entries', [newVacation])
 
       const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
       const managers = Object.values(usersData || {}).filter(user => user.isManager)
       const requesterName = usersData?.[userEmail]?.fullName || userEmail
 
-      for (const manager of managers) {
-        try {
-          const emailContent = vacationRequestEmail(requesterName, startDate, endDate, notes.trim() || undefined)
+      try {
+        const emailContent = vacationRequestEmail(requesterName, startDate, endDate, notes.trim() || undefined)
 
-          const emails = await window.kv.get<Array<{
-            id: string
-            from: string
-            to: string
-            subject: string
-            message: string
-            timestamp: number
-            read: boolean
-            type?: string
-          }>>('emails') || []
+        // Saml alle manager-mails/notifikationer og skriv én atomar append pr. nøgle.
+        const managerEmailItems = managers.map((manager) => ({
+          id: newId('email'),
+          from: userEmail,
+          to: manager.email,
+          subject: emailContent.subject,
+          message: emailContent.body,
+          timestamp: Date.now(),
+          read: false,
+          type: 'vacation-request'
+        }))
 
-          const newEmail = {
-            id: Date.now().toString() + '-' + manager.email,
-            from: userEmail,
-            to: manager.email,
-            subject: emailContent.subject,
-            message: emailContent.body,
-            timestamp: Date.now(),
-            read: false,
-            type: 'vacation-request'
-          }
+        const managerNotifications = managers.map((manager) => ({
+          id: newId('notif'),
+          to: manager.email,
+          subject: emailContent.subject,
+          body: emailContent.body,
+          timestamp: new Date().toISOString(),
+          type: 'vacation-request' as const,
+          read: false
+        }))
 
-          await window.kv.set('emails', [...emails, newEmail])
-
-          const notification = {
-            id: Date.now().toString() + '-' + manager.email + '-notif',
-            to: manager.email,
-            subject: emailContent.subject,
-            body: emailContent.body,
-            timestamp: new Date().toISOString(),
-            type: 'vacation-request' as const,
-            read: false
-          }
-
-          const notifications = await window.kv.get<any[]>('email-notifications') || []
-          await window.kv.set('email-notifications', [...notifications, notification])
-        } catch (emailError) {
-          console.error('Error sending vacation request email to manager:', emailError)
-        }
+        await appendToKvArray('emails', managerEmailItems)
+        await appendToKvArray('email-notifications', managerNotifications)
+      } catch (emailError) {
+        console.error('Error sending vacation request email to manager:', emailError)
       }
 
       try {
         const confirmEmail = vacationRequestConfirmationEmail(startDate, endDate, notes.trim() || undefined)
 
-        const emails = await window.kv.get<Array<{
-          id: string
-          from: string
-          to: string
-          subject: string
-          message: string
-          timestamp: number
-          read: boolean
-          type?: string
-        }>>('emails') || []
-
         const confirmationEmail = {
-          id: Date.now().toString() + '-confirmation',
+          id: newId('email'),
           from: 'system@nexigroup.com',
           to: userEmail,
           subject: confirmEmail.subject,
@@ -147,10 +122,10 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
           type: 'vacation-confirmation'
         }
 
-        await window.kv.set('emails', [...emails, confirmationEmail])
+        await appendToKvArray('emails', [confirmationEmail])
 
         const confirmNotification = {
-          id: Date.now().toString() + '-confirm-notif',
+          id: newId('notif'),
           to: userEmail,
           subject: confirmEmail.subject,
           body: confirmEmail.body,
@@ -159,8 +134,7 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
           read: false
         }
 
-        const notifications = await window.kv.get<any[]>('email-notifications') || []
-        await window.kv.set('email-notifications', [...notifications, confirmNotification])
+        await appendToKvArray('email-notifications', [confirmNotification])
       } catch (error) {
         console.error('Error sending confirmation email:', error)
       }

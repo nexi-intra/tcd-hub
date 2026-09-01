@@ -5,6 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Kollisionssikkert ID (timestamp + tilfældigt suffiks) — brug ALTID denne frem for rå Date.now() i loops. */
+export function newId(prefix: string): string {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+}
+
 /** Giver kontrollen tilbage til browserens event loop et øjeblik, så UI'et (klik, scroll, animationer) forbliver responsivt under tunge synkrone loops. */
 export function yieldToBrowser(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0))

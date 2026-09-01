@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { newId } from '@/lib/utils'
+import { appendToKvArray, updateKvArrayItem, removeFromKvArray } from '@/lib/kvArrays'
 import { format } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 
@@ -43,7 +45,8 @@ export interface Project {
 
 export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
   const { t, language } = useLanguage()
-  const [projects, setProjects] = useKV<Project[]>('projects', [])
+  // Skrivninger sker via atomare kvArrays-helpers; useKV holder listen synkroniseret.
+  const [projects] = useKV<Project[]>('projects', [])
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
@@ -61,14 +64,14 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
     loadUserName()
   }, [userEmail])
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!newTitle.trim()) {
       toast.error(language === 'da' ? 'Titel er påkrævet' : 'Title is required')
       return
     }
 
     const newProject: Project = {
-      id: `project_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      id: newId('project'),
       title: newTitle.trim(),
       description: newDescription.trim(),
       createdBy: userEmail,
@@ -78,10 +81,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
       teamMembers: [],
     }
 
-    setProjects((current) => {
-      if (!current) return [newProject]
-      return [newProject, ...current]
-    })
+    await appendToKvArray('projects', [newProject])
 
     setNewTitle('')
     setNewDescription('')
@@ -89,73 +89,43 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
     toast.success(language === 'da' ? 'Projekt oprettet' : 'Project created')
   }
 
-  const handleJoinProject = (projectId: string) => {
-    setProjects((current) => {
-      if (!current) return []
-      return current.map((p) => {
-        if (p.id === projectId) {
-          const teamMembers = p.teamMembers || []
-          const isAlreadyMember = teamMembers.some((m) => m.email === userEmail)
-          if (isAlreadyMember) {
-            return p
-          }
-          const newTeamMember: TeamMember = {
-            email: userEmail,
-            name: currentUserName,
-            assignedAt: new Date().toISOString(),
-          }
-          return {
-            ...p,
-            status: 'in-progress' as ProjectStatus,
-            teamMembers: [...teamMembers, newTeamMember],
-          }
-        }
-        return p
-      })
+  const handleJoinProject = async (projectId: string) => {
+    // Atomar pr.-projekt-opdatering — to samtidige tilmeldinger taber ikke hinanden.
+    await updateKvArrayItem<Project>('projects', projectId, (p) => {
+      const teamMembers = p.teamMembers || []
+      if (teamMembers.some((m) => m.email === userEmail)) return p
+      return {
+        ...p,
+        status: 'in-progress' as ProjectStatus,
+        teamMembers: [...teamMembers, { email: userEmail, name: currentUserName, assignedAt: new Date().toISOString() }],
+      }
     })
     toast.success(language === 'da' ? 'Du er nu med i projektet' : 'You joined the project')
   }
 
-  const handleLeaveProject = (projectId: string) => {
-    setProjects((current) => {
-      if (!current) return []
-      return current.map((p) => {
-        if (p.id === projectId) {
-          const teamMembers = p.teamMembers || []
-          const updatedMembers = teamMembers.filter((m) => m.email !== userEmail)
-          return {
-            ...p,
-            teamMembers: updatedMembers,
-            status: updatedMembers.length === 0 ? ('open' as ProjectStatus) : p.status,
-          }
-        }
-        return p
-      })
+  const handleLeaveProject = async (projectId: string) => {
+    await updateKvArrayItem<Project>('projects', projectId, (p) => {
+      const updatedMembers = (p.teamMembers || []).filter((m) => m.email !== userEmail)
+      return {
+        ...p,
+        teamMembers: updatedMembers,
+        status: updatedMembers.length === 0 ? ('open' as ProjectStatus) : p.status,
+      }
     })
     toast.success(language === 'da' ? 'Du har forladt projektet' : 'You left the project')
   }
 
-  const handleRemoveProject = (projectId: string) => {
-    setProjects((current) => {
-      if (!current) return []
-      return current.filter((p) => p.id !== projectId)
-    })
+  const handleRemoveProject = async (projectId: string) => {
+    await removeFromKvArray('projects', [projectId])
     toast.success(language === 'da' ? 'Projekt slettet' : 'Project deleted')
   }
 
-  const handleCompleteProject = (projectId: string) => {
-    setProjects((current) => {
-      if (!current) return []
-      return current.map((p) =>
-        p.id === projectId
-          ? {
-              ...p,
-              status: 'completed' as ProjectStatus,
-              completedAt: new Date().toISOString(),
-            }
-          : p
-      )
-    })
+  const handleCompleteProject = async (projectId: string) => {
+    await updateKvArrayItem<Project>('projects', projectId, (p) => ({
+      ...p,
+      status: 'completed' as ProjectStatus,
+      completedAt: new Date().toISOString(),
+    }))
     toast.success(language === 'da' ? 'Projekt markeret som færdigt' : 'Project marked as completed')
   }
 

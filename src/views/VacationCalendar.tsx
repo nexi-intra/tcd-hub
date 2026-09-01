@@ -11,9 +11,10 @@ import { UserProfile } from '@/components/UserProfile'
 import { SingleDayOffDialog } from '@/components/SingleDayOffDialog'
 import { VacationRequestDialog } from '@/components/VacationRequestDialog'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, newId } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
-import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
+import { getWeekNumber as getISOWeekNumber, parseLocalDate } from '@/lib/dateUtils'
+import { appendToKvArray, removeFromKvArray } from '@/lib/kvArrays'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { vacationApprovedEmail, vacationRejectedEmail, vacationCancelledByEmployeeEmail } from '@/lib/emailTemplates'
 import type { VacationStatus, VacationEntry, BirthdayEntry } from '@/lib/types'
@@ -101,25 +102,15 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
     const vacation = (vacations || []).find(v => v.id === id)
     if (!vacation) return
 
-    setVacations((current) => (current || []).filter((v) => v.id !== id))
+    await removeFromKvArray('vacation-entries', [id])
     toast.success('Ferie anmodning fjernet')
 
     try {
       const emailContent = vacationCancelledByEmployeeEmail(vacation.userEmail, vacation.startDate, vacation.endDate)
 
-      const emails = (await window.kv.get<Array<{
-        id: string
-        from: string
-        to: string
-        subject: string
-        message: string
-        timestamp: number
-        read: boolean
-      }>>('emails')) || []
-
       const users = await window.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
       const managerEmails: string[] = []
-      
+
       if (users) {
         for (const [email, userData] of Object.entries(users)) {
           if (userData.isManager) {
@@ -128,33 +119,30 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
         }
       }
 
-      for (const managerEmail of managerEmails) {
-        const newEmail = {
-          id: Date.now().toString() + '-' + managerEmail + '-removal',
-          from: vacation.userEmail,
-          to: managerEmail,
-          subject: emailContent.subject,
-          message: emailContent.body,
-          timestamp: Date.now(),
-          read: false
-        }
-        emails.push(newEmail)
+      // Saml alt og skriv én atomar append pr. nøgle — før kunne to samtidige
+      // sletninger overskrive hinandens notifikationer.
+      const newEmails = managerEmails.map((managerEmail) => ({
+        id: newId('email'),
+        from: vacation.userEmail,
+        to: managerEmail,
+        subject: emailContent.subject,
+        message: emailContent.body,
+        timestamp: Date.now(),
+        read: false
+      }))
 
-        const notification = {
-          id: Date.now().toString() + '-notif-removal-' + managerEmail,
-          to: managerEmail,
-          subject: emailContent.subject,
-          body: emailContent.body,
-          timestamp: new Date().toISOString(),
-          type: 'vacation-removed' as const,
-          read: false
-        }
+      const newNotifications = managerEmails.map((managerEmail) => ({
+        id: newId('notif'),
+        to: managerEmail,
+        subject: emailContent.subject,
+        body: emailContent.body,
+        timestamp: new Date().toISOString(),
+        type: 'vacation-removed' as const,
+        read: false
+      }))
 
-        const notifications = (await window.kv.get<any[]>('email-notifications')) || []
-        await window.kv.set('email-notifications', [...notifications, notification])
-      }
-
-      await window.kv.set('emails', emails)
+      await appendToKvArray('emails', newEmails)
+      await appendToKvArray('email-notifications', newNotifications)
     } catch (emailError) {
       console.error('Error sending vacation removal email:', emailError)
       toast.error('Kunne ikke sende email notifikation')
@@ -275,8 +263,8 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
 
   const getVacationsForMonth = (month: number, year: number) => {
     return (vacations || []).filter((vacation) => {
-      const start = new Date(vacation.startDate)
-      const end = new Date(vacation.endDate)
+      const start = parseLocalDate(vacation.startDate)
+      const end = parseLocalDate(vacation.endDate)
       
       if (isNaN(start.getTime()) || isNaN(end.getTime())) return false
       
@@ -298,8 +286,8 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
 
   const isDateInVacation = (day: number, vacation: VacationEntry) => {
     const checkDate = new Date(selectedYear, selectedMonth, day)
-    const start = new Date(vacation.startDate)
-    const end = new Date(vacation.endDate)
+    const start = parseLocalDate(vacation.startDate)
+    const end = parseLocalDate(vacation.endDate)
     
     start.setHours(0, 0, 0, 0)
     end.setHours(23, 59, 59, 999)
@@ -412,13 +400,13 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold">
-            {new Date(vacation.startDate).toLocaleDateString('da-DK', {
+            {parseLocalDate(vacation.startDate).toLocaleDateString('da-DK', {
               day: 'numeric',
               month: 'long',
               year: 'numeric'
             })}
             {' → '}
-            {new Date(vacation.endDate).toLocaleDateString('da-DK', {
+            {parseLocalDate(vacation.endDate).toLocaleDateString('da-DK', {
               day: 'numeric',
               month: 'long',
               year: 'numeric'

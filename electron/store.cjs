@@ -123,6 +123,98 @@ function createStore(dataDir) {
       .map(filenameToKey)
   }
 
+  // --- Atomar array-opdatering på tværs af klienter -----------------------
+  // Låsefil pr. nøgle (exclusive create er atomisk, også på SMB-shares).
+  // Forældede låse (crashet klient) overtages efter STALE_LOCK_MS.
+  const LOCK_ATTEMPTS = 50
+  const LOCK_RETRY_MS = 100
+  const STALE_LOCK_MS = 10_000
+
+  function lockPath(key) {
+    return filePath(key) + '.lock'
+  }
+
+  function acquireLock(key) {
+    const target = lockPath(key)
+    for (let attempt = 1; attempt <= LOCK_ATTEMPTS; attempt++) {
+      try {
+        const fd = fs.openSync(target, 'wx')
+        fs.writeSync(fd, String(process.pid))
+        fs.closeSync(fd)
+        return
+      } catch (err) {
+        if (err.code !== 'EEXIST') throw err
+        try {
+          const stat = fs.statSync(target)
+          if (Date.now() - stat.mtimeMs > STALE_LOCK_MS) {
+            fs.unlinkSync(target)
+            continue
+          }
+        } catch {
+          continue // Låsen forsvandt imens — prøv igen med det samme.
+        }
+        if (attempt === LOCK_ATTEMPTS) throw new Error(`Kunne ikke få lås på "${key}" (optaget af anden klient)`)
+        wait(LOCK_RETRY_MS)
+      }
+    }
+  }
+
+  function releaseLock(key) {
+    try { fs.unlinkSync(lockPath(key)) } catch {}
+  }
+
+  /**
+   * Atomar opdatering af et array af objekter med `id` under fil-lås:
+   *   { op: 'append', items }  — tilføj elementer
+   *   { op: 'upsert', items }  — erstat pr. id, ellers tilføj
+   *   { op: 'remove', ids }    — fjern pr. id
+   * Returnerer det opdaterede array. Kaster hvis nøglen indeholder ikke-array.
+   */
+  function update(key, operation) {
+    acquireLock(key)
+    try {
+      const current = get(key)
+      const list = current === undefined ? [] : current
+      if (!Array.isArray(list)) {
+        throw new Error(`kv:update kræver et array i "${key}"`)
+      }
+      let next
+      if (operation.op === 'append') {
+        next = [...list, ...operation.items]
+      } else if (operation.op === 'upsert') {
+        next = [...list]
+        for (const item of operation.items) {
+          const index = next.findIndex((entry) => entry && entry.id === item.id)
+          if (index !== -1) next[index] = item
+          else next.push(item)
+        }
+      } else if (operation.op === 'remove') {
+        const ids = new Set(operation.ids)
+        next = list.filter((entry) => !entry || !ids.has(entry.id))
+      } else {
+        throw new Error(`Ukendt kv:update-operation: ${operation.op}`)
+      }
+      set(key, next)
+      return next
+    } finally {
+      releaseLock(key)
+    }
+  }
+
+  /** Alle nøgler + værdier (til backup). */
+  function dumpAll() {
+    const result = {}
+    for (const key of keys()) {
+      try {
+        const value = get(key)
+        if (value !== undefined) result[key] = value
+      } catch (err) {
+        console.warn(`Backup: springer ulæselig nøgle over: ${key}`, err.message)
+      }
+    }
+    return result
+  }
+
   /**
    * Polls the directory and invokes onChange(changedKeys: string[]) whenever
    * files were added, modified, or removed. Returns a stop function.
@@ -167,7 +259,7 @@ function createStore(dataDir) {
     return () => clearInterval(timer)
   }
 
-  return { get, set, delete: del, keys, watch, dataDir }
+  return { get, set, delete: del, keys, watch, update, dumpAll, dataDir }
 }
 
 module.exports = { createStore }

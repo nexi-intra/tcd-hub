@@ -106,6 +106,28 @@ function App() {
   const [lastActivity, setLastActivity] = useState(Date.now())
 
   useEffect(() => {
+    // Éngangs-migrering: ældre ferie-poster med fulde ISO-datoer ('...T00:00:00.000Z')
+    // normaliseres til 'yyyy-MM-dd', så alle views parser dem entydigt (lokal dato).
+    if (!userSession) return
+    const normalizeVacationDates = async () => {
+      try {
+        const entries = await window.kv.get<Array<{ id: string; startDate: string; endDate: string }>>('vacation-entries')
+        if (!entries || !entries.some((e) => e.startDate?.includes('T') || e.endDate?.includes('T'))) return
+        const normalized = entries.map((e) => ({
+          ...e,
+          startDate: e.startDate?.slice(0, 10) ?? e.startDate,
+          endDate: e.endDate?.slice(0, 10) ?? e.endDate,
+        }))
+        await window.kv.set('vacation-entries', normalized)
+        console.log('Ferie-datoer normaliseret til yyyy-MM-dd')
+      } catch (error) {
+        console.error('Kunne ikke normalisere ferie-datoer:', error)
+      }
+    }
+    normalizeVacationDates()
+  }, [userSession])
+
+  useEffect(() => {
     // Auto-login: gyldigt lokalt "husk mig"-token logger brugeren direkte ind.
     const restoreSession = async () => {
       try {

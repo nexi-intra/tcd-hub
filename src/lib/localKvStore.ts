@@ -8,9 +8,19 @@ export interface KvStore {
   set<T>(key: string, value: T): Promise<void>
   delete(key: string): Promise<void>
   keys(): Promise<string[]>
+  /**
+   * Atomar opdatering af et array af objekter med `id` — i desktop-appen under
+   * fil-lås på tværs af klienter, så samtidige skrivninger ikke taber elementer.
+   */
+  update<T extends { id: string }>(key: string, operation: KvArrayOperation<T>): Promise<T[]>
   /** Notifies when keys change (other tabs/clients, and local writes). Returns unsubscribe. */
   subscribe(listener: (changedKeys: string[]) => void): () => void
 }
+
+export type KvArrayOperation<T extends { id: string }> =
+  | { op: 'append'; items: T[] }
+  | { op: 'upsert'; items: T[] }
+  | { op: 'remove'; ids: string[] }
 
 const PREFIX = 'tcd-hub:'
 
@@ -101,6 +111,29 @@ export const localKv: KvStore = {
 
   async keys(): Promise<string[]> {
     return allKeys()
+  },
+
+  // Browser kører single-client pr. origin — simpel read-modify-write rækker her.
+  async update<T extends { id: string }>(key: string, operation: KvArrayOperation<T>): Promise<T[]> {
+    const current = await localKv.get<T[]>(key)
+    const list = Array.isArray(current) ? current : []
+    let next: T[]
+    if (operation.op === 'append') {
+      next = [...list, ...operation.items]
+    } else if (operation.op === 'upsert') {
+      next = [...list]
+      for (const item of operation.items) {
+        const index = next.findIndex((entry) => entry?.id === item.id)
+        if (index !== -1) next[index] = item
+        else next.push(item)
+      }
+    } else {
+      const ids = new Set(operation.ids)
+      next = list.filter((entry) => !entry || !ids.has(entry.id))
+    }
+    write(key, JSON.stringify(next))
+    notify([key])
+    return next
   },
 
   subscribe(listener) {

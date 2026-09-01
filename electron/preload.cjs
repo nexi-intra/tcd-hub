@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronKv', {
   set: (key, value) => ipcRenderer.invoke('kv:set', key, value),
   delete: (key) => ipcRenderer.invoke('kv:delete', key),
   keys: () => ipcRenderer.invoke('kv:keys'),
+  update: (key, operation) => ipcRenderer.invoke('kv:update', key, operation),
   getDataDir: () => ipcRenderer.invoke('kv:data-dir'),
   getStorageInfo: () => ipcRenderer.invoke('kv:storage-info'),
   chooseDataDir: () => ipcRenderer.invoke('kv:choose-data-dir'),

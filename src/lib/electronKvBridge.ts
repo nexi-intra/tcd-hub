@@ -1,4 +1,4 @@
-import type { KvStore } from './localKvStore'
+import type { KvStore, KvArrayOperation } from './localKvStore'
 
 // Raw API exposed by electron/preload.cjs via contextBridge.
 export interface ElectronKvApi {
@@ -6,6 +6,7 @@ export interface ElectronKvApi {
   set(key: string, value: unknown): Promise<void>
   delete(key: string): Promise<void>
   keys(): Promise<string[]>
+  update(key: string, operation: unknown): Promise<unknown>
   getDataDir(): Promise<string>
   getStorageInfo(): Promise<{ dataDir: string; source: 'env' | 'config' | 'user' | 'default' }>
   chooseDataDir(): Promise<{ dataDir: string; migratedFiles: number } | null>
@@ -26,6 +27,9 @@ export function createElectronKv(api: ElectronKvApi): KvStore {
     },
     async keys(): Promise<string[]> {
       return api.keys()
+    },
+    async update<T extends { id: string }>(key: string, operation: KvArrayOperation<T>): Promise<T[]> {
+      return (await api.update(key, operation)) as T[]
     },
     subscribe(listener) {
       return api.onChanged(listener)

@@ -35,7 +35,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useKV } from '@/hooks/useKV'
 import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, newId } from '@/lib/utils'
+import { appendToKvArray } from '@/lib/kvArrays'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { Email, EmailFolder, VacationEntry, VacationStatus } from '@/lib/types'
 
@@ -234,7 +235,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
     }
 
     const newEmail: Email = {
-      id: Date.now().toString(),
+      id: newId('email'),
       from: userEmail,
       to: composeData.to,
       subject: composeData.subject,
@@ -243,10 +244,11 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
       read: false
     }
 
-    setEmails(currentEmails => [...(currentEmails || []), newEmail])
+    // Atomar append — to brugere der sender samtidig taber ikke længere hinandens mails.
+    await appendToKvArray('emails', [newEmail])
 
     const notification = {
-      id: Date.now().toString(),
+      id: newId('notif'),
       type: 'email' as const,
       message: `Ny email fra ${userEmail}: ${composeData.subject}`,
       timestamp: Date.now(),
@@ -255,8 +257,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
       emailId: newEmail.id
     }
 
-    const notifications = await window.kv.get<any[]>('email-notifications') || []
-    await window.kv.set('email-notifications', [...notifications, notification])
+    await appendToKvArray('email-notifications', [notification])
 
     toast.success(t.email.emailSent)
     setComposeData({ to: '', subject: '', message: '' })

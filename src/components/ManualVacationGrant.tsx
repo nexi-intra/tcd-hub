@@ -10,6 +10,9 @@ import { Gift, CalendarCheck } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
+import { newId } from '@/lib/utils'
+import { parseLocalDate } from '@/lib/dateUtils'
+import { appendToKvArray } from '@/lib/kvArrays'
 import type { VacationEntry } from '@/lib/types'
 
 interface User {
@@ -68,8 +71,8 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
       return
     }
 
-    const start = new Date(startDate)
-    const end = grantType === 'single' ? new Date(startDate) : new Date(endDate)
+    const start = parseLocalDate(startDate)
+    const end = grantType === 'single' ? parseLocalDate(startDate) : parseLocalDate(endDate)
 
     if (grantType === 'vacation' && end < start) {
       toast.error('Slutdato skal være efter startdato')
@@ -80,11 +83,12 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
 
     try {
       const newVacation: VacationEntry = {
-        id: Date.now().toString(),
+        id: newId('vacation'),
         userId: selectedUser,
         userEmail: selectedUser,
-        startDate: start.toISOString(),
-        endDate: end.toISOString(),
+        // Altid 'yyyy-MM-dd' — fulde ISO-strenge gav tidszone-tvetydighed på tværs af views.
+        startDate: startDate,
+        endDate: grantType === 'single' ? startDate : endDate,
         notes: notes.trim() || undefined,
         status: 'approved',
         reviewedBy: managerEmail,
@@ -93,24 +97,13 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
         manuallyGranted: true
       }
 
-      const vacations = await window.kv.get<VacationEntry[]>('vacation-entries') || []
-      await window.kv.set('vacation-entries', [...vacations, newVacation])
+      await appendToKvArray('vacation-entries', [newVacation])
 
       try {
         const emailContent = manualVacationGrantEmail(managerEmail, start, end, grantType === 'single', notes.trim() || undefined)
 
-        const emails = await window.kv.get<Array<{
-          id: string
-          from: string
-          to: string
-          subject: string
-          message: string
-          timestamp: number
-          read: boolean
-        }>>('emails') || []
-
         const newEmail = {
-          id: Date.now().toString() + '-manual-grant',
+          id: newId('email'),
           from: managerEmail,
           to: selectedUser,
           subject: emailContent.subject,
@@ -119,10 +112,10 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
           read: false
         }
 
-        await window.kv.set('emails', [...emails, newEmail])
+        await appendToKvArray('emails', [newEmail])
 
         const notification = {
-          id: Date.now().toString(),
+          id: newId('notif'),
           type: 'email' as const,
           message: grantType === 'single' ? `Du har fået en fridag!` : `Du har fået ferie!`,
           timestamp: Date.now(),
@@ -131,8 +124,7 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
           emailId: newEmail.id
         }
 
-        const notifications = await window.kv.get<any[]>('email-notifications') || []
-        await window.kv.set('email-notifications', [...notifications, notification])
+        await appendToKvArray('email-notifications', [notification])
       } catch (emailError) {
         console.error('Error sending vacation grant email:', emailError)
       }
