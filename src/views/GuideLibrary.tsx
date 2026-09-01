@@ -3,9 +3,9 @@ import { useKV } from '@/hooks/useKV'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Plus, MagnifyingGlass, Books, Gear, ArrowLeft } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, Books, Gear, ArrowLeft, Timer } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
-import { guidePlainText } from '@/lib/guideTypes'
+import { guidePlainText, getReviewStatus, computeNextReviewAt } from '@/lib/guideTypes'
 import { deleteGuideArtifacts } from '@/lib/guideStore'
 import { GuideCard } from '@/components/GuideCard'
 import { GuideEditor } from '@/components/GuideEditor'
@@ -34,6 +34,7 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
   const [viewGuide, setViewGuide] = useState<Guide | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('All')
+  const [showNeedsReview, setShowNeedsReview] = useState(false)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -46,16 +47,40 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onNavigateBack])
 
+  const needsReviewCount = useMemo(() => {
+    return (guides || []).filter((g) => {
+      const status = getReviewStatus(g)
+      return status === 'overdue' || status === 'due-soon'
+    }).length
+  }, [guides])
+
   const filteredGuides = useMemo(() => {
     if (!guides) return []
-    return guides.filter((guide) => {
+    const filtered = guides.filter((guide) => {
       const matchesCategory = activeCategory === 'All' || guide.category === activeCategory
       const matchesSearch =
         searchQuery === '' ||
         guidePlainText(guide).toLowerCase().includes(searchQuery.toLowerCase())
+      if (showNeedsReview) {
+        const status = getReviewStatus(guide)
+        return matchesCategory && matchesSearch && (status === 'overdue' || status === 'due-soon')
+      }
       return matchesCategory && matchesSearch
     })
-  }, [guides, activeCategory, searchQuery])
+    if (showNeedsReview) {
+      // Mest presserende først.
+      return [...filtered].sort((a, b) => (a.nextReviewAt || 0) - (b.nextReviewAt || 0))
+    }
+    return filtered
+  }, [guides, activeCategory, searchQuery, showNeedsReview])
+
+  const handleMarkReviewed = (guide: Guide) => {
+    const now = Date.now()
+    setGuides((currentGuides) => (currentGuides || []).map((g) => g.id === guide.id
+      ? { ...g, lastReviewedAt: now, nextReviewAt: computeNextReviewAt(now, g.reviewIntervalMonths) }
+      : g))
+    toast.success(`"${guide.title}" markeret som gennemgået — timeren er nulstillet`)
+  }
 
   const handleSaveGuide = (guide: Guide) => {
     const isEdit = (guides || []).some((g) => g.id === guide.id)
@@ -175,6 +200,29 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
                 className="pl-12 h-14 text-base bg-card/80 backdrop-blur-md border-2 border-border/60 focus:border-primary/60 focus:ring-4 focus:ring-primary/10 rounded-2xl shadow-lg shadow-black/5 transition-all"
               />
             </div>
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Button
+                variant={showNeedsReview ? 'default' : 'outline'}
+                onClick={() => setShowNeedsReview((v) => !v)}
+                className={cn(
+                  'h-14 px-5 rounded-2xl border-2 font-semibold gap-2 transition-all backdrop-blur-md',
+                  showNeedsReview
+                    ? 'bg-gradient-to-r from-destructive to-orange-500 border-destructive shadow-xl shadow-destructive/30 text-white hover:opacity-90'
+                    : 'bg-card/80 hover:border-destructive/50'
+                )}
+              >
+                <Timer size={20} weight="bold" />
+                Skal opdateres
+                {needsReviewCount > 0 && (
+                  <span className={cn(
+                    'px-2 py-0.5 rounded-lg text-xs font-bold',
+                    showNeedsReview ? 'bg-white/20 text-white' : 'bg-destructive/10 text-destructive'
+                  )}>
+                    {needsReviewCount}
+                  </span>
+                )}
+              </Button>
+            </motion.div>
           </div>
 
           <Separator className="my-8" />
@@ -252,14 +300,16 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
               </div>
             </motion.div>
             <h2 className="text-4xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent mb-4 text-center">
-              {searchQuery || activeCategory !== 'All' ? 'Ingen guides fundet' : 'Ingen guides endnu'}
+              {showNeedsReview ? 'Alt er opdateret!' : searchQuery || activeCategory !== 'All' ? 'Ingen guides fundet' : 'Ingen guides endnu'}
             </h2>
             <p className="text-muted-foreground text-center max-w-md mb-8 text-lg leading-relaxed">
-              {searchQuery || activeCategory !== 'All'
+              {showNeedsReview
+                ? 'Ingen guides har overskredet deres opdaterings-interval'
+                : searchQuery || activeCategory !== 'All'
                 ? 'Prøv at justere dine filtre eller søgning'
                 : 'Kom i gang ved at oprette din første guide'}
             </p>
-            {!searchQuery && activeCategory === 'All' && (
+            {!searchQuery && activeCategory === 'All' && !showNeedsReview && (
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -281,6 +331,7 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
                   onEdit={handleEditGuide}
                   onDelete={handleDeleteGuide}
                   onView={handleViewGuide}
+                  onMarkReviewed={handleMarkReviewed}
                 />
               ))}
             </AnimatePresence>

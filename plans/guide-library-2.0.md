@@ -156,9 +156,9 @@ Opdaterings-interval [Intet ▾]  (Intet | 1 md | 2 mdr | 3 mdr | 6 mdr | 1 år)
 - [x] Ekstra: `fileStorage.uploadImage()`/`getImageObjectUrl()` (billeder i chunked KV m. objekt-URL-cache); GuideViewer viser nu sektioner/trin m. numre, billeder, version- og interval-badge; App sender userEmail til GuideLibrary
 - Note: gammel `GuideDialog.tsx` er ikke længere monteret (bulk-Word-import kan genindføres i senere fase hvis ønsket)
 ### Fase 2 — Bibliotek 2.0 & vedligeholdelse
-- [ ] GuideLibrary-view: nye kort m. version + review-badge (🔴 overskredet / 🟡 <14 dage / ⚪ intet interval)
-- [ ] Filter "Skal opdateres", sortering efter nextReviewAt
-- [ ] "Markér som gennemgået"-handling (resetter timer uden versionsbump)
+- [x] GuideLibrary-view: nye kort m. version + review-badge (🔴 overskredet / 🟡 <14 dage / ⚪ intet interval)
+- [x] Filter "Skal opdateres" (m. antal), sortering efter nextReviewAt (mest presserende først)
+- [x] "Markér som gennemgået"-handling (resetter timer uden versionsbump) — knap på kort ved overskredet/snart-deadline
 ### Fase 3 — Preview & DOCX-generator
 - [ ] `src/lib/docModel.ts`: `guideToDocModel()` (fælles model for preview+DOCX)
 - [ ] `GuidePreview.tsx`: A4-HTML-rendering (TOC, 1.0/1.1-numre, billeder, header-info)
