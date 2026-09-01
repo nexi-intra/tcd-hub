@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useKV } from '@/hooks/useKV'
 import { AutoText } from '@/components/AutoText'
+import { useAutoTranslate } from '@/lib/useAutoTranslate'
 import { toast } from 'sonner'
 import { getWeekNumber, getStartOfWeek, formatDate } from '@/lib/dateUtils'
 import type { WeekMenu } from '@/lib/types'
@@ -44,6 +45,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
   const currentWeek = getWeekNumber(targetDate)
   const currentYear = targetDate.getFullYear()
   const weekStart = getStartOfWeek(targetDate)
+  const mealPlaceholder = useAutoTranslate('Indtast dagens menu...')
 
   useEffect(() => {
     loadCurrentWeek()
@@ -184,7 +186,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                 className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
               >
                 <ArrowLeft size={20} />
-                Tilbage
+                <AutoText text="Tilbage" />
               </Button>
             </motion.div>
           </div>
@@ -203,10 +205,10 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
           <div className="flex flex-col items-center">
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent flex items-center gap-3 justify-center">
               <ForkKnife size={40} weight="duotone" className="text-primary" />
-              Madplan
+              <AutoText text="Madplan" />
             </h1>
             <p className="text-muted-foreground mt-3">
-              Planlæg ugens menuer for mandag til fredag
+              <AutoText text="Planlæg ugens menuer for mandag til fredag" />
             </p>
           </div>
         </motion.header>
@@ -234,11 +236,11 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                     <div className="flex items-center gap-2 mb-1">
                       <CalendarBlank size={24} weight="duotone" className="text-primary" />
                       <h2 className="text-2xl font-bold">
-                        Uge {currentWeek}
+                        <AutoText text={`Uge ${currentWeek}`} />
                       </h2>
                       {currentWeekOffset === 0 && (
                         <Badge className="bg-accent text-accent-foreground">
-                          Denne uge
+                          <AutoText text="Denne uge" />
                         </Badge>
                       )}
                     </div>
@@ -265,7 +267,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                       className="gap-2"
                     >
                       <CalendarBlank size={18} weight="duotone" />
-                      Gå til nuværende uge
+                      <AutoText text="Gå til nuværende uge" />
                     </Button>
                   )}
                 </div>
@@ -283,9 +285,9 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-2xl">Dagens menuer</CardTitle>
+                  <CardTitle className="text-2xl"><AutoText text="Dagens menuer" /></CardTitle>
                   <CardDescription>
-                    {editMode ? 'Rediger menuerne for hver dag' : 'Se ugens planlagte menuer'}
+                    <AutoText text={editMode ? 'Rediger menuerne for hver dag' : 'Se ugens planlagte menuer'} />
                   </CardDescription>
                 </div>
                 
@@ -297,7 +299,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                         className="gap-2"
                       >
                         <ForkKnife size={18} weight="duotone" />
-                        Rediger madplan
+                        <AutoText text="Rediger madplan" />
                       </Button>
                     </>
                   ) : (
@@ -306,7 +308,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                         variant="outline"
                         onClick={handleCancel}
                       >
-                        Annuller
+                        <AutoText text="Annuller" />
                       </Button>
                       <Button
                         variant="destructive"
@@ -314,14 +316,14 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                         className="gap-2"
                       >
                         <Trash size={18} weight="duotone" />
-                        Ryd uge
+                        <AutoText text="Ryd uge" />
                       </Button>
                       <Button
                         onClick={handleSave}
                         className="gap-2 bg-gradient-to-r from-primary to-accent"
                       >
                         <FloppyDisk size={18} weight="duotone" />
-                        Gem
+                        <AutoText text="Gem" />
                       </Button>
                     </>
                   )}
@@ -343,7 +345,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                       <div className="sm:w-32 shrink-0">
                         <h3 className="font-bold text-lg text-primary">
-                          {day.label}
+                          <AutoText text={day.label} />
                         </h3>
                       </div>
                       
@@ -357,7 +359,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                                 [day.key]: e.target.value
                               }))
                             }
-                            placeholder="Indtast dagens menu..."
+                            placeholder={mealPlaceholder}
                             className="min-h-[80px] resize-none"
                           />
                         ) : (
@@ -366,7 +368,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                               <AutoText text={currentMenu.meals[day.key]} />
                             ) : (
                               <span className="text-muted-foreground italic">
-                                Ingen menu planlagt
+                                <AutoText text="Ingen menu planlagt" />
                               </span>
                             )}
                           </div>
@@ -388,9 +390,9 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
         >
           <Card className="border-2 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-xl">Tidligere madplaner</CardTitle>
+              <CardTitle className="text-xl"><AutoText text="Tidligere madplaner" /></CardTitle>
               <CardDescription>
-                Gennemse madplaner fra tidligere uger
+                <AutoText text="Gennemse madplaner fra tidligere uger" />
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -403,7 +405,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                     className="text-center py-8 text-muted-foreground"
                   >
                     <ForkKnife size={48} weight="duotone" className="mx-auto mb-3 opacity-40" />
-                    <p>Ingen tidligere madplaner endnu</p>
+                    <p><AutoText text="Ingen tidligere madplaner endnu" /></p>
                   </motion.div>
                 ) : (
                   <div className="space-y-3">
@@ -446,14 +448,14 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                                 <div className="text-left">
                                   <div className="flex items-center gap-2">
                                     <span className="font-bold">
-                                      Uge {menu.weekNumber}, {menu.year}
+                                      <AutoText text={`Uge ${menu.weekNumber}, ${menu.year}`} />
                                     </span>
                                     {isCurrent && (
                                       <Badge
                                         variant="secondary"
                                         className="bg-accent/20 text-accent-foreground"
                                       >
-                                        Aktuel
+                                        <AutoText text="Aktuel" />
                                       </Badge>
                                     )}
                                   </div>

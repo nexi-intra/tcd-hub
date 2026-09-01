@@ -31,5 +31,17 @@ guiderne bruger. Original tekst ændres ALDRIG i lageret — kun visningen overs
 ## Fase 7 — Validering
 - [x] `npm run build` + `npm test`
 - [x] Pak + deploy til `TCD-Hub 1.4.0` (samme pipeline som guide-oversættelsen)
-- [ ] Manuel test (BRUGER): skift sprog i hub-headeren, tjek at projekter/madplan/mails
-      m.fl. viser oversat tekst uden at ændre det gemte originalindhold.
+- [x] Manuel test (BRUGER): sprogtoggle oversætter brugerindhold (projekter, madplan m.fl.)
+
+## Fase 8 — Statiske UI-tekster (overskrifter/knapper) der IKKE er del af `translations.ts`
+Flere views bruger hardkodede danske strenge i stedet for `t.xxx`-ordbogen (fx Madplan,
+Ferie-fanen). Frem for at udvide den store `translations.ts`-fil for hvert view, bruger vi
+samme `AutoText`-mekanisme på de statiske strenge — hurtigere og kræver ingen ekstra
+vedligeholdelse af to sprogfiler i sync.
+- [x] `MealPlan.tsx`: alle overskrifter/knapper/labels + placeholder.
+- [x] `VacationCalendar.tsx`: fane-labels, "Mine Ferier"/"Alle Team Medlemmer" m.fl.
+- [ ] `ProjectBoard.tsx`: resterende statiske labels (knapper, statusser, dialogtekster).
+- [ ] `VirtualNotebook.tsx`: resterende statiske labels.
+- [ ] `EmailSystem.tsx`: resterende statiske labels.
+- [ ] `ShiftSchedule.tsx`: resterende statiske labels (ud over rolle/kommentar der allerede er dækket).
+- [ ] `Hub.tsx` (forsiden) og øvrige views efter behov.

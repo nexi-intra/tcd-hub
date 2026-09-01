@@ -362,7 +362,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
       return (
         <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
           <ClockCounterClockwise size={14} className="mr-1" />
-          Afventer
+          <AutoText text="Afventer" />
         </Badge>
       )
     }
@@ -370,14 +370,14 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
       return (
         <Badge className="bg-green-500/20 text-green-700 border-green-500/30">
           <Check size={14} className="mr-1" />
-          Godkendt
+          <AutoText text="Godkendt" />
         </Badge>
       )
     }
     return (
       <Badge className="bg-red-500/20 text-red-700 border-red-500/30">
         <X size={14} className="mr-1" />
-        Afvist
+        <AutoText text="Afvist" />
       </Badge>
     )
   }
@@ -710,15 +710,15 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
           <Card className="p-6 border-2">
             <Tabs defaultValue="all" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="all">Alle ({myVacations.length})</TabsTrigger>
-                <TabsTrigger value="pending">Afventer ({myPendingRequests.length})</TabsTrigger>
-                <TabsTrigger value="approved">Godkendt ({myApprovedVacations.length})</TabsTrigger>
+                <TabsTrigger value="all"><AutoText text={`Alle (${myVacations.length})`} /></TabsTrigger>
+                <TabsTrigger value="pending"><AutoText text={`Afventer (${myPendingRequests.length})`} /></TabsTrigger>
+                <TabsTrigger value="approved"><AutoText text={`Godkendt (${myApprovedVacations.length})`} /></TabsTrigger>
               </TabsList>
               <TabsContent value="all" className="mt-4">
-                <h3 className="text-xl font-bold mb-4">Mine Ferier</h3>
+                <h3 className="text-xl font-bold mb-4"><AutoText text="Mine Ferier" /></h3>
                 {myVacations.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
-                    Du har ikke registreret nogen ferier endnu
+                    <AutoText text="Du har ikke registreret nogen ferier endnu" />
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -729,10 +729,10 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
                 )}
               </TabsContent>
               <TabsContent value="pending" className="mt-4">
-                <h3 className="text-xl font-bold mb-4">Afventende Anmodninger</h3>
+                <h3 className="text-xl font-bold mb-4"><AutoText text="Afventende Anmodninger" /></h3>
                 {myPendingRequests.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
-                    Du har ingen afventende anmodninger
+                    <AutoText text="Du har ingen afventende anmodninger" />
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -743,10 +743,10 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
                 )}
               </TabsContent>
               <TabsContent value="approved" className="mt-4">
-                <h3 className="text-xl font-bold mb-4">Godkendte Ferier</h3>
+                <h3 className="text-xl font-bold mb-4"><AutoText text="Godkendte Ferier" /></h3>
                 {myApprovedVacations.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
-                    Du har ingen godkendte ferier
+                    <AutoText text="Du har ingen godkendte ferier" />
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -761,7 +761,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
 
           {allTeamMembers.length > 1 && (
             <Card className="p-6 border-2">
-              <h3 className="text-xl font-bold mb-4">Alle Team Medlemmer</h3>
+              <h3 className="text-xl font-bold mb-4"><AutoText text="Alle Team Medlemmer" /></h3>
               <div className="flex flex-wrap gap-3">
                 {allTeamMembers.map((member) => (
                   <div
