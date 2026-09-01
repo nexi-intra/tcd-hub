@@ -63,6 +63,20 @@ self.addEventListener('message', function onInit(event) {
     __assetsResolve({ wasm: event.data.wasm, glueUrl: URL.createObjectURL(new Blob([event.data.glueJs], { type: 'text/javascript' })) });
   }
 });
+// self.location er en blob:-URL med uigennemsigtigt (opaque) origin, når workeren
+// spawnes fra en file://-side — pakkens 'new URL(sti, self.location)' fejler derfor
+// med "Invalid URL". Vi kan ikke rette self.location, så vi gør URL-konstruktøren
+// fejltolerant: fejler den relative opløsning, prøves samme sti mod en fast base.
+const __OrigURL = self.URL;
+self.URL = function(url, base) {
+  try {
+    return new __OrigURL(url, base);
+  } catch {
+    return new __OrigURL(url, 'https://bergamot.invalid/');
+  }
+};
+self.URL.createObjectURL = __OrigURL.createObjectURL.bind(__OrigURL);
+self.URL.revokeObjectURL = __OrigURL.revokeObjectURL.bind(__OrigURL);
 const __origFetch = self.fetch ? self.fetch.bind(self) : null;
 self.fetch = async function(resource, init) {
   if (String(resource).includes('bergamot-translator-worker.wasm')) {
