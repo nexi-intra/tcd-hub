@@ -10,6 +10,7 @@ import { fileStorage } from './fileStorage'
 import { newId } from './guideTypes'
 import type { GuideSection } from './guideTypes'
 import { detectLanguage, type GuideLanguage } from './translator'
+import { yieldToBrowser } from './utils'
 
 export interface GuideImportDraft {
   title: string
@@ -17,6 +18,29 @@ export interface GuideImportDraft {
   sections: GuideSection[]
   originalFile: File
 }
+
+export type ImportStage = 'reading' | 'converting' | 'parsing' | 'uploading-images' | 'done'
+
+export interface ImportProgress {
+  stage: ImportStage
+  message: string
+  imagesUploaded: number
+  imagesTotal: number
+  /** 0-100, samlet fremdrift på tværs af alle stadier. */
+  percent: number
+}
+
+type ProgressCallback = (progress: ImportProgress) => void
+
+// Absolutte procent-checkpoints for de enkelte stadier (monotont stigende).
+const STAGE_WEIGHTS: Record<Exclude<ImportStage, 'uploading-images'>, number> = {
+  reading: 5,
+  converting: 35,
+  parsing: 40,
+  done: 100,
+}
+const UPLOAD_STAGE_START = 40
+const UPLOAD_STAGE_END = 95
 
 const FALLBACK_HEADING = 'Importeret indhold'
 
@@ -32,7 +56,12 @@ function dataUriToFile(dataUri: string, filename: string): File | null {
 }
 
 /** Uploader <img>-elementers base64-data til fileStorage; dedupliserer identiske billeder (fx gentagne logoer). */
-async function uploadImages(images: HTMLImageElement[], cache: Map<string, string>): Promise<string[]> {
+async function uploadImages(
+  images: HTMLImageElement[],
+  cache: Map<string, string>,
+  progress: { uploaded: number; total: number },
+  onProgress?: ProgressCallback,
+): Promise<string[]> {
   const ids: string[] = []
   for (const img of images) {
     const src = img.getAttribute('src') || ''
@@ -45,6 +74,10 @@ async function uploadImages(images: HTMLImageElement[], cache: Map<string, strin
       const stored = await fileStorage.uploadImage(file)
       cache.set(src, stored.fileId)
       ids.push(stored.fileId)
+      progress.uploaded++
+      reportUploadProgress(progress, onProgress)
+      // Giv UI'et luft mellem hvert billede, så appen forbliver klikbar under import af mange/store billeder.
+      await yieldToBrowser()
     } catch (error) {
       console.error('Kunne ikke uploade billede fra importeret dokument:', error)
     }
@@ -52,12 +85,29 @@ async function uploadImages(images: HTMLImageElement[], cache: Map<string, strin
   return ids
 }
 
+function reportUploadProgress(progress: { uploaded: number; total: number }, onProgress?: ProgressCallback) {
+  if (!onProgress) return
+  const ratio = progress.total > 0 ? progress.uploaded / progress.total : 1
+  const percent = UPLOAD_STAGE_START + ratio * (UPLOAD_STAGE_END - UPLOAD_STAGE_START)
+  onProgress({
+    stage: 'uploading-images',
+    message: progress.total > 0 ? `Uploader billede ${progress.uploaded} af ${progress.total}…` : 'Analyserer indhold…',
+    imagesUploaded: progress.uploaded,
+    imagesTotal: progress.total,
+    percent: Math.round(percent),
+  })
+}
+
 /** Parser den konverterede HTML til sektioner/trin ud fra overskrifter, afsnit, lister og tabeller. */
-async function buildSectionsFromHtml(html: string): Promise<GuideSection[]> {
+async function buildSectionsFromHtml(html: string, onProgress?: ProgressCallback): Promise<GuideSection[]> {
   const doc = new DOMParser().parseFromString(html, 'text/html')
   const imageCache = new Map<string, string>()
   const sections: GuideSection[] = []
   let current: GuideSection | null = null
+
+  const totalImages = doc.body.querySelectorAll('img').length
+  const progress = { uploaded: 0, total: totalImages }
+  reportUploadProgress(progress, onProgress)
 
   const ensureSection = () => {
     if (!current) {
@@ -81,7 +131,7 @@ async function buildSectionsFromHtml(html: string): Promise<GuideSection[]> {
 
     if (tag === 'p') {
       const text = el.textContent?.trim() || ''
-      const imageIds = await uploadImages(Array.from(el.querySelectorAll('img')), imageCache)
+      const imageIds = await uploadImages(Array.from(el.querySelectorAll('img')), imageCache, progress, onProgress)
       if (!text && imageIds.length === 0) continue
       ensureSection().steps.push({ id: newId('step'), text, imageIds })
       continue
@@ -91,7 +141,7 @@ async function buildSectionsFromHtml(html: string): Promise<GuideSection[]> {
       const section = ensureSection()
       for (const li of Array.from(el.children)) {
         const text = li.textContent?.trim() || ''
-        const imageIds = await uploadImages(Array.from(li.querySelectorAll('img')), imageCache)
+        const imageIds = await uploadImages(Array.from(li.querySelectorAll('img')), imageCache, progress, onProgress)
         if (!text && imageIds.length === 0) continue
         section.steps.push({ id: newId('step'), text, imageIds })
       }
@@ -109,7 +159,7 @@ async function buildSectionsFromHtml(html: string): Promise<GuideSection[]> {
     }
 
     // Andre blokke (fx billede-wrapper uden <p>): tag billeder med hvis der er nogen.
-    const looseImages = await uploadImages(Array.from(el.querySelectorAll('img')), imageCache)
+    const looseImages = await uploadImages(Array.from(el.querySelectorAll('img')), imageCache, progress, onProgress)
     if (looseImages.length > 0) {
       ensureSection().steps.push({ id: newId('step'), text: '', imageIds: looseImages })
     }
@@ -124,14 +174,21 @@ function titleFromFilename(filename: string): string {
 }
 
 /** Konverterer en uploadet .docx-fil til et redigerbart guide-udkast (sektioner/trin + sprog). */
-export async function importGuideFromDocx(file: File): Promise<GuideImportDraft> {
+export async function importGuideFromDocx(file: File, onProgress?: ProgressCallback): Promise<GuideImportDraft> {
   if (!file.name.match(/\.docx$/i)) {
     throw new Error('Kun .docx-filer kan importeres (gamle .doc-filer understøttes ikke)')
   }
 
+  onProgress?.({ stage: 'reading', message: 'Læser dokument…', imagesUploaded: 0, imagesTotal: 0, percent: STAGE_WEIGHTS.reading })
   const arrayBuffer = await file.arrayBuffer()
+  await yieldToBrowser()
+
+  onProgress?.({ stage: 'converting', message: 'Konverterer indhold…', imagesUploaded: 0, imagesTotal: 0, percent: STAGE_WEIGHTS.converting })
   const { value: html } = await mammoth.convertToHtml({ arrayBuffer })
-  let sections = await buildSectionsFromHtml(html)
+  await yieldToBrowser()
+
+  onProgress?.({ stage: 'parsing', message: 'Analyserer struktur…', imagesUploaded: 0, imagesTotal: 0, percent: STAGE_WEIGHTS.parsing })
+  let sections = await buildSectionsFromHtml(html, onProgress)
 
   if (sections.length === 0) {
     const { value: rawText } = await mammoth.extractRawText({ arrayBuffer })
@@ -143,6 +200,8 @@ export async function importGuideFromDocx(file: File): Promise<GuideImportDraft>
 
   const combinedText = sections.map((s) => `${s.heading} ${s.steps.map((st) => st.text).join(' ')}`).join(' ')
   const language = detectLanguage(combinedText, 'da')
+
+  onProgress?.({ stage: 'done', message: 'Færdig!', imagesUploaded: 0, imagesTotal: 0, percent: STAGE_WEIGHTS.done })
 
   return {
     title: titleFromFilename(file.name),

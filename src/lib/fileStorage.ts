@@ -1,3 +1,5 @@
+import { yieldToBrowser } from './utils'
+
 export interface StoredFile {
   url: string
   filename: string
@@ -27,7 +29,7 @@ class FileStorageService {
     
     const arrayBuffer = await file.arrayBuffer()
     const bytes = new Uint8Array(arrayBuffer)
-    const base64Data = this.arrayBufferToBase64(bytes)
+    const base64Data = await this.arrayBufferToBase64Async(bytes)
     
     const fileId = `file_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
     const chunks: string[] = []
@@ -105,7 +107,7 @@ class FileStorageService {
 
     const arrayBuffer = await file.arrayBuffer()
     const bytes = new Uint8Array(arrayBuffer)
-    const base64Data = this.arrayBufferToBase64(bytes)
+    const base64Data = await this.arrayBufferToBase64Async(bytes)
 
     const fileId = `file_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
     const chunks: string[] = []
@@ -230,9 +232,20 @@ class FileStorageService {
     }
   }
 
-  private arrayBufferToBase64(bytes: Uint8Array): string {
-    const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
-    return btoa(binary)
+  // Koder i bidder på 60.000 bytes (deleligt med 3, så ingen chunk får midlertidig
+  // '='-padding) og giver kontrollen tilbage til browseren mellem hver bid, så
+  // store filer/billeder ikke fryser UI'et under kodningen.
+  private async arrayBufferToBase64Async(bytes: Uint8Array): Promise<string> {
+    const CHUNK_BYTES = 60_000
+    const parts: string[] = []
+    for (let offset = 0; offset < bytes.length; offset += CHUNK_BYTES) {
+      const slice = bytes.subarray(offset, offset + CHUNK_BYTES)
+      let binary = ''
+      for (let i = 0; i < slice.length; i++) binary += String.fromCharCode(slice[i])
+      parts.push(btoa(binary))
+      if (offset % (CHUNK_BYTES * 4) === 0) await yieldToBrowser()
+    }
+    return parts.join('')
   }
 
   private base64ToUint8Array(base64: string): Uint8Array {
