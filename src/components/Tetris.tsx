@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { SquaresFour, Trophy, X, Crown, Medal, Star, ArrowLeft, ArrowRight, ArrowClockwise, ArrowLineDown, CaretDown } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -202,13 +202,17 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
   }, [])
 
   // Éngangs-migrering: gammelt leaderboard opdelt pr. sværhedsgrad -> ét samlet array.
+  // safeLeaderboard bruges til ALT render/logik, så en legacy-formet værdi fra
+  // KV (før migreringen når at skrive tilbage) aldrig får kaldt array-metoder
+  // på et almindeligt objekt og crasher komponenten.
+  const safeLeaderboard = useMemo(() => migrateLeaderboard(globalLeaderboard), [globalLeaderboard])
+
   useEffect(() => {
     if (globalLeaderboard && !Array.isArray(globalLeaderboard)) {
-      const migrated = migrateLeaderboard(globalLeaderboard)
-      setGlobalLeaderboard(migrated)
-      window.kv.set('tetris-global-leaderboard', migrated)
+      setGlobalLeaderboard(safeLeaderboard)
+      window.kv.set('tetris-global-leaderboard', safeLeaderboard)
     }
-  }, [globalLeaderboard, setGlobalLeaderboard])
+  }, [globalLeaderboard, safeLeaderboard, setGlobalLeaderboard])
 
   const getDisplayName = (email: string) => {
     const user = users.find(u => u.email === email)
@@ -216,13 +220,11 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
   }
 
   const getCurrentHighScore = () => {
-    const board = globalLeaderboard || []
-    return board.length > 0 ? board[0].score : 0
+    return safeLeaderboard.length > 0 ? safeLeaderboard[0].score : 0
   }
 
   const getUserRank = (): number | null => {
-    const board = globalLeaderboard || []
-    const index = board.findIndex(entry => entry.email === userEmail)
+    const index = safeLeaderboard.findIndex(entry => entry.email === userEmail)
     return index !== -1 ? index + 1 : null
   }
 
@@ -763,7 +765,7 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
 
         <div className="max-w-md mx-auto">
           {(() => {
-            const leaderboard = globalLeaderboard || []
+            const leaderboard = safeLeaderboard
             const userRank = getUserRank()
             const userEntry = leaderboard.find(entry => entry.email === userEmail)
 
