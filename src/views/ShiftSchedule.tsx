@@ -13,6 +13,7 @@ import { useKV } from '@/hooks/useKV'
 import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
 import { AutoText } from '@/components/AutoText'
+import { useAutoTranslate } from '@/lib/useAutoTranslate'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
@@ -56,6 +57,13 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
   
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleColor, setNewRoleColor] = useState('#8b5cf6')
+
+  const rolePlaceholder = useAutoTranslate('F.eks. Supervisor, Tekniker, Support')
+  const selectEmployeePlaceholder = useAutoTranslate('Vælg medarbejder')
+  const selectRolePlaceholder = useAutoTranslate('Vælg rolle')
+  const selectTaskPlaceholder = useAutoTranslate('Vælg opgave')
+  const selectWeekPlaceholder = useAutoTranslate('Vælg uge')
+  const commentPlaceholder = useAutoTranslate('F.eks. Går kl. 14:00 til tandlæge')
 
   const colorPresets = [
     { name: 'Lilla', value: '#a855f7' },
@@ -619,7 +627,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                 className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
               >
                 <ArrowLeft size={20} />
-                Tilbage
+                <AutoText text="Tilbage" />
               </Button>
             </motion.div>
           </div>
@@ -632,7 +640,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           className="mb-10 text-center"
         >
           <div className="flex flex-col items-center gap-6">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">Vagtplan</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent"><AutoText text="Vagtplan" /></h1>
           </div>
         </motion.div>
 
@@ -640,15 +648,15 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           <TabsList className="grid w-full grid-cols-3 max-w-2xl">
             <TabsTrigger value="schedule" className="gap-2">
               <CalendarIcon size={18} />
-              Vagtplan
+              <AutoText text="Vagtplan" />
             </TabsTrigger>
             <TabsTrigger value="employees" className="gap-2">
               <UserCircle size={18} />
-              Medarbejdere
+              <AutoText text="Medarbejdere" />
             </TabsTrigger>
             <TabsTrigger value="tasks" className="gap-2">
               <Tag size={18} />
-              Opgaver
+              <AutoText text="Opgaver" />
             </TabsTrigger>
           </TabsList>
 
@@ -700,7 +708,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                     className="gap-2 shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-primary to-primary/90"
                   >
                     <Plus size={18} weight="bold" />
-                    Tilføj Opgaver til Hel Uge
+                    <AutoText text="Tilføj Opgaver til Hel Uge" />
                   </Button>
                   <Button
                     onClick={() => setShowWeekClearDialog(true)}
@@ -708,7 +716,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                     className="gap-2 shadow-md hover:shadow-lg transition-all"
                   >
                     <Trash size={18} weight="bold" />
-                    Ryd Hel Uge
+                    <AutoText text="Ryd Hel Uge" />
                   </Button>
                   <Button
                     onClick={() => {
@@ -722,7 +730,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                     className="gap-2 shadow-md hover:shadow-lg transition-all border-2 hover:border-accent hover:bg-accent/10"
                   >
                     <CalendarIcon size={18} weight="bold" />
-                    Gå til i dag
+                    <AutoText text="Gå til i dag" />
                   </Button>
                 </div>
               </div>
@@ -815,12 +823,12 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                                   <span className={cn("text-xs", todayDate && "font-extrabold text-accent")}>{day}/{selectedMonth + 1}</span>
                                   {isDanishHoliday(dateString) && (
                                     <Badge variant="destructive" className="text-[9px] px-1 py-0">
-                                      Hel
+                                      <AutoText text="Hel" />
                                     </Badge>
                                   )}
                                   {todayDate && (
                                     <Badge className="text-[9px] px-1 py-0 bg-accent text-accent-foreground">
-                                      I dag
+                                      <AutoText text="I dag" />
                                     </Badge>
                                   )}
                                 </div>
@@ -1102,11 +1110,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <Tag size={28} className="text-accent" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Opgaver / Roller</h2>
+                  <h2 className="text-2xl font-bold"><AutoText text="Opgaver / Roller" /></h2>
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant="outline" className="text-sm">
-                    {(roles || []).length} {(roles || []).length === 1 ? 'Opgave' : 'Opgaver'}
+                    {(roles || []).length} <AutoText text={(roles || []).length === 1 ? 'Opgave' : 'Opgaver'} />
                   </Badge>
                   <Button
                     onClick={openAddRoleDialog}
@@ -1114,27 +1122,27 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                     className="gap-2 bg-gradient-to-r from-primary to-accent"
                   >
                     <Plus size={16} />
-                    Tilføj Opgave
+                    <AutoText text="Tilføj Opgave" />
                   </Button>
                 </div>
               </div>
 
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
-                  Disse opgaver/roller kan tildeles medarbejdere i vagtplanen. Alle kan tilføje og slette opgaver.
+                  <AutoText text="Disse opgaver/roller kan tildeles medarbejdere i vagtplanen. Alle kan tilføje og slette opgaver." />
                 </p>
               </div>
 
               {!roles || roles.length === 0 ? (
                 <div className="text-center py-12">
                   <Tag size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
-                  <p className="text-muted-foreground mb-4">Ingen opgaver endnu</p>
+                  <p className="text-muted-foreground mb-4"><AutoText text="Ingen opgaver endnu" /></p>
                   <Button
                     onClick={openAddRoleDialog}
                     className="gap-2"
                   >
                     <Plus size={20} />
-                    Tilføj Din Første Opgave
+                    <AutoText text="Tilføj Din Første Opgave" />
                   </Button>
                 </div>
               ) : (
@@ -1167,7 +1175,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                             border: `2px solid ${role.color}`
                           }}
                         >
-                          Eksempel
+                          <AutoText text="Eksempel" />
                         </div>
                       </div>
                       <div className="flex items-center gap-2 ml-2">
@@ -1178,7 +1186,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                           className="gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <PencilSimple size={16} />
-                          Rediger
+                          <AutoText text="Rediger" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -1192,18 +1200,18 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Slet opgave?</AlertDialogTitle>
+                              <AlertDialogTitle><AutoText text="Slet opgave?" /></AlertDialogTitle>
                               <AlertDialogDescription>
-                                Er du sikker på at du vil slette <strong>{role.name}</strong>? Alle vagter tildelt til denne opgave vil også blive fjernet. Denne handling kan ikke fortrydes.
+                                <AutoText text={`Er du sikker på at du vil slette ${role.name}? Alle vagter tildelt til denne opgave vil også blive fjernet. Denne handling kan ikke fortrydes.`} />
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Annuller</AlertDialogCancel>
+                              <AlertDialogCancel><AutoText text="Annuller" /></AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleDeleteRole(role.id)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
-                                Slet opgave
+                                <AutoText text="Slet opgave" />
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -1227,20 +1235,20 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingRole ? 'Rediger Rolle' : 'Tilføj Ny Rolle'}</DialogTitle>
+            <DialogTitle><AutoText text={editingRole ? 'Rediger Rolle' : 'Tilføj Ny Rolle'} /></DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div>
-              <Label htmlFor="role-name">Rolle Navn</Label>
+              <Label htmlFor="role-name"><AutoText text="Rolle Navn" /></Label>
               <Input
                 id="role-name"
                 value={newRoleName}
                 onChange={(e) => setNewRoleName(e.target.value)}
-                placeholder="F.eks. Supervisor, Tekniker, Support"
+                placeholder={rolePlaceholder}
               />
             </div>
             <div>
-              <Label>Vælg Farve</Label>
+              <Label><AutoText text="Vælg Farve" /></Label>
               <div className="grid grid-cols-4 gap-3 mt-3">
                 {colorPresets.map((color) => (
                   <button
@@ -1264,7 +1272,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
               </div>
             </div>
             <Button onClick={editingRole ? handleUpdateRole : handleAddRole} className="w-full">
-              {editingRole ? 'Gem Ændringer' : 'Opret Rolle'}
+              <AutoText text={editingRole ? 'Gem Ændringer' : 'Opret Rolle'} />
             </Button>
           </div>
         </DialogContent>
@@ -1279,14 +1287,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tildel Vagt</DialogTitle>
+            <DialogTitle><AutoText text="Tildel Vagt" /></DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div>
-              <Label htmlFor="employee">Medarbejder</Label>
+              <Label htmlFor="employee"><AutoText text="Medarbejder" /></Label>
               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Vælg medarbejder" />
+                  <SelectValue placeholder={selectEmployeePlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {(employees || []).map(emp => (
@@ -1298,10 +1306,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
               </Select>
             </div>
             <div>
-              <Label htmlFor="role">Rolle</Label>
+              <Label htmlFor="role"><AutoText text="Rolle" /></Label>
               <Select value={selectedRole} onValueChange={setSelectedRole}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Vælg rolle" />
+                  <SelectValue placeholder={selectRolePlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {(roles || []).map(role => (
@@ -1319,7 +1327,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
               </Select>
             </div>
             <div>
-              <Label htmlFor="date">Dato</Label>
+              <Label htmlFor="date"><AutoText text="Dato" /></Label>
               <DatePickerField
                 id="date"
                 value={selectedDate}
@@ -1327,7 +1335,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
               />
             </div>
             <Button onClick={handleAddAssignment} className="w-full">
-              Tildel Vagt
+              <AutoText text="Tildel Vagt" />
             </Button>
           </div>
         </DialogContent>
@@ -1342,14 +1350,14 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tildel Opgave for Hel Uge</DialogTitle>
+            <DialogTitle><AutoText text="Tildel Opgave for Hel Uge" /></DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div>
-              <Label htmlFor="week-employee">Medarbejder</Label>
+              <Label htmlFor="week-employee"><AutoText text="Medarbejder" /></Label>
               <Select value={weekEmployee} onValueChange={setWeekEmployee}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Vælg medarbejder" />
+                  <SelectValue placeholder={selectEmployeePlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {(employees || []).map(emp => (
@@ -1361,10 +1369,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
               </Select>
             </div>
             <div>
-              <Label htmlFor="week-role">Opgave</Label>
+              <Label htmlFor="week-role"><AutoText text="Opgave" /></Label>
               <Select value={weekRole} onValueChange={setWeekRole}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Vælg opgave" />
+                  <SelectValue placeholder={selectTaskPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {(roles || []).map(role => (
@@ -1382,13 +1390,13 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
               </Select>
             </div>
             <div>
-              <Label htmlFor="week-number">Uge Nummer</Label>
+              <Label htmlFor="week-number"><AutoText text="Uge Nummer" /></Label>
               <Select 
                 value={weekNumber?.toString() || ''} 
                 onValueChange={(value) => setWeekNumber(parseInt(value))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Vælg uge" />
+                  <SelectValue placeholder={selectWeekPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {(() => {
@@ -1408,11 +1416,11 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
             </div>
             <div className="p-3 bg-muted/50 rounded-lg border">
               <p className="text-xs text-muted-foreground">
-                Denne opgave vil blive tildelt til alle hverdage (mandag-fredag) i den valgte uge. Du kan tildele flere opgaver til samme dag. Weekender og helligdage springes automatisk over.
+                <AutoText text="Denne opgave vil blive tildelt til alle hverdage (mandag-fredag) i den valgte uge. Du kan tildele flere opgaver til samme dag. Weekender og helligdage springes automatisk over." />
               </p>
             </div>
             <Button onClick={handleAssignWeek} className="w-full">
-              Tildel Hel Uge
+              <AutoText text="Tildel Hel Uge" />
             </Button>
           </div>
         </DialogContent>
@@ -1427,18 +1435,18 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trash size={24} weight="duotone" className="text-destructive" />
-              Ryd Opgaver for Hel Uge
+              <AutoText text="Ryd Opgaver for Hel Uge" />
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div>
-              <Label htmlFor="clear-week-number">Uge Nummer</Label>
+              <Label htmlFor="clear-week-number"><AutoText text="Uge Nummer" /></Label>
               <Select 
                 value={clearWeekNumber?.toString() || ''} 
                 onValueChange={(value) => setClearWeekNumber(parseInt(value))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Vælg uge" />
+                  <SelectValue placeholder={selectWeekPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {(() => {
@@ -1458,34 +1466,30 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
             </div>
             <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
               <p className="text-xs text-destructive font-medium">
-                ⚠️ Advarsel: Alle opgaver for alle medarbejdere i den valgte uge vil blive fjernet. Denne handling kan ikke fortrydes.
+                ⚠️ <AutoText text="Advarsel: Alle opgaver for alle medarbejdere i den valgte uge vil blive fjernet. Denne handling kan ikke fortrydes." />
               </p>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full gap-2" disabled={clearWeekNumber === null}>
                   <Trash size={18} />
-                  Ryd Hele Ugen
+                  <AutoText text="Ryd Hele Ugen" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-destructive">⚠️ Bekræft Sletning</AlertDialogTitle>
+                  <AlertDialogTitle className="text-destructive">⚠️ <AutoText text="Bekræft Sletning" /></AlertDialogTitle>
                   <AlertDialogDescription>
-                    Er du helt sikker på at du vil rydde alle opgaver for uge {clearWeekNumber}?
-                    <br /><br />
-                    <strong>Dette vil fjerne alle opgaver for alle medarbejdere i denne uge.</strong>
-                    <br /><br />
-                    Denne handling kan <strong>IKKE</strong> fortrydes!
+                    <AutoText text={`Er du helt sikker på at du vil rydde alle opgaver for uge ${clearWeekNumber}? Dette vil fjerne alle opgaver for alle medarbejdere i denne uge. Denne handling kan IKKE fortrydes!`} />
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Annuller</AlertDialogCancel>
+                  <AlertDialogCancel><AutoText text="Annuller" /></AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleClearWeek}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
-                    Ja, Ryd Hele Ugen
+                    <AutoText text="Ja, Ryd Hele Ugen" />
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -1504,27 +1508,27 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ChatText size={24} weight="duotone" className="text-amber-600" />
-              Kommentar
+              <AutoText text="Kommentar" />
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-              <p className="text-sm text-amber-900">Tilføj en kommentar</p>
+              <p className="text-sm text-amber-900"><AutoText text="Tilføj en kommentar" /></p>
             </div>
             <div>
-              <Label htmlFor="comment-text">Kommentar</Label>
+              <Label htmlFor="comment-text"><AutoText text="Kommentar" /></Label>
               <Textarea
                 id="comment-text"
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                placeholder="F.eks. Går kl. 14:00 til tandlæge"
+                placeholder={commentPlaceholder}
                 rows={4}
                 className="resize-none"
               />
             </div>
             <div className="flex gap-2">
               <Button onClick={handleSaveComment} className="flex-1">
-                Gem Kommentar
+                <AutoText text="Gem Kommentar" />
               </Button>
               <Button 
                 onClick={() => {
@@ -1534,7 +1538,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
                 variant="outline"
                 className="flex-1"
               >
-                Fjern Kommentar
+                <AutoText text="Fjern Kommentar" />
               </Button>
             </div>
           </div>
@@ -1545,16 +1549,16 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Tag size={24} weight="duotone" className="text-amber-600" />
-              Opgave Findes Allerede
+              <AutoText text="Opgave Findes Allerede" />
             </AlertDialogTitle>
             <AlertDialogDescription className="pt-4">
               {duplicateTaskInfo && (
                 <div className="space-y-2">
                   <p className="text-base">
-                    <strong>{duplicateTaskInfo.employeeName}</strong> har allerede opgaven <strong>{duplicateTaskInfo.roleName}</strong> tildelt på denne dato.
+                    <AutoText text={`${duplicateTaskInfo.employeeName} har allerede opgaven ${duplicateTaskInfo.roleName} tildelt på denne dato.`} />
                   </p>
                   <p className="text-sm text-muted-foreground pt-2">
-                    En bruger kan ikke have den samme opgave tildelt flere gange på samme dag.
+                    <AutoText text="En bruger kan ikke have den samme opgave tildelt flere gange på samme dag." />
                   </p>
                 </div>
               )}
@@ -1562,7 +1566,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setShowDuplicateTaskDialog(false)}>
-              Forstået
+              <AutoText text="Forstået" />
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

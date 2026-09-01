@@ -40,8 +40,8 @@ samme `AutoText`-mekanisme på de statiske strenge — hurtigere og kræver inge
 vedligeholdelse af to sprogfiler i sync.
 - [x] `MealPlan.tsx`: alle overskrifter/knapper/labels + placeholder.
 - [x] `VacationCalendar.tsx`: fane-labels, "Mine Ferier"/"Alle Team Medlemmer" m.fl.
-- [ ] `ProjectBoard.tsx`: resterende statiske labels (knapper, statusser, dialogtekster).
-- [ ] `VirtualNotebook.tsx`: resterende statiske labels.
-- [ ] `EmailSystem.tsx`: resterende statiske labels.
-- [ ] `ShiftSchedule.tsx`: resterende statiske labels (ud over rolle/kommentar der allerede er dækket).
-- [ ] `Hub.tsx` (forsiden) og øvrige views efter behov.
+- [x] `ProjectBoard.tsx`: allerede fuldt internationaliseret via `language === 'da' ? ... : ...` — ingen ændring nødvendig.
+- [x] `VirtualNotebook.tsx`: allerede fuldt internationaliseret via `t.notebook.*` — ingen ændring nødvendig.
+- [x] `EmailSystem.tsx`: alle resterende statiske strenge koblet til eksisterende `t.email.*`-ordbog (den fandtes allerede men blev ikke brugt); et par uden ordbog-nøgle fik `AutoText`.
+- [x] `ShiftSchedule.tsx`: alle resterende statiske strenge (dialogtitler, knapper, placeholders, fanetekster) fik `AutoText`/`useAutoTranslate`.
+- [x] `Hub.tsx` (forsiden): allerede fuldt internationaliseret — ingen ændring nødvendig.
