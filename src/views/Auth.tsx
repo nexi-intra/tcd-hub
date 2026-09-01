@@ -166,8 +166,9 @@ export function Auth({ onAuthenticated }: AuthProps) {
       }
 
       const user = usersData[email] || usersData[normalizedEmail]
+        || Object.values(usersData).find(u => u.username?.trim().toLowerCase() === normalizedEmail)
       if (!user || !(await verifyPassword(password, user.password))) {
-        toast.error('Forkert email eller adgangskode')
+        toast.error('Forkert email/brugernavn eller adgangskode')
         setIsLoading(false)
         return
       }
@@ -231,7 +232,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
               <img src={nexiLogo} alt="Nexi" className="relative h-12 sm:h-14 md:h-16 w-auto dark:hidden" />
               <img src={nexiLogoWhite} alt="Nexi" className="relative h-12 sm:h-14 md:h-16 w-auto hidden dark:block" />
             </motion.div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent mb-2">Terminal Configuration & Dispatch Hub</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-normal bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent pb-1 mb-2">Terminal Configuration & Dispatch Hub</h1>
             <p className="text-muted-foreground text-sm sm:text-base">
               {mode === 'login' ? 'Log ind for at fortsætte' : 'Opret en ny konto'}
             </p>
@@ -261,14 +262,14 @@ export function Auth({ onAuthenticated }: AuthProps) {
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-semibold flex items-center gap-2">
                   <EnvelopeSimple size={16} />
-                  {mode === 'signup' ? 'Email - Brug Arbejdsmail' : 'Email'}
+                  {mode === 'signup' ? 'Email - Brug Arbejdsmail' : 'Email eller brugernavn'}
                 </Label>
                 <Input
                   id="email"
-                  type="email"
+                  type={mode === 'signup' ? 'email' : 'text'}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="din@email.dk"
+                  placeholder={mode === 'signup' ? 'din@email.dk' : 'din@email.dk eller brugernavn'}
                   className="h-12"
                   required
                 />

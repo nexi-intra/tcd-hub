@@ -1922,7 +1922,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                                   : 'bg-muted/30'
                               }`}
                             >
-                              <div className="flex items-center justify-center w-8 h-8">
+                              <div className="flex items-center justify-center w-8 h-8 shrink-0">
                                 {RankIcon ? (
                                   <RankIcon 
                                     size={20} 
@@ -1941,11 +1941,11 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                                 }`}>
                                   {getDisplayName(entry.email)}
                                 </div>
-                                <div className="text-xs text-muted-foreground">
+                                <div className="text-xs text-muted-foreground truncate">
                                   {language === 'da' ? 'Level' : 'Level'} {entry.level}
                                 </div>
                               </div>
-                              <div className={`text-lg font-bold ${
+                              <div className={`text-lg font-bold shrink-0 tabular-nums ${
                                 isCurrentUser ? 'text-primary' : 'text-muted-foreground'
                               }`}>
                                 {entry.score}
@@ -1960,7 +1960,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                               <span className="text-xs text-muted-foreground">...</span>
                             </div>
                             <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/30 shadow-md">
-                              <div className="flex items-center justify-center w-8 h-8">
+                              <div className="flex items-center justify-center w-8 h-8 shrink-0">
                                 <span className="text-sm font-bold text-primary">
                                   #{userRank}
                                 </span>

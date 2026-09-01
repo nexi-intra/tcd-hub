@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { UserRole, ADMIN_EMAIL, hasManagerAccess, getRoleDisplayName, getRoleDescription } from '@/lib/userRoles'
+import { hashPassword } from '@/lib/passwords'
 import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
@@ -33,6 +34,7 @@ interface User {
   role: UserRole
   phone?: string
   status?: 'pending' | 'approved' | 'rejected'
+  username?: string
 }
 
 interface ManagerPanelProps {
@@ -53,6 +55,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [newPhone, setNewPhone] = useState('')
+  const [newUsername, setNewUsername] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -104,7 +107,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
   const loadUsers = async () => {
     setIsLoading(true)
-    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; phone?: string; role?: UserRole; isManager?: boolean; status?: 'pending' | 'approved' | 'rejected' }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; phone?: string; role?: UserRole; isManager?: boolean; status?: 'pending' | 'approved' | 'rejected'; username?: string }>>('users')
     if (usersData) {
       const allUsers = Object.values(usersData).map(u => {
         let role: UserRole = 'user'
@@ -122,6 +125,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           role,
           phone: u.phone,
           status: u.status,
+          username: u.username,
         }
       })
 
@@ -301,13 +305,14 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const openEditNameDialog = async (user: User) => {
-    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string; username?: string }>>('users')
     const userData = usersData?.[user.email]
-    
+
     setEditingUser(user)
     setNewName(user.fullName)
     setNewEmail(user.email)
     setNewPhone(userData?.phone || '')
+    setNewUsername(userData?.username || '')
     setNewPassword('')
     setIsEditDialogOpen(true)
   }
@@ -329,10 +334,26 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
+    const trimmedUsername = newUsername.trim()
+    if (trimmedUsername && !/^[a-zA-Z0-9._-]{3,32}$/.test(trimmedUsername)) {
+      toast.error('Brugernavn skal være 3-32 tegn (bogstaver, tal, punktum, bindestreg, underscore)')
+      return
+    }
+
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string; username?: string }>>('users')
     if (!usersData || !usersData[editingUser.email]) {
       toast.error('Bruger ikke fundet')
       return
+    }
+
+    if (trimmedUsername) {
+      const usernameTaken = Object.entries(usersData).some(([userEmail, u]) =>
+        userEmail !== editingUser.email && u.username?.toLowerCase() === trimmedUsername.toLowerCase()
+      )
+      if (usernameTaken) {
+        toast.error('Brugernavnet er allerede i brug')
+        return
+      }
     }
 
     const userData = usersData[editingUser.email]
@@ -347,7 +368,8 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       fullName: newName.trim(),
       email: newEmail.trim(),
       phone: newPhone.trim() || userData.phone,
-      password: newPassword.trim() || userData.password,
+      username: trimmedUsername || undefined,
+      password: newPassword.trim() ? await hashPassword(newPassword.trim()) : userData.password,
     }
 
     if (newEmail.trim().toLowerCase() !== editingUser.email.toLowerCase()) {
@@ -364,6 +386,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     setNewName('')
     setNewEmail('')
     setNewPhone('')
+    setNewUsername('')
     setNewPassword('')
     toast.success('Bruger opdateret succesfuldt')
   }
@@ -401,7 +424,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
     usersData[newUserEmail.toLowerCase()] = {
       email: newUserEmail.toLowerCase(),
-      password: newUserPassword.trim(),
+      password: await hashPassword(newUserPassword.trim()),
       fullName: newUserName.trim(),
       role: 'user',
       isManager: false,
@@ -1817,7 +1840,8 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               icon={<SquaresFour size={28} className="text-primary" weight="duotone" />}
               leaderboardKey="tetris-global-leaderboard"
               playCountsKey="tetris-play-counts"
-              hasLevel
+              categories={['all']}
+              categorySettings={{ all: { label: 'Highscores', color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', statBg: 'bg-primary/10', statBorder: 'border-primary/20', statText: 'text-primary' } }}
               users={users}
             />
           </TabsContent>
@@ -1932,6 +1956,16 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               </div>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="user-username">Brugernavn (valgfri)</Label>
+              <Input
+                id="user-username"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="f.eks. jremmer"
+              />
+              <p className="text-xs text-muted-foreground">Kan bruges til at logge ind i stedet for email. Begge dele virker.</p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="user-password">Ny adgangskode (valgfri)</Label>
               <Input
                 id="user-password"
@@ -1952,6 +1986,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               setNewName('')
               setNewEmail('')
               setNewPhone('')
+              setNewUsername('')
               setNewPassword('')
             }}>
               Annuller

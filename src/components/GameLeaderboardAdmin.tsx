@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 
-type Difficulty = 'easy' | 'medium' | 'hard' | 'expert'
+type Difficulty = string
 
 interface ScoreEntry {
   email: string
@@ -24,6 +24,16 @@ interface ScoreEntry {
 type Leaderboard = Record<Difficulty, ScoreEntry[]>
 type PlayCounts = Record<string, Record<Difficulty, number>>
 
+interface CategorySetting {
+  label: string
+  color: string
+  bg: string
+  border: string
+  statBg: string
+  statBorder: string
+  statText: string
+}
+
 interface GameLeaderboardAdminProps {
   gameTitle: string
   icon: ReactNode
@@ -31,8 +41,12 @@ interface GameLeaderboardAdminProps {
   leaderboardKey: string
   /** KV-nøgle for spillets play counts, fx 'tetris-play-counts'. */
   playCountsKey: string
-  /** Spil med levels (Brick Break, Tetris) viser og redigerer også level. */
+  /** Spil med levels (Brick Break) viser og redigerer også level. */
   hasLevel?: boolean
+  /** Overstyr kategorierne (default: easy/medium/hard/expert). Brug fx ['all'] for et samlet highscores uden sværhedsgrader. */
+  categories?: Difficulty[]
+  /** Overstyr visuel opsætning pr. kategori (default: DIFFICULTY_SETTINGS). */
+  categorySettings?: Record<Difficulty, CategorySetting>
   users: Array<{ email: string; fullName: string }>
 }
 
@@ -45,23 +59,26 @@ const DIFFICULTY_SETTINGS: Record<Difficulty, { label: string; color: string; bg
   expert: { label: 'Ekspert', color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/30', statBg: 'bg-purple-500/10', statBorder: 'border-purple-500/20', statText: 'text-purple-600' },
 }
 
-const EMPTY_LEADERBOARD: Leaderboard = { easy: [], medium: [], hard: [], expert: [] }
-
 // Manager-administration af ét spils highscores og spil-statistik.
 // Erstatter de fem næsten identiske sektioner, der tidligere lå i ManagerPanel.
-export function GameLeaderboardAdmin({ gameTitle, icon, leaderboardKey, playCountsKey, hasLevel = false, users }: GameLeaderboardAdminProps) {
+export function GameLeaderboardAdmin({ gameTitle, icon, leaderboardKey, playCountsKey, hasLevel = false, categories = DIFFICULTIES, categorySettings = DIFFICULTY_SETTINGS, users }: GameLeaderboardAdminProps) {
   const [leaderboard, setLeaderboard] = useState<Leaderboard | null>(null)
   const [playCounts, setPlayCounts] = useState<PlayCounts | null>(null)
   const [editingEntry, setEditingEntry] = useState<{ difficulty: Difficulty; email: string } | null>(null)
   const [newScore, setNewScore] = useState('')
   const [newLevel, setNewLevel] = useState('')
 
+  const isFlatMode = categories.length === 1
+
   const load = useCallback(async () => {
-    const board = await window.kv.get<Leaderboard>(leaderboardKey)
-    setLeaderboard(board || EMPTY_LEADERBOARD)
+    const raw = await window.kv.get<unknown>(leaderboardKey)
+    const board: Leaderboard = isFlatMode
+      ? { [categories[0]]: Array.isArray(raw) ? raw as ScoreEntry[] : [] }
+      : (raw as Leaderboard) || Object.fromEntries(categories.map(c => [c, []])) as Leaderboard
+    setLeaderboard(board)
     const counts = await window.kv.get<PlayCounts>(playCountsKey)
     setPlayCounts(counts || {})
-  }, [leaderboardKey, playCountsKey])
+  }, [leaderboardKey, playCountsKey, categories, isFlatMode])
 
   useEffect(() => {
     load()
@@ -73,7 +90,7 @@ export function GameLeaderboardAdmin({ gameTitle, icon, leaderboardKey, playCoun
   }
 
   const totalPlays = (counts: Record<Difficulty, number>) =>
-    (counts.easy || 0) + (counts.medium || 0) + (counts.hard || 0) + (counts.expert || 0)
+    categories.reduce((sum, c) => sum + (counts[c] || 0), 0)
 
   const openEditDialog = (difficulty: Difficulty, entry: ScoreEntry) => {
     setEditingEntry({ difficulty, email: entry.email })
@@ -122,16 +139,28 @@ export function GameLeaderboardAdmin({ gameTitle, icon, leaderboardKey, playCoun
     }
     entries.sort((a, b) => b.score - a.score)
 
-    await window.kv.set(leaderboardKey, { ...board, [editingEntry.difficulty]: entries })
+    if (isFlatMode) {
+      await window.kv.set(leaderboardKey, entries)
+    } else {
+      await window.kv.set(leaderboardKey, { ...board, [editingEntry.difficulty]: entries })
+    }
     await load()
     closeEditDialog()
     toast.success('Score opdateret')
   }
 
   const handleDeleteScore = async (difficulty: Difficulty, email: string) => {
+    if (isFlatMode) {
+      const raw = await window.kv.get<unknown>(leaderboardKey)
+      const entries = (Array.isArray(raw) ? raw as ScoreEntry[] : []).filter(entry => entry.email !== email)
+      await window.kv.set(leaderboardKey, entries)
+      await load()
+      toast.success('Score slettet')
+      return
+    }
+
     const board = await window.kv.get<Leaderboard>(leaderboardKey)
     if (!board) return
-
     board[difficulty] = board[difficulty].filter(entry => entry.email !== email)
     await window.kv.set(leaderboardKey, board)
     await load()
@@ -169,10 +198,10 @@ export function GameLeaderboardAdmin({ gameTitle, icon, leaderboardKey, playCoun
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    {DIFFICULTIES.map((difficulty) => (
-                      <div key={difficulty} className={`p-2 rounded ${DIFFICULTY_SETTINGS[difficulty].statBg} border ${DIFFICULTY_SETTINGS[difficulty].statBorder}`}>
-                        <div className="text-xs text-muted-foreground mb-1">{DIFFICULTY_SETTINGS[difficulty].label}</div>
-                        <div className={`font-bold ${DIFFICULTY_SETTINGS[difficulty].statText}`}>{counts[difficulty] || 0}</div>
+                    {categories.map((difficulty) => (
+                      <div key={difficulty} className={`p-2 rounded ${categorySettings[difficulty].statBg} border ${categorySettings[difficulty].statBorder}`}>
+                        <div className="text-xs text-muted-foreground mb-1">{categorySettings[difficulty].label}</div>
+                        <div className={`font-bold ${categorySettings[difficulty].statText}`}>{counts[difficulty] || 0}</div>
                       </div>
                     ))}
                   </div>
@@ -202,9 +231,9 @@ export function GameLeaderboardAdmin({ gameTitle, icon, leaderboardKey, playCoun
           </div>
         ) : (
           <div className="space-y-8">
-            {DIFFICULTIES.map((difficulty) => {
+            {categories.map((difficulty) => {
               const board = leaderboard[difficulty] || []
-              const setting = DIFFICULTY_SETTINGS[difficulty]
+              const setting = categorySettings[difficulty]
 
               return (
                 <div key={difficulty} className="space-y-3">

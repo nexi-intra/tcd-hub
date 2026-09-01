@@ -1197,7 +1197,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
                               isCurrentUser ? 'bg-primary/10 border border-primary/30 shadow-md' : 'bg-muted/30'
                             }`}
                           >
-                            <div className="flex items-center justify-center w-8 h-8">
+                            <div className="flex items-center justify-center w-8 h-8 shrink-0">
                               {RankIcon ? (
                                 <RankIcon size={20} weight="fill" className={rankColors[index]} />
                               ) : (
@@ -1209,7 +1209,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
                                 {getDisplayName(entry.email)}
                               </div>
                             </div>
-                            <div className={`text-lg font-bold ${isCurrentUser ? 'text-primary' : 'text-muted-foreground'}`}>
+                            <div className={`text-lg font-bold shrink-0 tabular-nums ${isCurrentUser ? 'text-primary' : 'text-muted-foreground'}`}>
                               {entry.score}
                             </div>
                           </div>
@@ -1222,7 +1222,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
                             <span className="text-xs text-muted-foreground">...</span>
                           </div>
                           <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/30 shadow-md">
-                            <div className="flex items-center justify-center w-8 h-8">
+                            <div className="flex items-center justify-center w-8 h-8 shrink-0">
                               <span className="text-sm font-bold text-primary">#{userRank}</span>
                             </div>
                             <div className="flex-1 min-w-0">

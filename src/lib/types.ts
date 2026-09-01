@@ -38,6 +38,8 @@ export interface StoredUser {
   isManager?: boolean
   role?: UserRole
   status?: ApprovalStatus
+  /** Valgfrit brugernavn - kan bruges til login i stedet for email. Skal være unikt. */
+  username?: string
 }
 
 /** KV: 'sick-leave-entries'. endDate sættes ikke af indmeldingsdialogen og kan mangle. */

@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { SquaresFour, Trophy, X, Lightning, Speedometer, Fire, Flame, Crown, Medal, Star, ArrowLeft, ArrowRight, ArrowClockwise, ArrowLineDown, CaretDown } from '@phosphor-icons/react'
+import { SquaresFour, Trophy, X, Crown, Medal, Star, ArrowLeft, ArrowRight, ArrowClockwise, ArrowLineDown, CaretDown } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 type PieceType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L'
-type Difficulty = 'easy' | 'medium' | 'hard' | 'expert'
 type GameState = 'menu' | 'playing' | 'ended'
 type Cell = string | null
 
@@ -20,16 +19,10 @@ interface ActivePiece {
 interface LeaderboardEntry {
   email: string
   score: number
-  level: number
   timestamp: number
 }
 
-interface GlobalLeaderboard {
-  easy: LeaderboardEntry[]
-  medium: LeaderboardEntry[]
-  hard: LeaderboardEntry[]
-  expert: LeaderboardEntry[]
-}
+type GlobalLeaderboard = LeaderboardEntry[]
 
 const BOARD_COLS = 10
 const BOARD_ROWS = 20
@@ -105,49 +98,6 @@ const TETROMINOES: Record<PieceType, { color: string; rotations: number[][][] }>
 
 const PIECE_TYPES: PieceType[] = ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
 
-const DIFFICULTY_SETTINGS = {
-  easy: {
-    startLevel: 0,
-    label: { en: 'Easy', da: 'Let' },
-    description: { en: 'Slow start', da: 'Langsom start' },
-    icon: Speedometer,
-    color: 'text-green-500',
-    bgGradient: 'from-green-500/20 to-green-600/20',
-    borderColor: 'border-green-500/30',
-    glowColor: 'shadow-green-500/20',
-  },
-  medium: {
-    startLevel: 3,
-    label: { en: 'Medium', da: 'Mellem' },
-    description: { en: 'Balanced', da: 'Afbalanceret' },
-    icon: Lightning,
-    color: 'text-yellow-500',
-    bgGradient: 'from-yellow-500/20 to-yellow-600/20',
-    borderColor: 'border-yellow-500/30',
-    glowColor: 'shadow-yellow-500/20',
-  },
-  hard: {
-    startLevel: 6,
-    label: { en: 'Hard', da: 'Svær' },
-    description: { en: 'Fast drop', da: 'Hurtigt fald' },
-    icon: Fire,
-    color: 'text-red-500',
-    bgGradient: 'from-red-500/20 to-red-600/20',
-    borderColor: 'border-red-500/30',
-    glowColor: 'shadow-red-500/20',
-  },
-  expert: {
-    startLevel: 9,
-    label: { en: 'Expert', da: 'Ekspert' },
-    description: { en: 'Blazing speed!', da: 'Lynhurtigt!' },
-    icon: Flame,
-    color: 'text-purple-500',
-    bgGradient: 'from-purple-500/20 to-purple-600/20',
-    borderColor: 'border-purple-500/30',
-    glowColor: 'shadow-purple-500/20',
-  },
-}
-
 interface User {
   email: string
   fullName: string
@@ -172,24 +122,55 @@ function shuffleBag(): PieceType[] {
   return bag
 }
 
-function getDropIntervalMs(level: number): number {
-  return Math.max(80, 800 - level * 60)
+function getDropIntervalMs(stage: number): number {
+  return Math.max(90, 800 - stage * 45)
+}
+
+// Sværhedsgraden stiger gradvist ud fra linjer ryddet OG forløbet spilletid - jo længere man spiller, jo hurtigere falder klodserne.
+function getStage(lines: number, elapsedMs: number): number {
+  return Math.floor(lines / 8) + Math.floor(elapsedMs / 25000)
+}
+
+// Migrerer gammelt leaderboard (opdelt pr. sværhedsgrad) til ét samlet highscores-array.
+function migrateLeaderboard(data: unknown): LeaderboardEntry[] {
+  if (Array.isArray(data)) return data as LeaderboardEntry[]
+  if (!data || typeof data !== 'object') return []
+  const combined = new Map<string, LeaderboardEntry>()
+  for (const diff of ['easy', 'medium', 'hard', 'expert']) {
+    const arr = (data as Record<string, LeaderboardEntry[]>)[diff] || []
+    for (const entry of arr) {
+      const existing = combined.get(entry.email)
+      if (!existing || entry.score > existing.score) {
+        combined.set(entry.email, { email: entry.email, score: entry.score, timestamp: entry.timestamp })
+      }
+    }
+  }
+  return Array.from(combined.values()).sort((a, b) => b.score - a.score).slice(0, 10)
+}
+
+// Migrerer gamle play-counts (opdelt pr. sværhedsgrad) til ét samlet antal spil pr. bruger.
+function migratePlayCounts(data: unknown): Record<string, { all: number }> {
+  if (!data || typeof data !== 'object') return {}
+  const result: Record<string, { all: number }> = {}
+  for (const [email, counts] of Object.entries(data as Record<string, unknown>)) {
+    if (counts && typeof counts === 'object' && 'all' in (counts as Record<string, unknown>)) {
+      result[email] = { all: (counts as { all: number }).all || 0 }
+      continue
+    }
+    const c = counts as Record<string, number> | undefined
+    const total = ['easy', 'medium', 'hard', 'expert'].reduce((sum, d) => sum + (c?.[d] || 0), 0)
+    result[email] = { all: total }
+  }
+  return result
 }
 
 export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
   const { language } = useLanguage()
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [gameState, setGameState] = useState<GameState>('menu')
   const [score, setScore] = useState(0)
-  const [level, setLevel] = useState(0)
   const [lines, setLines] = useState(0)
   const [users, setUsers] = useState<User[]>([])
-  const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('tetris-global-leaderboard', {
-    easy: [],
-    medium: [],
-    hard: [],
-    expert: [],
-  })
+  const [globalLeaderboard, setGlobalLeaderboard] = useKV<GlobalLeaderboard>('tetris-global-leaderboard', [])
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const nextCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -197,13 +178,13 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
   const lastTimeRef = useRef<number>(0)
 
   const gameStateRef = useRef<GameState>('menu')
-  const difficultyRef = useRef<Difficulty>('medium')
   const boardRef = useRef<Cell[][]>(createEmptyBoard())
   const bagRef = useRef<PieceType[]>([])
   const currentPieceRef = useRef<ActivePiece | null>(null)
   const nextPieceTypeRef = useRef<PieceType>('I')
   const dropAccRef = useRef(0)
-  const levelRef = useRef(0)
+  const stageRef = useRef(0)
+  const startTimeRef = useRef(0)
   const linesRef = useRef(0)
   const scoreRef = useRef(0)
   const softDropRef = useRef(false)
@@ -220,18 +201,27 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
     loadUsers()
   }, [])
 
+  // Éngangs-migrering: gammelt leaderboard opdelt pr. sværhedsgrad -> ét samlet array.
+  useEffect(() => {
+    if (globalLeaderboard && !Array.isArray(globalLeaderboard)) {
+      const migrated = migrateLeaderboard(globalLeaderboard)
+      setGlobalLeaderboard(migrated)
+      window.kv.set('tetris-global-leaderboard', migrated)
+    }
+  }, [globalLeaderboard, setGlobalLeaderboard])
+
   const getDisplayName = (email: string) => {
     const user = users.find(u => u.email === email)
     return user ? user.fullName : email.split('@')[0]
   }
 
   const getCurrentHighScore = () => {
-    const board = globalLeaderboard?.[difficulty] || []
+    const board = globalLeaderboard || []
     return board.length > 0 ? board[0].score : 0
   }
 
-  const getUserRankForDifficulty = (diff: Difficulty): number | null => {
-    const board = globalLeaderboard?.[diff] || []
+  const getUserRank = (): number | null => {
+    const board = globalLeaderboard || []
     const index = board.findIndex(entry => entry.email === userEmail)
     return index !== -1 ? index + 1 : null
   }
@@ -313,20 +303,15 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
     }
 
     if (cleared > 0) {
-      const points = [0, 100, 300, 500, 800][cleared] * (levelRef.current + 1)
+      const points = [0, 100, 300, 500, 800][cleared] * (stageRef.current + 1)
       scoreRef.current += points
       setScore(scoreRef.current)
       linesRef.current += cleared
       setLines(linesRef.current)
-      const newLevel = DIFFICULTY_SETTINGS[difficultyRef.current].startLevel + Math.floor(linesRef.current / 10)
-      if (newLevel !== levelRef.current) {
-        levelRef.current = newLevel
-        setLevel(newLevel)
-      }
     }
   }
 
-  const endGame = useCallback(async (finalScore: number, finalLevel: number) => {
+  const endGame = useCallback(async (finalScore: number) => {
     setGameState('ended')
     gameStateRef.current = 'ended'
     if (animationFrameRef.current) {
@@ -337,25 +322,21 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
     if (!userEmail) return
 
     try {
-      const currentLeaderboard = await window.kv.get<GlobalLeaderboard>('tetris-global-leaderboard') || {
-        easy: [], medium: [], hard: [], expert: []
-      }
-
-      const diff = difficultyRef.current
-      const board = [...(currentLeaderboard[diff] || [])]
+      const stored = await window.kv.get<unknown>('tetris-global-leaderboard')
+      const board = migrateLeaderboard(stored)
       const existingIndex = board.findIndex(entry => entry.email === userEmail)
 
       if (existingIndex !== -1) {
         if (finalScore > board[existingIndex].score) {
-          board[existingIndex] = { email: userEmail, score: finalScore, level: finalLevel, timestamp: Date.now() }
+          board[existingIndex] = { email: userEmail, score: finalScore, timestamp: Date.now() }
         }
       } else {
-        board.push({ email: userEmail, score: finalScore, level: finalLevel, timestamp: Date.now() })
+        board.push({ email: userEmail, score: finalScore, timestamp: Date.now() })
       }
 
       board.sort((a, b) => b.score - a.score)
 
-      const updated = { ...currentLeaderboard, [diff]: board.slice(0, 10) }
+      const updated = board.slice(0, 10)
       await window.kv.set('tetris-global-leaderboard', updated)
       setGlobalLeaderboard(updated)
     } catch (error) {
@@ -363,16 +344,15 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
     }
 
     try {
-      const gameStats = await window.kv.get<Record<string, Record<Difficulty, number>>>('tetris-play-counts') || {}
-      if (!gameStats[userEmail]) {
-        gameStats[userEmail] = { easy: 0, medium: 0, hard: 0, expert: 0 }
-      }
-      gameStats[userEmail][difficultyRef.current] = (gameStats[userEmail][difficultyRef.current] || 0) + 1
+      const stored = await window.kv.get<unknown>('tetris-play-counts')
+      const gameStats = migratePlayCounts(stored)
+      gameStats[userEmail] = { all: (gameStats[userEmail]?.all || 0) + 1 }
       await window.kv.set('tetris-play-counts', gameStats)
     } catch (error) {
       console.error('Error tracking Tetris play count:', error)
     }
   }, [userEmail, setGlobalLeaderboard])
+
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current
@@ -449,7 +429,9 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
     const delta = timestamp - lastTimeRef.current
     lastTimeRef.current = timestamp
 
-    const interval = softDropRef.current ? Math.min(50, getDropIntervalMs(levelRef.current)) : getDropIntervalMs(levelRef.current)
+    stageRef.current = getStage(linesRef.current, timestamp - startTimeRef.current)
+
+    const interval = softDropRef.current ? Math.min(50, getDropIntervalMs(stageRef.current)) : getDropIntervalMs(stageRef.current)
     dropAccRef.current += delta
 
     if (dropAccRef.current >= interval) {
@@ -462,7 +444,7 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
           lockPiece()
           const spawned = spawnPiece()
           if (!spawned) {
-            endGame(scoreRef.current, levelRef.current)
+            endGame(scoreRef.current)
             return
           }
         }
@@ -526,7 +508,7 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
     lockPiece()
     const spawned = spawnPiece()
     if (!spawned) {
-      endGame(scoreRef.current, levelRef.current)
+      endGame(scoreRef.current)
       return
     }
     dropAccRef.current = 0
@@ -534,26 +516,28 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
   }, [draw, endGame])
 
   const startGame = () => {
-    difficultyRef.current = difficulty
     boardRef.current = createEmptyBoard()
     bagRef.current = shuffleBag()
     nextPieceTypeRef.current = bagRef.current.pop() as PieceType
     scoreRef.current = 0
     linesRef.current = 0
-    levelRef.current = DIFFICULTY_SETTINGS[difficulty].startLevel
+    stageRef.current = 0
     dropAccRef.current = 0
     lastTimeRef.current = 0
+    startTimeRef.current = 0
     softDropRef.current = false
     setScore(0)
     setLines(0)
-    setLevel(levelRef.current)
     gameStateRef.current = 'playing'
     setGameState('playing')
     spawnPiece()
     draw()
 
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
-    animationFrameRef.current = requestAnimationFrame(step)
+    animationFrameRef.current = requestAnimationFrame((timestamp) => {
+      startTimeRef.current = timestamp
+      step(timestamp)
+    })
   }
 
   const quitGame = () => {
@@ -640,54 +624,11 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
 
         {gameState === 'menu' && (
           <div className="space-y-6">
-            <div className="space-y-3">
-              <div className="text-center">
-                <p className="text-sm font-semibold text-muted-foreground mb-3">
-                  {language === 'da' ? 'Vælg sværhedsgrad' : 'Select Difficulty'}
-                </p>
-              </div>
-              <div className="flex items-center justify-center gap-4 flex-wrap">
-                {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
-                  const setting = DIFFICULTY_SETTINGS[diff]
-                  const Icon = setting.icon
-                  const isSelected = difficulty === diff
-
-                  return (
-                    <div
-                      key={diff}
-                      onClick={() => setDifficulty(diff)}
-                      className={`group relative cursor-pointer rounded-xl p-6 transition-all duration-300 min-w-[140px] ${
-                        isSelected
-                          ? `bg-gradient-to-br ${setting.bgGradient} border-2 ${setting.borderColor} shadow-lg ${setting.glowColor}`
-                          : 'bg-card border-2 border-border hover:border-border/60 hover:shadow-md'
-                      }`}
-                    >
-                      <div className="flex flex-col items-center gap-3">
-                        <Icon
-                          size={28}
-                          weight="duotone"
-                          className={isSelected ? setting.color : `${setting.color} opacity-60 group-hover:opacity-100`}
-                        />
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`font-bold text-base ${isSelected ? setting.color : 'text-foreground'}`}>
-                            {setting.label[language as 'en' | 'da']}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {setting.description[language as 'en' | 'da']}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-4">
                 {language === 'da'
-                  ? 'Piletaster til at flytte/rotere, mellemrum for hurtigt fald.'
-                  : 'Arrow keys to move/rotate, space for hard drop.'}
+                  ? 'Piletaster til at flytte/rotere, mellemrum for hurtigt fald. Spillet bliver gradvist sværere jo længere du spiller.'
+                  : 'Arrow keys to move/rotate, space for hard drop. The game gets progressively harder the longer you play.'}
               </p>
               <Button onClick={startGame} size="lg" className="px-8 bg-gradient-to-r from-primary to-accent hover:opacity-90">
                 {language === 'da' ? 'Start spil' : 'Start Game'}
@@ -710,14 +651,6 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
                   </div>
                   <div className="text-3xl font-black bg-gradient-to-br from-white to-primary-foreground bg-clip-text text-transparent drop-shadow-lg">
                     {score}
-                  </div>
-                </div>
-                <div className="relative px-5 py-3 rounded-xl bg-gradient-to-br from-accent/20 to-yellow-500/20 border-2 border-accent/40 backdrop-blur-sm">
-                  <div className="text-[10px] text-accent-foreground/70 uppercase tracking-widest font-bold mb-1">
-                    {language === 'da' ? 'Level' : 'Level'}
-                  </div>
-                  <div className="text-3xl font-black text-yellow-400 drop-shadow-lg">
-                    {level}
                   </div>
                 </div>
                 <div className="relative px-5 py-3 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border-2 border-primary/40 backdrop-blur-sm">
@@ -792,7 +725,7 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
                 {score}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {language === 'da' ? `Level ${level} · ${lines} linjer` : `Level ${level} · ${lines} lines`}
+                {language === 'da' ? `${lines} linjer` : `${lines} lines`}
               </p>
             </div>
           </div>
@@ -828,111 +761,81 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-4 md:grid-cols-2">
-          {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
-            const setting = DIFFICULTY_SETTINGS[diff]
-            const Icon = setting.icon
-            const leaderboard = globalLeaderboard?.[diff] || []
-            const userRank = getUserRankForDifficulty(diff)
+        <div className="max-w-md mx-auto">
+          {(() => {
+            const leaderboard = globalLeaderboard || []
+            const userRank = getUserRank()
             const userEntry = leaderboard.find(entry => entry.email === userEmail)
 
             return (
-              <div key={diff} className="space-y-3">
-                <div className={`p-4 rounded-lg border-2 transition-all ${
-                  userRank === 1
-                    ? 'border-accent bg-gradient-to-br from-accent/10 to-primary/10 shadow-lg'
-                    : 'border-border bg-gradient-to-br from-card to-muted/20'
-                }`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`p-2 rounded-lg ${
-                      diff === 'easy' ? 'bg-gradient-to-br from-green-500/20 to-green-600/20' :
-                      diff === 'medium' ? 'bg-gradient-to-br from-yellow-500/20 to-yellow-600/20' :
-                      diff === 'hard' ? 'bg-gradient-to-br from-red-500/20 to-red-600/20' :
-                      'bg-gradient-to-br from-purple-500/20 to-purple-600/20'
-                    }`}>
-                      <Icon size={24} weight="duotone" className={setting.color} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold">
-                        {setting.label[language as 'en' | 'da']}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {setting.description[language as 'en' | 'da']}
-                      </div>
-                    </div>
+              <div className="p-4 rounded-lg border-2 border-border bg-gradient-to-br from-card to-muted/20">
+                {leaderboard.length > 0 ? (
+                  <div className="space-y-2">
+                    {leaderboard.slice(0, 10).map((entry, index) => {
+                      const isCurrentUser = entry.email === userEmail
+                      const rankColors = ['text-yellow-500', 'text-gray-400', 'text-amber-600']
+                      const rankIcons = [Crown, Medal, Star]
+                      const RankIcon = index < 3 ? rankIcons[index] : null
+
+                      return (
+                        <div
+                          key={entry.email}
+                          className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+                            isCurrentUser ? 'bg-primary/10 border border-primary/30 shadow-md' : 'bg-muted/30'
+                          }`}
+                        >
+                          <div className="flex items-center justify-center w-8 h-8 shrink-0">
+                            {RankIcon ? (
+                              <RankIcon size={20} weight="fill" className={rankColors[index]} />
+                            ) : (
+                              <span className="text-sm font-bold text-muted-foreground">#{index + 1}</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-sm font-medium truncate ${isCurrentUser ? 'text-primary font-bold' : 'text-foreground'}`}>
+                              {getDisplayName(entry.email)}
+                            </div>
+                          </div>
+                          <div className={`text-lg font-bold shrink-0 tabular-nums ${isCurrentUser ? 'text-primary' : 'text-muted-foreground'}`}>
+                            {entry.score}
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    {userEntry && userRank && userRank > 10 && (
+                      <>
+                        <div className="text-center py-1">
+                          <span className="text-xs text-muted-foreground">...</span>
+                        </div>
+                        <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/30 shadow-md">
+                          <div className="flex items-center justify-center w-8 h-8 shrink-0">
+                            <span className="text-sm font-bold text-primary">#{userRank}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-primary truncate">
+                              {getDisplayName(userEmail)}
+                            </div>
+                          </div>
+                          <div className="text-lg font-bold text-primary shrink-0 tabular-nums">{userEntry.score}</div>
+                        </div>
+                      </>
+                    )}
                   </div>
-
-                  {leaderboard.length > 0 ? (
-                    <div className="space-y-2">
-                      {leaderboard.slice(0, 10).map((entry, index) => {
-                        const isCurrentUser = entry.email === userEmail
-                        const rankColors = ['text-yellow-500', 'text-gray-400', 'text-amber-600']
-                        const rankIcons = [Crown, Medal, Star]
-                        const RankIcon = index < 3 ? rankIcons[index] : null
-
-                        return (
-                          <div
-                            key={entry.email}
-                            className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
-                              isCurrentUser ? 'bg-primary/10 border border-primary/30 shadow-md' : 'bg-muted/30'
-                            }`}
-                          >
-                            <div className="flex items-center justify-center w-8 h-8">
-                              {RankIcon ? (
-                                <RankIcon size={20} weight="fill" className={rankColors[index]} />
-                              ) : (
-                                <span className="text-sm font-bold text-muted-foreground">#{index + 1}</span>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className={`text-sm font-medium truncate ${isCurrentUser ? 'text-primary font-bold' : 'text-foreground'}`}>
-                                {getDisplayName(entry.email)}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {language === 'da' ? `Level ${entry.level}` : `Level ${entry.level}`}
-                              </div>
-                            </div>
-                            <div className={`text-lg font-bold ${isCurrentUser ? 'text-primary' : 'text-muted-foreground'}`}>
-                              {entry.score}
-                            </div>
-                          </div>
-                        )
-                      })}
-
-                      {userEntry && userRank && userRank > 10 && (
-                        <>
-                          <div className="text-center py-1">
-                            <span className="text-xs text-muted-foreground">...</span>
-                          </div>
-                          <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/30 shadow-md">
-                            <div className="flex items-center justify-center w-8 h-8">
-                              <span className="text-sm font-bold text-primary">#{userRank}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-bold text-primary truncate">
-                                {getDisplayName(userEmail)}
-                              </div>
-                            </div>
-                            <div className="text-lg font-bold text-primary">{userEntry.score}</div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6">
-                      <Trophy size={32} className="text-muted-foreground/30 mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">
-                        {language === 'da' ? 'Ingen scores endnu' : 'No scores yet'}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {language === 'da' ? 'Vær den første!' : 'Be the first!'}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <Trophy size={32} className="text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      {language === 'da' ? 'Ingen scores endnu' : 'No scores yet'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {language === 'da' ? 'Vær den første!' : 'Be the first!'}
+                    </p>
+                  </div>
+                )}
               </div>
             )
-          })}
+          })()}
         </div>
       </Card>
     </div>
