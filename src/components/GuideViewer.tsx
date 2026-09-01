@@ -300,7 +300,16 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
                 </div>
               )}
               {hasSections && isTranslated && (
-                <p className="text-[10px] text-muted-foreground text-center sm:text-right">
+                <p
+                  className={cn(
+                    'text-xs font-medium text-center sm:text-right px-1.5 py-0.5 rounded',
+                    isTranslating
+                      ? 'text-muted-foreground'
+                      : translationEngine === 'neural'
+                        ? 'text-emerald-700 bg-emerald-50'
+                        : 'text-amber-700 bg-amber-50',
+                  )}
+                >
                   {isTranslating
                     ? 'Oversætter…'
                     : translationEngine === 'neural'

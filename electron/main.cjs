@@ -220,6 +220,16 @@ function createWindow() {
     return { action: 'deny' }
   })
 
+  // No app menu (autoHideMenuBar) means the usual DevTools accelerators may not
+  // be registered — bind F12 / Ctrl+Shift+I explicitly so support/debugging works.
+  win.webContents.on('before-input-event', (_event, input) => {
+    const isF12 = input.key === 'F12'
+    const isCtrlShiftI = input.control && input.shift && input.key.toLowerCase() === 'i'
+    if (isF12 || isCtrlShiftI) {
+      win.webContents.toggleDevTools()
+    }
+  })
+
   const devServerUrl = process.env.ELECTRON_START_URL
   if (devServerUrl) {
     win.loadURL(devServerUrl)
