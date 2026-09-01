@@ -7,12 +7,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { PaperPlaneRight, Robot, User, ArrowSquareOut, Quotes } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
 import { guidePlainText } from '@/lib/guideTypes'
 import type { GuideSearchIndex, SearchHit } from '@/lib/searchIndex'
 import { detectLanguage, translateText, type GuideLanguage } from '@/lib/translator'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
@@ -22,6 +22,8 @@ interface Citation {
   reference: string
   heading: string
   quote: string
+  /** Guidens sprog — bruges til "oversat fra"-etiketten. */
+  sourceLanguage: GuideLanguage
   /** Ordbogsbaseret oversættelse af citatet, når guide- og spørgesprog er forskellige. */
   translatedQuote?: string
   relevance: number
@@ -47,31 +49,38 @@ const MIN_RELEVANCE = 0.25
 
 const UI_TEXT = {
   da: {
+    greeting: 'Hej! Stil mig et spørgsmål, så finder jeg svaret i guidebiblioteket og citerer de relevante trin.',
     found: (count: number, guides: number) =>
       `Jeg fandt ${count} relevant${count === 1 ? '' : 'e'} afsnit i ${guides} guide${guides === 1 ? '' : 's'}. Svaret er citeret direkte fra biblioteket:`,
     noHits: (q: string) => `Jeg fandt ikke noget i guidebiblioteket, der matcher "${q}". Prøv andre søgeord — eller opret en guide om emnet, hvis det mangler.`,
     empty: 'Der er ingen guides i biblioteket endnu. Opret den første guide via "Ny guide"-knappen.',
-    translated: 'Oversat fra engelsk',
+    translatedFrom: { da: 'Oversat fra dansk', en: 'Oversat fra engelsk' },
     openGuide: 'Åbn guide',
+    placeholder: 'Spørg om noget fra guiderne…',
   },
   en: {
+    greeting: 'Hi! Ask me a question and I will find the answer in the guide library and quote the relevant steps.',
     found: (count: number, guides: number) =>
       `I found ${count} relevant section${count === 1 ? '' : 's'} in ${guides} guide${guides === 1 ? '' : 's'}. The answer is quoted directly from the library:`,
     noHits: (q: string) => `I couldn't find anything in the guide library matching "${q}". Try different keywords — or create a guide on the topic if it's missing.`,
     empty: 'There are no guides in the library yet. Create the first one via the "Ny guide" button.',
-    translated: 'Translated from Danish',
+    translatedFrom: { da: 'Translated from Danish', en: 'Translated from English' },
     openGuide: 'Open guide',
+    placeholder: 'Ask about anything in the guides…',
   },
 } as const
 
 function hitsToCitations(hits: SearchHit[], guides: Guide[], answerLanguage: GuideLanguage): Citation[] {
-  const languageById = new Map(guides.map((g) => [g.id, g.language || detectLanguage(guidePlainText(g))]))
+  const languageById = new Map(guides.map((g) => [g.id, g.language || detectLanguage(guidePlainText(g), 'da')]))
   return hits
     .filter((hit) => hit.normalizedScore >= MIN_RELEVANCE)
     .slice(0, 4)
     .map((hit) => {
       const quote = hit.chunk.text.length > 220 ? hit.chunk.text.slice(0, 220) + '…' : hit.chunk.text
-      const sourceLanguage = languageById.get(hit.chunk.guideId) || detectLanguage(hit.chunk.text)
+      const sourceLanguage = languageById.get(hit.chunk.guideId) || detectLanguage(hit.chunk.text, 'da')
+      const translated = sourceLanguage !== answerLanguage
+        ? translateText(quote, sourceLanguage, answerLanguage)
+        : undefined
       return {
         guideId: hit.chunk.guideId,
         guideTitle: hit.chunk.guideTitle,
@@ -82,20 +91,22 @@ function hitsToCitations(hits: SearchHit[], guides: Guide[], answerLanguage: Gui
             : '',
         heading: hit.chunk.heading,
         quote,
-        translatedQuote: sourceLanguage !== answerLanguage
-          ? translateText(quote, sourceLanguage, answerLanguage)
-          : undefined,
+        sourceLanguage,
+        // Vis kun oversættelsen hvis den reelt adskiller sig fra originalen.
+        translatedQuote: translated && translated.toLowerCase() !== quote.toLowerCase() ? translated : undefined,
         relevance: Math.round(hit.normalizedScore * 100),
       }
     })
 }
 
 export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide }: GuideChatProps) {
-  const [messages, setMessages] = useState<RagMessage[]>([
+  const { language } = useLanguage()
+  const appLanguage: GuideLanguage = language === 'en' ? 'en' : 'da'
+  const [messages, setMessages] = useState<RagMessage[]>(() => [
     {
       id: '1',
       role: 'assistant',
-      content: 'Hej! Stil mig et spørgsmål, så finder jeg svaret i guidebiblioteket og citerer de relevante trin.',
+      content: UI_TEXT[language === 'en' ? 'en' : 'da'].greeting,
       timestamp: Date.now(),
     },
   ])
@@ -120,7 +131,8 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
     }
 
     let assistantMessage: RagMessage
-    const answerLanguage = detectLanguage(question)
+    // Spørgsmålets sprog afgør svarsproget; ved tvetydige/korte spørgsmål bruges appens sprog.
+    const answerLanguage = detectLanguage(question, appLanguage)
     const t = UI_TEXT[answerLanguage]
     if (guides.length === 0) {
       assistantMessage = {
@@ -175,7 +187,7 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
           </p>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-6">
           <div className="space-y-4">
             {messages.map((message) => (
               <motion.div
@@ -242,7 +254,7 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
                       {citation.translatedQuote && (
                         <div className="rounded-lg bg-muted/60 px-2 py-1.5 space-y-0.5">
                           <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                            {detectLanguage(citation.quote) === 'da' ? UI_TEXT.en.translated : UI_TEXT.da.translated}
+                            {UI_TEXT[appLanguage].translatedFrom[citation.sourceLanguage]}
                           </div>
                           <p className="text-xs break-words">{citation.translatedQuote}</p>
                         </div>
@@ -254,7 +266,7 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
                         onClick={() => onOpenGuide(citation.guideId)}
                       >
                         <ArrowSquareOut size={13} weight="bold" />
-                        Åbn guide
+                        {UI_TEXT[appLanguage].openGuide}
                       </Button>
                     </motion.div>
                   ))}
@@ -267,7 +279,7 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
               </motion.div>
             ))}
           </div>
-        </ScrollArea>
+        </div>
 
         <div className="p-4 border-t bg-card">
           <div className="flex gap-2">
@@ -280,7 +292,7 @@ export function GuideChat({ open, onOpenChange, guides, searchIndex, onOpenGuide
                   handleSend()
                 }
               }}
-              placeholder="Spørg om noget fra guiderne…"
+              placeholder={UI_TEXT[appLanguage].placeholder}
               className="flex-1"
             />
             <Button onClick={handleSend} disabled={!input.trim()} size="icon" className="shrink-0">

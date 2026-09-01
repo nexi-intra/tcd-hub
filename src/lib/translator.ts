@@ -127,8 +127,8 @@ export function getDictionaryPairs(): Array<[string, string]> {
 const DA_MARKERS = new Set(['og', 'ikke', 'det', 'der', 'til', 'på', 'med', 'som', 'af', 'skal', 'kan', 'når', 'hvis', 'eller', 'også', 'være', 'bliver', 'derefter', 'vælg', 'tryk', 'åbn', 'indsæt'])
 const EN_MARKERS = new Set(['the', 'and', 'not', 'that', 'this', 'with', 'from', 'will', 'can', 'when', 'if', 'or', 'also', 'be', 'is', 'are', 'then', 'select', 'press', 'open', 'insert', 'into'])
 
-/** Heuristisk sprogdetektion: æ/ø/å + stopords-flertal. */
-export function detectLanguage(text: string): GuideLanguage {
+/** Heuristisk sprogdetektion: æ/ø/å + stopords-flertal. Ved uafgjort (fx enkeltord) bruges fallback. */
+export function detectLanguage(text: string, fallback: GuideLanguage = 'en'): GuideLanguage {
   if (/[æøå]/i.test(text)) return 'da'
   const tokens = text.toLowerCase().split(/[^a-zæøå]+/).filter(Boolean)
   let daScore = 0
@@ -137,6 +137,7 @@ export function detectLanguage(text: string): GuideLanguage {
     if (DA_MARKERS.has(token)) daScore++
     if (EN_MARKERS.has(token)) enScore++
   }
+  if (daScore === enScore) return fallback
   return daScore > enScore ? 'da' : 'en'
 }
 

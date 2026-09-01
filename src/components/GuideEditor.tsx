@@ -369,7 +369,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
 
       const version = migrated ? bumpVersion(migrated.version) : '1.00'
       const resolvedLanguage: GuideLanguage = language === 'auto'
-        ? detectLanguage(guidePlainText({ ...(migrated || {}), title, tags: tagArray, category, sections: cleanedSections, content: migrated?.content || '', id: '', createdAt: 0, updatedAt: 0 } as Guide))
+        ? detectLanguage(guidePlainText({ ...(migrated || {}), title, tags: tagArray, category, sections: cleanedSections, content: migrated?.content || '', id: '', createdAt: 0, updatedAt: 0 } as Guide), 'da')
         : language
       const guide: Guide = {
         id: migrated?.id || Date.now().toString(),

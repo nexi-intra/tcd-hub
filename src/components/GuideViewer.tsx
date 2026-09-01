@@ -80,7 +80,7 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
   const [viewLanguage, setViewLanguage] = useState<GuideLanguage | null>(null)
 
   const guideLanguage: GuideLanguage = useMemo(
-    () => guide?.language || (guide ? detectLanguage(guidePlainText(guide)) : 'da'),
+    () => guide?.language || (guide ? detectLanguage(guidePlainText(guide), 'da') : 'da'),
     [guide]
   )
 
