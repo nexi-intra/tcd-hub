@@ -25,12 +25,16 @@ export interface SelectedZip {
   version: string | null
 }
 
-export type UpdatePhase = 'downloading' | 'verifying' | 'extracting' | 'ready' | 'restarting' | 'error'
+export type UpdatePhase = 'comparing' | 'downloading' | 'verifying' | 'extracting' | 'ready' | 'restarting' | 'error'
 
 export interface UpdateProgress {
   phase: UpdatePhase
   percent: number
   message?: string
+  /** Only present while transferring changed files. */
+  transferredBytes?: number
+  totalBytes?: number
+  fileCount?: number
 }
 
 export interface ElectronUpdatesApi {

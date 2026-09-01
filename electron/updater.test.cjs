@@ -57,14 +57,14 @@ test('prepareUpdate downloads and extracts without touching the installed app', 
     dataDir,
     manifest,
     exePath: path.join(installDir, EXE_NAME),
+    installDir,
     onProgress: (progress) => phases.push(progress.phase),
   })
   t.after(() => fs.rmSync(prepared.workDir, { recursive: true, force: true }))
 
   assert.ok(fs.existsSync(path.join(prepared.stagingDir, EXE_NAME)))
+  assert.ok(phases.includes('comparing'))
   assert.ok(phases.includes('downloading'))
-  assert.ok(phases.includes('verifying'))
-  assert.ok(phases.includes('extracting'))
   assert.equal(phases.at(-1), 'ready')
   // The running installation must stay untouched until the restart step.
   assert.equal(fs.readFileSync(path.join(installDir, EXE_NAME), 'utf8'), 'current-version')
@@ -76,10 +76,67 @@ test('prepareUpdate rejects a package whose checksum does not match', async (t) 
   const zipPath = buildReleaseZip(t)
 
   const manifest = await publishUpdate(dataDir, { zipPath, version: '9.9.9', notes: '', publishedBy: '' })
-  const tampered = { ...manifest, sha256: 'f'.repeat(64) }
+  const tampered = { ...manifest, sha256: 'f'.repeat(64), files: undefined, deltaDir: undefined }
 
   await assert.rejects(
-    prepareUpdate({ dataDir, manifest: tampered, exePath: path.join(installDir, EXE_NAME) }),
+    prepareUpdate({ dataDir, manifest: tampered, exePath: path.join(installDir, EXE_NAME), installDir }),
     /Checksum-fejl/
   )
+})
+
+test('publishUpdate indexes every file so clients can diff them', async (t) => {
+  const dataDir = makeTempDir(t, 'tcd-data-')
+  const zipPath = buildReleaseZip(t)
+
+  const manifest = await publishUpdate(dataDir, { zipPath, version: '9.9.9', notes: '', publishedBy: '' })
+
+  const indexed = manifest.files.map((entry) => entry.path).sort()
+  assert.deepEqual(indexed, ['TCD Hub.exe', 'resources/app.asar'])
+  assert.equal(manifest.deltaDir, '9.9.9')
+  assert.ok(manifest.files.every((entry) => /^[0-9a-f]{64}$/.test(entry.sha256)))
+})
+
+test('prepareUpdate transfers only the files that actually changed', async (t) => {
+  const dataDir = makeTempDir(t, 'tcd-data-')
+  const installDir = makeTempDir(t, 'tcd-install-')
+  const zipPath = buildReleaseZip(t)
+
+  const manifest = await publishUpdate(dataDir, { zipPath, version: '9.9.9', notes: '', publishedBy: '' })
+
+  // Simulate an install where only app.asar differs from the published version.
+  fs.writeFileSync(path.join(installDir, EXE_NAME), 'binary-placeholder')
+  fs.mkdirSync(path.join(installDir, 'resources'))
+  fs.writeFileSync(path.join(installDir, 'resources', 'app.asar'), 'previous-version')
+
+  const prepared = await prepareUpdate({
+    dataDir,
+    manifest,
+    exePath: path.join(installDir, EXE_NAME),
+    installDir,
+  })
+  t.after(() => fs.rmSync(prepared.workDir, { recursive: true, force: true }))
+
+  assert.equal(prepared.changedCount, 1)
+  assert.ok(fs.existsSync(path.join(prepared.stagingDir, 'resources', 'app.asar')))
+  // The unchanged executable must not be transferred at all.
+  assert.equal(fs.existsSync(path.join(prepared.stagingDir, EXE_NAME)), false)
+})
+
+test('prepareUpdate reports files the new version no longer contains', async (t) => {
+  const dataDir = makeTempDir(t, 'tcd-data-')
+  const installDir = makeTempDir(t, 'tcd-install-')
+  const zipPath = buildReleaseZip(t)
+
+  const manifest = await publishUpdate(dataDir, { zipPath, version: '9.9.9', notes: '', publishedBy: '' })
+  fs.writeFileSync(path.join(installDir, 'leftover-from-old-version.dll'), 'stale')
+
+  const prepared = await prepareUpdate({
+    dataDir,
+    manifest,
+    exePath: path.join(installDir, EXE_NAME),
+    installDir,
+  })
+  t.after(() => fs.rmSync(prepared.workDir, { recursive: true, force: true }))
+
+  assert.deepEqual(prepared.obsolete, ['leftover-from-old-version.dll'])
 })

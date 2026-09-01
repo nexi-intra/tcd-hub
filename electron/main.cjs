@@ -248,19 +248,21 @@ app.whenReady().then(() => {
 
     updateInProgress = true
     const exePath = app.getPath('exe')
+    const installDir = path.dirname(exePath)
     try {
-      // Hentes og udpakkes i baggrunden; appen forbliver brugbar imens.
+      // Hentes i baggrunden; kun ændrede filer overføres, og appen forbliver brugbar.
       const prepared = await updater.prepareUpdate({
         dataDir: store.dataDir,
         manifest,
         exePath,
+        installDir,
         onProgress: (progress) => broadcast('updates:progress', progress),
       })
 
       broadcast('updates:progress', { phase: 'restarting', percent: 100 })
       updater.applyPreparedUpdate({
         ...prepared,
-        installDir: path.dirname(exePath),
+        installDir,
         exePath,
       })
       // Giv vinduet et øjeblik til at vise beskeden før appen lukker og byttes ud.

@@ -52,6 +52,7 @@ export function UpdateNotification() {
   const phaseLabel = (phase: UpdateProgress['phase']) => {
     if (da) {
       return {
+        comparing: 'Finder ændrede filer…',
         downloading: 'Henter opdatering…',
         verifying: 'Kontrollerer filen…',
         extracting: 'Pakker ud…',
@@ -61,6 +62,7 @@ export function UpdateNotification() {
       }[phase]
     }
     return {
+      comparing: 'Finding changed files…',
       downloading: 'Downloading update…',
       verifying: 'Verifying file…',
       extracting: 'Extracting…',
@@ -69,6 +71,8 @@ export function UpdateNotification() {
       error: 'The update failed',
     }[phase]
   }
+
+  const formatMb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`
 
   const handleInstall = async () => {
     setIsInstalling(true)
@@ -120,11 +124,20 @@ export function UpdateNotification() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{phaseLabel(progress.phase)}</span>
-                {progress.phase === 'downloading' && (
+                {(progress.phase === 'downloading' || progress.phase === 'comparing') && (
                   <span className="font-medium tabular-nums">{progress.percent}%</span>
                 )}
               </div>
-              <Progress value={progress.phase === 'downloading' ? progress.percent : 100} />
+              <Progress value={progress.phase === 'ready' || progress.phase === 'restarting' ? 100 : progress.percent} />
+              {progress.phase === 'downloading' && progress.totalBytes !== undefined && (
+                <p className="text-xs text-muted-foreground">
+                  {progress.fileCount !== undefined
+                    ? (da
+                      ? `Kun ændrede filer hentes: ${progress.fileCount} filer (${formatMb(progress.totalBytes)})`
+                      : `Only changed files are downloaded: ${progress.fileCount} files (${formatMb(progress.totalBytes)})`)
+                    : formatMb(progress.totalBytes)}
+                </p>
+              )}
             </div>
           )}
         </div>
