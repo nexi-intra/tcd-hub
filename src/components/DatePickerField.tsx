@@ -22,6 +22,8 @@ interface DatePickerFieldProps {
   max?: string
   placeholder?: string
   disabled?: boolean
+  /** Måned/år-dropdowns i stedet for kun pile — til datoer langt tilbage (fx fødselsdage). */
+  enableYearDropdown?: boolean
   className?: string
 }
 
@@ -31,7 +33,7 @@ function parseIsoDate(value: string): Date | undefined {
   return isValid(parsed) ? parsed : undefined
 }
 
-export function DatePickerField({ id, value, onChange, min, max, placeholder, disabled, className }: DatePickerFieldProps) {
+export function DatePickerField({ id, value, onChange, min, max, placeholder, disabled, enableYearDropdown, className }: DatePickerFieldProps) {
   const [open, setOpen] = useState(false)
   const selected = parseIsoDate(value)
   const minDate = parseIsoDate(min || '')
@@ -59,10 +61,14 @@ export function DatePickerField({ id, value, onChange, min, max, placeholder, di
         <Calendar
           mode="single"
           selected={selected}
+          defaultMonth={selected}
           weekStartsOn={1}
           ISOWeek
           showWeekNumber
           locale={da}
+          captionLayout={enableYearDropdown ? 'dropdown' : 'label'}
+          startMonth={enableYearDropdown ? new Date(1940, 0) : undefined}
+          endMonth={enableYearDropdown ? new Date() : undefined}
           disabled={(date) => (minDate ? date < minDate : false) || (maxDate ? date > maxDate : false)}
           onSelect={(date) => {
             if (date) {

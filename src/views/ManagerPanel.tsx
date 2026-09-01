@@ -2351,24 +2351,20 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="birthday-date">Fødselsdato *</Label>
-              <Input
+              <DatePickerField
                 id="birthday-date"
-                type="date"
                 value={birthdayDate && birthYear ? `${birthYear}-${birthdayDate}` : birthdayDate ? `2000-${birthdayDate}` : ''}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    const date = new Date(e.target.value)
-                    const year = date.getFullYear()
-                    const month = String(date.getMonth() + 1).padStart(2, '0')
-                    const day = String(date.getDate()).padStart(2, '0')
+                enableYearDropdown
+                onChange={(value) => {
+                  if (value) {
+                    const [year, month, day] = value.split('-')
                     setBirthdayDate(`${month}-${day}`)
-                    setBirthYear(year.toString())
+                    setBirthYear(year)
                   } else {
                     setBirthdayDate('')
                     setBirthYear('')
                   }
                 }}
-                className="w-full"
               />
               <p className="text-xs text-muted-foreground">
                 Vælg den fulde fødselsdato inklusive år for at vise alderen på kalenderen

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { DatePickerField } from '@/components/DatePickerField'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -1318,11 +1319,10 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
             </div>
             <div>
               <Label htmlFor="date">Dato</Label>
-              <Input
+              <DatePickerField
                 id="date"
-                type="date"
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                onChange={setSelectedDate}
               />
             </div>
             <Button onClick={handleAddAssignment} className="w-full">
