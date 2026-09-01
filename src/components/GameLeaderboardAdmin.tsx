@@ -186,25 +186,27 @@ export function GameLeaderboardAdmin({ gameTitle, icon, leaderboardKey, playCoun
                   animate={{ opacity: 1, y: 0 }}
                   className="p-4 rounded-xl border-2 bg-gradient-to-br from-card to-muted/30 hover:shadow-lg transition-all"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="font-semibold text-lg">{getUserName(email)}</div>
-                      <div className="text-xs text-muted-foreground">{email}</div>
+                  <div className="flex items-center justify-between mb-3 gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-lg truncate">{getUserName(email)}</div>
+                      <div className="text-xs text-muted-foreground truncate">{email}</div>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 shrink-0">
                       <Trophy size={18} weight="fill" className="text-primary" />
                       <span className="font-bold text-lg text-primary">{totalPlays(counts)}</span>
                       <span className="text-xs text-muted-foreground">spil</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {categories.map((difficulty) => (
-                      <div key={difficulty} className={`p-2 rounded ${categorySettings[difficulty].statBg} border ${categorySettings[difficulty].statBorder}`}>
-                        <div className="text-xs text-muted-foreground mb-1">{categorySettings[difficulty].label}</div>
-                        <div className={`font-bold ${categorySettings[difficulty].statText}`}>{counts[difficulty] || 0}</div>
-                      </div>
-                    ))}
-                  </div>
+                  {categories.length > 1 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {categories.map((difficulty) => (
+                        <div key={difficulty} className={`p-2 rounded-lg text-center ${categorySettings[difficulty].statBg} border ${categorySettings[difficulty].statBorder}`}>
+                          <div className="text-[11px] text-muted-foreground mb-0.5 truncate">{categorySettings[difficulty].label}</div>
+                          <div className={`font-bold ${categorySettings[difficulty].statText}`}>{counts[difficulty] || 0}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </motion.div>
               ))}
           </div>
