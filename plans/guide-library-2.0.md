@@ -172,11 +172,11 @@ Opdaterings-interval [Intet ▾]  (Intet | 1 md | 2 mdr | 3 mdr | 6 mdr | 1 år)
 - [x] "Eksportér til bibliotek"-knap i preview (vælger mappe første gang)
 - Note: eksport-knapper vises kun i desktop-appen (window.electronGuides)
 ### Fase 5 — Søgning
-- [ ] `src/lib/searchIndex.ts` (BM25, chunks, synonymer, fuzzy) + subscribe-rebuild
-- [ ] Søge-UI: fritekst + tag/kategori-filtre + resultat-highlights
+- [x] `src/lib/searchIndex.ts` (BM25 over chunks m. da/en-stopord, let stemming, domæne-synonymer, fuzzy Levenshtein ≤2) — genbygges automatisk via useMemo når guides ændres (useKV-subscribe)
+- [x] Søge-UI: BM25-rangeret bibliotekssøgning m. substring-fallback; match-uddrag på kort m. §-reference + relevans-%; tag/kategori-filtre bevaret
 ### Fase 6 — AI Chatbot (RAG)
-- [ ] `src/lib/ragEngine.ts` (retrieval, score, citatformat m. §-referencer)
-- [ ] Ny `GuideChat.tsx` (erstatter ChatAssistant): citatkort m. relevansscore + [Åbn guide] (åbner preview på sektionen)
+- [x] Retrieval-logik indbygget i `GuideChat.tsx` via BM25-indekset (top-chunks m. min-relevans-tærskel)
+- [x] Ny `GuideChat.tsx` (erstatter slettet, u-monteret ChatAssistant): citatkort m. guide-titel, §-reference, citat, relevans-% og [Åbn guide] — svarer KUN med guide-citater (ingen hallucination); flydende chat-knap i biblioteket
 ### Fase 7 — Polering & validering
 - [ ] Ydelse: memoisering, virtualiseret liste ved mange guides
 - [ ] `npm test` + `npm run build` + manuel smoke-test (editor, preview, DOCX i Word, eksport til M:-drev, chat)

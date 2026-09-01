@@ -3,9 +3,10 @@ import { useKV } from '@/hooks/useKV'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Plus, MagnifyingGlass, Books, Gear, ArrowLeft, Timer, FolderOpen } from '@phosphor-icons/react'
+import { Plus, MagnifyingGlass, Books, Gear, ArrowLeft, Timer, FolderOpen, ChatCircleDots } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
 import { guidePlainText, getReviewStatus, computeNextReviewAt } from '@/lib/guideTypes'
+import { GuideSearchIndex } from '@/lib/searchIndex'
 import { deleteGuideArtifacts } from '@/lib/guideStore'
 import { guideToDocModel, resolveAuthorName } from '@/lib/docModel'
 import { isExportAvailable, getExportRoot, chooseAndSaveExportRoot, exportGuideToLibrary } from '@/lib/guideExporter'
@@ -13,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { GuideCard } from '@/components/GuideCard'
 import { GuideEditor } from '@/components/GuideEditor'
 import { GuideViewer } from '@/components/GuideViewer'
+import { GuideChat } from '@/components/GuideChat'
 import { CategoryManager } from '@/components/CategoryManager'
 import { UserProfile } from '@/components/UserProfile'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -42,6 +44,7 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
   const [exportRoot, setExportRootState] = useState<string | null>(null)
   const [isExportingAll, setIsExportingAll] = useState(false)
   const [exportProgress, setExportProgress] = useState('')
+  const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
     if (exportDialogOpen) {
@@ -67,25 +70,57 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
     }).length
   }, [guides])
 
+  // BM25-indeks over alle guides — genbygges når guides ændrer sig (også fra andre klienter via useKV).
+  const searchIndex = useMemo(() => {
+    const index = new GuideSearchIndex()
+    index.build(guides || [])
+    return index
+  }, [guides])
+
+  const searchResults = useMemo(
+    () => (searchQuery.trim() ? searchIndex.searchGuides(searchQuery, 100) : null),
+    [searchIndex, searchQuery]
+  )
+
   const filteredGuides = useMemo(() => {
     if (!guides) return []
-    const filtered = guides.filter((guide) => {
+    const matchesFilters = (guide: Guide) => {
       const matchesCategory = activeCategory === 'All' || guide.category === activeCategory
-      const matchesSearch =
-        searchQuery === '' ||
-        guidePlainText(guide).toLowerCase().includes(searchQuery.toLowerCase())
+      if (!matchesCategory) return false
       if (showNeedsReview) {
         const status = getReviewStatus(guide)
-        return matchesCategory && matchesSearch && (status === 'overdue' || status === 'due-soon')
+        return status === 'overdue' || status === 'due-soon'
       }
-      return matchesCategory && matchesSearch
-    })
+      return true
+    }
+
+    if (searchResults) {
+      const resultById = new Map(searchResults.map((r) => [r.guideId, r]))
+      let list = guides.filter((g) => resultById.has(g.id) && matchesFilters(g))
+      list.sort((a, b) => (resultById.get(b.id)?.score || 0) - (resultById.get(a.id)?.score || 0))
+      if (list.length === 0) {
+        // Fallback: simpel substring (fx meget korte søgninger som "3500")
+        list = guides.filter((g) => matchesFilters(g) && guidePlainText(g).toLowerCase().includes(searchQuery.toLowerCase()))
+      }
+      return list
+    }
+
+    const filtered = guides.filter(matchesFilters)
     if (showNeedsReview) {
       // Mest presserende først.
       return [...filtered].sort((a, b) => (a.nextReviewAt || 0) - (b.nextReviewAt || 0))
     }
     return filtered
-  }, [guides, activeCategory, searchQuery, showNeedsReview])
+  }, [guides, activeCategory, showNeedsReview, searchQuery, searchResults])
+
+  const matchInfoById = useMemo(() => {
+    if (!searchResults) return new Map<string, { reference: string; text: string; relevance: number }>()
+    return new Map(searchResults.map((r) => [r.guideId, {
+      reference: r.bestChunk.stepNumber ? `§${r.bestChunk.stepNumber}` : r.bestChunk.sectionNumber ? `§${r.bestChunk.sectionNumber}` : '',
+      text: r.bestChunk.text.length > 140 ? r.bestChunk.text.slice(0, 140) + '…' : r.bestChunk.text,
+      relevance: Math.round(r.normalizedScore * 100),
+    }]))
+  }, [searchResults])
 
   const handleMarkReviewed = (guide: Guide) => {
     const now = Date.now()
@@ -131,6 +166,16 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
   const handleViewGuide = (guide: Guide) => {
     setViewGuide(guide)
     setViewerOpen(true)
+  }
+
+  const handleOpenGuideFromChat = (guideId: string) => {
+    const guide = (guides || []).find((g) => g.id === guideId)
+    if (guide) {
+      setViewGuide(guide)
+      setViewerOpen(true)
+    } else {
+      toast.error('Guiden findes ikke længere')
+    }
   }
 
   const handleChooseExportRoot = async () => {
@@ -405,6 +450,7 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
                   onDelete={handleDeleteGuide}
                   onView={handleViewGuide}
                   onMarkReviewed={handleMarkReviewed}
+                  matchSnippet={matchInfoById.get(guide.id)}
                 />
               ))}
             </AnimatePresence>
@@ -439,6 +485,26 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
         categories={categories || defaultCategories}
         onUpdateCategories={handleUpdateCategories}
         guides={guides || []}
+      />
+
+      {/* Flydende chat-knap — RAG-assistent over guidebiblioteket */}
+      <motion.button
+        type="button"
+        onClick={() => setChatOpen(true)}
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.94 }}
+        className="fixed bottom-6 right-6 z-30 h-14 w-14 rounded-full bg-gradient-to-br from-primary to-accent shadow-2xl shadow-primary/40 flex items-center justify-center text-primary-foreground border-2 border-primary/30"
+        aria-label="Åbn guide-assistent"
+      >
+        <ChatCircleDots size={26} weight="duotone" />
+      </motion.button>
+
+      <GuideChat
+        open={chatOpen}
+        onOpenChange={setChatOpen}
+        guides={guides || []}
+        searchIndex={searchIndex}
+        onOpenGuide={handleOpenGuideFromChat}
       />
 
       <Dialog open={exportDialogOpen} onOpenChange={(open) => { if (!isExportingAll) setExportDialogOpen(open) }}>

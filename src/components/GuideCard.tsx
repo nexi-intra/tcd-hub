@@ -14,6 +14,8 @@ interface GuideCardProps {
   onDelete: (id: string) => void
   onView: (guide: Guide) => void
   onMarkReviewed?: (guide: Guide) => void
+  /** Bedste søgematch — vises på kortet under søgning. */
+  matchSnippet?: { reference: string; text: string; relevance: number }
 }
 
 const categoryColors: Record<string, string> = {
@@ -24,7 +26,7 @@ const categoryColors: Record<string, string> = {
   General: 'bg-gradient-to-br from-muted to-muted/70 text-foreground border-border shadow-lg shadow-black/5',
 }
 
-export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed }: GuideCardProps) {
+export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed, matchSnippet }: GuideCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const reviewStatus = getReviewStatus(guide)
 
@@ -126,6 +128,19 @@ export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed }: G
                     +{guide.tags.length - 3}
                   </Badge>
                 )}
+              </div>
+            )}
+            {matchSnippet && (
+              <div className="rounded-lg bg-muted/50 border border-border px-3 py-2">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    Match {matchSnippet.reference}
+                  </span>
+                  <span className="text-[10px] font-semibold text-muted-foreground">
+                    {matchSnippet.relevance} % relevans
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2 break-words">{matchSnippet.text}</p>
               </div>
             )}
             <div className="flex gap-2 pt-3" onClick={(e) => e.stopPropagation()}>
