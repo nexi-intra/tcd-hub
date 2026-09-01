@@ -148,11 +148,13 @@ Opdaterings-interval [Intet ▾]  (Intet | 1 md | 2 mdr | 3 mdr | 6 mdr | 1 år)
 
 ## Implementeringsplan
 ### Fase 1 — Datamodel, migrering & Guide Editor 2.0
-- [ ] `src/lib/guideTypes.ts` (Guide v2, sektioner/trin, versioner) + migrering v1→v2
-- [ ] `src/lib/guideStore.ts` (CRUD, versions-bump, gem snapshot i `guide-versions-{id}`, reviewInterval/nextReviewAt-logik)
-- [ ] Ny `GuideEditor.tsx`: sektioner/trin (tilføj/flyt/slet), drag & drop-billeder (fileStorage), forsidebillede, kategori/tags
-- [ ] Interval-vælger (Intet/1/2/3/6/12 mdr.) i editor — både ved oprettelse og redigering af eksisterende
-- [ ] Versionshistorik-panel (liste + gendan)
+- [x] `src/lib/guideTypes.ts` (Guide v2, sektioner/trin, versioner) + migrering v1→v2
+- [x] `src/lib/guideStore.ts` (CRUD, versions-bump, gem snapshot i `guide-versions-{id}`, reviewInterval/nextReviewAt-logik)
+- [x] Ny `GuideEditor.tsx`: sektioner/trin (tilføj/flyt/slet), drag & drop-billeder (fileStorage), forsidebillede, kategori/tags
+- [x] Interval-vælger (Intet/1/2/3/6/12 mdr.) i editor — både ved oprettelse og redigering af eksisterende
+- [x] Versionshistorik-panel (liste + gendan)
+- [x] Ekstra: `fileStorage.uploadImage()`/`getImageObjectUrl()` (billeder i chunked KV m. objekt-URL-cache); GuideViewer viser nu sektioner/trin m. numre, billeder, version- og interval-badge; App sender userEmail til GuideLibrary
+- Note: gammel `GuideDialog.tsx` er ikke længere monteret (bulk-Word-import kan genindføres i senere fase hvis ønsket)
 ### Fase 2 — Bibliotek 2.0 & vedligeholdelse
 - [ ] GuideLibrary-view: nye kort m. version + review-badge (🔴 overskredet / 🟡 <14 dage / ⚪ intet interval)
 - [ ] Filter "Skal opdateres", sortering efter nextReviewAt

@@ -4,10 +4,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { DownloadSimple, FileDoc } from '@phosphor-icons/react'
+import { DownloadSimple, FileDoc, Timer, Image as ImageIcon } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
+import { getReviewStatus, REVIEW_INTERVAL_CHOICES } from '@/lib/guideTypes'
 import { fileStorage } from '@/lib/fileStorage'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -24,6 +26,33 @@ const categoryColors: Record<string, string> = {
   HR: 'bg-secondary/20 text-secondary-foreground border-secondary/30',
   Safety: 'bg-destructive/10 text-destructive border-destructive/20',
   General: 'bg-muted text-muted-foreground border-border',
+}
+
+/** Billede i et trin — loader objekt-URL fra chunked KV. */
+function StepImage({ imageId }: { imageId: string }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fileStorage.getImageObjectUrl(imageId)
+      .then((u) => { if (!cancelled) setUrl(u) })
+      .catch(() => { if (!cancelled) setFailed(true) })
+    return () => { cancelled = true }
+  }, [imageId])
+
+  if (failed) {
+    return (
+      <div className="h-24 rounded-lg border bg-muted/50 flex items-center justify-center px-4 gap-2 text-muted-foreground">
+        <ImageIcon size={20} />
+        <span className="text-xs">Billede kunne ikke indlæses</span>
+      </div>
+    )
+  }
+  if (!url) {
+    return <div className="h-24 w-32 rounded-lg border bg-muted/50 animate-pulse" />
+  }
+  return <img src={url} alt="" className="max-h-80 rounded-lg border shadow-sm object-contain" />
 }
 
 export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
@@ -94,6 +123,26 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
                 >
                   {guide.category}
                 </Badge>
+                {guide.version && (
+                  <Badge variant="secondary" className="text-xs font-mono">v{guide.version}</Badge>
+                )}
+                {guide.reviewIntervalMonths ? (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-xs font-medium gap-1',
+                      getReviewStatus(guide) === 'overdue' && 'bg-destructive/10 text-destructive border-destructive/30',
+                      getReviewStatus(guide) === 'due-soon' && 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30',
+                    )}
+                  >
+                    <Timer size={12} />
+                    {getReviewStatus(guide) === 'overdue'
+                      ? 'Skal opdateres'
+                      : guide.nextReviewAt
+                        ? `Opdateres senest ${new Date(guide.nextReviewAt).toLocaleDateString('da-DK')}`
+                        : REVIEW_INTERVAL_CHOICES.find((c) => c.value === guide.reviewIntervalMonths)?.label}
+                  </Badge>
+                ) : null}
                 <span className="text-xs text-muted-foreground">
                   Opdateret: {new Date(guide.updatedAt).toLocaleDateString('da-DK', {
                     year: 'numeric',
@@ -127,7 +176,45 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 py-4 sm:py-6 bg-card">
-          {(guide.fileUrl || guide.wordFileData) ? (
+          {guide.sections && guide.sections.length > 0 ? (
+            <div className="max-w-3xl mx-auto bg-background rounded-lg shadow-sm border border-border p-6 sm:p-8 lg:p-10 space-y-8">
+              {(guide.fileUrl || guide.wordFileData) && (
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg border bg-muted/30 hover:bg-muted/60 transition-colors text-left"
+                >
+                  <FileDoc size={22} weight="duotone" className="text-primary shrink-0" />
+                  <span className="text-sm flex-1 truncate">{guide.wordFileName || 'Word-dokument vedhæftet'}</span>
+                  <DownloadSimple size={18} className="text-muted-foreground shrink-0" />
+                </button>
+              )}
+              {guide.sections.map((section, sIndex) => (
+                <section key={section.id}>
+                  <h3 className="text-lg font-bold text-[#1F3763] dark:text-primary mb-3 border-b border-border pb-1.5">
+                    {sIndex + 1}.0{section.heading ? ` ${section.heading}` : ''}
+                  </h3>
+                  <ol className="space-y-4">
+                    {section.steps.map((step, stIndex) => (
+                      <li key={step.id} className="flex gap-3">
+                        <span className="font-mono text-sm font-semibold text-muted-foreground shrink-0 mt-0.5 w-9">
+                          {sIndex + 1}.{stIndex + 1}
+                        </span>
+                        <div className="flex-1 min-w-0 space-y-3">
+                          {step.text && <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{step.text}</p>}
+                          {step.imageIds.length > 0 && (
+                            <div className="flex flex-col gap-3">
+                              {step.imageIds.map((imageId) => <StepImage key={imageId} imageId={imageId} />)}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              ))}
+            </div>
+          ) : (guide.fileUrl || guide.wordFileData) ? (
             <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 sm:px-6">
               <div className="max-w-2xl w-full space-y-4 sm:space-y-6">
                 <div className="flex flex-col items-center text-center space-y-4">

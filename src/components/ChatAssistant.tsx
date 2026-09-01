@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { PaperPlaneRight, Robot, User } from '@phosphor-icons/react'
 import { ChatMessage, Guide } from '@/lib/types'
+import { guidePlainText, guideExcerpt } from '@/lib/guideTypes'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
@@ -53,7 +54,7 @@ export function ChatAssistant({ open, onOpenChange, guides }: ChatAssistantProps
 
     const scored = guides
       .map((guide) => {
-        const haystack = `${guide.title} ${guide.category} ${guide.content} ${guide.tags.join(' ')}`.toLowerCase()
+        const haystack = guidePlainText(guide).toLowerCase()
         let score = 0
         for (const term of terms) {
           if (guide.title.toLowerCase().includes(term)) score += 3
@@ -72,7 +73,7 @@ export function ChatAssistant({ open, onOpenChange, guides }: ChatAssistantProps
       content = `Jeg fandt ingen guides, der matcher "${userMessage.content}". Prøv andre søgeord, eller opret en ny guide, hvis emnet mangler.`
     } else {
       const lines = scored.map(({ guide }) => {
-        const snippet = guide.content.length > 150 ? guide.content.slice(0, 150) + '…' : guide.content
+        const snippet = guideExcerpt(guide, 150)
         return `• ${guide.title} (${guide.category})\n${snippet}`
       })
       content = `Jeg fandt ${scored.length === 1 ? 'denne guide' : 'disse guides'}, der kan hjælpe:\n\n${lines.join('\n\n')}\n\nÅbn guiden i biblioteket for at se det fulde indhold.`

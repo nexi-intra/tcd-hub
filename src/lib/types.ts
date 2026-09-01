@@ -2,19 +2,8 @@ import type { UserRole } from './userRoles'
 
 export type GuideCategory = 'Procedures' | 'Technical' | 'HR' | 'Safety' | 'General'
 
-export interface Guide {
-  id: string
-  title: string
-  category: GuideCategory
-  content: string
-  tags: string[]
-  createdAt: number
-  updatedAt: number
-  wordFileData?: string
-  wordFileName?: string
-  fileUrl?: string
-  fileSize?: number
-}
+// Guide-domænet (v2 m. sektioner/trin, versionering og opdaterings-interval) bor i guideTypes.ts.
+export type { Guide, GuideSection, GuideStep, GuideVersionEntry } from './guideTypes'
 
 export interface ChatMessage {
   id: string

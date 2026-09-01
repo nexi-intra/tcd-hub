@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Plus, MagnifyingGlass, Books, Gear, ArrowLeft } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
+import { guidePlainText } from '@/lib/guideTypes'
+import { deleteGuideArtifacts } from '@/lib/guideStore'
 import { GuideCard } from '@/components/GuideCard'
-import { GuideDialog } from '@/components/GuideDialog'
+import { GuideEditor } from '@/components/GuideEditor'
 import { GuideViewer } from '@/components/GuideViewer'
 import { CategoryManager } from '@/components/CategoryManager'
 import { UserProfile } from '@/components/UserProfile'
@@ -19,9 +21,10 @@ const defaultCategories: string[] = ['Procedures', 'Technical', 'HR', 'Safety', 
 interface GuideLibraryProps {
   onNavigateBack: () => void
   onLogout: () => void
+  userEmail: string
 }
 
-export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
+export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibraryProps) {
   const [guides, setGuides] = useKV<Guide[]>('guides', [])
   const [categories, setCategories] = useKV<string[]>('categories', defaultCategories)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -49,67 +52,22 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
       const matchesCategory = activeCategory === 'All' || guide.category === activeCategory
       const matchesSearch =
         searchQuery === '' ||
-        guide.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        guide.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        guide.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+        guidePlainText(guide).toLowerCase().includes(searchQuery.toLowerCase())
       return matchesCategory && matchesSearch
     })
   }, [guides, activeCategory, searchQuery])
 
-  const handleSaveGuide = (guideData: Omit<Guide, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (editGuide) {
-      setGuides((currentGuides) =>
-        (currentGuides || []).map((g) =>
-          g.id === editGuide.id
-            ? { 
-                ...g, 
-                title: guideData.title,
-                category: guideData.category,
-                content: guideData.content,
-                tags: guideData.tags,
-                fileUrl: guideData.fileUrl,
-                wordFileName: guideData.wordFileName,
-                fileSize: guideData.fileSize,
-                updatedAt: Date.now() 
-              }
-            : g
-        )
-      )
-      toast.success('Guide opdateret!')
+  const handleSaveGuide = (guide: Guide) => {
+    const isEdit = (guides || []).some((g) => g.id === guide.id)
+    if (isEdit) {
+      setGuides((currentGuides) => (currentGuides || []).map((g) => (g.id === guide.id ? guide : g)))
+      toast.success(`Guide opdateret (v${guide.version})`)
     } else {
-      const newGuide: Guide = {
-        id: Date.now().toString(),
-        title: guideData.title,
-        category: guideData.category,
-        content: guideData.content,
-        tags: guideData.tags,
-        fileUrl: guideData.fileUrl,
-        wordFileName: guideData.wordFileName,
-        fileSize: guideData.fileSize,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      }
-      setGuides((currentGuides) => [newGuide, ...(currentGuides || [])])
+      setGuides((currentGuides) => [guide, ...(currentGuides || [])])
       toast.success('Guide oprettet!')
     }
     setDialogOpen(false)
     setEditGuide(undefined)
-  }
-
-  const handleBulkSaveGuides = (guidesData: Array<Omit<Guide, 'id' | 'createdAt' | 'updatedAt'>>) => {
-    const newGuides: Guide[] = guidesData.map((guideData, index) => ({
-      id: (Date.now() + index).toString(),
-      title: guideData.title,
-      category: guideData.category,
-      content: guideData.content,
-      tags: guideData.tags,
-      fileUrl: guideData.fileUrl,
-      wordFileName: guideData.wordFileName,
-      fileSize: guideData.fileSize,
-      createdAt: Date.now() + index,
-      updatedAt: Date.now() + index,
-    }))
-    setGuides((currentGuides) => [...newGuides, ...(currentGuides || [])])
   }
 
   const handleEditGuide = (guide: Guide) => {
@@ -118,7 +76,12 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
   }
 
   const handleDeleteGuide = (id: string) => {
+    const guide = (guides || []).find((g) => g.id === id)
     setGuides((currentGuides) => (currentGuides || []).filter((g) => g.id !== id))
+    if (guide) {
+      // Ryd versionshistorik og billeder i baggrunden.
+      deleteGuideArtifacts(guide).catch((error) => console.error('Oprydning fejlede:', error))
+    }
     toast.success('Guide slettet!')
   }
 
@@ -325,16 +288,16 @@ export function GuideLibrary({ onNavigateBack, onLogout }: GuideLibraryProps) {
         )}
       </div>
 
-      <GuideDialog
+      <GuideEditor
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open)
           if (!open) setEditGuide(undefined)
         }}
         onSave={handleSaveGuide}
-        onBulkSave={handleBulkSaveGuides}
         editGuide={editGuide}
         categories={categories || defaultCategories}
+        userEmail={userEmail}
       />
 
       <GuideViewer
