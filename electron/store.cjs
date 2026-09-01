@@ -11,6 +11,9 @@ const path = require('path')
 const crypto = require('crypto')
 
 const FILE_EXT = '.json'
+const READ_ATTEMPTS = 5
+const WRITE_ATTEMPTS = 30
+const RETRY_DELAY_MS = 100
 
 // Kryptering på disken (AES-256-GCM): beskytter mod at data/passwords kan
 // læses direkte af alle med adgang til mappen på et delt drev. Nøglen er
@@ -56,6 +59,10 @@ function filenameToKey(filename) {
   return decodeURIComponent(filename.slice(0, -FILE_EXT.length))
 }
 
+function wait(milliseconds) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds)
+}
+
 function createStore(dataDir) {
   fs.mkdirSync(dataDir, { recursive: true })
 
@@ -64,26 +71,41 @@ function createStore(dataDir) {
   }
 
   function get(key) {
-    try {
-      const raw = fs.readFileSync(filePath(key), 'utf8')
-      return parseFileContents(raw)
-    } catch (err) {
-      if (err.code === 'ENOENT') return undefined
-      // Torn/partial read on a flaky share: one short retry, then give up.
+    let lastError
+    for (let attempt = 1; attempt <= READ_ATTEMPTS; attempt++) {
       try {
         const raw = fs.readFileSync(filePath(key), 'utf8')
         return parseFileContents(raw)
-      } catch {
-        return undefined
+      } catch (err) {
+        if (err.code === 'ENOENT') return undefined
+        lastError = err
+        if (attempt < READ_ATTEMPTS) wait(RETRY_DELAY_MS)
       }
     }
+    // Existing but temporarily unreadable data must never look like a missing
+    // key; callers may otherwise initialize it with an empty value.
+    throw lastError
   }
 
   function set(key, value) {
     const target = filePath(key)
-    const tmp = target + '.' + process.pid + '.tmp'
+    const tmp = `${target}.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}.tmp`
     fs.writeFileSync(tmp, encryptPayload(JSON.stringify(value)))
-    fs.renameSync(tmp, target)
+
+    let lastError
+    for (let attempt = 1; attempt <= WRITE_ATTEMPTS; attempt++) {
+      try {
+        fs.renameSync(tmp, target)
+        return
+      } catch (err) {
+        lastError = err
+        if (!['EPERM', 'EBUSY', 'EACCES'].includes(err.code) || attempt === WRITE_ATTEMPTS) break
+        wait(RETRY_DELAY_MS)
+      }
+    }
+
+    try { fs.unlinkSync(tmp) } catch {}
+    throw lastError
   }
 
   function del(key) {

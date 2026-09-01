@@ -11,14 +11,20 @@ export function useKV<T>(key: string, initialValue: T): [T, (value: SetValue<T>)
 
   useEffect(() => {
     let cancelled = false
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
 
-    const load = () => {
+    const load = (attempt = 0) => {
       window.kv.get<T>(key).then((stored) => {
         if (cancelled) return
         if (stored !== undefined) {
           setValueState(stored)
         } else {
           window.kv.set(key, initialValueRef.current)
+        }
+      }).catch((error) => {
+        console.error(`Kunne ikke læse KV-nøglen "${key}":`, error)
+        if (!cancelled && attempt < 5) {
+          retryTimer = setTimeout(() => load(attempt + 1), (attempt + 1) * 1000)
         }
       })
     }
@@ -30,6 +36,7 @@ export function useKV<T>(key: string, initialValue: T): [T, (value: SetValue<T>)
 
     return () => {
       cancelled = true
+      if (retryTimer) clearTimeout(retryTimer)
       unsubscribe()
     }
   }, [key])

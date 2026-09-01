@@ -92,6 +92,7 @@ Al data (vagtplan, ferie, brugere, projekter, noter osv.) gemmes samlet ét sted
 - **Vælg mappen direkte i appen:** Manager Panel → fanen **Datalagring** → “Vælg datamappe…”. Eksisterende data kopieres automatisk med over, og valget huskes på tværs af app-versioner.
 - **Opdatering til en ny version:** Pak den nye ZIP ud og start appen — den læser samme datamappe som før. Al historik følger med, helt uden manuelle skridt.
 - **Backup:** Under Datalagring kan alt eksporteres som **én fil** (“Eksportér backup”) og genskabes igen (“Importér backup”). Backup-filen bruges også til at flytte data fra browser-udgaven til desktop-appen.
+- **Netværksstabilitet (fra 1.2.1):** Midlertidige SMB-læsefejl genprøves og må aldrig fortolkes som manglende data. Skriveoperationer genprøves ved kortvarige fillåse, så klienter ikke nulstiller hele datasæt eller efterlader aktive `.tmp`-filer.
 
 ### Automatiske app-opdateringer (fra version 1.2.0)
 
