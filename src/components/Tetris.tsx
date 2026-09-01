@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { upsertInKvArray } from '@/lib/kvArrays'
 
 type PieceType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L'
 type GameState = 'menu' | 'playing' | 'ended'
@@ -17,6 +18,7 @@ interface ActivePiece {
 }
 
 interface LeaderboardEntry {
+  id: string
   email: string
   score: number
   timestamp: number
@@ -132,8 +134,14 @@ function getStage(lines: number, elapsedMs: number): number {
 }
 
 // Migrerer gammelt leaderboard (opdelt pr. sværhedsgrad) til ét samlet highscores-array.
+// Sørger også for `id` (bruges af den atomare kv:update-upsert) og at listen altid
+// er sorteret højest score først, uanset rækkefølgen data blev skrevet i.
 function migrateLeaderboard(data: unknown): LeaderboardEntry[] {
-  if (Array.isArray(data)) return data as LeaderboardEntry[]
+  if (Array.isArray(data)) {
+    return (data as LeaderboardEntry[])
+      .map((entry) => ({ ...entry, id: entry.id || entry.email }))
+      .sort((a, b) => b.score - a.score)
+  }
   if (!data || typeof data !== 'object') return []
   const combined = new Map<string, LeaderboardEntry>()
   for (const diff of ['easy', 'medium', 'hard', 'expert']) {
@@ -141,7 +149,7 @@ function migrateLeaderboard(data: unknown): LeaderboardEntry[] {
     for (const entry of arr) {
       const existing = combined.get(entry.email)
       if (!existing || entry.score > existing.score) {
-        combined.set(entry.email, { email: entry.email, score: entry.score, timestamp: entry.timestamp })
+        combined.set(entry.email, { id: entry.email, email: entry.email, score: entry.score, timestamp: entry.timestamp })
       }
     }
   }
@@ -208,7 +216,9 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
   const safeLeaderboard = useMemo(() => migrateLeaderboard(globalLeaderboard), [globalLeaderboard])
 
   useEffect(() => {
-    if (globalLeaderboard && !Array.isArray(globalLeaderboard)) {
+    if (!globalLeaderboard) return
+    const needsMigration = !Array.isArray(globalLeaderboard) || globalLeaderboard.some((entry) => !entry.id)
+    if (needsMigration) {
       setGlobalLeaderboard(safeLeaderboard)
       window.kv.set('tetris-global-leaderboard', safeLeaderboard)
     }
@@ -326,21 +336,14 @@ export function Tetris({ userEmail = 'guest@example.com' }: TetrisProps = {}) {
     try {
       const stored = await window.kv.get<unknown>('tetris-global-leaderboard')
       const board = migrateLeaderboard(stored)
-      const existingIndex = board.findIndex(entry => entry.email === userEmail)
+      const existing = board.find(entry => entry.email === userEmail)
 
-      if (existingIndex !== -1) {
-        if (finalScore > board[existingIndex].score) {
-          board[existingIndex] = { email: userEmail, score: finalScore, timestamp: Date.now() }
-        }
-      } else {
-        board.push({ email: userEmail, score: finalScore, timestamp: Date.now() })
+      if (!existing || finalScore > existing.score) {
+        const updated = await upsertInKvArray<LeaderboardEntry>('tetris-global-leaderboard', [
+          { id: userEmail, email: userEmail, score: finalScore, timestamp: Date.now() },
+        ])
+        setGlobalLeaderboard(updated)
       }
-
-      board.sort((a, b) => b.score - a.score)
-
-      const updated = board.slice(0, 10)
-      await window.kv.set('tetris-global-leaderboard', updated)
-      setGlobalLeaderboard(updated)
     } catch (error) {
       console.error('Error saving Tetris score:', error)
     }

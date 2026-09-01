@@ -287,10 +287,14 @@ app.whenReady().then(() => {
   // Renderer kører under file:// hvor fetch() er blokeret — filerne læses derfor her.
   ipcMain.handle('translation:worker-assets', () => {
     const assetDir = path.join(__dirname, '..', 'dist', 'translation')
-    return {
-      workerJs: fs.readFileSync(path.join(assetDir, 'translator-worker.js'), 'utf8'),
-      glueJs: fs.readFileSync(path.join(assetDir, 'bergamot-translator-worker.js'), 'utf8'),
-      wasm: fs.readFileSync(path.join(assetDir, 'bergamot-translator-worker.wasm')).buffer,
+    try {
+      return {
+        workerJs: fs.readFileSync(path.join(assetDir, 'translator-worker.js'), 'utf8'),
+        glueJs: fs.readFileSync(path.join(assetDir, 'bergamot-translator-worker.js'), 'utf8'),
+        wasm: fs.readFileSync(path.join(assetDir, 'bergamot-translator-worker.wasm')).buffer,
+      }
+    } catch (err) {
+      throw new Error(`Oversættelsesfiler mangler i "${assetDir}" (${err.code || err.message}) — bygget uden dist/translation?`)
     }
   })
 

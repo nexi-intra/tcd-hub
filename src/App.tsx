@@ -119,7 +119,6 @@ function App() {
           endDate: e.endDate?.slice(0, 10) ?? e.endDate,
         }))
         await window.kv.set('vacation-entries', normalized)
-        console.log('Ferie-datoer normaliseret til yyyy-MM-dd')
       } catch (error) {
         console.error('Kunne ikke normalisere ferie-datoer:', error)
       }

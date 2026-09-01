@@ -34,3 +34,16 @@ export async function updateKvArrayItem<T extends { id: string }>(
   await window.kv.update<T>(key, { op: 'upsert', items: [updated] })
   return updated
 }
+
+/**
+ * Samme atomare upsert som `upsertInKvArray`, men for et array der ligger nested
+ * i et objekt (fx et leaderboard opdelt pr. sværhedsgrad: { easy: [...], hard: [...] }).
+ * Kun arrayet på `path` opdateres — resten af objektet bevares uændret.
+ */
+export async function upsertInNestedKvArray<T extends { id: string }>(
+  key: string,
+  path: string[],
+  items: T[],
+): Promise<T[]> {
+  return window.kv.update<T>(key, { op: 'upsert', items, path })
+}

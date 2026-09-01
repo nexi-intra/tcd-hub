@@ -18,9 +18,9 @@ export interface KvStore {
 }
 
 export type KvArrayOperation<T extends { id: string }> =
-  | { op: 'append'; items: T[] }
-  | { op: 'upsert'; items: T[] }
-  | { op: 'remove'; ids: string[] }
+  | { op: 'append'; items: T[]; path?: string[] }
+  | { op: 'upsert'; items: T[]; path?: string[] }
+  | { op: 'remove'; ids: string[]; path?: string[] }
 
 const PREFIX = 'tcd-hub:'
 
@@ -114,9 +114,27 @@ export const localKv: KvStore = {
   },
 
   // Browser kører single-client pr. origin — simpel read-modify-write rækker her.
+  // path navigerer ned i et objekt til et nested array (fx leaderboard pr. sværhedsgrad).
   async update<T extends { id: string }>(key: string, operation: KvArrayOperation<T>): Promise<T[]> {
-    const current = await localKv.get<T[]>(key)
-    const list = Array.isArray(current) ? current : []
+    const current = await localKv.get<Record<string, unknown> | T[]>(key)
+    const path = operation.path && operation.path.length > 0 ? operation.path : null
+    let root: Record<string, unknown> | undefined
+    let list: T[]
+    if (path) {
+      root = current && typeof current === 'object' && !Array.isArray(current) ? current as Record<string, unknown> : {}
+      let parent: Record<string, unknown> = root
+      for (let i = 0; i < path.length - 1; i++) {
+        const segment = path[i]
+        if (!parent[segment] || typeof parent[segment] !== 'object' || Array.isArray(parent[segment])) {
+          parent[segment] = {}
+        }
+        parent = parent[segment] as Record<string, unknown>
+      }
+      const lastSegment = path[path.length - 1]
+      list = Array.isArray(parent[lastSegment]) ? parent[lastSegment] as T[] : []
+    } else {
+      list = Array.isArray(current) ? current as T[] : []
+    }
     let next: T[]
     if (operation.op === 'append') {
       next = [...list, ...operation.items]
@@ -131,7 +149,14 @@ export const localKv: KvStore = {
       const ids = new Set(operation.ids)
       next = list.filter((entry) => !entry || !ids.has(entry.id))
     }
-    write(key, JSON.stringify(next))
+    if (path && root) {
+      let parent: Record<string, unknown> = root
+      for (let i = 0; i < path.length - 1; i++) parent = parent[path[i]] as Record<string, unknown>
+      parent[path[path.length - 1]] = next
+      write(key, JSON.stringify(root))
+    } else {
+      write(key, JSON.stringify(next))
+    }
     notify([key])
     return next
   },

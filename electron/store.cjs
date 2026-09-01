@@ -168,15 +168,35 @@ function createStore(dataDir) {
    *   { op: 'append', items }  — tilføj elementer
    *   { op: 'upsert', items }  — erstat pr. id, ellers tilføj
    *   { op: 'remove', ids }    — fjern pr. id
-   * Returnerer det opdaterede array. Kaster hvis nøglen indeholder ikke-array.
+   * Valgfri `path` (array af nøgler) navigerer ned i et objekt til et nested
+   * array, fx { path: ['easy'] } for et leaderboard opdelt pr. sværhedsgrad —
+   * resten af objektet bevares, kun arrayet på den sti opdateres.
+   * Returnerer det opdaterede array. Kaster hvis nøglen (på stien) ikke er et array.
    */
   function update(key, operation) {
     acquireLock(key)
     try {
       const current = get(key)
-      const list = current === undefined ? [] : current
-      if (!Array.isArray(list)) {
-        throw new Error(`kv:update kræver et array i "${key}"`)
+      const path = operation.path && operation.path.length > 0 ? operation.path : null
+      let root
+      let list
+      if (path) {
+        root = current && typeof current === 'object' && !Array.isArray(current) ? current : {}
+        let parent = root
+        for (let i = 0; i < path.length - 1; i++) {
+          const segment = path[i]
+          if (!parent[segment] || typeof parent[segment] !== 'object' || Array.isArray(parent[segment])) {
+            parent[segment] = {}
+          }
+          parent = parent[segment]
+        }
+        const lastSegment = path[path.length - 1]
+        list = Array.isArray(parent[lastSegment]) ? parent[lastSegment] : []
+      } else {
+        list = current === undefined ? [] : current
+        if (!Array.isArray(list)) {
+          throw new Error(`kv:update kræver et array i "${key}"`)
+        }
       }
       let next
       if (operation.op === 'append') {
@@ -194,7 +214,14 @@ function createStore(dataDir) {
       } else {
         throw new Error(`Ukendt kv:update-operation: ${operation.op}`)
       }
-      set(key, next)
+      if (path) {
+        let parent = root
+        for (let i = 0; i < path.length - 1; i++) parent = parent[path[i]]
+        parent[path[path.length - 1]] = next
+        set(key, root)
+      } else {
+        set(key, next)
+      }
       return next
     } finally {
       releaseLock(key)

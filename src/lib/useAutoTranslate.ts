@@ -44,6 +44,8 @@ export function useAutoTranslate(text: string | undefined | null): string {
       if (cancelled) return
       cache.set(key, result.text)
       setTranslated(result.text)
+    }).catch((error) => {
+      console.error('Auto-oversættelse fejlede, viser original tekst:', error)
     })
     return () => {
       cancelled = true

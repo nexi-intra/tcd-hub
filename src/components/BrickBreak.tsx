@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { upsertInNestedKvArray } from '@/lib/kvArrays'
 import { toast } from 'sonner'
 
 interface Brick {
@@ -53,6 +54,7 @@ interface Laser {
 }
 
 interface LeaderboardEntry {
+  id: string
   email: string
   score: number
   level: number
@@ -225,6 +227,24 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     expert: []
   })
 
+  // Éngangs-migrering: gamle entries manglede `id` (indført for atomare opdateringer) —
+  // uden den kan slet/rediger i manager-panelet ikke finde entry'en igen.
+  useEffect(() => {
+    if (!globalLeaderboard) return
+    const needsMigration = (Object.values(globalLeaderboard) as LeaderboardEntry[][]).some((board) =>
+      board.some((entry) => !entry.id)
+    )
+    if (!needsMigration) return
+    const migrated: GlobalLeaderboard = {
+      easy: (globalLeaderboard.easy || []).map((e) => ({ ...e, id: e.id || e.email })),
+      medium: (globalLeaderboard.medium || []).map((e) => ({ ...e, id: e.id || e.email })),
+      hard: (globalLeaderboard.hard || []).map((e) => ({ ...e, id: e.id || e.email })),
+      expert: (globalLeaderboard.expert || []).map((e) => ({ ...e, id: e.id || e.email })),
+    }
+    setGlobalLeaderboard(migrated)
+    window.kv.set('brickbreak-global-leaderboard', migrated)
+  }, [globalLeaderboard, setGlobalLeaderboard])
+
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameLoopRef = useRef<number | undefined>(undefined)
   const mouseXRef = useRef<number>(GAME_WIDTH / 2)
@@ -277,18 +297,24 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     return user ? user.fullName : email.split('@')[0]
   }
 
+  // Storage-rækkefølgen garanteres ikke længere sorteret (atomar upsert tilføjer
+  // bare i slutningen) — sortér altid ved læsning, så rangnumre/medaljer er korrekte.
+  const getSortedBoard = (diff: Difficulty): LeaderboardEntry[] => {
+    return [...(globalLeaderboard?.[diff] || [])].sort((a, b) => b.score - a.score)
+  }
+
   const getCurrentHighScore = () => {
-    const board = globalLeaderboard?.[difficulty] || []
+    const board = getSortedBoard(difficulty)
     return board.length > 0 ? board[0].score : 0
   }
 
   const getTopScoreForDifficulty = (diff: Difficulty): number => {
-    const board = globalLeaderboard?.[diff] || []
+    const board = getSortedBoard(diff)
     return board.length > 0 ? board[0].score : 0
   }
 
   const getUserRankForDifficulty = (diff: Difficulty): number | null => {
-    const board = globalLeaderboard?.[diff] || []
+    const board = getSortedBoard(diff)
     const index = board.findIndex(entry => entry.email === userEmail)
     return index !== -1 ? index + 1 : null
   }
@@ -565,39 +591,18 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         hard: [],
         expert: []
       }
-      
-      const difficultyBoard = [...(currentLeaderboard[difficulty] || [])]
-      
-      const existingEntryIndex = difficultyBoard.findIndex(entry => entry.email === userEmail)
-      
-      if (existingEntryIndex !== -1) {
-        if (finalScore > difficultyBoard[existingEntryIndex].score) {
-          difficultyBoard[existingEntryIndex] = {
-            email: userEmail,
-            score: finalScore,
-            level: finalLevel,
-            timestamp: Date.now()
-          }
-        }
-      } else {
-        difficultyBoard.push({
-          email: userEmail,
-          score: finalScore,
-          level: finalLevel,
-          timestamp: Date.now()
-        })
+
+      const difficultyBoard = currentLeaderboard[difficulty] || []
+      const existing = difficultyBoard.find(entry => entry.email === userEmail)
+
+      if (!existing || finalScore > existing.score) {
+        const updatedBoard = await upsertInNestedKvArray<LeaderboardEntry>(
+          'brickbreak-global-leaderboard',
+          [difficulty],
+          [{ id: userEmail, email: userEmail, score: finalScore, level: finalLevel, timestamp: Date.now() }],
+        )
+        setGlobalLeaderboard({ ...currentLeaderboard, [difficulty]: updatedBoard })
       }
-      
-      difficultyBoard.sort((a, b) => b.score - a.score)
-      
-      const updatedLeaderboard = {
-        ...currentLeaderboard,
-        [difficulty]: difficultyBoard.slice(0, 10)
-      }
-      
-      await window.kv.set('brickbreak-global-leaderboard', updatedLeaderboard)
-      
-      setGlobalLeaderboard(updatedLeaderboard)
     } catch (error) {
       console.error('Error saving score to leaderboard:', error)
     }
@@ -1870,7 +1875,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
               const setting = DIFFICULTY_SETTINGS[diff]
               const Icon = setting.icon
-              const leaderboard = globalLeaderboard?.[diff] || []
+              const leaderboard = getSortedBoard(diff)
               const topScore = getTopScoreForDifficulty(diff)
               const userRank = getUserRankForDifficulty(diff)
               const userEntry = leaderboard.find(entry => entry.email === userEmail)

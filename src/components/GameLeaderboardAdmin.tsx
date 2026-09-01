@@ -11,6 +11,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
+import { upsertInKvArray, upsertInNestedKvArray, removeFromKvArray } from '@/lib/kvArrays'
 
 type Difficulty = string
 
@@ -124,25 +125,24 @@ export function GameLeaderboardAdmin({ gameTitle, icon, leaderboardKey, playCoun
       return
     }
 
-    const entries = board[editingEntry.difficulty]
-    const entryIndex = entries.findIndex(entry => entry.email === editingEntry.email)
-    if (entryIndex === -1) {
+    const entries = board[editingEntry.difficulty] || []
+    const existing = entries.find(entry => entry.email === editingEntry.email)
+    if (!existing) {
       toast.error('Score entry ikke fundet')
       return
     }
 
-    entries[entryIndex] = {
-      ...entries[entryIndex],
+    const updatedEntry = {
+      ...existing,
       score: scoreValue,
       ...(hasLevel ? { level: levelValue } : {}),
       timestamp: Date.now(),
     }
-    entries.sort((a, b) => b.score - a.score)
 
     if (isFlatMode) {
-      await window.kv.set(leaderboardKey, entries)
+      await upsertInKvArray(leaderboardKey, [{ ...updatedEntry, id: updatedEntry.email }])
     } else {
-      await window.kv.set(leaderboardKey, { ...board, [editingEntry.difficulty]: entries })
+      await upsertInNestedKvArray(leaderboardKey, [editingEntry.difficulty], [{ ...updatedEntry, id: updatedEntry.email }])
     }
     await load()
     closeEditDialog()
@@ -151,18 +151,13 @@ export function GameLeaderboardAdmin({ gameTitle, icon, leaderboardKey, playCoun
 
   const handleDeleteScore = async (difficulty: Difficulty, email: string) => {
     if (isFlatMode) {
-      const raw = await window.kv.get<unknown>(leaderboardKey)
-      const entries = (Array.isArray(raw) ? raw as ScoreEntry[] : []).filter(entry => entry.email !== email)
-      await window.kv.set(leaderboardKey, entries)
+      await removeFromKvArray(leaderboardKey, [email])
       await load()
       toast.success('Score slettet')
       return
     }
 
-    const board = await window.kv.get<Leaderboard>(leaderboardKey)
-    if (!board) return
-    board[difficulty] = board[difficulty].filter(entry => entry.email !== email)
-    await window.kv.set(leaderboardKey, board)
+    await window.kv.update(leaderboardKey, { op: 'remove', ids: [email], path: [difficulty] })
     await load()
     toast.success('Score slettet')
   }

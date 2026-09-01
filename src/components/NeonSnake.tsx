@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { upsertInNestedKvArray } from '@/lib/kvArrays'
 
 type Difficulty = 'easy' | 'medium' | 'hard' | 'expert'
 // 'dying' keeps the render loop alive for the death animation before the results screen.
@@ -27,6 +28,7 @@ interface Particle {
 }
 
 interface LeaderboardEntry {
+  id: string
   email: string
   score: number
   timestamp: number
@@ -122,6 +124,24 @@ export function NeonSnake({ userEmail = 'guest@example.com' }: NeonSnakeProps = 
     expert: [],
   })
 
+  // Éngangs-migrering: gamle entries manglede `id` (indført for atomare opdateringer) —
+  // uden den kan slet/rediger i manager-panelet ikke finde entry'en igen.
+  useEffect(() => {
+    if (!globalLeaderboard) return
+    const needsMigration = (Object.values(globalLeaderboard) as LeaderboardEntry[][]).some((board) =>
+      board.some((entry) => !entry.id)
+    )
+    if (!needsMigration) return
+    const migrated: GlobalLeaderboard = {
+      easy: (globalLeaderboard.easy || []).map((e) => ({ ...e, id: e.id || e.email })),
+      medium: (globalLeaderboard.medium || []).map((e) => ({ ...e, id: e.id || e.email })),
+      hard: (globalLeaderboard.hard || []).map((e) => ({ ...e, id: e.id || e.email })),
+      expert: (globalLeaderboard.expert || []).map((e) => ({ ...e, id: e.id || e.email })),
+    }
+    setGlobalLeaderboard(migrated)
+    window.kv.set('neon-snake-global-leaderboard', migrated)
+  }, [globalLeaderboard, setGlobalLeaderboard])
+
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number | null>(null)
   const lastTickRef = useRef(0)
@@ -151,13 +171,19 @@ export function NeonSnake({ userEmail = 'guest@example.com' }: NeonSnakeProps = 
 
   const getDisplayName = (email: string) => users.find((u) => u.email === email)?.fullName ?? email.split('@')[0]
 
+  // Storage-rækkefølgen garanteres ikke sorteret (atomar upsert tilføjer bare i
+  // slutningen) — sortér altid ved læsning, så rangnumre/medaljer er korrekte.
+  const getSortedBoard = (diff: Difficulty): LeaderboardEntry[] => {
+    return [...(globalLeaderboard?.[diff] || [])].sort((a, b) => b.score - a.score)
+  }
+
   const getCurrentHighScore = () => {
-    const board = globalLeaderboard?.[difficulty] || []
+    const board = getSortedBoard(difficulty)
     return board.length > 0 ? board[0].score : 0
   }
 
   const getUserRankForDifficulty = (diff: Difficulty): number | null => {
-    const board = globalLeaderboard?.[diff] || []
+    const board = getSortedBoard(diff)
     const index = board.findIndex((entry) => entry.email === userEmail)
     return index !== -1 ? index + 1 : null
   }
@@ -206,21 +232,17 @@ export function NeonSnake({ userEmail = 'guest@example.com' }: NeonSnakeProps = 
         easy: [], medium: [], hard: [], expert: [],
       }
       const diff = difficultyRef.current
-      const board = [...(currentLeaderboard[diff] || [])]
-      const existingIndex = board.findIndex((entry) => entry.email === userEmail)
+      const board = currentLeaderboard[diff] || []
+      const existing = board.find((entry) => entry.email === userEmail)
 
-      if (existingIndex !== -1) {
-        if (finalScore > board[existingIndex].score) {
-          board[existingIndex] = { email: userEmail, score: finalScore, timestamp: Date.now() }
-        }
-      } else {
-        board.push({ email: userEmail, score: finalScore, timestamp: Date.now() })
+      if (!existing || finalScore > existing.score) {
+        const updatedBoard = await upsertInNestedKvArray<LeaderboardEntry>(
+          'neon-snake-global-leaderboard',
+          [diff],
+          [{ id: userEmail, email: userEmail, score: finalScore, timestamp: Date.now() }],
+        )
+        setGlobalLeaderboard({ ...currentLeaderboard, [diff]: updatedBoard })
       }
-
-      board.sort((a, b) => b.score - a.score)
-      const updated = { ...currentLeaderboard, [diff]: board.slice(0, 10) }
-      await window.kv.set('neon-snake-global-leaderboard', updated)
-      setGlobalLeaderboard(updated)
     } catch (error) {
       console.error('Error saving Neon Snake score:', error)
     }
@@ -758,7 +780,7 @@ export function NeonSnake({ userEmail = 'guest@example.com' }: NeonSnakeProps = 
           {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
             const setting = DIFFICULTY_SETTINGS[diff]
             const Icon = setting.icon
-            const leaderboard = globalLeaderboard?.[diff] || []
+            const leaderboard = getSortedBoard(diff)
             const userRank = getUserRankForDifficulty(diff)
             const userEntry = leaderboard.find((entry) => entry.email === userEmail)
 

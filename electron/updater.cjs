@@ -55,10 +55,16 @@ function readManifest(dataDir) {
     const manifest = JSON.parse(raw)
     if (!manifest || typeof manifest !== 'object') return null
     if (!parseVersion(manifest.version) || typeof manifest.file !== 'string' || typeof manifest.sha256 !== 'string') {
+      console.error(`TCD Hub: manifest.json i "${dataDir}" mangler eller har ugyldige felter`)
       return null
     }
     return manifest
-  } catch {
+  } catch (err) {
+    // ENOENT er den normale tilstand (ingen opdatering publiceret endnu) — kun
+    // andre fejl (ugyldig JSON, rettigheder) logges, så fejlfinding er muligt.
+    if (err.code !== 'ENOENT') {
+      console.error(`TCD Hub: kunne ikke læse manifest.json i "${dataDir}":`, err.message)
+    }
     return null
   }
 }

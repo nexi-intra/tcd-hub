@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { upsertInNestedKvArray } from '@/lib/kvArrays'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface Chicken {
@@ -48,6 +49,7 @@ interface PowerUp {
 }
 
 interface LeaderboardEntry {
+  id: string
   email: string
   score: number
   timestamp: number
@@ -195,6 +197,24 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     expert: []
   })
 
+  // Éngangs-migrering: gamle entries manglede `id` (indført for atomare opdateringer) —
+  // uden den kan slet/rediger i manager-panelet ikke finde entry'en igen.
+  useEffect(() => {
+    if (!globalLeaderboard) return
+    const needsMigration = (Object.values(globalLeaderboard) as LeaderboardEntry[][]).some((board) =>
+      board.some((entry) => !entry.id)
+    )
+    if (!needsMigration) return
+    const migrated: GlobalLeaderboard = {
+      easy: (globalLeaderboard.easy || []).map((e) => ({ ...e, id: e.id || e.email })),
+      medium: (globalLeaderboard.medium || []).map((e) => ({ ...e, id: e.id || e.email })),
+      hard: (globalLeaderboard.hard || []).map((e) => ({ ...e, id: e.id || e.email })),
+      expert: (globalLeaderboard.expert || []).map((e) => ({ ...e, id: e.id || e.email })),
+    }
+    setGlobalLeaderboard(migrated)
+    window.kv.set('endless-dodger-global-leaderboard', migrated)
+  }, [globalLeaderboard, setGlobalLeaderboard])
+
   const gameAreaRef = useRef<HTMLDivElement>(null)
   const animationFrameRef = useRef<number | null>(null)
   const waveBannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -253,18 +273,24 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     return user ? user.fullName : email.split('@')[0]
   }
 
+  // Storage-rækkefølgen garanteres ikke sorteret (atomar upsert tilføjer bare i
+  // slutningen) — sortér altid ved læsning, så rangnumre/medaljer er korrekte.
+  const getSortedBoard = (diff: Difficulty): LeaderboardEntry[] => {
+    return [...(globalLeaderboard?.[diff] || [])].sort((a, b) => b.score - a.score)
+  }
+
   const getCurrentHighScore = () => {
-    const board = globalLeaderboard?.[difficulty] || []
+    const board = getSortedBoard(difficulty)
     return board.length > 0 ? board[0].score : 0
   }
 
   const getTopScoreForDifficulty = (diff: Difficulty): number => {
-    const board = globalLeaderboard?.[diff] || []
+    const board = getSortedBoard(diff)
     return board.length > 0 ? board[0].score : 0
   }
 
   const getUserRankForDifficulty = (diff: Difficulty): number | null => {
-    const board = globalLeaderboard?.[diff] || []
+    const board = getSortedBoard(diff)
     const index = board.findIndex(entry => entry.email === userEmail)
     return index !== -1 ? index + 1 : null
   }
@@ -433,21 +459,17 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       }
 
       const diff = difficultyRef.current
-      const board = [...(currentLeaderboard[diff] || [])]
-      const existingIndex = board.findIndex(entry => entry.email === userEmail)
+      const board = currentLeaderboard[diff] || []
+      const existing = board.find(entry => entry.email === userEmail)
 
-      if (existingIndex !== -1) {
-        if (finalScore > board[existingIndex].score) {
-          board[existingIndex] = { email: userEmail, score: finalScore, timestamp: Date.now() }
-        }
-      } else {
-        board.push({ email: userEmail, score: finalScore, timestamp: Date.now() })
+      if (!existing || finalScore > existing.score) {
+        const updatedBoard = await upsertInNestedKvArray<LeaderboardEntry>(
+          'endless-dodger-global-leaderboard',
+          [diff],
+          [{ id: userEmail, email: userEmail, score: finalScore, timestamp: Date.now() }],
+        )
+        setGlobalLeaderboard({ ...currentLeaderboard, [diff]: updatedBoard })
       }
-
-      board.sort((a, b) => b.score - a.score)
-      const updated = { ...currentLeaderboard, [diff]: board.slice(0, 10) }
-      await window.kv.set('endless-dodger-global-leaderboard', updated)
-      setGlobalLeaderboard(updated)
     } catch (error) {
       console.error('Error saving score:', error)
     }
@@ -1152,7 +1174,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
             const setting = DIFFICULTY_SETTINGS[diff]
             const Icon = setting.icon
-            const leaderboard = globalLeaderboard?.[diff] || []
+            const leaderboard = getSortedBoard(diff)
             const userRank = getUserRankForDifficulty(diff)
             const userEntry = leaderboard.find(entry => entry.email === userEmail)
 
