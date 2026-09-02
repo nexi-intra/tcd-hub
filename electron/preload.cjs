@@ -35,6 +35,11 @@ contextBridge.exposeInMainWorld('electronUpdates', {
     ipcRenderer.on('updates:progress', listener)
     return () => ipcRenderer.removeListener('updates:progress', listener)
   },
+  onPublishProgress: (callback) => {
+    const listener = (_event, progress) => callback(progress)
+    ipcRenderer.on('updates:publish-progress', listener)
+    return () => ipcRenderer.removeListener('updates:publish-progress', listener)
+  },
 })
 
 contextBridge.exposeInMainWorld('electronGuides', {

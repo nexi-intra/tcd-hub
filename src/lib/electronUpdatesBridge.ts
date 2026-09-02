@@ -37,6 +37,13 @@ export interface UpdateProgress {
   fileCount?: number
 }
 
+export type PublishPhase = 'hashing-source' | 'uploading' | 'verifying' | 'extracting' | 'indexing'
+
+export interface PublishProgress {
+  phase: PublishPhase
+  percent: number
+}
+
 export interface ElectronUpdatesApi {
   getStatus(): Promise<UpdateStatus>
   check(): Promise<UpdateManifest | null>
@@ -46,4 +53,6 @@ export interface ElectronUpdatesApi {
   install(version?: string): Promise<void>
   onUpdateAvailable(callback: (manifest: UpdateManifest) => void): () => void
   onProgress(callback: (progress: UpdateProgress) => void): () => void
+  onPublishProgress(callback: (progress: PublishProgress) => void): () => void
 }
+

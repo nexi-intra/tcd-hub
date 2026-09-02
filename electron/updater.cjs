@@ -11,8 +11,18 @@
 // midlertidig mappe, og et .cmd-script venter på at appen lukker, kopierer de
 // nye filer over den lokale appmappe (fx C:\TCD TOOLS\...) og genstarter appen.
 // Alt foregår i brugerens egne mapper — ingen administrator-rettigheder kræves.
-const fs = require('fs')
-const fsp = require('fs/promises')
+// Electron patcher "fs" globalt til at genkende ".asar"-stier som arkiver at
+// læse KODE fra. Her behandler vi app.asar som almindelig binær DATA (kopiere/
+// hash'e/stat'e), hvilket den patchede fs fejltolker ("ENOENT, not found in
+// .../app.asar"). "original-fs" er Electrons upatchede fs — falder tilbage til
+// almindelig "fs" uden for Electron (fx når testene køres med ren Node).
+let fs
+try {
+  fs = require('original-fs')
+} catch {
+  fs = require('fs')
+}
+const fsp = fs.promises
 const path = require('path')
 const os = require('os')
 const crypto = require('crypto')
@@ -117,23 +127,37 @@ async function listFilesRecursive(rootDir, prefix = '') {
   return files
 }
 
-async function buildFileIndex(rootDir) {
+async function buildFileIndex(rootDir, onProgress = () => {}) {
   const paths = await listFilesRecursive(rootDir)
   const files = []
-  for (const relativePath of paths) {
+  for (let i = 0; i < paths.length; i++) {
+    const relativePath = paths[i]
     const absolutePath = path.join(rootDir, relativePath)
     const { size } = await fsp.stat(absolutePath)
     files.push({ path: relativePath, size, sha256: await sha256File(absolutePath) })
+    onProgress({ done: i + 1, total: paths.length })
   }
   return files
 }
 
-function sha256File(filePath) {
+function sha256File(filePath, onProgress) {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash('sha256')
+    let read = 0
+    let lastReported = 0
     const stream = fs.createReadStream(filePath)
-    stream.on('data', (chunk) => hash.update(chunk))
-    stream.on('end', () => resolve(hash.digest('hex')))
+    stream.on('data', (chunk) => {
+      hash.update(chunk)
+      read += chunk.length
+      if (onProgress && (read - lastReported >= 262144)) {
+        lastReported = read
+        onProgress(read)
+      }
+    })
+    stream.on('end', () => {
+      if (onProgress) onProgress(read)
+      resolve(hash.digest('hex'))
+    })
     stream.on('error', reject)
   })
 }
@@ -148,7 +172,7 @@ function versionFromFilename(fileName) {
  * Kopierer zip'en til <datamappe>/updates/, verificerer kopien og skriver
  * manifestet. Gamle zip-filer ryddes op bagefter.
  */
-async function publishUpdate(dataDir, { zipPath, version, notes, publishedBy }) {
+async function publishUpdate(dataDir, { zipPath, version, notes, publishedBy, onProgress = () => {} }) {
   if (!parseVersion(version)) {
     throw new Error('Versionsnummeret skal have formatet X.Y.Z, fx 1.2.0')
   }
@@ -156,14 +180,24 @@ async function publishUpdate(dataDir, { zipPath, version, notes, publishedBy }) 
   const dir = updatesDir(dataDir)
   fs.mkdirSync(dir, { recursive: true })
 
-  const sha256 = await sha256File(zipPath)
+  onProgress({ phase: 'hashing-source', percent: 0 })
+  const sha256 = await sha256File(zipPath, (read) => {
+    onProgress({ phase: 'hashing-source', percent: Math.round((read / stat.size) * 100) })
+  })
   const fileName = path.basename(zipPath)
   const target = path.join(dir, fileName)
 
   if (path.resolve(zipPath) !== path.resolve(target)) {
-    fs.copyFileSync(zipPath, target)
+    onProgress({ phase: 'uploading', percent: 0 })
+    await copyAndHash(zipPath, target, (copied) => {
+      onProgress({ phase: 'uploading', percent: Math.round((copied / stat.size) * 100) })
+    })
   }
-  const copiedSha = await sha256File(target)
+
+  onProgress({ phase: 'verifying', percent: 0 })
+  const copiedSha = await sha256File(target, (read) => {
+    onProgress({ phase: 'verifying', percent: Math.round((read / stat.size) * 100) })
+  })
   if (copiedSha !== sha256) {
     try { fs.unlinkSync(target) } catch { /* ignore */ }
     throw new Error('Kopien til den fælles mappe blev beskadiget undervejs — prøv igen')
@@ -181,10 +215,16 @@ async function publishUpdate(dataDir, { zipPath, version, notes, publishedBy }) 
 
   // Udpakket kopi + filindeks, så klienter kun behøver hente de ændrede filer.
   // Zip'en bevares, fordi klienter før 1.3.0 kun kan opdatere fra den.
+  onProgress({ phase: 'extracting', percent: 0 })
   const versionDir = path.join(dir, version)
   await fsp.rm(versionDir, { recursive: true, force: true })
   await extractZip(target, versionDir)
-  manifest.files = await buildFileIndex(versionDir)
+  onProgress({ phase: 'extracting', percent: 100 })
+
+  onProgress({ phase: 'indexing', percent: 0 })
+  manifest.files = await buildFileIndex(versionDir, ({ done, total }) => {
+    onProgress({ phase: 'indexing', percent: total > 0 ? Math.round((done / total) * 100) : 100 })
+  })
   manifest.deltaDir = version
 
   const tmp = manifestPath(dataDir) + '.' + process.pid + '.tmp'
