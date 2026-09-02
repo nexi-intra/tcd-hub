@@ -1,3 +1,5 @@
+import { yieldToBrowser } from './utils'
+
 export interface StoredFile {
   url: string
   filename: string
@@ -8,6 +10,7 @@ export interface StoredFile {
 class FileStorageService {
   private readonly CHUNK_SIZE = 256 * 1024
   private readonly MAX_FILE_SIZE = 5 * 1024 * 1024
+  private readonly objectUrlCache = new Map<string, string>()
 
   private async storeInKV(file: File): Promise<StoredFile> {
     if (file.size > this.MAX_FILE_SIZE) {
@@ -26,7 +29,7 @@ class FileStorageService {
     
     const arrayBuffer = await file.arrayBuffer()
     const bytes = new Uint8Array(arrayBuffer)
-    const base64Data = this.arrayBufferToBase64(bytes)
+    const base64Data = await this.arrayBufferToBase64Async(bytes)
     
     const fileId = `file_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
     const chunks: string[] = []
@@ -90,6 +93,63 @@ class FileStorageService {
       console.error('Upload file error:', error)
       throw error
     }
+  }
+
+  /** Gemmer et billede (png/jpg/gif/webp/bmp, max 5MB) i chunked KV. Returnerer fileId uden kv://-præfiks. */
+  async uploadImage(file: File): Promise<{ fileId: string; filename: string; size: number }> {
+    if (file.size > this.MAX_FILE_SIZE) {
+      throw new Error(`Billedet er for stort (max ${this.MAX_FILE_SIZE / 1024 / 1024}MB). Dit billede er ${(file.size / 1024 / 1024).toFixed(2)}MB`)
+    }
+    const isImage = /\.(png|jpe?g|gif|webp|bmp)$/i.test(file.name) || file.type.startsWith('image/')
+    if (!isImage) {
+      throw new Error('Kun billeder (PNG, JPG, GIF, WebP, BMP) understøttes')
+    }
+
+    const arrayBuffer = await file.arrayBuffer()
+    const bytes = new Uint8Array(arrayBuffer)
+    const base64Data = await this.arrayBufferToBase64Async(bytes)
+
+    const fileId = `file_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+    const chunks: string[] = []
+    for (let i = 0; i < base64Data.length; i += this.CHUNK_SIZE) {
+      chunks.push(base64Data.substring(i, i + this.CHUNK_SIZE))
+    }
+
+    try {
+      await window.kv.set(`${fileId}_meta`, {
+        filename: file.name,
+        contentType: file.type || 'image/png',
+        size: file.size,
+        uploadedAt: Date.now(),
+        chunkCount: chunks.length,
+      })
+      for (let i = 0; i < chunks.length; i++) {
+        await window.kv.set(`${fileId}_chunk_${i}`, chunks[i])
+      }
+    } catch (kvError) {
+      console.error('[FileStorage] KV image storage error:', kvError)
+      try {
+        await window.kv.delete(`${fileId}_meta`)
+        for (let i = 0; i < chunks.length; i++) {
+          await window.kv.delete(`${fileId}_chunk_${i}`)
+        }
+      } catch (cleanupError) {
+        console.error('[FileStorage] Cleanup error:', cleanupError)
+      }
+      throw new Error('Kunne ikke gemme billedet i storage. Prøv et mindre billede.')
+    }
+
+    return { fileId, filename: file.name, size: file.size }
+  }
+
+  /** Objekt-URL til visning af et gemt billede. Cached pr. fileId for at undgå gentagne chunk-læsninger. */
+  async getImageObjectUrl(fileId: string): Promise<string> {
+    const cached = this.objectUrlCache.get(fileId)
+    if (cached) return cached
+    const blob = await this.downloadFile(`kv://${fileId}`)
+    const url = URL.createObjectURL(blob)
+    this.objectUrlCache.set(fileId, url)
+    return url
   }
 
   async downloadFile(fileUrl: string): Promise<Blob> {
@@ -172,9 +232,20 @@ class FileStorageService {
     }
   }
 
-  private arrayBufferToBase64(bytes: Uint8Array): string {
-    const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
-    return btoa(binary)
+  // Koder i bidder på 60.000 bytes (deleligt med 3, så ingen chunk får midlertidig
+  // '='-padding) og giver kontrollen tilbage til browseren mellem hver bid, så
+  // store filer/billeder ikke fryser UI'et under kodningen.
+  private async arrayBufferToBase64Async(bytes: Uint8Array): Promise<string> {
+    const CHUNK_BYTES = 60_000
+    const parts: string[] = []
+    for (let offset = 0; offset < bytes.length; offset += CHUNK_BYTES) {
+      const slice = bytes.subarray(offset, offset + CHUNK_BYTES)
+      let binary = ''
+      for (let i = 0; i < slice.length; i++) binary += String.fromCharCode(slice[i])
+      parts.push(btoa(binary))
+      if (offset % (CHUNK_BYTES * 4) === 0) await yieldToBrowser()
+    }
+    return parts.join('')
   }
 
   private base64ToUint8Array(base64: string): Uint8Array {

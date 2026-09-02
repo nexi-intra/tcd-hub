@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { upsertInNestedKvArray } from '@/lib/kvArrays'
+import { nextParticleId } from '@/lib/utils'
 
 interface Pipe {
   id: number
@@ -24,6 +26,7 @@ interface Particle {
 }
 
 interface LeaderboardEntry {
+  id: string
   email: string
   score: number
   timestamp: number
@@ -132,6 +135,24 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
     expert: []
   })
 
+  // Éngangs-migrering: gamle entries manglede `id` (indført for atomare opdateringer) —
+  // uden den kan slet/rediger i manager-panelet ikke finde entry'en igen.
+  useEffect(() => {
+    if (!globalLeaderboard) return
+    const needsMigration = (Object.values(globalLeaderboard) as LeaderboardEntry[][]).some((board) =>
+      board.some((entry) => !entry.id)
+    )
+    if (!needsMigration) return
+    const migrated: GlobalLeaderboard = {
+      easy: (globalLeaderboard.easy || []).map((e) => ({ ...e, id: e.id || e.email })),
+      medium: (globalLeaderboard.medium || []).map((e) => ({ ...e, id: e.id || e.email })),
+      hard: (globalLeaderboard.hard || []).map((e) => ({ ...e, id: e.id || e.email })),
+      expert: (globalLeaderboard.expert || []).map((e) => ({ ...e, id: e.id || e.email })),
+    }
+    setGlobalLeaderboard(migrated)
+    window.kv.set('nexi-flyer-global-leaderboard', migrated)
+  }, [globalLeaderboard, setGlobalLeaderboard])
+
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationFrameRef = useRef<number | null>(null)
 
@@ -173,18 +194,24 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
     return user ? user.fullName : email.split('@')[0]
   }
 
+  // Storage-rækkefølgen garanteres ikke sorteret (atomar upsert tilføjer bare i
+  // slutningen) — sortér altid ved læsning, så rangnumre/medaljer er korrekte.
+  const getSortedBoard = (diff: Difficulty): LeaderboardEntry[] => {
+    return [...(globalLeaderboard?.[diff] || [])].sort((a, b) => b.score - a.score)
+  }
+
   const getCurrentHighScore = () => {
-    const board = globalLeaderboard?.[difficulty] || []
+    const board = getSortedBoard(difficulty)
     return board.length > 0 ? board[0].score : 0
   }
 
   const getTopScoreForDifficulty = (diff: Difficulty): number => {
-    const board = globalLeaderboard?.[diff] || []
+    const board = getSortedBoard(diff)
     return board.length > 0 ? board[0].score : 0
   }
 
   const getUserRankForDifficulty = (diff: Difficulty): number | null => {
-    const board = globalLeaderboard?.[diff] || []
+    const board = getSortedBoard(diff)
     const index = board.findIndex(entry => entry.email === userEmail)
     return index !== -1 ? index + 1 : null
   }
@@ -215,7 +242,7 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
     const gapY = minGapY + Math.random() * Math.max(1, maxGapY - minGapY)
 
     pipesRef.current.push({
-      id: Date.now() + Math.random(),
+      id: nextParticleId(),
       x: GAME_WIDTH + PIPE_WIDTH,
       gapY,
       passed: false
@@ -432,22 +459,17 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
       }
 
       const diff = difficultyRef.current
-      const board = [...(currentLeaderboard[diff] || [])]
-      const existingIndex = board.findIndex(entry => entry.email === userEmail)
+      const board = currentLeaderboard[diff] || []
+      const existing = board.find(entry => entry.email === userEmail)
 
-      if (existingIndex !== -1) {
-        if (finalScore > board[existingIndex].score) {
-          board[existingIndex] = { email: userEmail, score: finalScore, timestamp: Date.now() }
-        }
-      } else {
-        board.push({ email: userEmail, score: finalScore, timestamp: Date.now() })
+      if (!existing || finalScore > existing.score) {
+        const updatedBoard = await upsertInNestedKvArray<LeaderboardEntry>(
+          'nexi-flyer-global-leaderboard',
+          [diff],
+          [{ id: userEmail, email: userEmail, score: finalScore, timestamp: Date.now() }],
+        )
+        setGlobalLeaderboard({ ...currentLeaderboard, [diff]: updatedBoard })
       }
-
-      board.sort((a, b) => b.score - a.score)
-
-      const updated = { ...currentLeaderboard, [diff]: board.slice(0, 10) }
-      await window.kv.set('nexi-flyer-global-leaderboard', updated)
-      setGlobalLeaderboard(updated)
     } catch (error) {
       console.error('Error saving Nexi Flyer score:', error)
     }
@@ -792,7 +814,7 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
           {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
             const setting = DIFFICULTY_SETTINGS[diff]
             const Icon = setting.icon
-            const leaderboard = globalLeaderboard?.[diff] || []
+            const leaderboard = getSortedBoard(diff)
             const userRank = getUserRankForDifficulty(diff)
             const userEntry = leaderboard.find(entry => entry.email === userEmail)
 
@@ -837,7 +859,7 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
                               isCurrentUser ? 'bg-primary/10 border border-primary/30 shadow-md' : 'bg-muted/30'
                             }`}
                           >
-                            <div className="flex items-center justify-center w-8 h-8">
+                            <div className="flex items-center justify-center w-8 h-8 shrink-0">
                               {RankIcon ? (
                                 <RankIcon size={20} weight="fill" className={rankColors[index]} />
                               ) : (
@@ -849,7 +871,7 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
                                 {getDisplayName(entry.email)}
                               </div>
                             </div>
-                            <div className={`text-lg font-bold ${isCurrentUser ? 'text-primary' : 'text-muted-foreground'}`}>
+                            <div className={`text-lg font-bold shrink-0 tabular-nums ${isCurrentUser ? 'text-primary' : 'text-muted-foreground'}`}>
                               {entry.score}
                             </div>
                           </div>
@@ -862,7 +884,7 @@ export function NexiFlyer({ userEmail = 'guest@example.com' }: NexiFlyerProps = 
                             <span className="text-xs text-muted-foreground">...</span>
                           </div>
                           <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/30 shadow-md">
-                            <div className="flex items-center justify-center w-8 h-8">
+                            <div className="flex items-center justify-center w-8 h-8 shrink-0">
                               <span className="text-sm font-bold text-primary">#{userRank}</span>
                             </div>
                             <div className="flex-1 min-w-0">

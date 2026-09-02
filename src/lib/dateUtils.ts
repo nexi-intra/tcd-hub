@@ -6,6 +6,27 @@ export function getWeekNumber(date: Date): number {
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
 }
 
+/** Lokal dato → 'yyyy-MM-dd' (ingen tidszone-forskydning, i modsætning til toISOString). */
+export function toIsoDateString(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * Parser en gemt dato som LOKAL dato uanset format ('yyyy-MM-dd' eller fuld
+ * ISO-streng fra ældre data). new Date('yyyy-MM-dd')/parseISO tolker UTC og
+ * kan forskyde dagen — denne tager altid dato-delen og bygger lokal midnat.
+ */
+export function parseLocalDate(value: string): Date {
+  const datePart = value.slice(0, 10)
+  const [year, month, day] = datePart.split('-').map(Number)
+  return new Date(year, (month || 1) - 1, day || 1)
+}
+
+/** Samme dag (lokalt), uafhængigt af klokkeslæt. */
+export function isSameLocalDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
 // ISO-years with 53 weeks: years where 31 Dec (or 24 Dec) falls in week 53.
 export function getWeeksInYear(year: number): number {
   return getWeekNumber(new Date(year, 11, 28)) // 28 Dec is always in the last ISO week

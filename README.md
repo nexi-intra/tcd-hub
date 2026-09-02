@@ -104,6 +104,17 @@ Appen kan opdatere sig selv via den fælles datamappe — **helt uden installati
 
 > Opdateringen kræver kun skriveadgang til brugerens egen appmappe — ingen administrator-rettigheder.
 
+### Hurtige delta-opdateringer (fra version 1.3.0)
+
+Opdateringer overfører kun det, der reelt har ændret sig:
+
+- Ved publicering udpakkes pakken til `updates/<version>/` i den fælles datamappe, og der skrives et **filindeks med SHA256 for hver fil**.
+- Klienten sammenligner indekset med sin egen installation og henter **udelukkende de filer, der afviger**. Electron-runtime (dll'er, `.pak`-filer m.m.) er identisk mellem versioner og springes derfor helt over.
+- Filer, som den nye version ikke længere indeholder, ryddes op ved genstart.
+- Selve app-koden er samlet i `app.asar` på ca. **1,6 MB**, fordi renderer-koden bundles af Vite, og main-processen kun bruger Node's indbyggede moduler. En typisk opdatering flytter derfor få megabyte i stedet for hele pakken.
+
+Zip-filen bevares i `updates/`, så klienter fra før 1.3.0 stadig kan opdatere.
+
 **Sikkerhed:**
 - Alle datafiler på disken er **krypterede** (AES-256-GCM), så indholdet ikke kan læses direkte af alle med adgang til mappen.
 - Adgangskoder gemmes **aldrig i klartekst** — de gemmes som PBKDF2-hash med salt. Eksisterende konti opgraderes automatisk ved næste login.

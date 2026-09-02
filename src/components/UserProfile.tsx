@@ -106,11 +106,9 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
         await window.kv.set('users', usersData)
         toast.success('Indstillinger opdateret')
       } else {
-        console.log('No changes detected')
         toast.info('Ingen ændringer foretaget')
       }
 
-      console.log('Closing modal')
       setSettingsOpen(false)
     } catch (error) {
       console.error('Error in handleSaveSettings:', error)

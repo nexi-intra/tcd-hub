@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
+import { DatePickerField } from '@/components/DatePickerField'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FirstAidKit, X } from '@phosphor-icons/react'
 import { format } from 'date-fns'
@@ -312,18 +312,10 @@ ${reason ? `Bemærkninger:\n${reason}\n\n` : ''}Denne notifikation er automatisk
 
             <div className="grid gap-2">
               <Label htmlFor="sickDate">{t.sickLeaveDialog.date}</Label>
-              <Input
+              <DatePickerField
                 id="sickDate"
-                type="date"
                 value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setSelectedDate(new Date(e.target.value))
-                  } else {
-                    setSelectedDate(undefined)
-                  }
-                }}
-                className="w-full"
+                onChange={(value) => setSelectedDate(value ? new Date(value) : undefined)}
               />
               <p className="text-sm text-muted-foreground">
                 {editEntry ? t.sickLeaveDialog.editDate : t.sickLeaveDialog.selectDate}

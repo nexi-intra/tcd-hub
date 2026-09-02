@@ -6,6 +6,7 @@ import { DayPicker } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 
+// Stylet til react-day-picker v9 (classNames-nøglerne er IKKE de samme som i v8).
 function Calendar({
   className,
   classNames,
@@ -15,61 +16,57 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-4", className)}
+      className={cn("p-3", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row gap-6",
-        month: "flex flex-col gap-4",
-        caption: "flex justify-center pt-2 relative items-center w-full mb-4",
-        caption_label: "text-base font-bold",
-        nav: "flex items-center gap-2",
-        nav_button: cn(
+        months: "relative flex flex-col sm:flex-row gap-4",
+        month: "flex flex-col gap-3 w-full",
+        month_caption: "flex justify-center items-center h-9",
+        caption_label: "text-sm font-bold capitalize",
+        dropdowns: "flex items-center justify-center gap-1.5",
+        dropdown_root: "relative",
+        dropdown: "appearance-none bg-card border border-border rounded-md px-2 py-1 text-sm font-semibold cursor-pointer hover:border-primary/50 capitalize",
+        nav: "absolute inset-x-0 top-0 flex items-center justify-between h-9 z-10 px-1",
+        button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "size-8 bg-transparent p-0 hover:bg-accent hover:text-accent-foreground"
+          "size-8 p-0 bg-transparent hover:bg-accent hover:text-accent-foreground"
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        month_caption: "flex justify-center pt-1 relative items-center",
-        caption_start: "flex justify-center pt-1 relative items-center",
-        caption_end: "flex justify-center pt-1 relative items-center",
-        table: "w-full border-collapse border-spacing-0",
-        head_row: "flex w-full gap-1 mb-2",
-        head_cell:
-          "text-muted-foreground rounded-md w-10 h-10 font-semibold text-sm flex items-center justify-center shrink-0",
-        row: "flex w-full gap-1 mt-1",
-        week: "flex w-full gap-1 mt-1",
-        cell: cn(
-          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 w-10 h-10 shrink-0 flex items-center justify-center",
-          props.mode === "range"
-            ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
-            : "[&:has([aria-selected])]:rounded-md"
+        button_next: cn(
+          buttonVariants({ variant: "outline" }),
+          "size-8 p-0 bg-transparent hover:bg-accent hover:text-accent-foreground"
         ),
+        chevron: "size-4 fill-current",
+        month_grid: "w-full border-collapse",
+        weekdays: "flex",
+        weekday: "w-9 h-9 flex items-center justify-center text-xs font-semibold text-muted-foreground capitalize",
+        week: "flex w-full mt-1",
         day: cn(
-          buttonVariants({ variant: "ghost" }),
-          "w-10 h-10 p-0 font-normal text-sm aria-selected:opacity-100 hover:bg-accent/50"
+          "relative p-0 w-9 h-9 text-center text-sm",
+          "[&:has([data-selected])]:rounded-md"
         ),
-        day_range_start:
-          "day-range-start aria-selected:bg-primary aria-selected:text-primary-foreground",
-        day_range_end:
-          "day-range-end aria-selected:bg-primary aria-selected:text-primary-foreground",
-        day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent/30 text-accent-foreground font-bold border-2 border-accent",
-        day_outside:
-          "day-outside text-muted-foreground/40 opacity-50 aria-selected:text-muted-foreground/40",
-        day_disabled: "text-muted-foreground/30 opacity-30",
-        day_range_middle:
-          "aria-selected:bg-accent/30 aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
-        weeknumber: "text-muted-foreground rounded-md w-10 h-10 font-semibold text-sm flex items-center justify-center shrink-0 bg-muted/30",
+        day_button: cn(
+          buttonVariants({ variant: "ghost" }),
+          "size-9 p-0 font-normal text-sm aria-selected:opacity-100 hover:bg-accent/50"
+        ),
+        selected:
+          "rounded-md bg-primary text-primary-foreground [&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground",
+        today: "[&>button]:border-2 [&>button]:border-accent [&>button]:font-bold",
+        outside: "text-muted-foreground/40 [&>button]:text-muted-foreground/40",
+        disabled: "text-muted-foreground/30 [&>button]:text-muted-foreground/30 [&>button]:opacity-40 [&>button]:pointer-events-none",
+        hidden: "invisible",
+        range_start: "rounded-l-md bg-primary text-primary-foreground [&>button]:bg-primary [&>button]:text-primary-foreground",
+        range_middle: "rounded-none bg-accent/30 [&>button]:bg-transparent",
+        range_end: "rounded-r-md bg-primary text-primary-foreground [&>button]:bg-primary [&>button]:text-primary-foreground",
+        week_number: "w-9 h-9 flex items-center justify-center text-xs font-semibold text-primary/70 bg-muted/40 rounded-md mr-1",
+        week_number_header: "w-9 h-9 flex items-center justify-center text-[10px] font-bold uppercase text-muted-foreground/60 mr-1",
         ...classNames,
       }}
       components={{
-        PreviousMonthButton: ({ className, ...props }) => (
-          <ChevronLeft className={cn("size-4", className)} {...props} />
-        ),
-        NextMonthButton: ({ className, ...props }) => (
-          <ChevronRight className={cn("size-4", className)} {...props} />
-        ),
+        Chevron: ({ orientation, className: chevronClassName, ...chevronProps }) =>
+          orientation === "left" ? (
+            <ChevronLeft className={cn("size-4", chevronClassName)} {...chevronProps} />
+          ) : (
+            <ChevronRight className={cn("size-4", chevronClassName)} {...chevronProps} />
+          ),
       }}
       {...props}
     />

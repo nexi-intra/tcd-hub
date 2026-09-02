@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronKv', {
   set: (key, value) => ipcRenderer.invoke('kv:set', key, value),
   delete: (key) => ipcRenderer.invoke('kv:delete', key),
   keys: () => ipcRenderer.invoke('kv:keys'),
+  update: (key, operation) => ipcRenderer.invoke('kv:update', key, operation),
   getDataDir: () => ipcRenderer.invoke('kv:data-dir'),
   getStorageInfo: () => ipcRenderer.invoke('kv:storage-info'),
   chooseDataDir: () => ipcRenderer.invoke('kv:choose-data-dir'),
@@ -28,4 +29,20 @@ contextBridge.exposeInMainWorld('electronUpdates', {
     ipcRenderer.on('updates:available', listener)
     return () => ipcRenderer.removeListener('updates:available', listener)
   },
+  onProgress: (callback) => {
+    const listener = (_event, progress) => callback(progress)
+    ipcRenderer.on('updates:progress', listener)
+    return () => ipcRenderer.removeListener('updates:progress', listener)
+  },
+})
+
+contextBridge.exposeInMainWorld('electronGuides', {
+  chooseExportDir: () => ipcRenderer.invoke('guides:choose-export-dir'),
+  exportDocx: (payload) => ipcRenderer.invoke('guides:export-docx', payload),
+})
+
+contextBridge.exposeInMainWorld('electronTranslation', {
+  workerAssets: () => ipcRenderer.invoke('translation:worker-assets'),
+  registry: () => ipcRenderer.invoke('translation:registry'),
+  modelFiles: (pair) => ipcRenderer.invoke('translation:model-files', pair),
 })

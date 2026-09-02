@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
+import { appendToKvArray, setKvObjectField } from '@/lib/kvArrays'
 import { motion } from 'framer-motion'
 import nexiLogo from '@/assets/images/nexi-logo.svg'
 import nexiLogoWhite from '@/assets/images/nexi-logo-white.svg'
@@ -70,7 +71,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
       }
 
       const isHardcodedAdmin = normalizedSignupEmail === ADMIN_EMAIL.toLowerCase()
-      usersData[normalizedSignupEmail] = {
+      await setKvObjectField('users', normalizedSignupEmail, {
         email: normalizedSignupEmail,
         password: await hashPassword(password),
         fullName,
@@ -78,8 +79,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
         isManager: isHardcodedAdmin,
         role: isHardcodedAdmin ? 'admin' : 'user',
         status: isHardcodedAdmin ? 'approved' : 'pending',
-      }
-      await window.kv.set('users', usersData)
+      })
 
       if (isHardcodedAdmin) {
         toast.success('Konto oprettet!')
@@ -93,30 +93,26 @@ export function Auth({ onAuthenticated }: AuthProps) {
       try {
         const emailContent = userSignupRequestEmail(fullName, normalizedSignupEmail, phoneNumber.trim())
         const managers = Object.values(usersData).filter((u) => u.isManager)
-        const emails = (await window.kv.get<Array<{ id: string; from: string; to: string; subject: string; message: string; timestamp: number; read: boolean }>>('emails')) || []
-        const notifications = (await window.kv.get<unknown[]>('email-notifications')) || []
-        for (const manager of managers) {
-          emails.push({
-            id: `${Date.now()}-signup-${manager.email}`,
-            from: normalizedSignupEmail,
-            to: manager.email,
-            subject: emailContent.subject,
-            message: emailContent.body,
-            timestamp: Date.now(),
-            read: false,
-          })
-          notifications.push({
-            id: `${Date.now()}-signup-notif-${manager.email}`,
-            to: manager.email,
-            subject: emailContent.subject,
-            body: emailContent.body,
-            timestamp: new Date().toISOString(),
-            type: 'user-signup',
-            read: false,
-          })
-        }
-        await window.kv.set('emails', emails)
-        await window.kv.set('email-notifications', notifications)
+        const newEmails = managers.map((manager) => ({
+          id: `${Date.now()}-signup-${manager.email}`,
+          from: normalizedSignupEmail,
+          to: manager.email,
+          subject: emailContent.subject,
+          message: emailContent.body,
+          timestamp: Date.now(),
+          read: false,
+        }))
+        const newNotifications = managers.map((manager) => ({
+          id: `${Date.now()}-signup-notif-${manager.email}`,
+          to: manager.email,
+          subject: emailContent.subject,
+          body: emailContent.body,
+          timestamp: new Date().toISOString(),
+          type: 'user-signup',
+          read: false,
+        }))
+        await appendToKvArray('emails', newEmails)
+        await appendToKvArray('email-notifications', newNotifications)
       } catch (error) {
         console.error('Kunne ikke sende signup-notifikation til managere:', error)
       }
@@ -166,8 +162,9 @@ export function Auth({ onAuthenticated }: AuthProps) {
       }
 
       const user = usersData[email] || usersData[normalizedEmail]
+        || Object.values(usersData).find(u => u.username?.trim().toLowerCase() === normalizedEmail)
       if (!user || !(await verifyPassword(password, user.password))) {
-        toast.error('Forkert email eller adgangskode')
+        toast.error('Forkert email/brugernavn eller adgangskode')
         setIsLoading(false)
         return
       }
@@ -231,7 +228,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
               <img src={nexiLogo} alt="Nexi" className="relative h-12 sm:h-14 md:h-16 w-auto dark:hidden" />
               <img src={nexiLogoWhite} alt="Nexi" className="relative h-12 sm:h-14 md:h-16 w-auto hidden dark:block" />
             </motion.div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent mb-2">Terminal Configuration & Dispatch Hub</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-normal bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent pb-1 mb-2">Terminal Configuration & Dispatch Hub</h1>
             <p className="text-muted-foreground text-sm sm:text-base">
               {mode === 'login' ? 'Log ind for at fortsætte' : 'Opret en ny konto'}
             </p>
@@ -261,14 +258,14 @@ export function Auth({ onAuthenticated }: AuthProps) {
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-semibold flex items-center gap-2">
                   <EnvelopeSimple size={16} />
-                  {mode === 'signup' ? 'Email - Brug Arbejdsmail' : 'Email'}
+                  {mode === 'signup' ? 'Email - Brug Arbejdsmail' : 'Email eller brugernavn'}
                 </Label>
                 <Input
                   id="email"
-                  type="email"
+                  type={mode === 'signup' ? 'email' : 'text'}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="din@email.dk"
+                  placeholder={mode === 'signup' ? 'din@email.dk' : 'din@email.dk eller brugernavn'}
                   className="h-12"
                   required
                 />

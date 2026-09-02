@@ -17,7 +17,9 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import { AnimatedBackground } from '@/components/AnimatedBackground'
 import { BirthdayCelebration } from '@/components/BirthdayCelebration'
 import { UpdateNotification } from '@/components/UpdateNotification'
-import { toast } from 'sonner'
+import { GuideImportStatus } from '@/components/GuideImportStatus'
+import { toast, Toaster } from 'sonner'
+import { setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
 
 type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games' | 'projects' | 'notebook'
 
@@ -75,10 +77,9 @@ async function createSession(userId: string, email: string, duration: number): P
   // Ryd udløbne sessioner, så den delte fil ikke vokser ubegrænset.
   const now = Date.now()
   for (const key of Object.keys(sessions)) {
-    if (sessions[key].expiresAt < now) delete sessions[key]
+    if (sessions[key].expiresAt < now) await deleteKvObjectField('active-sessions', key)
   }
-  sessions[token] = { token, email, userId, expiresAt, createdAt }
-  await window.kv.set('active-sessions', sessions)
+  await setKvObjectField('active-sessions', token, { token, email, userId, expiresAt, createdAt })
   
   return token
 }
@@ -87,15 +88,12 @@ async function createSession(userId: string, email: string, duration: number): P
 async function renewSession(token: string): Promise<void> {
   const sessions = await window.kv.get<Record<string, StoredSession>>('active-sessions') || {}
   if (sessions[token]) {
-    sessions[token].expiresAt = Date.now() + REMEMBERED_SESSION_DURATION
-    await window.kv.set('active-sessions', sessions)
+    await setKvObjectField('active-sessions', token, { ...sessions[token], expiresAt: Date.now() + REMEMBERED_SESSION_DURATION })
   }
 }
 
 async function deleteSession(token: string): Promise<void> {
-  const sessions = await window.kv.get<Record<string, StoredSession>>('active-sessions') || {}
-  delete sessions[token]
-  await window.kv.set('active-sessions', sessions)
+  await deleteKvObjectField('active-sessions', token)
 }
 
 function App() {
@@ -103,6 +101,27 @@ function App() {
   const [userSession, setUserSession] = useState<UserSession | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [lastActivity, setLastActivity] = useState(Date.now())
+
+  useEffect(() => {
+    // Éngangs-migrering: ældre ferie-poster med fulde ISO-datoer ('...T00:00:00.000Z')
+    // normaliseres til 'yyyy-MM-dd', så alle views parser dem entydigt (lokal dato).
+    if (!userSession) return
+    const normalizeVacationDates = async () => {
+      try {
+        const entries = await window.kv.get<Array<{ id: string; startDate: string; endDate: string }>>('vacation-entries')
+        if (!entries || !entries.some((e) => e.startDate?.includes('T') || e.endDate?.includes('T'))) return
+        const normalized = entries.map((e) => ({
+          ...e,
+          startDate: e.startDate?.slice(0, 10) ?? e.startDate,
+          endDate: e.endDate?.slice(0, 10) ?? e.endDate,
+        }))
+        await window.kv.set('vacation-entries', normalized)
+      } catch (error) {
+        console.error('Kunne ikke normalisere ferie-datoer:', error)
+      }
+    }
+    normalizeVacationDates()
+  }, [userSession])
 
   useEffect(() => {
     // Auto-login: gyldigt lokalt "husk mig"-token logger brugeren direkte ind.
@@ -263,6 +282,7 @@ function App() {
     return (
       <ThemeProvider>
         <LanguageProvider>
+          <Toaster position="top-center" richColors />
           <AnimatedBackground />
           <UpdateNotification />
           <Auth onAuthenticated={handleAuthenticated} />
@@ -274,11 +294,13 @@ function App() {
   return (
     <ThemeProvider userId={userSession.userId}>
       <LanguageProvider userId={userSession.userId}>
+        <Toaster position="top-center" richColors />
         <AnimatedBackground />
         <UpdateNotification />
+        <GuideImportStatus onOpenGuideLibrary={() => handleNavigate('guides')} />
         <BirthdayCelebration userEmail={userSession.email} />
         {currentView === 'hub' && <Hub onNavigate={handleNavigate} onLogout={handleLogout} userEmail={userSession.email} />}
-        {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
+        {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'calendar' && <VacationCalendar onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'shifts' && <ShiftSchedule onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
         {currentView === 'admin' && <AdminPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}

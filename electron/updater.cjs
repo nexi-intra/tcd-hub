@@ -12,10 +12,12 @@
 // nye filer over den lokale appmappe (fx C:\TCD TOOLS\...) og genstarter appen.
 // Alt foregår i brugerens egne mapper — ingen administrator-rettigheder kræves.
 const fs = require('fs')
+const fsp = require('fs/promises')
 const path = require('path')
 const os = require('os')
 const crypto = require('crypto')
-const { spawn, execFileSync } = require('child_process')
+const { pipeline } = require('stream/promises')
+const { spawn } = require('child_process')
 
 const UPDATES_DIR = 'updates'
 const MANIFEST_FILE = 'manifest.json'
@@ -53,12 +55,44 @@ function readManifest(dataDir) {
     const manifest = JSON.parse(raw)
     if (!manifest || typeof manifest !== 'object') return null
     if (!parseVersion(manifest.version) || typeof manifest.file !== 'string' || typeof manifest.sha256 !== 'string') {
+      console.error(`TCD Hub: manifest.json i "${dataDir}" mangler eller har ugyldige felter`)
       return null
     }
     return manifest
-  } catch {
+  } catch (err) {
+    // ENOENT er den normale tilstand (ingen opdatering publiceret endnu) — kun
+    // andre fejl (ugyldig JSON, rettigheder) logges, så fejlfinding er muligt.
+    if (err.code !== 'ENOENT') {
+      console.error(`TCD Hub: kunne ikke læse manifest.json i "${dataDir}":`, err.message)
+    }
     return null
   }
+}
+
+/** Alle filer under en mappe, som stier relativt til mappen (POSIX-separatorer). */
+async function listFilesRecursive(rootDir, prefix = '') {
+  const entries = await fsp.readdir(path.join(rootDir, prefix), { withFileTypes: true })
+  const files = []
+  for (const entry of entries) {
+    const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name
+    if (entry.isDirectory()) {
+      files.push(...await listFilesRecursive(rootDir, relativePath))
+    } else if (entry.isFile()) {
+      files.push(relativePath)
+    }
+  }
+  return files
+}
+
+async function buildFileIndex(rootDir) {
+  const paths = await listFilesRecursive(rootDir)
+  const files = []
+  for (const relativePath of paths) {
+    const absolutePath = path.join(rootDir, relativePath)
+    const { size } = await fsp.stat(absolutePath)
+    files.push({ path: relativePath, size, sha256: await sha256File(absolutePath) })
+  }
+  return files
 }
 
 function sha256File(filePath) {
@@ -111,13 +145,26 @@ async function publishUpdate(dataDir, { zipPath, version, notes, publishedBy }) 
     publishedAt: new Date().toISOString(),
     publishedBy: String(publishedBy || ''),
   }
+
+  // Udpakket kopi + filindeks, så klienter kun behøver hente de ændrede filer.
+  // Zip'en bevares, fordi klienter før 1.3.0 kun kan opdatere fra den.
+  const versionDir = path.join(dir, version)
+  await fsp.rm(versionDir, { recursive: true, force: true })
+  await extractZip(target, versionDir)
+  manifest.files = await buildFileIndex(versionDir)
+  manifest.deltaDir = version
+
   const tmp = manifestPath(dataDir) + '.' + process.pid + '.tmp'
   fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2))
   fs.renameSync(tmp, manifestPath(dataDir))
 
   for (const name of fs.readdirSync(dir)) {
+    const fullPath = path.join(dir, name)
     if (name.toLowerCase().endsWith('.zip') && name !== fileName) {
-      try { fs.unlinkSync(path.join(dir, name)) } catch { /* en anden klient kan være i gang med den */ }
+      try { fs.unlinkSync(fullPath) } catch { /* en anden klient kan være i gang med den */ }
+    } else if (name !== version && name !== MANIFEST_FILE && fs.statSync(fullPath).isDirectory()) {
+      // Ryd tidligere versioners udpakkede mapper.
+      try { fs.rmSync(fullPath, { recursive: true, force: true }) } catch { /* i brug */ }
     }
   }
   return manifest
@@ -127,60 +174,217 @@ function psQuote(value) {
   return value.replace(/'/g, "''")
 }
 
+/** Kører et konsolprogram uden at der blinker et vindue frem hos brugeren. */
+function runHidden(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { windowsHide: true, stdio: 'ignore' })
+    child.once('error', reject)
+    child.once('exit', (code) => {
+      if (code === 0) resolve()
+      else reject(new Error(`${command} afsluttede med kode ${code}`))
+    })
+  })
+}
+
 /** Udpakker en zip med tar.exe (Windows 10+) og PowerShell som fallback. */
-function extractZip(zipPath, destDir) {
-  fs.mkdirSync(destDir, { recursive: true })
+async function extractZip(zipPath, destDir) {
+  await fsp.mkdir(destDir, { recursive: true })
   try {
-    execFileSync('tar.exe', ['-xf', zipPath, '-C', destDir], { windowsHide: true })
+    await runHidden('tar.exe', ['-xf', zipPath, '-C', destDir])
     return
   } catch {
     // tar.exe mangler eller fejlede — prøv PowerShell i stedet.
   }
-  execFileSync(
-    'powershell.exe',
-    [
-      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command',
-      `Expand-Archive -LiteralPath '${psQuote(zipPath)}' -DestinationPath '${psQuote(destDir)}' -Force`,
-    ],
-    { windowsHide: true }
-  )
+  await runHidden('powershell.exe', [
+    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command',
+    `Expand-Archive -LiteralPath '${psQuote(zipPath)}' -DestinationPath '${psQuote(destDir)}' -Force`,
+  ])
 }
 
 /**
- * Forbereder opdateringen og starter det løsrevne script, der udfører den,
- * når appen er lukket. Kalderen skal selv kalde app.quit() bagefter.
+ * Kopierer og checksummer i én gennemlæsning via streams, så main-processen
+ * aldrig blokeres og brugeren kan følge med undervejs.
  */
-async function installUpdate({ dataDir, manifest, installDir, exePath }) {
+async function copyAndHash(sourcePath, targetPath, onProgress) {
+  const { size } = await fsp.stat(sourcePath)
+  const hash = crypto.createHash('sha256')
+  let copied = 0
+  let lastReported = 0
+
+  const source = fs.createReadStream(sourcePath)
+  source.on('data', (chunk) => {
+    hash.update(chunk)
+    copied += chunk.length
+    // Rapportér i spring, så IPC ikke overdøves af små opdateringer.
+    if (copied - lastReported >= 262144 || copied === size) {
+      lastReported = copied
+      onProgress(copied)
+    }
+  })
+
+  await pipeline(source, fs.createWriteStream(targetPath))
+  return hash.digest('hex')
+}
+
+/**
+ * Finder de filer, der reelt adskiller sig fra den installerede app.
+ * Størrelsesforskel afgør sagen med det samme, så kun reelle kandidater hashes.
+ */
+async function diffAgainstInstall(manifestFiles, installDir, onProgress = () => {}) {
+  const changed = []
+  let inspected = 0
+
+  for (const entry of manifestFiles) {
+    const localPath = path.join(installDir, entry.path)
+    let identical = false
+    try {
+      const stat = await fsp.stat(localPath)
+      identical = stat.size === entry.size && (await sha256File(localPath)) === entry.sha256
+    } catch {
+      identical = false
+    }
+    if (!identical) changed.push(entry)
+
+    inspected++
+    onProgress(Math.round((inspected / manifestFiles.length) * 100))
+  }
+
+  return changed
+}
+
+/** Filer i installationen, som den nye version ikke længere indeholder. */
+async function findObsoleteFiles(manifestFiles, installDir) {
+  const wanted = new Set(manifestFiles.map((entry) => entry.path.toLowerCase()))
+  let installed = []
+  try {
+    installed = await listFilesRecursive(installDir)
+  } catch {
+    return []
+  }
+  return installed.filter((relativePath) => !wanted.has(relativePath.toLowerCase()))
+}
+
+/**
+ * Henter og udpakker opdateringen i baggrunden. Appen forbliver brugbar
+ * imens; intet erstattes før applyPreparedUpdate() kaldes.
+ * Fra manifest-format 2 hentes kun de filer, der har ændret sig.
+ */
+async function prepareUpdate({ dataDir, manifest, exePath, installDir, onProgress = () => {} }) {
+  const targetDir = installDir || path.dirname(exePath)
+  const versionDir = manifest.deltaDir ? path.join(updatesDir(dataDir), manifest.deltaDir) : null
+
+  if (Array.isArray(manifest.files) && versionDir && fs.existsSync(versionDir)) {
+    return prepareDeltaUpdate({ manifest, versionDir, installDir: targetDir, exePath, onProgress })
+  }
+  return prepareFullUpdate({ dataDir, manifest, exePath, onProgress })
+}
+
+async function prepareDeltaUpdate({ manifest, versionDir, installDir, exePath, onProgress }) {
+  onProgress({ phase: 'comparing', percent: 0 })
+  const changed = await diffAgainstInstall(manifest.files, installDir, (percent) => {
+    onProgress({ phase: 'comparing', percent })
+  })
+  const obsolete = await findObsoleteFiles(manifest.files, installDir)
+
+  const workDir = await fsp.mkdtemp(path.join(os.tmpdir(), WORK_DIR_PREFIX))
+  const stagingDir = path.join(workDir, 'app')
+  const totalBytes = changed.reduce((sum, entry) => sum + entry.size, 0)
+
+  try {
+    await fsp.mkdir(stagingDir, { recursive: true })
+    onProgress({ phase: 'downloading', percent: 0, transferredBytes: 0, totalBytes, fileCount: changed.length })
+
+    let copiedBytes = 0
+    for (const entry of changed) {
+      const source = path.join(versionDir, entry.path)
+      const target = path.join(stagingDir, entry.path)
+      await fsp.mkdir(path.dirname(target), { recursive: true })
+
+      const actualSha = await copyAndHash(source, target, (fileBytes) => {
+        const percent = totalBytes > 0 ? Math.round(((copiedBytes + fileBytes) / totalBytes) * 100) : 100
+        onProgress({ phase: 'downloading', percent, transferredBytes: copiedBytes + fileBytes, totalBytes, fileCount: changed.length })
+      })
+      if (actualSha !== entry.sha256) {
+        throw new Error(`Checksum-fejl i ${entry.path}. Prøv igen senere.`)
+      }
+      copiedBytes += entry.size
+    }
+
+    const exeName = path.basename(exePath)
+    const exeChanged = changed.some((entry) => path.basename(entry.path).toLowerCase() === exeName.toLowerCase())
+    if (exeChanged && !fs.existsSync(path.join(stagingDir, exeName))) {
+      throw new Error(`Opdateringen ligner ikke en TCD Hub-udgivelse (mangler ${exeName})`)
+    }
+
+    onProgress({ phase: 'ready', percent: 100, transferredBytes: totalBytes, totalBytes, fileCount: changed.length })
+    return { workDir, stagingDir, obsolete, changedCount: changed.length, totalBytes }
+  } catch (error) {
+    await fsp.rm(workDir, { recursive: true, force: true }).catch(() => {})
+    throw error
+  }
+}
+
+/** Bruges når manifestet kommer fra en ældre publicering uden filindeks. */
+async function prepareFullUpdate({ dataDir, manifest, exePath, onProgress }) {
   const sourceZip = path.join(updatesDir(dataDir), manifest.file)
   if (!fs.existsSync(sourceZip)) {
     throw new Error('Opdateringsfilen findes ikke længere i den fælles mappe')
   }
 
-  const workDir = fs.mkdtempSync(path.join(os.tmpdir(), WORK_DIR_PREFIX))
+  const workDir = await fsp.mkdtemp(path.join(os.tmpdir(), WORK_DIR_PREFIX))
   const localZip = path.join(workDir, manifest.file)
-  // Kopiér til lokal disk først — udpakning direkte fra netværksdrev er skrøbelig.
-  fs.copyFileSync(sourceZip, localZip)
 
-  const actualSha = await sha256File(localZip)
-  if (actualSha !== manifest.sha256) {
-    fs.rmSync(workDir, { recursive: true, force: true })
-    throw new Error('Checksum-fejl: filen er beskadiget eller ændret. Prøv igen senere.')
+  try {
+    // Kopiér til lokal disk først — udpakning direkte fra netværksdrev er skrøbelig.
+    onProgress({ phase: 'downloading', percent: 0 })
+    const actualSha = await copyAndHash(sourceZip, localZip, (copied) => {
+      const percent = manifest.size > 0 ? Math.round((copied / manifest.size) * 100) : 0
+      onProgress({ phase: 'downloading', percent, transferredBytes: copied, totalBytes: manifest.size })
+    })
+
+    onProgress({ phase: 'verifying', percent: 100 })
+    if (actualSha !== manifest.sha256) {
+      throw new Error('Checksum-fejl: filen er beskadiget eller ændret. Prøv igen senere.')
+    }
+
+    onProgress({ phase: 'extracting', percent: 0 })
+    const stagingDir = path.join(workDir, 'app')
+    await extractZip(localZip, stagingDir)
+
+    const exeName = path.basename(exePath)
+    if (!fs.existsSync(path.join(stagingDir, exeName))) {
+      throw new Error(`Zip-filen ligner ikke en TCD Hub-udgivelse (mangler ${exeName})`)
+    }
+
+    await fsp.rm(localZip, { force: true })
+    onProgress({ phase: 'ready', percent: 100 })
+    return { workDir, stagingDir, obsolete: [], changedCount: null, totalBytes: manifest.size }
+  } catch (error) {
+    await fsp.rm(workDir, { recursive: true, force: true }).catch(() => {})
+    throw error
   }
+}
 
-  const stagingDir = path.join(workDir, 'app')
-  extractZip(localZip, stagingDir)
-
-  const exeName = path.basename(exePath)
-  if (!fs.existsSync(path.join(stagingDir, exeName))) {
-    fs.rmSync(workDir, { recursive: true, force: true })
-    throw new Error(`Zip-filen ligner ikke en TCD Hub-udgivelse (mangler ${exeName})`)
-  }
+/**
+ * Starter det løsrevne script, der bytter filerne og genstarter appen, når
+ * den er lukket. Scriptet køres via wscript.exe, fordi en detached cmd.exe
+ * åbner et synligt konsolvindue selv med windowsHide.
+ * Kalderen skal selv kalde app.quit() bagefter.
+ */
+function buildApplyScript({ workDir, stagingDir, installDir, exePath, obsolete = [], appPid = process.pid }) {
+  // Sikkerhedsventil: en uventet lang sletteliste tyder på et forkert manifest.
+  const safeObsolete = obsolete.length <= 200
+    ? obsolete.filter((relativePath) => {
+      const resolved = path.resolve(installDir, relativePath)
+      return resolved.startsWith(path.resolve(installDir) + path.sep)
+    })
+    : []
 
   // "ping -n 2" bruges som 1 sekunds pause — timeout.exe virker ikke uden stdin.
-  const script = [
+  return [
     '@echo off',
     'setlocal',
-    `set "APPPID=${process.pid}"`,
+    `set "APPPID=${appPid}"`,
     `set "LOG=${path.join(workDir, 'update-log.txt')}"`,
     'echo Venter paa at TCD Hub lukker... > "%LOG%"',
     ':wait',
@@ -190,21 +394,38 @@ async function installUpdate({ dataDir, manifest, installDir, exePath }) {
     '  goto wait',
     ')',
     'echo Kopierer nye filer... >> "%LOG%"',
-    `robocopy "${stagingDir}" "${installDir}" /E /R:10 /W:2 >> "%LOG%" 2>&1`,
+    `robocopy "${stagingDir}" "${installDir}" /E /R:10 /W:2 /NFL /NDL /NJH /NJS /NP >> "%LOG%" 2>&1`,
     'if %ERRORLEVEL% GEQ 8 (',
     '  echo Opdatering fejlede - robocopy exit %ERRORLEVEL% >> "%LOG%"',
+    `  start "" "${exePath}"`,
+    '  exit /b %ERRORLEVEL%',
     ') else (',
     '  echo Opdatering gennemfoert >> "%LOG%"',
     ')',
+    ...safeObsolete.map((relativePath) => `del /f /q "${path.join(installDir, relativePath)}" >> "%LOG%" 2>&1`),
     `start "" "${exePath}"`,
     'endlocal',
     '',
   ].join('\r\n')
+}
+
+function applyPreparedUpdate({ workDir, stagingDir, installDir, exePath, obsolete = [] }) {
+  const script = buildApplyScript({ workDir, stagingDir, installDir, exePath, obsolete })
 
   const scriptPath = path.join(workDir, 'apply-update.cmd')
   fs.writeFileSync(scriptPath, script)
 
-  const child = spawn('cmd.exe', ['/c', scriptPath], {
+  // WindowStyle 0 = fuldstændig skjult; False = vent ikke på at scriptet slutter.
+  const launcher = [
+    'Set shell = CreateObject("WScript.Shell")',
+    `shell.Run Chr(34) & "${scriptPath}" & Chr(34), 0, False`,
+    '',
+  ].join('\r\n')
+
+  const launcherPath = path.join(workDir, 'apply-update.vbs')
+  fs.writeFileSync(launcherPath, launcher)
+
+  const child = spawn('wscript.exe', [launcherPath], {
     detached: true,
     stdio: 'ignore',
     windowsHide: true,
@@ -237,7 +458,9 @@ module.exports = {
   isNewerVersion,
   versionFromFilename,
   publishUpdate,
-  installUpdate,
+  prepareUpdate,
+  applyPreparedUpdate,
   cleanupOldWorkDirs,
   sha256File,
+  buildApplyScript,
 }

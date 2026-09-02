@@ -10,12 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { DatePickerField } from '@/components/DatePickerField'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { format } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { UserRole, ADMIN_EMAIL, hasManagerAccess, getRoleDisplayName, getRoleDescription } from '@/lib/userRoles'
+import { hashPassword } from '@/lib/passwords'
+import { newId } from '@/lib/utils'
+import { parseLocalDate } from '@/lib/dateUtils'
+import { appendToKvArray, updateKvArrayItem, removeFromKvArray, upsertInKvArray, setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
 import { cn } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
@@ -33,6 +38,7 @@ interface User {
   role: UserRole
   phone?: string
   status?: 'pending' | 'approved' | 'rejected'
+  username?: string
 }
 
 interface ManagerPanelProps {
@@ -53,6 +59,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [newPhone, setNewPhone] = useState('')
+  const [newUsername, setNewUsername] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -104,7 +111,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
   const loadUsers = async () => {
     setIsLoading(true)
-    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; phone?: string; role?: UserRole; isManager?: boolean; status?: 'pending' | 'approved' | 'rejected' }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; phone?: string; role?: UserRole; isManager?: boolean; status?: 'pending' | 'approved' | 'rejected'; username?: string }>>('users')
     if (usersData) {
       const allUsers = Object.values(usersData).map(u => {
         let role: UserRole = 'user'
@@ -122,6 +129,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           role,
           phone: u.phone,
           status: u.status,
+          username: u.username,
         }
       })
 
@@ -137,8 +145,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const sendUserDecisionEmail = async (user: User, approved: boolean) => {
     try {
       const emailContent = approved ? userApprovedEmail(user.fullName, userEmail) : userRejectedEmail(user.fullName, userEmail)
-      const emails = (await window.kv.get<Array<{ id: string; from: string; to: string; subject: string; message: string; timestamp: number; read: boolean }>>('emails')) || []
-      emails.push({
+      await appendToKvArray('emails', [{
         id: `${Date.now()}-user-decision`,
         from: userEmail,
         to: user.email,
@@ -146,8 +153,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         message: emailContent.body,
         timestamp: Date.now(),
         read: false,
-      })
-      await window.kv.set('emails', emails)
+      }])
     } catch (error) {
       console.error('Error sending user decision email:', error)
     }
@@ -159,8 +165,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       toast.error('Bruger ikke fundet')
       return
     }
-    usersData[user.email].status = 'approved'
-    await window.kv.set('users', usersData)
+    await setKvObjectField('users', user.email, { ...usersData[user.email], status: 'approved' })
     await loadUsers()
     await sendUserDecisionEmail(user, true)
     toast.success(`${user.fullName} er godkendt og kan nu logge ind`)
@@ -172,8 +177,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       toast.error('Bruger ikke fundet')
       return
     }
-    usersData[user.email].status = 'rejected'
-    await window.kv.set('users', usersData)
+    await setKvObjectField('users', user.email, { ...usersData[user.email], status: 'rejected' })
     await loadUsers()
     await sendUserDecisionEmail(user, false)
     toast.success(`Anmodningen fra ${user.fullName} er afvist`)
@@ -227,23 +231,14 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const birthdaysData = await window.kv.get<BirthdayEntry[]>('employee-birthdays') || []
-    const index = birthdaysData.findIndex(b => b.email === editingBirthday.email)
-    
     const updatedEntry: BirthdayEntry = {
       email: editingBirthday.email,
       fullName: editingBirthday.fullName,
       birthday: birthdayDate,
       birthYear: birthYear ? parseInt(birthYear) : undefined
     }
-    
-    if (index !== -1) {
-      birthdaysData[index] = updatedEntry
-    } else {
-      birthdaysData.push(updatedEntry)
-    }
 
-    await window.kv.set('employee-birthdays', birthdaysData)
+    await upsertInKvArray('employee-birthdays', [{ ...updatedEntry, id: updatedEntry.email }])
     await loadBirthdays()
     
     setIsEditBirthdayDialogOpen(false)
@@ -254,9 +249,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const deleteBirthday = async (email: string) => {
-    const birthdaysData = await window.kv.get<BirthdayEntry[]>('employee-birthdays') || []
-    const updated = birthdaysData.filter(b => b.email !== email)
-    await window.kv.set('employee-birthdays', updated)
+    await removeFromKvArray('employee-birthdays', [email])
     await loadBirthdays()
     toast.success('Fødselsdag slettet')
   }
@@ -269,9 +262,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
     const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users')
     if (usersData && usersData[email]) {
-      usersData[email].role = newRole
-      usersData[email].isManager = newRole === 'manager' || newRole === 'admin'
-      await window.kv.set('users', usersData)
+      await setKvObjectField('users', email, {
+        ...usersData[email],
+        role: newRole,
+        isManager: newRole === 'manager' || newRole === 'admin',
+      })
       await loadUsers()
       
       toast.success(`Bruger ændret til ${getRoleDisplayName(newRole)}`)
@@ -288,12 +283,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     if (usersData && usersData[email]) {
       const userFullName = usersData[email].fullName
       
-      delete usersData[email]
-      await window.kv.set('users', usersData)
+      await deleteKvObjectField('users', email)
       
       const assignments = (await window.kv.get<Array<{ id: string; employeeId: string; employeeName: string; roleId: string; date: string; comment?: string }>>('shift-assignments')) || []
-      const updatedAssignments = assignments.filter(a => a.employeeName !== userFullName)
-      await window.kv.set('shift-assignments', updatedAssignments)
+      const assignmentIdsToRemove = assignments.filter(a => a.employeeName === userFullName).map(a => a.id)
+      await removeFromKvArray('shift-assignments', assignmentIdsToRemove)
       
       await loadUsers()
       toast.success('Bruger slettet')
@@ -301,13 +295,14 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const openEditNameDialog = async (user: User) => {
-    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string; username?: string }>>('users')
     const userData = usersData?.[user.email]
-    
+
     setEditingUser(user)
     setNewName(user.fullName)
     setNewEmail(user.email)
     setNewPhone(userData?.phone || '')
+    setNewUsername(userData?.username || '')
     setNewPassword('')
     setIsEditDialogOpen(true)
   }
@@ -329,10 +324,26 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string }>>('users')
+    const trimmedUsername = newUsername.trim()
+    if (trimmedUsername && !/^[a-zA-Z0-9._-]{3,32}$/.test(trimmedUsername)) {
+      toast.error('Brugernavn skal være 3-32 tegn (bogstaver, tal, punktum, bindestreg, underscore)')
+      return
+    }
+
+    const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string; username?: string }>>('users')
     if (!usersData || !usersData[editingUser.email]) {
       toast.error('Bruger ikke fundet')
       return
+    }
+
+    if (trimmedUsername) {
+      const usernameTaken = Object.entries(usersData).some(([userEmail, u]) =>
+        userEmail !== editingUser.email && u.username?.toLowerCase() === trimmedUsername.toLowerCase()
+      )
+      if (usernameTaken) {
+        toast.error('Brugernavnet er allerede i brug')
+        return
+      }
     }
 
     const userData = usersData[editingUser.email]
@@ -347,23 +358,24 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       fullName: newName.trim(),
       email: newEmail.trim(),
       phone: newPhone.trim() || userData.phone,
-      password: newPassword.trim() || userData.password,
+      username: trimmedUsername || undefined,
+      password: newPassword.trim() ? await hashPassword(newPassword.trim()) : userData.password,
     }
 
     if (newEmail.trim().toLowerCase() !== editingUser.email.toLowerCase()) {
-      delete usersData[editingUser.email]
-      usersData[newEmail.trim().toLowerCase()] = updatedUserData
+      await deleteKvObjectField('users', editingUser.email)
+      await setKvObjectField('users', newEmail.trim().toLowerCase(), updatedUserData)
     } else {
-      usersData[editingUser.email] = updatedUserData
+      await setKvObjectField('users', editingUser.email, updatedUserData)
     }
 
-    await window.kv.set('users', usersData)
     await loadUsers()
     setIsEditDialogOpen(false)
     setEditingUser(null)
     setNewName('')
     setNewEmail('')
     setNewPhone('')
+    setNewUsername('')
     setNewPassword('')
     toast.success('Bruger opdateret succesfuldt')
   }
@@ -399,19 +411,17 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    usersData[newUserEmail.toLowerCase()] = {
-      email: newUserEmail.toLowerCase(),
-      password: newUserPassword.trim(),
-      fullName: newUserName.trim(),
-      role: 'user',
-      isManager: false,
-      phone: newUserPhone.trim(),
-      // Manager-created accounts skip the approval flow.
-      status: 'approved'
-    }
-
     try {
-      await window.kv.set('users', usersData)
+      await setKvObjectField('users', newUserEmail.toLowerCase(), {
+        email: newUserEmail.toLowerCase(),
+        password: await hashPassword(newUserPassword.trim()),
+        fullName: newUserName.trim(),
+        role: 'user',
+        isManager: false,
+        phone: newUserPhone.trim(),
+        // Manager-created accounts skip the approval flow.
+        status: 'approved'
+      })
     } catch (error) {
       console.error('Failed to save new user:', error)
       toast.error(`Kunne ikke gemme bruger: ${error instanceof Error ? error.message : String(error)}`)
@@ -430,39 +440,29 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   }
 
   const deleteSickLeave = async (id: string) => {
-    const entries = await window.kv.get<SickLeaveEntry[]>('sick-leave-entries') || []
-    const updatedEntries = entries.filter(e => e.id !== id)
-    await window.kv.set('sick-leave-entries', updatedEntries)
+    await removeFromKvArray('sick-leave-entries', [id])
     await loadSickLeaveEntries()
     toast.success('Sygemelding slettet')
   }
 
   const handleApproveVacation = async (vacation: VacationEntry) => {
-    const allVacations = await window.kv.get<VacationEntry[]>('vacation-entries') || []
-    const updatedVacations = allVacations.map((v) =>
-      v.id === vacation.id
-        ? { ...v, status: 'approved' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString() }
-        : v
-    )
-    await window.kv.set('vacation-entries', updatedVacations)
+    // Atomar pr.-element-opdatering — to manageres samtidige beslutninger taber ikke hinanden.
+    const updated = await updateKvArrayItem<VacationEntry>('vacation-entries', vacation.id, (v) => ({
+      ...v, status: 'approved' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString(),
+    }))
+    if (!updated) {
+      toast.error('Ferieanmodningen findes ikke længere')
+      await loadVacationEntries()
+      return
+    }
     await loadVacationEntries()
     toast.success('Ferie godkendt')
 
     try {
       const emailContent = vacationApprovedEmail(vacation.startDate, vacation.endDate, userEmail, vacation.notes)
 
-      const emails = await window.kv.get<Array<{
-        id: string
-        from: string
-        to: string
-        subject: string
-        message: string
-        timestamp: number
-        read: boolean
-      }>>('emails') || []
-
       const newEmail = {
-        id: Date.now().toString() + '-approval',
+        id: newId('email'),
         from: userEmail,
         to: vacation.userEmail,
         subject: emailContent.subject,
@@ -471,10 +471,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         read: false
       }
 
-      await window.kv.set('emails', [...emails, newEmail])
+      await appendToKvArray('emails', [newEmail])
 
       const notification = {
-        id: Date.now().toString(),
+        id: newId('notif'),
         type: 'email' as const,
         message: `Din ferieansøgning blev godkendt!`,
         timestamp: Date.now(),
@@ -483,39 +483,29 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         emailId: newEmail.id
       }
 
-      const notifications = await window.kv.get<any[]>('email-notifications') || []
-      await window.kv.set('email-notifications', [...notifications, notification])
+      await appendToKvArray('email-notifications', [notification])
     } catch (emailError) {
       console.error('Error sending vacation approval email:', emailError)
     }
   }
 
   const handleRejectVacation = async (vacation: VacationEntry) => {
-    const allVacations = await window.kv.get<VacationEntry[]>('vacation-entries') || []
-    const updatedVacations = allVacations.map((v) =>
-      v.id === vacation.id
-        ? { ...v, status: 'rejected' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString() }
-        : v
-    )
-    await window.kv.set('vacation-entries', updatedVacations)
+    const updated = await updateKvArrayItem<VacationEntry>('vacation-entries', vacation.id, (v) => ({
+      ...v, status: 'rejected' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString(),
+    }))
+    if (!updated) {
+      toast.error('Ferieanmodningen findes ikke længere')
+      await loadVacationEntries()
+      return
+    }
     await loadVacationEntries()
     toast.error('Ferie afvist')
 
     try {
       const emailContent = vacationRejectedEmail(vacation.startDate, vacation.endDate, userEmail, vacation.notes)
 
-      const emails = await window.kv.get<Array<{
-        id: string
-        from: string
-        to: string
-        subject: string
-        message: string
-        timestamp: number
-        read: boolean
-      }>>('emails') || []
-
       const newEmail = {
-        id: Date.now().toString() + '-rejection',
+        id: newId('email'),
         from: userEmail,
         to: vacation.userEmail,
         subject: emailContent.subject,
@@ -524,10 +514,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         read: false
       }
 
-      await window.kv.set('emails', [...emails, newEmail])
+      await appendToKvArray('emails', [newEmail])
 
       const notification = {
-        id: Date.now().toString(),
+        id: newId('notif'),
         type: 'email' as const,
         message: `Din ferieansøgning blev afvist`,
         timestamp: Date.now(),
@@ -536,8 +526,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         emailId: newEmail.id
       }
 
-      const notifications = await window.kv.get<any[]>('email-notifications') || []
-      await window.kv.set('email-notifications', [...notifications, notification])
+      await appendToKvArray('email-notifications', [notification])
     } catch (emailError) {
       console.error('Error sending vacation rejection email:', emailError)
     }
@@ -545,8 +534,8 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
   const openEditVacationDialog = (vacation: VacationEntry) => {
     setEditingVacation(vacation)
-    setEditVacationStartDate(new Date(vacation.startDate))
-    setEditVacationEndDate(new Date(vacation.endDate))
+    setEditVacationStartDate(parseLocalDate(vacation.startDate))
+    setEditVacationEndDate(parseLocalDate(vacation.endDate))
     setEditVacationNotes(vacation.notes || '')
     setIsEditVacationDialogOpen(true)
   }
@@ -562,18 +551,18 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const allVacationsData = await window.kv.get<VacationEntry[]>('vacation-entries') || []
-    const updatedVacations = allVacationsData.map((v) =>
-      v.id === editingVacation.id
-        ? { 
-            ...v, 
-            startDate: editVacationStartDate.toISOString(), 
-            endDate: editVacationEndDate.toISOString(),
-            notes: editVacationNotes.trim() || undefined
-          }
-        : v
-    )
-    await window.kv.set('vacation-entries', updatedVacations)
+    const editedEntry = await updateKvArrayItem<VacationEntry>('vacation-entries', editingVacation.id, (v) => ({
+      ...v,
+      startDate: format(editVacationStartDate, 'yyyy-MM-dd'),
+      endDate: format(editVacationEndDate, 'yyyy-MM-dd'),
+      notes: editVacationNotes.trim() || undefined,
+    }))
+    if (!editedEntry) {
+      toast.error('Ferieanmodningen findes ikke længere')
+      await loadVacationEntries()
+      setIsEditVacationDialogOpen(false)
+      return
+    }
     await loadVacationEntries()
     setIsEditVacationDialogOpen(false)
 
@@ -587,18 +576,8 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         editVacationNotes.trim() || undefined,
       )
 
-      const emails = await window.kv.get<Array<{
-        id: string
-        from: string
-        to: string
-        subject: string
-        message: string
-        timestamp: number
-        read: boolean
-      }>>('emails') || []
-
       const newEmail = {
-        id: Date.now().toString() + '-vacation-edit',
+        id: newId('email'),
         from: userEmail,
         to: editingVacation.userEmail,
         subject: emailContent.subject,
@@ -607,10 +586,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         read: false
       }
 
-      await window.kv.set('emails', [...emails, newEmail])
+      await appendToKvArray('emails', [newEmail])
 
       const notification = {
-        id: Date.now().toString(),
+        id: newId('notif'),
         type: 'email' as const,
         message: `Din ferie er blevet redigeret af en manager`,
         timestamp: Date.now(),
@@ -619,8 +598,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         emailId: newEmail.id
       }
 
-      const notifications = await window.kv.get<any[]>('email-notifications') || []
-      await window.kv.set('email-notifications', [...notifications, notification])
+      await appendToKvArray('email-notifications', [notification])
     } catch (emailError) {
       console.error('Error sending vacation edit email:', emailError)
     }
@@ -641,8 +619,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       return
     }
 
-    const updatedVacations = allVacationsData.filter(v => v.id !== id)
-    await window.kv.set('vacation-entries', updatedVacations)
+    await window.kv.update('vacation-entries', { op: 'remove', ids: [id] })
     await loadVacationEntries()
     toast.success('Ferie slettet')
 
@@ -655,18 +632,8 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         vacationToDelete.notes,
       )
 
-      const emails = await window.kv.get<Array<{
-        id: string
-        from: string
-        to: string
-        subject: string
-        message: string
-        timestamp: number
-        read: boolean
-      }>>('emails') || []
-
       const newEmail = {
-        id: Date.now().toString() + '-vacation-delete',
+        id: newId('email'),
         from: userEmail,
         to: vacationToDelete.userEmail,
         subject: emailContent.subject,
@@ -675,10 +642,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         read: false
       }
 
-      await window.kv.set('emails', [...emails, newEmail])
+      await appendToKvArray('emails', [newEmail])
 
       const notification = {
-        id: Date.now().toString(),
+        id: newId('notif'),
         type: 'email' as const,
         message: `Din ferie er blevet slettet af en manager`,
         timestamp: Date.now(),
@@ -687,8 +654,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         emailId: newEmail.id
       }
 
-      const notifications = await window.kv.get<any[]>('email-notifications') || []
-      await window.kv.set('email-notifications', [...notifications, notification])
+      await appendToKvArray('email-notifications', [notification])
     } catch (emailError) {
       console.error('Error sending vacation deletion email:', emailError)
     }
@@ -1059,7 +1025,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                     if (existing) {
                       existing.count++
                       const existingDate = new Date(existing.lastDate)
-                      const currentDate = new Date(entry.startDate)
+                      const currentDate = parseLocalDate(entry.startDate)
                       if (currentDate > existingDate) {
                         existing.lastDate = entry.startDate
                       }
@@ -1147,7 +1113,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   if (existing) {
                     existing.count++
                     const existingDate = new Date(existing.lastDate)
-                    const currentDate = new Date(entry.startDate)
+                    const currentDate = parseLocalDate(entry.startDate)
                     if (currentDate > existingDate) {
                       existing.lastDate = entry.startDate
                     }
@@ -1243,7 +1209,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                             <span className="font-medium">
                               {(() => {
                                 try {
-                                  const startDate = new Date(entry.startDate)
+                                  const startDate = parseLocalDate(entry.startDate)
                                   if (isNaN(startDate.getTime())) return 'Ugyldig dato'
                                   return format(startDate, 'd. MMM yyyy', { locale: da })
                                 } catch {
@@ -1359,7 +1325,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                                 <span className="font-semibold">
                                   {(() => {
                                     try {
-                                      const date = new Date(vacation.startDate)
+                                      const date = parseLocalDate(vacation.startDate)
                                       if (isNaN(date.getTime())) return 'Ugyldig dato'
                                       return format(date, 'd. MMM yyyy', { locale: da })
                                     } catch {
@@ -1372,7 +1338,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                                 <span className="font-semibold">
                                   {(() => {
                                     try {
-                                      const date = new Date(vacation.endDate)
+                                      const date = parseLocalDate(vacation.endDate)
                                       if (isNaN(date.getTime())) return 'Ugyldig dato'
                                       return format(date, 'd. MMM yyyy', { locale: da })
                                     } catch {
@@ -1402,7 +1368,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                       <div className="flex gap-2 pl-16">
                         <Button
                           onClick={() => {
-                            const startDate = new Date(vacation.startDate)
+                            const startDate = parseLocalDate(vacation.startDate)
                             setPreviewMonth(startDate.getMonth())
                             setPreviewYear(startDate.getFullYear())
                             setPreviewVacation(vacation)
@@ -1502,7 +1468,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                               <span className="font-medium">
                                 {(() => {
                                   try {
-                                    const date = new Date(vacation.startDate)
+                                    const date = parseLocalDate(vacation.startDate)
                                     if (isNaN(date.getTime())) return 'Ugyldig dato'
                                     return format(date, 'd. MMM yyyy', { locale: da })
                                   } catch {
@@ -1514,7 +1480,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                               <span className="font-medium">
                                 {(() => {
                                   try {
-                                    const date = new Date(vacation.endDate)
+                                    const date = parseLocalDate(vacation.endDate)
                                     if (isNaN(date.getTime())) return 'Ugyldig dato'
                                     return format(date, 'd. MMM yyyy', { locale: da })
                                   } catch {
@@ -1817,7 +1783,8 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               icon={<SquaresFour size={28} className="text-primary" weight="duotone" />}
               leaderboardKey="tetris-global-leaderboard"
               playCountsKey="tetris-play-counts"
-              hasLevel
+              categories={['all']}
+              categorySettings={{ all: { label: 'Highscores', color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', statBg: 'bg-primary/10', statBorder: 'border-primary/20', statText: 'text-primary' } }}
               users={users}
             />
           </TabsContent>
@@ -1844,21 +1811,17 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Startdato *</Label>
-              <Input
-                type="date"
+              <DatePickerField
                 value={editVacationStartDate ? format(editVacationStartDate, 'yyyy-MM-dd') : ''}
-                onChange={(e) => setEditVacationStartDate(e.target.value ? new Date(e.target.value) : undefined)}
-                className="w-full"
+                onChange={(value) => setEditVacationStartDate(value ? new Date(value) : undefined)}
               />
             </div>
             <div className="space-y-2">
               <Label>Slutdato *</Label>
-              <Input
-                type="date"
+              <DatePickerField
                 value={editVacationEndDate ? format(editVacationEndDate, 'yyyy-MM-dd') : ''}
-                onChange={(e) => setEditVacationEndDate(e.target.value ? new Date(e.target.value) : undefined)}
+                onChange={(value) => setEditVacationEndDate(value ? new Date(value) : undefined)}
                 min={editVacationStartDate ? format(editVacationStartDate, 'yyyy-MM-dd') : undefined}
-                className="w-full"
               />
             </div>
             <div className="space-y-2">
@@ -1932,6 +1895,16 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               </div>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="user-username">Brugernavn (valgfri)</Label>
+              <Input
+                id="user-username"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="f.eks. jremmer"
+              />
+              <p className="text-xs text-muted-foreground">Kan bruges til at logge ind i stedet for email. Begge dele virker.</p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="user-password">Ny adgangskode (valgfri)</Label>
               <Input
                 id="user-password"
@@ -1952,6 +1925,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               setNewName('')
               setNewEmail('')
               setNewPhone('')
+              setNewUsername('')
               setNewPassword('')
             }}>
               Annuller
@@ -2066,8 +2040,8 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
             const isDateInVacation = (day: number, vacation: VacationEntry, month: number, year: number) => {
               const checkDate = new Date(year, month, day)
-              const start = new Date(vacation.startDate)
-              const end = new Date(vacation.endDate)
+              const start = parseLocalDate(vacation.startDate)
+              const end = parseLocalDate(vacation.endDate)
               
               start.setHours(0, 0, 0, 0)
               end.setHours(23, 59, 59, 999)
@@ -2088,8 +2062,8 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             const firstDay = getFirstDayOfMonth(previewMonth, previewYear)
 
             const approvedVacations = allVacations.filter((v) => {
-              const start = new Date(v.startDate)
-              const end = new Date(v.endDate)
+              const start = parseLocalDate(v.startDate)
+              const end = parseLocalDate(v.endDate)
               
               if (isNaN(start.getTime()) || isNaN(end.getTime())) return false
               
@@ -2319,24 +2293,20 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="birthday-date">Fødselsdato *</Label>
-              <Input
+              <DatePickerField
                 id="birthday-date"
-                type="date"
                 value={birthdayDate && birthYear ? `${birthYear}-${birthdayDate}` : birthdayDate ? `2000-${birthdayDate}` : ''}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    const date = new Date(e.target.value)
-                    const year = date.getFullYear()
-                    const month = String(date.getMonth() + 1).padStart(2, '0')
-                    const day = String(date.getDate()).padStart(2, '0')
+                enableYearDropdown
+                onChange={(value) => {
+                  if (value) {
+                    const [year, month, day] = value.split('-')
                     setBirthdayDate(`${month}-${day}`)
-                    setBirthYear(year.toString())
+                    setBirthYear(year)
                   } else {
                     setBirthdayDate('')
                     setBirthYear('')
                   }
                 }}
-                className="w-full"
               />
               <p className="text-xs text-muted-foreground">
                 Vælg den fulde fødselsdato inklusive år for at vise alderen på kalenderen

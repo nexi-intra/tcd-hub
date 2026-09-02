@@ -35,7 +35,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useKV } from '@/hooks/useKV'
 import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { AutoText } from '@/components/AutoText'
+import { cn, newId } from '@/lib/utils'
+import { appendToKvArray } from '@/lib/kvArrays'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { Email, EmailFolder, VacationEntry, VacationStatus } from '@/lib/types'
 
@@ -234,7 +236,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
     }
 
     const newEmail: Email = {
-      id: Date.now().toString(),
+      id: newId('email'),
       from: userEmail,
       to: composeData.to,
       subject: composeData.subject,
@@ -243,10 +245,11 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
       read: false
     }
 
-    setEmails(currentEmails => [...(currentEmails || []), newEmail])
+    // Atomar append — to brugere der sender samtidig taber ikke længere hinandens mails.
+    await appendToKvArray('emails', [newEmail])
 
     const notification = {
-      id: Date.now().toString(),
+      id: newId('notif'),
       type: 'email' as const,
       message: `Ny email fra ${userEmail}: ${composeData.subject}`,
       timestamp: Date.now(),
@@ -255,8 +258,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
       emailId: newEmail.id
     }
 
-    const notifications = await window.kv.get<any[]>('email-notifications') || []
-    await window.kv.set('email-notifications', [...notifications, notification])
+    await appendToKvArray('email-notifications', [notification])
 
     toast.success(t.email.emailSent)
     setComposeData({ to: '', subject: '', message: '' })
@@ -629,7 +631,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                 className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
               >
                 <ArrowLeft size={20} />
-                Tilbage
+                {t.email.back}
               </Button>
             </motion.div>
           </div>
@@ -645,9 +647,9 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
           <div className="flex flex-col items-center gap-6">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
-                Email System
+                {t.email.title}
               </h1>
-              <p className="text-muted-foreground mt-2">Send og modtag beskeder</p>
+              <p className="text-muted-foreground mt-2">{t.email.sendAndReceive}</p>
             </div>
           </div>
         </motion.div>
@@ -666,7 +668,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                 size="lg"
               >
                 <PaperPlaneTilt size={20} weight="bold" />
-                Ny Email
+                {t.email.newEmail}
               </Button>
 
               <Separator className="my-4" />
@@ -690,7 +692,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                   }}
                 >
                   <Envelope size={20} weight={view === 'inbox' ? 'fill' : 'regular'} />
-                  Indbakke
+                  {t.email.inbox}
                   {unreadCount > 0 && (
                     <Badge className="ml-auto bg-primary text-primary-foreground">
                       {unreadCount}
@@ -708,7 +710,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                 }}
               >
                 <PaperPlaneTilt size={20} weight={view === 'sent' ? 'fill' : 'regular'} />
-                Sendt
+                {t.email.sent}
               </Button>
 
               {isManager && (
@@ -724,7 +726,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                     }}
                   >
                     <Umbrella size={20} weight={view === 'vacation-requests' ? 'fill' : 'regular'} />
-                    Ferie Anmodninger
+                    {t.email.vacationRequests}
                     {pendingVacationRequests.length > 0 && (
                       <Badge className="ml-auto bg-accent text-accent-foreground">
                         {pendingVacationRequests.length}
@@ -737,7 +739,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
               <Separator className="my-2" />
 
               <div className="flex items-center justify-between px-2 mb-2">
-                <span className="text-sm font-semibold text-muted-foreground">Mapper</span>
+                <span className="text-sm font-semibold text-muted-foreground">{t.email.folders}</span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -755,7 +757,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
 
               {userFolders.length === 0 ? (
                 <div className="text-xs text-muted-foreground text-center py-4 px-2">
-                  Ingen mapper endnu. Opret din første mappe!
+                  {t.email.noFolders}
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -833,7 +835,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
             <Card className="p-4 mt-4">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <User size={18} />
-                Brugere
+                {t.email.users}
               </h3>
               <ScrollArea className="h-[300px]">
                 <div className="space-y-2">
@@ -877,30 +879,30 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                     exit={{ opacity: 0, y: -20 }}
                     className="space-y-4"
                   >
-                    <h2 className="text-2xl font-bold mb-6">Ny Email</h2>
+                    <h2 className="text-2xl font-bold mb-6">{t.email.newEmail}</h2>
                     
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Til</label>
+                      <label className="text-sm font-medium">{t.email.to}</label>
                       <Input
-                        placeholder="Modtagers email"
+                        placeholder={t.email.recipientEmail}
                         value={composeData.to}
                         onChange={(e) => setComposeData(prev => ({ ...prev, to: e.target.value }))}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Emne</label>
+                      <label className="text-sm font-medium">{t.email.subject}</label>
                       <Input
-                        placeholder="Email emne"
+                        placeholder={t.email.emailSubject}
                         value={composeData.subject}
                         onChange={(e) => setComposeData(prev => ({ ...prev, subject: e.target.value }))}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Besked</label>
+                      <label className="text-sm font-medium">{t.email.message}</label>
                       <Textarea
-                        placeholder="Skriv din besked her..."
+                        placeholder={t.email.writeMessage}
                         value={composeData.message}
                         onChange={(e) => setComposeData(prev => ({ ...prev, message: e.target.value }))}
                         rows={12}
@@ -915,14 +917,14 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                         size="lg"
                       >
                         <PaperPlaneTilt size={20} weight="bold" />
-                        Send Email
+                        {t.email.sendEmail}
                       </Button>
                       <Button
                         onClick={() => setView('inbox')}
                         variant="outline"
                         size="lg"
                       >
-                        Annuller
+                        {t.email.cancel}
                       </Button>
                     </div>
                   </motion.div>
@@ -938,9 +940,9 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                     <div className="space-y-4 mb-6">
                       <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold">
-                          {view === 'inbox' && 'Indbakke'}
-                          {view === 'sent' && 'Sendt'}
-                          {view === 'folder' && (userFolders.find(f => f.id === selectedFolderId)?.name || 'Mappe')}
+                          {view === 'inbox' && t.email.inbox}
+                          {view === 'sent' && t.email.sent}
+                          {view === 'folder' && (userFolders.find(f => f.id === selectedFolderId)?.name || t.email.folder)}
                         </h2>
                         <div className="flex items-center gap-2">
                           <Popover open={showFilters} onOpenChange={setShowFilters}>
@@ -954,7 +956,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                 )}
                               >
                                 <Funnel size={18} weight={dateFilter !== 'all' || senderFilter !== 'all' ? 'fill' : 'regular'} />
-                                Filtre
+                                {t.email.filters}
                                 {(dateFilter !== 'all' || senderFilter !== 'all') && (
                                   <Badge className="ml-1 h-5 px-1.5 bg-primary text-primary-foreground">
                                     {(dateFilter !== 'all' ? 1 : 0) + (senderFilter !== 'all' ? 1 : 0)}
@@ -968,7 +970,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                   <div className="flex items-center justify-between">
                                     <label className="text-sm font-medium flex items-center gap-2">
                                       <CalendarBlank size={16} />
-                                      Dato
+                                      {t.email.date}
                                     </label>
                                     {dateFilter !== 'all' && (
                                       <Button
@@ -977,19 +979,19 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                         className="h-6 px-2 text-xs"
                                         onClick={() => setDateFilter('all')}
                                       >
-                                        Ryd
+                                        {t.email.clear}
                                       </Button>
                                     )}
                                   </div>
                                   <Select value={dateFilter} onValueChange={setDateFilter}>
                                     <SelectTrigger>
-                                      <SelectValue placeholder="Vælg periode" />
+                                      <SelectValue placeholder={t.email.selectPeriod} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="all">Alle</SelectItem>
-                                      <SelectItem value="today">I dag</SelectItem>
-                                      <SelectItem value="week">Seneste uge</SelectItem>
-                                      <SelectItem value="month">Seneste måned</SelectItem>
+                                      <SelectItem value="all">{t.email.all}</SelectItem>
+                                      <SelectItem value="today">{t.email.today}</SelectItem>
+                                      <SelectItem value="week">{t.email.lastWeek}</SelectItem>
+                                      <SelectItem value="month">{t.email.lastMonth}</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -1000,7 +1002,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                   <div className="flex items-center justify-between">
                                     <label className="text-sm font-medium flex items-center gap-2">
                                       <User size={16} />
-                                      {view === 'inbox' ? 'Afsender' : 'Modtager'}
+                                      {view === 'inbox' ? t.email.sender : t.email.recipient}
                                     </label>
                                     {senderFilter !== 'all' && (
                                       <Button
@@ -1009,16 +1011,16 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                         className="h-6 px-2 text-xs"
                                         onClick={() => setSenderFilter('all')}
                                       >
-                                        Ryd
+                                        {t.email.clear}
                                       </Button>
                                     )}
                                   </div>
                                   <Select value={senderFilter} onValueChange={setSenderFilter}>
                                     <SelectTrigger>
-                                      <SelectValue placeholder={view === 'inbox' ? 'Vælg afsender' : 'Vælg modtager'} />
+                                      <SelectValue placeholder={view === 'inbox' ? t.email.selectSender : t.email.selectRecipient} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="all">Alle</SelectItem>
+                                      <SelectItem value="all">{t.email.all}</SelectItem>
                                       {uniqueSenders.map(sender => {
                                         const user = users.find(u => u.email === sender)
                                         return (
@@ -1044,7 +1046,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                       }}
                                     >
                                       <X size={16} />
-                                      Ryd alle filtre
+                                      {t.email.clearAllFilters}
                                     </Button>
                                   </>
                                 )}
@@ -1055,7 +1057,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                           <div className="relative">
                             <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                             <Input
-                              placeholder="Søg emails..."
+                              placeholder={t.email.searchEmails}
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
                               className="pl-10 w-[300px]"
@@ -1107,8 +1109,8 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                             <Envelope size={64} className="mx-auto mb-4 opacity-50" />
                             <p className="text-lg">
                               {searchQuery || dateFilter !== 'all' || senderFilter !== 'all' 
-                                ? 'Ingen emails matcher dine filtre' 
-                                : 'Ingen emails at vise'}
+                                ? t.email.noEmailsMatch 
+                                : t.email.noEmailsToShow}
                             </p>
                             {(searchQuery || dateFilter !== 'all' || senderFilter !== 'all') && (
                               <Button
@@ -1120,7 +1122,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                   setSenderFilter('all')
                                 }}
                               >
-                                Ryd alle filtre
+                                {t.email.clearAllFilters}
                               </Button>
                             )}
                           </div>
@@ -1167,10 +1169,10 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                     "text-sm mb-1 truncate",
                                     !email.read && view === 'inbox' ? "font-semibold" : "font-medium"
                                   )}>
-                                    {email.subject}
+                                    <AutoText text={email.subject} />
                                   </div>
                                   <p className="text-sm text-muted-foreground truncate">
-                                    {email.message}
+                                    <AutoText text={email.message} />
                                   </p>
                                 </div>
                                 {!email.read && view === 'inbox' && (
@@ -1200,7 +1202,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                         className="gap-2"
                       >
                         <ArrowLeft size={18} />
-                        Tilbage
+                        {t.email.back}
                       </Button>
                       <div className="flex gap-2">
                         <Button
@@ -1213,7 +1215,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                           className="gap-2"
                         >
                           <Folder size={18} />
-                          Flyt til mappe
+                          {t.email.moveToFolder}
                         </Button>
                         <Button
                           onClick={() => {
@@ -1230,7 +1232,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                           className="gap-2"
                         >
                           <PaperPlaneTilt size={18} />
-                          Svar
+                          {t.email.reply}
                         </Button>
                         <Button
                           onClick={() => handleDeleteEmail(selectedEmail.id)}
@@ -1239,13 +1241,13 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                           className="gap-2"
                         >
                           <Trash size={18} />
-                          Slet
+                          {t.email.delete}
                         </Button>
                       </div>
                     </div>
 
                     <div className="border rounded-lg p-6">
-                      <h2 className="text-2xl font-bold mb-4">{selectedEmail.subject}</h2>
+                      <h2 className="text-2xl font-bold mb-4"><AutoText text={selectedEmail.subject} /></h2>
                       
                       <div className="flex items-start gap-3 mb-6">
                         <Avatar className="h-12 w-12">
@@ -1275,7 +1277,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
 
                       <div className="prose prose-sm max-w-none">
                         <p className="whitespace-pre-wrap text-foreground leading-relaxed">
-                          {selectedEmail.message}
+                          <AutoText text={selectedEmail.message} />
                         </p>
                       </div>
                     </div>
@@ -1289,12 +1291,12 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                   >
-                    <h2 className="text-2xl font-bold mb-6">Ferie Anmodninger</h2>
+                    <h2 className="text-2xl font-bold mb-6">{t.email.vacationRequests}</h2>
 
                     {pendingVacationRequests.length === 0 ? (
                       <div className="text-center py-16 text-muted-foreground">
                         <Umbrella size={64} className="mx-auto mb-4 opacity-50" />
-                        <p className="text-lg">Ingen ventende ferie anmodninger</p>
+                        <p className="text-lg">{t.email.noPendingRequests}</p>
                       </div>
                     ) : (
                       <ScrollArea className="h-[580px]">
@@ -1317,7 +1319,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                   </div>
                                   <Badge variant="secondary" className="gap-1">
                                     <Clock size={14} />
-                                    Afventer
+                                    {t.email.pending}
                                   </Badge>
                                 </div>
 
@@ -1325,19 +1327,19 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
 
                                 <div className="grid grid-cols-2 gap-4 mb-4">
                                   <div>
-                                    <div className="text-sm text-muted-foreground mb-1">Start Dato</div>
+                                    <div className="text-sm text-muted-foreground mb-1"><AutoText text="Start Dato" /></div>
                                     <div className="font-medium">{formatDate(vacation.startDate)}</div>
                                   </div>
                                   <div>
-                                    <div className="text-sm text-muted-foreground mb-1">Slut Dato</div>
+                                    <div className="text-sm text-muted-foreground mb-1"><AutoText text="Slut Dato" /></div>
                                     <div className="font-medium">{formatDate(vacation.endDate)}</div>
                                   </div>
                                 </div>
 
                                 {vacation.notes && (
                                   <div className="mb-4">
-                                    <div className="text-sm text-muted-foreground mb-1">Noter</div>
-                                    <div className="text-sm bg-muted p-3 rounded-lg">{vacation.notes}</div>
+                                    <div className="text-sm text-muted-foreground mb-1">{t.email.notes}</div>
+                                    <div className="text-sm bg-muted p-3 rounded-lg"><AutoText text={vacation.notes} /></div>
                                   </div>
                                 )}
 
@@ -1351,7 +1353,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                     className="flex-1 gap-2"
                                   >
                                     <CalendarBlank size={18} />
-                                    Forhåndsvis Kalender
+                                    {t.email.previewCalendar}
                                   </Button>
                                   <Button
                                     onClick={() => handleApproveVacation(vacation)}
@@ -1359,7 +1361,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                     className="flex-1 gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                                   >
                                     <Check size={18} weight="bold" />
-                                    Godkend
+                                    {t.email.approve}
                                   </Button>
                                   <Button
                                     onClick={() => handleRejectVacation(vacation)}
@@ -1367,7 +1369,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                     className="flex-1 gap-2"
                                   >
                                     <X size={18} weight="bold" />
-                                    Afvis
+                                    {t.email.reject}
                                   </Button>
                                 </div>
                               </Card>
@@ -1386,7 +1388,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
         <Dialog open={showCalendarPreview} onOpenChange={setShowCalendarPreview}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Feriekalender Forhåndsvisning</DialogTitle>
+              <DialogTitle><AutoText text="Feriekalender Forhåndsvisning" /></DialogTitle>
             </DialogHeader>
             {selectedVacation && (
               <div className="space-y-6">
@@ -1406,7 +1408,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                   </div>
                   {selectedVacation.notes && (
                     <div className="text-sm text-muted-foreground">
-                      <strong>Noter:</strong> {selectedVacation.notes}
+                      <strong>{t.email.notes}:</strong> <AutoText text={selectedVacation.notes} />
                     </div>
                   )}
                 </div>
@@ -1423,14 +1425,14 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                     }}
                     variant="outline"
                   >
-                    Luk
+                    {t.common.close}
                   </Button>
                   <Button
                     onClick={() => handleApproveVacation(selectedVacation)}
                     className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                   >
                     <Check size={18} weight="bold" />
-                    Godkend Ferie
+                    {t.email.approve}
                   </Button>
                   <Button
                     onClick={() => handleRejectVacation(selectedVacation)}
@@ -1438,7 +1440,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                     className="gap-2"
                   >
                     <X size={18} weight="bold" />
-                    Afvis Ferie
+                    {t.email.reject}
                   </Button>
                 </div>
               </div>
@@ -1449,13 +1451,13 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
         <Dialog open={showFolderDialog} onOpenChange={setShowFolderDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingFolder ? 'Rediger Mappe' : 'Opret Ny Mappe'}</DialogTitle>
+              <DialogTitle>{editingFolder ? t.email.editFolder : t.email.createFolder}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Mappenavn</label>
+                <label className="text-sm font-medium">{t.email.folderName}</label>
                 <Input
-                  placeholder="Indtast mappenavn"
+                  placeholder={t.email.enterFolderName}
                   value={folderName}
                   onChange={(e) => setFolderName(e.target.value)}
                   onKeyDown={(e) => {
@@ -1466,7 +1468,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Mappens farve</label>
+                <label className="text-sm font-medium">{t.email.folderColor}</label>
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <input
@@ -1502,13 +1504,13 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                   }}
                   variant="outline"
                 >
-                  Annuller
+                  {t.email.cancel}
                 </Button>
                 <Button
                   onClick={editingFolder ? handleUpdateFolder : handleCreateFolder}
                   className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
                 >
-                  {editingFolder ? 'Gem' : 'Opret'}
+                  {editingFolder ? t.common.save : <AutoText text="Opret" />}
                 </Button>
               </div>
             </div>
@@ -1518,13 +1520,13 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
         <Dialog open={showMoveToFolderDialog} onOpenChange={setShowMoveToFolderDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Flyt Email til Mappe</DialogTitle>
+              <DialogTitle><AutoText text="Flyt Email til Mappe" /></DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               {userFolders.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Folder size={48} className="mx-auto mb-3 opacity-50" />
-                  <p>Du har ingen mapper endnu.</p>
+                  <p><AutoText text="Du har ingen mapper endnu." /></p>
                   <Button
                     onClick={() => {
                       setShowMoveToFolderDialog(false)
@@ -1533,12 +1535,12 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                     variant="link"
                     className="mt-2"
                   >
-                    Opret din første mappe
+                    <AutoText text="Opret din første mappe" />
                   </Button>
                 </div>
               ) : (
                 <>
-                  <p className="text-sm text-muted-foreground">Vælg en mappe at flytte emailen til:</p>
+                  <p className="text-sm text-muted-foreground"><AutoText text="Vælg en mappe at flytte emailen til:" /></p>
                   <div className="space-y-2">
                     {emailToMove?.folderId && (
                       <Button
@@ -1547,7 +1549,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                         onClick={() => handleMoveToFolder(null)}
                       >
                         <Envelope size={18} />
-                        Flyt til indbakke
+                        {t.email.moveToInbox}
                       </Button>
                     )}
                     {userFolders.map(folder => (

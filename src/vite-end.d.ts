@@ -2,6 +2,7 @@
 import type { KvStore } from './lib/localKvStore'
 import type { ElectronKvApi } from './lib/electronKvBridge'
 import type { ElectronUpdatesApi } from './lib/electronUpdatesBridge'
+import type { ElectronGuidesApi, ElectronTranslationApi } from './lib/electronGuidesBridge'
 
 declare global {
   interface Window {
@@ -10,6 +11,10 @@ declare global {
     electronKv?: ElectronKvApi
     /** Present only when running inside the Electron desktop app. */
     electronUpdates?: ElectronUpdatesApi
+    /** Present only when running inside the Electron desktop app. */
+    electronGuides?: ElectronGuidesApi
+    /** Present only when running inside the Electron desktop app. */
+    electronTranslation?: ElectronTranslationApi
   }
 }
 

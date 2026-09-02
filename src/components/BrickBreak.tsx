@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { upsertInNestedKvArray } from '@/lib/kvArrays'
+import { nextParticleId } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface Brick {
@@ -53,6 +55,7 @@ interface Laser {
 }
 
 interface LeaderboardEntry {
+  id: string
   email: string
   score: number
   level: number
@@ -225,8 +228,37 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     expert: []
   })
 
+  // Éngangs-migrering: gamle entries manglede `id` (indført for atomare opdateringer) —
+  // uden den kan slet/rediger i manager-panelet ikke finde entry'en igen.
+  useEffect(() => {
+    if (!globalLeaderboard) return
+    const needsMigration = (Object.values(globalLeaderboard) as LeaderboardEntry[][]).some((board) =>
+      board.some((entry) => !entry.id)
+    )
+    if (!needsMigration) return
+    const migrated: GlobalLeaderboard = {
+      easy: (globalLeaderboard.easy || []).map((e) => ({ ...e, id: e.id || e.email })),
+      medium: (globalLeaderboard.medium || []).map((e) => ({ ...e, id: e.id || e.email })),
+      hard: (globalLeaderboard.hard || []).map((e) => ({ ...e, id: e.id || e.email })),
+      expert: (globalLeaderboard.expert || []).map((e) => ({ ...e, id: e.id || e.email })),
+    }
+    setGlobalLeaderboard(migrated)
+    window.kv.set('brickbreak-global-leaderboard', migrated)
+  }, [globalLeaderboard, setGlobalLeaderboard])
+
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameLoopRef = useRef<number | undefined>(undefined)
+  // Powerup-nedt\u00e6llinger (skjold/fireball/osv.) k\u00f8rer hver deres setInterval — samlet her
+  // s\u00e5 alle bliver ryddet, hvis komponenten unmountes midt i et powerup (fx spilleren
+  // navigerer v\u00e6k), i stedet for at l\u00e6kke en kørende timer der aldrig selv-clearer.
+  const activePowerupIntervalsRef = useRef<Set<ReturnType<typeof setInterval>>>(new Set())
+
+  useEffect(() => {
+    return () => {
+      activePowerupIntervalsRef.current.forEach((id) => clearInterval(id))
+      activePowerupIntervalsRef.current.clear()
+    }
+  }, [])
   const mouseXRef = useRef<number>(GAME_WIDTH / 2)
   const ballsRef = useRef<Ball[]>([])
   const bricksRef = useRef<Brick[]>([])
@@ -277,18 +309,24 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     return user ? user.fullName : email.split('@')[0]
   }
 
+  // Storage-rækkefølgen garanteres ikke længere sorteret (atomar upsert tilføjer
+  // bare i slutningen) — sortér altid ved læsning, så rangnumre/medaljer er korrekte.
+  const getSortedBoard = (diff: Difficulty): LeaderboardEntry[] => {
+    return [...(globalLeaderboard?.[diff] || [])].sort((a, b) => b.score - a.score)
+  }
+
   const getCurrentHighScore = () => {
-    const board = globalLeaderboard?.[difficulty] || []
+    const board = getSortedBoard(difficulty)
     return board.length > 0 ? board[0].score : 0
   }
 
   const getTopScoreForDifficulty = (diff: Difficulty): number => {
-    const board = globalLeaderboard?.[diff] || []
+    const board = getSortedBoard(diff)
     return board.length > 0 ? board[0].score : 0
   }
 
   const getUserRankForDifficulty = (diff: Difficulty): number | null => {
-    const board = globalLeaderboard?.[diff] || []
+    const board = getSortedBoard(diff)
     const index = board.findIndex(entry => entry.email === userEmail)
     return index !== -1 ? index + 1 : null
   }
@@ -433,6 +471,11 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   }
 
   const startGame = () => {
+    // Ryd evt. igangværende powerup-nedtællinger fra en tidligere runde, så de
+    // ikke uventet nulstiller state midt i det nye spil.
+    activePowerupIntervalsRef.current.forEach((id) => clearInterval(id))
+    activePowerupIntervalsRef.current.clear()
+
     const newPaddle = {
       x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
       y: GAME_HEIGHT - 40,
@@ -565,39 +608,18 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
         hard: [],
         expert: []
       }
-      
-      const difficultyBoard = [...(currentLeaderboard[difficulty] || [])]
-      
-      const existingEntryIndex = difficultyBoard.findIndex(entry => entry.email === userEmail)
-      
-      if (existingEntryIndex !== -1) {
-        if (finalScore > difficultyBoard[existingEntryIndex].score) {
-          difficultyBoard[existingEntryIndex] = {
-            email: userEmail,
-            score: finalScore,
-            level: finalLevel,
-            timestamp: Date.now()
-          }
-        }
-      } else {
-        difficultyBoard.push({
-          email: userEmail,
-          score: finalScore,
-          level: finalLevel,
-          timestamp: Date.now()
-        })
+
+      const difficultyBoard = currentLeaderboard[difficulty] || []
+      const existing = difficultyBoard.find(entry => entry.email === userEmail)
+
+      if (!existing || finalScore > existing.score) {
+        const updatedBoard = await upsertInNestedKvArray<LeaderboardEntry>(
+          'brickbreak-global-leaderboard',
+          [difficulty],
+          [{ id: userEmail, email: userEmail, score: finalScore, level: finalLevel, timestamp: Date.now() }],
+        )
+        setGlobalLeaderboard({ ...currentLeaderboard, [difficulty]: updatedBoard })
       }
-      
-      difficultyBoard.sort((a, b) => b.score - a.score)
-      
-      const updatedLeaderboard = {
-        ...currentLeaderboard,
-        [difficulty]: difficultyBoard.slice(0, 10)
-      }
-      
-      await window.kv.set('brickbreak-global-leaderboard', updatedLeaderboard)
-      
-      setGlobalLeaderboard(updatedLeaderboard)
     } catch (error) {
       console.error('Error saving score to leaderboard:', error)
     }
@@ -691,6 +713,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setShieldTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(shieldInterval)
+              activePowerupIntervalsRef.current.delete(shieldInterval)
               setHasShield(false)
               hasShieldRef.current = false
               return 0
@@ -698,6 +721,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(shieldInterval)
         break
         
       case 'fireball':
@@ -710,6 +734,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setFireballTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(fireballInterval)
+              activePowerupIntervalsRef.current.delete(fireballInterval)
               setIsFireball(false)
               isFireballRef.current = false
               return 0
@@ -717,6 +742,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(fireballInterval)
         break
         
       case 'shrinkPaddle':
@@ -733,6 +759,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setShrinkPaddleTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(shrinkInterval)
+              activePowerupIntervalsRef.current.delete(shrinkInterval)
               const resetPaddle = {
                 ...paddleRef.current,
                 width: INITIAL_PADDLE_WIDTH
@@ -744,6 +771,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(shrinkInterval)
         break
         
       case 'enlargePaddle':
@@ -760,6 +788,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setEnlargePaddleTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(enlargeInterval)
+              activePowerupIntervalsRef.current.delete(enlargeInterval)
               const resetPaddle = {
                 ...paddleRef.current,
                 width: INITIAL_PADDLE_WIDTH
@@ -771,6 +800,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(enlargeInterval)
         break
         
       case 'slowMotion':
@@ -783,6 +813,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setSpeedPowerupTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(slowMotionInterval)
+              activePowerupIntervalsRef.current.delete(slowMotionInterval)
               ballSpeedMultiplierRef.current = 1
               setBallSpeedMultiplier(1)
               return 0
@@ -790,6 +821,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(slowMotionInterval)
         break
         
       case 'speedBoost':
@@ -802,6 +834,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setSpeedPowerupTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(speedBoostInterval)
+              activePowerupIntervalsRef.current.delete(speedBoostInterval)
               ballSpeedMultiplierRef.current = 1
               setBallSpeedMultiplier(1)
               return 0
@@ -809,6 +842,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(speedBoostInterval)
         break
         
       case 'laser':
@@ -821,6 +855,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setLaserTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(laserInterval)
+              activePowerupIntervalsRef.current.delete(laserInterval)
               setHasLaser(false)
               hasLaserRef.current = false
               return 0
@@ -828,6 +863,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(laserInterval)
         break
         
       case 'stickyPaddle':
@@ -840,6 +876,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setStickyPaddleTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(stickyInterval)
+              activePowerupIntervalsRef.current.delete(stickyInterval)
               setIsStickyPaddle(false)
               isStickyPaddleRef.current = false
               return 0
@@ -847,6 +884,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(stickyInterval)
         break
         
       case 'explosiveBall':
@@ -859,6 +897,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setExplosiveBallTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(explosiveInterval)
+              activePowerupIntervalsRef.current.delete(explosiveInterval)
               setIsExplosiveBall(false)
               isExplosiveBallRef.current = false
               return 0
@@ -866,6 +905,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(explosiveInterval)
         break
         
       case 'reverseControls':
@@ -878,6 +918,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           setReverseControlsTimeLeft(prev => {
             if (prev <= 1) {
               clearInterval(reverseInterval)
+              activePowerupIntervalsRef.current.delete(reverseInterval)
               setIsReverseControls(false)
               isReverseControlsRef.current = false
               return 0
@@ -885,6 +926,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             return prev - 1
           })
         }, 1000)
+        activePowerupIntervalsRef.current.add(reverseInterval)
         break
     }
   }
@@ -1053,7 +1095,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             if (Math.random() < POWERUP_SPAWN_CHANCE) {
               const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
               const newPowerUp: PowerUp = {
-                id: Date.now() + Math.random(),
+                id: nextParticleId(),
                 x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
                 y: brick.y,
                 width: POWERUP_SIZE,
@@ -1086,7 +1128,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             if (Math.random() < POWERUP_SPAWN_CHANCE) {
               const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
               const newPowerUp: PowerUp = {
-                id: Date.now() + Math.random(),
+                id: nextParticleId(),
                 x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
                 y: brick.y,
                 width: POWERUP_SIZE,
@@ -1144,7 +1186,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
               if (Math.random() < POWERUP_SPAWN_CHANCE) {
                 const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
                 const newPowerUp: PowerUp = {
-                  id: Date.now() + Math.random(),
+                  id: nextParticleId(),
                   x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
                   y: brick.y,
                   width: POWERUP_SIZE,
@@ -1200,7 +1242,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       const currentTime = Date.now()
       if (currentTime - lastLaserTimeRef.current > 150) {
         const leftLaser: Laser = {
-          id: Date.now() + Math.random(),
+          id: nextParticleId(),
           x: currentPaddle.x + 5,
           y: currentPaddle.y - 10,
           width: 4,
@@ -1208,7 +1250,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           dy: -10
         }
         const rightLaser: Laser = {
-          id: Date.now() + Math.random() + 0.1,
+          id: nextParticleId(),
           x: currentPaddle.x + currentPaddle.width - 9,
           y: currentPaddle.y - 10,
           width: 4,
@@ -1256,7 +1298,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             if (Math.random() < POWERUP_SPAWN_CHANCE) {
               const powerUpType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)]
               const newPowerUp: PowerUp = {
-                id: Date.now() + Math.random(),
+                id: nextParticleId(),
                 x: brick.x + brick.width / 2 - POWERUP_SIZE / 2,
                 y: brick.y,
                 width: POWERUP_SIZE,
@@ -1870,7 +1912,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
             {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((diff) => {
               const setting = DIFFICULTY_SETTINGS[diff]
               const Icon = setting.icon
-              const leaderboard = globalLeaderboard?.[diff] || []
+              const leaderboard = getSortedBoard(diff)
               const topScore = getTopScoreForDifficulty(diff)
               const userRank = getUserRankForDifficulty(diff)
               const userEntry = leaderboard.find(entry => entry.email === userEmail)
@@ -1922,7 +1964,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                                   : 'bg-muted/30'
                               }`}
                             >
-                              <div className="flex items-center justify-center w-8 h-8">
+                              <div className="flex items-center justify-center w-8 h-8 shrink-0">
                                 {RankIcon ? (
                                   <RankIcon 
                                     size={20} 
@@ -1941,11 +1983,11 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                                 }`}>
                                   {getDisplayName(entry.email)}
                                 </div>
-                                <div className="text-xs text-muted-foreground">
+                                <div className="text-xs text-muted-foreground truncate">
                                   {language === 'da' ? 'Level' : 'Level'} {entry.level}
                                 </div>
                               </div>
-                              <div className={`text-lg font-bold ${
+                              <div className={`text-lg font-bold shrink-0 tabular-nums ${
                                 isCurrentUser ? 'text-primary' : 'text-muted-foreground'
                               }`}>
                                 {entry.score}
@@ -1960,7 +2002,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                               <span className="text-xs text-muted-foreground">...</span>
                             </div>
                             <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/30 shadow-md">
-                              <div className="flex items-center justify-center w-8 h-8">
+                              <div className="flex items-center justify-center w-8 h-8 shrink-0">
                                 <span className="text-sm font-bold text-primary">
                                   #{userRank}
                                 </span>

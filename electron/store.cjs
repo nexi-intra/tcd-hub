@@ -123,6 +123,141 @@ function createStore(dataDir) {
       .map(filenameToKey)
   }
 
+  // --- Atomar array-opdatering på tværs af klienter -----------------------
+  // Låsefil pr. nøgle (exclusive create er atomisk, også på SMB-shares).
+  // Forældede låse (crashet klient) overtages efter STALE_LOCK_MS.
+  const LOCK_ATTEMPTS = 50
+  const LOCK_RETRY_MS = 100
+  const STALE_LOCK_MS = 10_000
+
+  function lockPath(key) {
+    return filePath(key) + '.lock'
+  }
+
+  function acquireLock(key) {
+    const target = lockPath(key)
+    for (let attempt = 1; attempt <= LOCK_ATTEMPTS; attempt++) {
+      try {
+        const fd = fs.openSync(target, 'wx')
+        fs.writeSync(fd, String(process.pid))
+        fs.closeSync(fd)
+        return
+      } catch (err) {
+        if (err.code !== 'EEXIST') throw err
+        try {
+          const stat = fs.statSync(target)
+          if (Date.now() - stat.mtimeMs > STALE_LOCK_MS) {
+            fs.unlinkSync(target)
+            continue
+          }
+        } catch {
+          continue // Låsen forsvandt imens — prøv igen med det samme.
+        }
+        if (attempt === LOCK_ATTEMPTS) throw new Error(`Kunne ikke få lås på "${key}" (optaget af anden klient)`)
+        wait(LOCK_RETRY_MS)
+      }
+    }
+  }
+
+  function releaseLock(key) {
+    try { fs.unlinkSync(lockPath(key)) } catch {}
+  }
+
+  /**
+   * Atomar opdatering af et array af objekter med `id` under fil-lås:
+   *   { op: 'append', items }  — tilføj elementer
+   *   { op: 'upsert', items }  — erstat pr. id, ellers tilføj
+   *   { op: 'remove', ids }    — fjern pr. id
+   * Valgfri `path` (array af nøgler) navigerer ned i et objekt til et nested
+   * array, fx { path: ['easy'] } for et leaderboard opdelt pr. sværhedsgrad —
+   * resten af objektet bevares, kun arrayet på den sti opdateres.
+   *
+   * To ekstra ops arbejder i stedet på et almindeligt objekt (fx 'users', keyet
+   * pr. email) under samme fil-lås:
+   *   { op: 'setField', field, value }  — sæt/erstat én nøgle i objektet
+   *   { op: 'deleteField', field }      — fjern én nøgle fra objektet
+   *
+   * Returnerer det opdaterede array/objekt. Kaster hvis nøglen (på stien) ikke
+   * har den forventede type (array for array-ops, objekt for felt-ops).
+   */
+  function update(key, operation) {
+    acquireLock(key)
+    try {
+      if (operation.op === 'setField' || operation.op === 'deleteField') {
+        const current = get(key)
+        const root = current && typeof current === 'object' && !Array.isArray(current) ? current : {}
+        if (operation.op === 'setField') root[operation.field] = operation.value
+        else delete root[operation.field]
+        set(key, root)
+        return root
+      }
+
+      const current = get(key)
+      const path = operation.path && operation.path.length > 0 ? operation.path : null
+      let root
+      let list
+      if (path) {
+        root = current && typeof current === 'object' && !Array.isArray(current) ? current : {}
+        let parent = root
+        for (let i = 0; i < path.length - 1; i++) {
+          const segment = path[i]
+          if (!parent[segment] || typeof parent[segment] !== 'object' || Array.isArray(parent[segment])) {
+            parent[segment] = {}
+          }
+          parent = parent[segment]
+        }
+        const lastSegment = path[path.length - 1]
+        list = Array.isArray(parent[lastSegment]) ? parent[lastSegment] : []
+      } else {
+        list = current === undefined ? [] : current
+        if (!Array.isArray(list)) {
+          throw new Error(`kv:update kræver et array i "${key}"`)
+        }
+      }
+      let next
+      if (operation.op === 'append') {
+        next = [...list, ...operation.items]
+      } else if (operation.op === 'upsert') {
+        next = [...list]
+        for (const item of operation.items) {
+          const index = next.findIndex((entry) => entry && entry.id === item.id)
+          if (index !== -1) next[index] = item
+          else next.push(item)
+        }
+      } else if (operation.op === 'remove') {
+        const ids = new Set(operation.ids)
+        next = list.filter((entry) => !entry || !ids.has(entry.id))
+      } else {
+        throw new Error(`Ukendt kv:update-operation: ${operation.op}`)
+      }
+      if (path) {
+        let parent = root
+        for (let i = 0; i < path.length - 1; i++) parent = parent[path[i]]
+        parent[path[path.length - 1]] = next
+        set(key, root)
+      } else {
+        set(key, next)
+      }
+      return next
+    } finally {
+      releaseLock(key)
+    }
+  }
+
+  /** Alle nøgler + værdier (til backup). */
+  function dumpAll() {
+    const result = {}
+    for (const key of keys()) {
+      try {
+        const value = get(key)
+        if (value !== undefined) result[key] = value
+      } catch (err) {
+        console.warn(`Backup: springer ulæselig nøgle over: ${key}`, err.message)
+      }
+    }
+    return result
+  }
+
   /**
    * Polls the directory and invokes onChange(changedKeys: string[]) whenever
    * files were added, modified, or removed. Returns a stop function.
@@ -167,7 +302,7 @@ function createStore(dataDir) {
     return () => clearInterval(timer)
   }
 
-  return { get, set, delete: del, keys, watch, dataDir }
+  return { get, set, delete: del, keys, watch, update, dumpAll, dataDir }
 }
 
 module.exports = { createStore }

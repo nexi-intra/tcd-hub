@@ -1028,7 +1028,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             <img src={nexiLogoWhite} alt="Nexi" className="relative h-10 sm:h-12 md:h-14 w-auto hidden dark:block" />
           </motion.div>
           <motion.h1 
-            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent mb-4"
+            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-normal bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent pb-1 mb-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}

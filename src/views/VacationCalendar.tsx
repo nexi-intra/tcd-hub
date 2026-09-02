@@ -11,9 +11,11 @@ import { UserProfile } from '@/components/UserProfile'
 import { SingleDayOffDialog } from '@/components/SingleDayOffDialog'
 import { VacationRequestDialog } from '@/components/VacationRequestDialog'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { AutoText } from '@/components/AutoText'
+import { cn, newId } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
-import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
+import { getWeekNumber as getISOWeekNumber, parseLocalDate } from '@/lib/dateUtils'
+import { appendToKvArray, removeFromKvArray } from '@/lib/kvArrays'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { vacationApprovedEmail, vacationRejectedEmail, vacationCancelledByEmployeeEmail } from '@/lib/emailTemplates'
 import type { VacationStatus, VacationEntry, BirthdayEntry } from '@/lib/types'
@@ -101,25 +103,15 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
     const vacation = (vacations || []).find(v => v.id === id)
     if (!vacation) return
 
-    setVacations((current) => (current || []).filter((v) => v.id !== id))
+    await removeFromKvArray('vacation-entries', [id])
     toast.success('Ferie anmodning fjernet')
 
     try {
       const emailContent = vacationCancelledByEmployeeEmail(vacation.userEmail, vacation.startDate, vacation.endDate)
 
-      const emails = (await window.kv.get<Array<{
-        id: string
-        from: string
-        to: string
-        subject: string
-        message: string
-        timestamp: number
-        read: boolean
-      }>>('emails')) || []
-
       const users = await window.kv.get<Record<string, { email: string; password: string; fullName: string; isManager: boolean }>>('users')
       const managerEmails: string[] = []
-      
+
       if (users) {
         for (const [email, userData] of Object.entries(users)) {
           if (userData.isManager) {
@@ -128,33 +120,30 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
         }
       }
 
-      for (const managerEmail of managerEmails) {
-        const newEmail = {
-          id: Date.now().toString() + '-' + managerEmail + '-removal',
-          from: vacation.userEmail,
-          to: managerEmail,
-          subject: emailContent.subject,
-          message: emailContent.body,
-          timestamp: Date.now(),
-          read: false
-        }
-        emails.push(newEmail)
+      // Saml alt og skriv én atomar append pr. nøgle — før kunne to samtidige
+      // sletninger overskrive hinandens notifikationer.
+      const newEmails = managerEmails.map((managerEmail) => ({
+        id: newId('email'),
+        from: vacation.userEmail,
+        to: managerEmail,
+        subject: emailContent.subject,
+        message: emailContent.body,
+        timestamp: Date.now(),
+        read: false
+      }))
 
-        const notification = {
-          id: Date.now().toString() + '-notif-removal-' + managerEmail,
-          to: managerEmail,
-          subject: emailContent.subject,
-          body: emailContent.body,
-          timestamp: new Date().toISOString(),
-          type: 'vacation-removed' as const,
-          read: false
-        }
+      const newNotifications = managerEmails.map((managerEmail) => ({
+        id: newId('notif'),
+        to: managerEmail,
+        subject: emailContent.subject,
+        body: emailContent.body,
+        timestamp: new Date().toISOString(),
+        type: 'vacation-removed' as const,
+        read: false
+      }))
 
-        const notifications = (await window.kv.get<any[]>('email-notifications')) || []
-        await window.kv.set('email-notifications', [...notifications, notification])
-      }
-
-      await window.kv.set('emails', emails)
+      await appendToKvArray('emails', newEmails)
+      await appendToKvArray('email-notifications', newNotifications)
     } catch (emailError) {
       console.error('Error sending vacation removal email:', emailError)
       toast.error('Kunne ikke sende email notifikation')
@@ -275,8 +264,8 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
 
   const getVacationsForMonth = (month: number, year: number) => {
     return (vacations || []).filter((vacation) => {
-      const start = new Date(vacation.startDate)
-      const end = new Date(vacation.endDate)
+      const start = parseLocalDate(vacation.startDate)
+      const end = parseLocalDate(vacation.endDate)
       
       if (isNaN(start.getTime()) || isNaN(end.getTime())) return false
       
@@ -298,8 +287,8 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
 
   const isDateInVacation = (day: number, vacation: VacationEntry) => {
     const checkDate = new Date(selectedYear, selectedMonth, day)
-    const start = new Date(vacation.startDate)
-    const end = new Date(vacation.endDate)
+    const start = parseLocalDate(vacation.startDate)
+    const end = parseLocalDate(vacation.endDate)
     
     start.setHours(0, 0, 0, 0)
     end.setHours(23, 59, 59, 999)
@@ -373,7 +362,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
       return (
         <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
           <ClockCounterClockwise size={14} className="mr-1" />
-          Afventer
+          <AutoText text="Afventer" />
         </Badge>
       )
     }
@@ -381,14 +370,14 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
       return (
         <Badge className="bg-green-500/20 text-green-700 border-green-500/30">
           <Check size={14} className="mr-1" />
-          Godkendt
+          <AutoText text="Godkendt" />
         </Badge>
       )
     }
     return (
       <Badge className="bg-red-500/20 text-red-700 border-red-500/30">
         <X size={14} className="mr-1" />
-        Afvist
+        <AutoText text="Afvist" />
       </Badge>
     )
   }
@@ -412,20 +401,20 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold">
-            {new Date(vacation.startDate).toLocaleDateString('da-DK', {
+            {parseLocalDate(vacation.startDate).toLocaleDateString('da-DK', {
               day: 'numeric',
               month: 'long',
               year: 'numeric'
             })}
             {' → '}
-            {new Date(vacation.endDate).toLocaleDateString('da-DK', {
+            {parseLocalDate(vacation.endDate).toLocaleDateString('da-DK', {
               day: 'numeric',
               month: 'long',
               year: 'numeric'
             })}
           </div>
           {vacation.notes && (
-            <div className="text-sm text-muted-foreground">{vacation.notes}</div>
+            <div className="text-sm text-muted-foreground"><AutoText text={vacation.notes} /></div>
           )}
           {showReviewActions && (
             <div className="text-xs text-muted-foreground mt-1">
@@ -721,15 +710,15 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
           <Card className="p-6 border-2">
             <Tabs defaultValue="all" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="all">Alle ({myVacations.length})</TabsTrigger>
-                <TabsTrigger value="pending">Afventer ({myPendingRequests.length})</TabsTrigger>
-                <TabsTrigger value="approved">Godkendt ({myApprovedVacations.length})</TabsTrigger>
+                <TabsTrigger value="all"><AutoText text={`Alle (${myVacations.length})`} /></TabsTrigger>
+                <TabsTrigger value="pending"><AutoText text={`Afventer (${myPendingRequests.length})`} /></TabsTrigger>
+                <TabsTrigger value="approved"><AutoText text={`Godkendt (${myApprovedVacations.length})`} /></TabsTrigger>
               </TabsList>
               <TabsContent value="all" className="mt-4">
-                <h3 className="text-xl font-bold mb-4">Mine Ferier</h3>
+                <h3 className="text-xl font-bold mb-4"><AutoText text="Mine Ferier" /></h3>
                 {myVacations.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
-                    Du har ikke registreret nogen ferier endnu
+                    <AutoText text="Du har ikke registreret nogen ferier endnu" />
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -740,10 +729,10 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
                 )}
               </TabsContent>
               <TabsContent value="pending" className="mt-4">
-                <h3 className="text-xl font-bold mb-4">Afventende Anmodninger</h3>
+                <h3 className="text-xl font-bold mb-4"><AutoText text="Afventende Anmodninger" /></h3>
                 {myPendingRequests.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
-                    Du har ingen afventende anmodninger
+                    <AutoText text="Du har ingen afventende anmodninger" />
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -754,10 +743,10 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
                 )}
               </TabsContent>
               <TabsContent value="approved" className="mt-4">
-                <h3 className="text-xl font-bold mb-4">Godkendte Ferier</h3>
+                <h3 className="text-xl font-bold mb-4"><AutoText text="Godkendte Ferier" /></h3>
                 {myApprovedVacations.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
-                    Du har ingen godkendte ferier
+                    <AutoText text="Du har ingen godkendte ferier" />
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -772,7 +761,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
 
           {allTeamMembers.length > 1 && (
             <Card className="p-6 border-2">
-              <h3 className="text-xl font-bold mb-4">Alle Team Medlemmer</h3>
+              <h3 className="text-xl font-bold mb-4"><AutoText text="Alle Team Medlemmer" /></h3>
               <div className="flex flex-wrap gap-3">
                 {allTeamMembers.map((member) => (
                   <div

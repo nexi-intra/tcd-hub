@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { PencilSimple, Trash, Eye, FileDoc } from '@phosphor-icons/react'
+import { PencilSimple, Trash, Eye, FileDoc, Timer, CheckCircle } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
+import { getReviewStatus } from '@/lib/guideTypes'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +13,9 @@ interface GuideCardProps {
   onEdit: (guide: Guide) => void
   onDelete: (id: string) => void
   onView: (guide: Guide) => void
+  onMarkReviewed?: (guide: Guide) => void
+  /** Bedste søgematch — vises på kortet under søgning. */
+  matchSnippet?: { reference: string; text: string; relevance: number }
 }
 
 const categoryColors: Record<string, string> = {
@@ -22,8 +26,9 @@ const categoryColors: Record<string, string> = {
   General: 'bg-gradient-to-br from-muted to-muted/70 text-foreground border-border shadow-lg shadow-black/5',
 }
 
-export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
+export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed, matchSnippet }: GuideCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const reviewStatus = getReviewStatus(guide)
 
   const handleCardClick = () => {
     onView(guide)
@@ -76,6 +81,9 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
                   >
                     {guide.category}
                   </Badge>
+                  {guide.version && (
+                    <Badge variant="secondary" className="text-xs font-mono">v{guide.version}</Badge>
+                  )}
                   <span className="text-xs text-muted-foreground">
                     {new Date(guide.updatedAt).toLocaleDateString('da-DK', {
                       year: 'numeric',
@@ -84,6 +92,28 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
                     })}
                   </span>
                 </CardDescription>
+                <div className="mt-2">
+                  {reviewStatus === 'overdue' ? (
+                    <Badge variant="outline" className="text-xs font-semibold gap-1 bg-destructive/10 text-destructive border-destructive/40">
+                      <Timer size={12} weight="bold" />
+                      Skal opdateres
+                    </Badge>
+                  ) : reviewStatus === 'due-soon' ? (
+                    <Badge variant="outline" className="text-xs font-semibold gap-1 bg-yellow-500/10 text-yellow-600 border-yellow-500/40">
+                      <Timer size={12} weight="bold" />
+                      Opdateres senest {guide.nextReviewAt ? new Date(guide.nextReviewAt).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' }) : ''}
+                    </Badge>
+                  ) : reviewStatus === 'ok' ? (
+                    <Badge variant="outline" className="text-xs gap-1 text-muted-foreground border-border">
+                      <Timer size={12} />
+                      Næste tjek {guide.nextReviewAt ? new Date(guide.nextReviewAt).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs gap-1 text-muted-foreground/60 border-border/60">
+                      Intet interval
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
             {guide.tags.length > 0 && (
@@ -98,6 +128,19 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
                     +{guide.tags.length - 3}
                   </Badge>
                 )}
+              </div>
+            )}
+            {matchSnippet && (
+              <div className="rounded-lg bg-muted/50 border border-border px-3 py-2">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    Match {matchSnippet.reference}
+                  </span>
+                  <span className="text-[10px] font-semibold text-muted-foreground">
+                    {matchSnippet.relevance} % relevans
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2 break-words">{matchSnippet.text}</p>
               </div>
             )}
             <div className="flex gap-2 pt-3" onClick={(e) => e.stopPropagation()}>
@@ -131,6 +174,19 @@ export function GuideCard({ guide, onEdit, onDelete, onView }: GuideCardProps) {
                   <Trash size={18} weight="duotone" />
                 </Button>
               </motion.div>
+              {onMarkReviewed && (reviewStatus === 'overdue' || reviewStatus === 'due-soon') && (
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="ml-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-1.5 text-xs font-semibold border-green-600/40 text-green-600 hover:bg-green-600/10 hover:text-green-600"
+                    onClick={() => onMarkReviewed(guide)}
+                  >
+                    <CheckCircle size={16} weight="bold" />
+                    Gennemgået
+                  </Button>
+                </motion.div>
+              )}
             </div>
           </div>
         </CardHeader>

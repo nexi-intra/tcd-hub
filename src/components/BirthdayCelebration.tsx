@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { nextParticleId } from '@/lib/utils'
 
 interface Flag {
   id: number
@@ -125,7 +126,7 @@ export function BirthdayCelebration({ userEmail }: BirthdayCelebrationProps) {
         const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5
         const velocity = 8 + Math.random() * 8
         newConfetti.push({
-          id: Date.now() + Math.random() * 100000 + i,
+          id: nextParticleId(),
           x: originX,
           y: originY,
           rotation: Math.random() * 360,
