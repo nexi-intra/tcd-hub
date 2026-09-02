@@ -1314,7 +1314,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                         {module.title}
                       </h3>
                       
-                      <p className="text-muted-foreground text-xs leading-relaxed mb-3 md:mb-4 flex-1">
+                      <p className="text-muted-foreground text-xs leading-relaxed mb-3 md:mb-4 flex-1 min-h-[2.5rem] line-clamp-2">
                         {module.description}
                       </p>
                     </div>
