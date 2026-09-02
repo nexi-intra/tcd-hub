@@ -93,9 +93,30 @@ function checkForUpdates() {
   }
 }
 
+// Debounce batches of changed keys to reduce re-render storms in renderer.
+// When multiple files change within 100ms, batch them into a single broadcast.
+function createDebouncedBroadcast(delayMs = 100) {
+  let timer = null
+  let pendingKeys = new Set()
+
+  return (changedKeys) => {
+    changedKeys.forEach(k => pendingKeys.add(k))
+    
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      if (pendingKeys.size > 0) {
+        broadcast('kv:changed', Array.from(pendingKeys))
+        pendingKeys.clear()
+      }
+      timer = null
+    }, delayMs)
+  }
+}
+
 function startWatcher() {
   if (stopWatcher) stopWatcher()
-  stopWatcher = store.watch((changedKeys) => broadcast('kv:changed', changedKeys))
+  const debouncedBroadcast = createDebouncedBroadcast(100)
+  stopWatcher = store.watch((changedKeys) => debouncedBroadcast(changedKeys))
 }
 
 // --- Automatisk daglig backup -------------------------------------------

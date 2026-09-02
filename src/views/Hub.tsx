@@ -60,6 +60,17 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [showCommentDialog, setShowCommentDialog] = useState(false)
   const [selectedUserForComment, setSelectedUserForComment] = useState<{ name: string; roleId: string; currentComment?: string } | null>(null)
   const [newComment, setNewComment] = useState('')
+  const [appVersion, setAppVersion] = useState<string>('')
+
+  useEffect(() => {
+    const loadVersion = async () => {
+      if (window.electronUpdates) {
+        const status = await window.electronUpdates.getStatus()
+        setAppVersion(status.currentVersion)
+      }
+    }
+    loadVersion()
+  }, [])
   
   useEffect(() => {
     const checkUserRole = async () => {
@@ -1314,6 +1325,12 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           })}
         </motion.div>
       </div>
+
+      {appVersion && (
+        <div className="fixed bottom-3 left-3 z-10 text-[11px] font-medium text-muted-foreground/50 select-none pointer-events-none">
+          v{appVersion}
+        </div>
+      )}
 
       <Dialog open={showQuickAssignDialog} onOpenChange={setShowQuickAssignDialog}>
         <DialogContent className="sm:max-w-[450px]">
