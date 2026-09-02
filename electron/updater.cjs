@@ -361,7 +361,16 @@ async function prepareUpdate({ dataDir, manifest, exePath, installDir, onProgres
   const versionDir = manifest.deltaDir ? path.join(updatesDir(dataDir), manifest.deltaDir) : null
 
   if (Array.isArray(manifest.files) && versionDir && fs.existsSync(versionDir)) {
-    return prepareDeltaUpdate({ manifest, versionDir, installDir: targetDir, exePath, onProgress })
+    try {
+      return await prepareDeltaUpdate({ manifest, versionDir, installDir: targetDir, exePath, onProgress })
+    } catch (err) {
+      // En klient der endnu ikke har denne opdaterings-kode kan ramme fejl her
+      // (fx ældre versioner uden original-fs-håndtering af app.asar). Falder
+      // trygt tilbage til fuld zip-installation, som ikke rammer den slags —
+      // det sikrer klienten altid kan komme videre til en nyere, rettet version.
+      console.error('TCD Hub: delta-opdatering fejlede, falder tilbage til fuld installation:', err.message)
+      return prepareFullUpdate({ dataDir, manifest, exePath, onProgress })
+    }
   }
   return prepareFullUpdate({ dataDir, manifest, exePath, onProgress })
 }

@@ -144,6 +144,34 @@ test('prepareUpdate transfers only the files that actually changed', async (t) =
   assert.equal(fs.existsSync(path.join(prepared.stagingDir, EXE_NAME)), false)
 })
 
+test('prepareUpdate falls back to a full install when the delta path throws', async (t) => {
+  const dataDir = makeTempDir(t, 'tcd-data-')
+  const installDir = makeTempDir(t, 'tcd-install-')
+  const zipPath = buildReleaseZip(t)
+
+  const manifest = await publishUpdate(dataDir, { zipPath, version: '9.9.9', notes: '', publishedBy: '' })
+
+  // Simulate an older client that fails to read a file during delta diffing
+  // (e.g. the asar/original-fs issue) by deleting a file the manifest still
+  // lists, so diffAgainstInstall's stat/hash throws mid-comparison.
+  fs.writeFileSync(path.join(installDir, EXE_NAME), 'binary-placeholder')
+  fs.mkdirSync(path.join(installDir, 'resources'))
+  fs.writeFileSync(path.join(installDir, 'resources', 'app.asar'), 'outdated-local-copy')
+  fs.rmSync(path.join(dataDir, 'updates', '9.9.9', 'resources', 'app.asar'))
+
+  const prepared = await prepareUpdate({
+    dataDir,
+    manifest,
+    exePath: path.join(installDir, EXE_NAME),
+    installDir,
+  })
+  t.after(() => fs.rmSync(prepared.workDir, { recursive: true, force: true }))
+
+  // Fell back to the full-zip install path, which always contains every file.
+  assert.ok(fs.existsSync(path.join(prepared.stagingDir, EXE_NAME)))
+  assert.ok(fs.existsSync(path.join(prepared.stagingDir, 'resources', 'app.asar')))
+})
+
 test('prepareUpdate reports files the new version no longer contains', async (t) => {
   const dataDir = makeTempDir(t, 'tcd-data-')
   const installDir = makeTempDir(t, 'tcd-install-')
