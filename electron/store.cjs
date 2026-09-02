@@ -66,16 +66,37 @@ function wait(milliseconds) {
 function createStore(dataDir) {
   fs.mkdirSync(dataDir, { recursive: true })
 
+  // Local read cache (3s TTL) to reduce repeated network I/O. Async background refresh.
+  const readCache = new Map()
+  const CACHE_TTL_MS = 3000
+
   function filePath(key) {
     return path.join(dataDir, keyToFilename(key))
   }
 
   function get(key) {
+    const cached = readCache.get(key)
+    if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
+      // Return cached value immediately, refresh in background.
+      setImmediate(() => {
+        try {
+          const raw = fs.readFileSync(filePath(key), 'utf8')
+          const decoded = parseFileContents(raw)
+          readCache.set(key, { value: decoded, at: Date.now() })
+        } catch {
+          // Keep cached value on error.
+        }
+      })
+      return cached.value
+    }
+
     let lastError
     for (let attempt = 1; attempt <= READ_ATTEMPTS; attempt++) {
       try {
         const raw = fs.readFileSync(filePath(key), 'utf8')
-        return parseFileContents(raw)
+        const decoded = parseFileContents(raw)
+        readCache.set(key, { value: decoded, at: Date.now() })
+        return decoded
       } catch (err) {
         if (err.code === 'ENOENT') return undefined
         lastError = err
@@ -88,6 +109,7 @@ function createStore(dataDir) {
   }
 
   function set(key, value) {
+    readCache.set(key, { value, at: Date.now() })
     const target = filePath(key)
     const tmp = `${target}.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}.tmp`
     fs.writeFileSync(tmp, encryptPayload(JSON.stringify(value)))
@@ -109,6 +131,7 @@ function createStore(dataDir) {
   }
 
   function del(key) {
+    readCache.delete(key)
     try {
       fs.unlinkSync(filePath(key))
     } catch (err) {
@@ -262,7 +285,7 @@ function createStore(dataDir) {
    * Polls the directory and invokes onChange(changedKeys: string[]) whenever
    * files were added, modified, or removed. Returns a stop function.
    */
-  function watch(onChange, intervalMs = 2000) {
+  function watch(onChange, intervalMs = 5000) {
     let snapshot = takeSnapshot()
 
     function takeSnapshot() {
@@ -295,8 +318,12 @@ function createStore(dataDir) {
         if (!next.has(name)) changed.push(filenameToKey(name))
       }
       snapshot = next
-      if (changed.length > 0) onChange(changed)
-    }, intervalMs)
+      if (changed.length > 0) {
+        // Invalidate cache for changed keys to force fresh read on next get().
+        for (const key of changed) readCache.delete(key)
+        onChange(changed)
+      }
+    }, Math.max(intervalMs, 5000))
     timer.unref?.()
 
     return () => clearInterval(timer)
