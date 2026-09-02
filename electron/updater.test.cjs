@@ -4,7 +4,7 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const { execFileSync } = require('child_process')
-const { publishUpdate, prepareUpdate, isNewerVersion, readManifest } = require('./updater.cjs')
+const { publishUpdate, prepareUpdate, isNewerVersion, readManifest, buildApplyScript } = require('./updater.cjs')
 
 const EXE_NAME = 'TCD Hub.exe'
 
@@ -139,4 +139,39 @@ test('prepareUpdate reports files the new version no longer contains', async (t)
   t.after(() => fs.rmSync(prepared.workDir, { recursive: true, force: true }))
 
   assert.deepEqual(prepared.obsolete, ['leftover-from-old-version.dll'])
+})
+
+test('prepareUpdate creates a staging directory even when delta has no changed files', async (t) => {
+  const dataDir = makeTempDir(t, 'tcd-data-')
+  const installDir = makeTempDir(t, 'tcd-install-')
+  const zipPath = buildReleaseZip(t)
+
+  const manifest = await publishUpdate(dataDir, { zipPath, version: '9.9.9', notes: '', publishedBy: '' })
+  fs.writeFileSync(path.join(installDir, EXE_NAME), 'binary-placeholder')
+  fs.mkdirSync(path.join(installDir, 'resources'))
+  fs.writeFileSync(path.join(installDir, 'resources', 'app.asar'), 'asar-placeholder')
+
+  const prepared = await prepareUpdate({
+    dataDir,
+    manifest,
+    exePath: path.join(installDir, EXE_NAME),
+    installDir,
+  })
+  t.after(() => fs.rmSync(prepared.workDir, { recursive: true, force: true }))
+
+  assert.equal(prepared.changedCount, 0)
+  assert.ok(fs.existsSync(prepared.stagingDir))
+})
+
+test('apply script restarts old app and stops before success path when robocopy fails', (t) => {
+  const workDir = makeTempDir(t, 'tcd-work-')
+  const stagingDir = path.join(workDir, 'app')
+  const installDir = path.join(workDir, 'install')
+  const exePath = path.join(installDir, EXE_NAME)
+
+  const script = buildApplyScript({ workDir, stagingDir, installDir, exePath, appPid: 1234 })
+
+  assert.match(script, /if %ERRORLEVEL% GEQ 8 \(/)
+  assert.match(script, /start "" ".*TCD Hub\.exe"\r\n  exit \/b %ERRORLEVEL%/)
+  assert.match(script, /\) else \(\r\n  echo Opdatering gennemfoert/)
 })

@@ -291,6 +291,7 @@ async function prepareDeltaUpdate({ manifest, versionDir, installDir, exePath, o
   const totalBytes = changed.reduce((sum, entry) => sum + entry.size, 0)
 
   try {
+    await fsp.mkdir(stagingDir, { recursive: true })
     onProgress({ phase: 'downloading', percent: 0, transferredBytes: 0, totalBytes, fileCount: changed.length })
 
     let copiedBytes = 0
@@ -370,7 +371,7 @@ async function prepareFullUpdate({ dataDir, manifest, exePath, onProgress }) {
  * åbner et synligt konsolvindue selv med windowsHide.
  * Kalderen skal selv kalde app.quit() bagefter.
  */
-function applyPreparedUpdate({ workDir, stagingDir, installDir, exePath, obsolete = [] }) {
+function buildApplyScript({ workDir, stagingDir, installDir, exePath, obsolete = [], appPid = process.pid }) {
   // Sikkerhedsventil: en uventet lang sletteliste tyder på et forkert manifest.
   const safeObsolete = obsolete.length <= 200
     ? obsolete.filter((relativePath) => {
@@ -380,10 +381,10 @@ function applyPreparedUpdate({ workDir, stagingDir, installDir, exePath, obsolet
     : []
 
   // "ping -n 2" bruges som 1 sekunds pause — timeout.exe virker ikke uden stdin.
-  const script = [
+  return [
     '@echo off',
     'setlocal',
-    `set "APPPID=${process.pid}"`,
+    `set "APPPID=${appPid}"`,
     `set "LOG=${path.join(workDir, 'update-log.txt')}"`,
     'echo Venter paa at TCD Hub lukker... > "%LOG%"',
     ':wait',
@@ -396,6 +397,8 @@ function applyPreparedUpdate({ workDir, stagingDir, installDir, exePath, obsolet
     `robocopy "${stagingDir}" "${installDir}" /E /R:10 /W:2 /NFL /NDL /NJH /NJS /NP >> "%LOG%" 2>&1`,
     'if %ERRORLEVEL% GEQ 8 (',
     '  echo Opdatering fejlede - robocopy exit %ERRORLEVEL% >> "%LOG%"',
+    `  start "" "${exePath}"`,
+    '  exit /b %ERRORLEVEL%',
     ') else (',
     '  echo Opdatering gennemfoert >> "%LOG%"',
     ')',
@@ -404,6 +407,10 @@ function applyPreparedUpdate({ workDir, stagingDir, installDir, exePath, obsolet
     'endlocal',
     '',
   ].join('\r\n')
+}
+
+function applyPreparedUpdate({ workDir, stagingDir, installDir, exePath, obsolete = [] }) {
+  const script = buildApplyScript({ workDir, stagingDir, installDir, exePath, obsolete })
 
   const scriptPath = path.join(workDir, 'apply-update.cmd')
   fs.writeFileSync(scriptPath, script)
@@ -455,4 +462,5 @@ module.exports = {
   applyPreparedUpdate,
   cleanupOldWorkDirs,
   sha256File,
+  buildApplyScript,
 }

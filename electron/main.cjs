@@ -378,9 +378,17 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('updates:publish', async (_event, payload) => {
+    const version = String(payload.version)
+    if (!updater.isNewerVersion(version, app.getVersion())) {
+      throw new Error(`Version ${version} er ikke nyere end denne app (${app.getVersion()})`)
+    }
+    const existingManifest = updater.readManifest(store.dataDir)
+    if (existingManifest && !updater.isNewerVersion(version, existingManifest.version)) {
+      throw new Error(`Version ${version} er ikke nyere end den seneste publicerede version (${existingManifest.version})`)
+    }
     const manifest = await updater.publishUpdate(store.dataDir, {
       zipPath: String(payload.zipPath),
-      version: String(payload.version),
+      version,
       notes: String(payload.notes || ''),
       publishedBy: String(payload.publishedBy || ''),
     })
