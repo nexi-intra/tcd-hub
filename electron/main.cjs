@@ -400,12 +400,15 @@ app.whenReady().then(() => {
 
   ipcMain.handle('updates:publish', async (_event, payload) => {
     const version = String(payload.version)
-    if (!updater.isNewerVersion(version, app.getVersion())) {
-      throw new Error(`Version ${version} er ikke nyere end denne app (${app.getVersion()})`)
+    // Tillader at publicere den samme version som denne app selv kører — andre
+    // klienter kan sagtens være bagud (fx stadig på 1.4.0), selvom manageren
+    // allerede er opdateret. Kun reelle nedgraderinger blokeres.
+    if (updater.isNewerVersion(app.getVersion(), version)) {
+      throw new Error(`Version ${version} er ældre end denne app (${app.getVersion()})`)
     }
     const existingManifest = updater.readManifest(store.dataDir)
-    if (existingManifest && !updater.isNewerVersion(version, existingManifest.version)) {
-      throw new Error(`Version ${version} er ikke nyere end den seneste publicerede version (${existingManifest.version})`)
+    if (existingManifest && updater.isNewerVersion(existingManifest.version, version)) {
+      throw new Error(`Version ${version} er ældre end den seneste publicerede version (${existingManifest.version})`)
     }
     const manifest = await updater.publishUpdate(store.dataDir, {
       zipPath: String(payload.zipPath),

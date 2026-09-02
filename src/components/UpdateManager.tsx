@@ -195,7 +195,7 @@ export function UpdateManager({ userEmail }: UpdateManagerProps) {
             {status && /^\d+\.\d+\.\d+$/.test(version.trim()) &&
               status.currentVersion === version.trim() && (
               <p className="text-sm text-amber-600 dark:text-amber-400">
-                Bemærk: versionen er den samme som den du kører — klienterne opdaterer kun ved et højere versionsnummer.
+                Bemærk: versionen er den samme som den du selv kører — det er fint hvis andre klienter stadig er bagud, de opdaterer stadig. Klienter der allerede har denne version, opdaterer ikke igen.
               </p>
             )}
             <div className="flex flex-wrap gap-3">
