@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Monitor, Lightning, Clock } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { setKvObjectField } from '@/lib/kvArrays'
-import type { UpdateStatus } from '@/lib/electronUpdatesBridge'
+import type { UpdateStatus, UpdateManifest } from '@/lib/electronUpdatesBridge'
 
 interface ClientVersionManagerProps {
   managerEmail: string
@@ -21,23 +22,27 @@ interface ClientVersionEntry {
 const OFFLINE_THRESHOLD_MS = 24 * 60 * 60 * 1000
 
 // Manager Panel → Datalagring: viser hvilken app-version hver bruger kører,
-// og lader manageren tvinge en opdatering ud til brugere der er bagud.
+// og lader manageren tvinge en helt specifik version ud til dem der er bagud.
 export function ClientVersionManager({ managerEmail, users }: ClientVersionManagerProps) {
   const isDesktopApp = !!window.electronUpdates
   const [status, setStatus] = useState<UpdateStatus | null>(null)
+  const [history, setHistory] = useState<UpdateManifest[]>([])
   const [clientVersions, setClientVersions] = useState<Record<string, ClientVersionEntry>>({})
-  const [pendingRequests, setPendingRequests] = useState<Record<string, { requestedAt: number }>>({})
+  const [pendingRequests, setPendingRequests] = useState<Record<string, { requestedAt: number; version?: string }>>({})
+  const [selectedVersions, setSelectedVersions] = useState<Record<string, string>>({})
   const [busyEmail, setBusyEmail] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     if (!window.electronUpdates) return
     try {
-      const [statusResult, versions, requests] = await Promise.all([
+      const [statusResult, historyResult, versions, requests] = await Promise.all([
         window.electronUpdates.getStatus(),
+        window.electronUpdates.history(),
         window.kv.get<Record<string, ClientVersionEntry>>('client-versions'),
-        window.kv.get<Record<string, { requestedAt: number; requestedBy: string }>>('force-update-requests'),
+        window.kv.get<Record<string, { requestedAt: number; requestedBy: string; version?: string }>>('force-update-requests'),
       ])
       setStatus(statusResult)
+      setHistory(historyResult || [])
       setClientVersions(versions || {})
       setPendingRequests(requests || {})
     } catch (error) {
@@ -66,14 +71,22 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
     return a1 < b1 || (a1 === b1 && a2 < b2) || (a1 === b1 && a2 === b2 && a3 < b3)
   }
 
+  const getSelectedVersion = (email: string) => selectedVersions[email] || history[0]?.version || latestVersion
+
   const handleForceUpdate = async (email: string) => {
+    const version = getSelectedVersion(email)
+    if (!version) {
+      toast.error('Ingen version tilgængelig at pushe')
+      return
+    }
     setBusyEmail(email)
     try {
       await setKvObjectField('force-update-requests', email, {
         requestedAt: Date.now(),
         requestedBy: managerEmail,
+        version,
       })
-      toast.success(`Tvungen opdatering er sendt til ${email} — de opdateres automatisk ved næste synkronisering`)
+      toast.success(`Version v${version} er sendt til ${email} — de opdateres automatisk ved næste synkronisering`)
       await refresh()
     } catch (error) {
       console.error('Kunne ikke sende tvungen opdatering:', error)
@@ -99,10 +112,16 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
         <div>
           <h3 className="text-lg font-bold">Brugernes app-versioner</h3>
           <p className="text-sm text-muted-foreground">
-            Se hvilken version hver bruger kører, og tving en opdatering ud til dem der er bagud.
+            Se hvilken version hver bruger kører, og vælg helt præcist hvilken version der skal tvinges ud.
           </p>
         </div>
       </div>
+
+      {history.length === 0 && (
+        <p className="text-sm text-muted-foreground rounded-lg border bg-muted/40 p-3">
+          Ingen versioner publiceret endnu — publicér mindst én version ovenfor, før du kan tvinge opdateringer ud.
+        </p>
+      )}
 
       <div className="rounded-lg border divide-y">
         {rows.length === 0 && (
@@ -112,7 +131,8 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
           const outdated = entry ? isOutdated(entry.version) : false
           const neverSeen = !entry
           const isOffline = entry && Date.now() - entry.lastSeen > OFFLINE_THRESHOLD_MS
-          const hasPendingRequest = !!pendingRequests[user.email]
+          const pending = pendingRequests[user.email]
+          const selectedVersion = getSelectedVersion(user.email)
 
           return (
             <div key={user.email} className="p-3 flex items-center justify-between gap-3 flex-wrap">
@@ -136,21 +156,39 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
                     )}
                   </>
                 )}
-                {hasPendingRequest && (
+                {pending && (
                   <Badge variant="secondary" className="gap-1">
                     <Lightning size={12} />
-                    Opdatering afventer
+                    v{pending.version || '?'} afventer
                   </Badge>
                 )}
+
+                <Select
+                  value={selectedVersion}
+                  onValueChange={(value) => setSelectedVersions((current) => ({ ...current, [user.email]: value }))}
+                  disabled={history.length === 0}
+                >
+                  <SelectTrigger className="w-[150px] h-9 text-sm">
+                    <SelectValue placeholder="Vælg version" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {history.map((entryManifest) => (
+                      <SelectItem key={entryManifest.version} value={entryManifest.version}>
+                        v{entryManifest.version}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={neverSeen || busyEmail === user.email || hasPendingRequest}
+                  disabled={neverSeen || busyEmail === user.email || !!pending || history.length === 0}
                   onClick={() => handleForceUpdate(user.email)}
                   className="gap-1.5"
                 >
                   <Lightning size={14} />
-                  Tving opdatering
+                  Tving v{selectedVersion || '…'}
                 </Button>
               </div>
             </div>
@@ -160,3 +198,4 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
     </Card>
   )
 }
+

@@ -155,17 +155,28 @@ function App() {
 
     const checkForcedUpdate = async () => {
       try {
-        const requests = await window.kv.get<Record<string, { requestedAt: number; requestedBy: string }>>('force-update-requests') || {}
+        const requests = await window.kv.get<Record<string, { requestedAt: number; requestedBy: string; version?: string }>>('force-update-requests') || {}
         const request = requests[userSession.email]
         if (!request || handledRequests.has(request.requestedAt)) return
         handledRequests.add(request.requestedAt)
 
         await deleteKvObjectField('force-update-requests', userSession.email)
-        toast.info('En manager har udløst en tvungen opdatering — appen opdateres automatisk om lidt…', { duration: 6000 })
+        toast.info(
+          request.version
+            ? `En manager har udløst en tvungen opdatering til v${request.version} — appen opdateres automatisk om lidt…`
+            : 'En manager har udløst en tvungen opdatering — appen opdateres automatisk om lidt…',
+          { duration: 6000 }
+        )
 
-        const manifest = await window.electronUpdates!.check()
-        if (manifest) {
-          await window.electronUpdates!.install()
+        if (request.version) {
+          // Manageren har valgt en specifik version — installér den direkte,
+          // uanset om den er nyere/ældre end den aktuelt publicerede.
+          await window.electronUpdates!.install(request.version)
+        } else {
+          const manifest = await window.electronUpdates!.check()
+          if (manifest) {
+            await window.electronUpdates!.install()
+          }
         }
       } catch (error) {
         console.error('Tvungen opdatering fejlede:', error)

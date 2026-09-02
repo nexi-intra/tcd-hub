@@ -21,6 +21,11 @@ const { spawn } = require('child_process')
 
 const UPDATES_DIR = 'updates'
 const MANIFEST_FILE = 'manifest.json'
+const HISTORY_FILE = 'history.json'
+// Antal tidligere versioner der bevares (zip + udpakket kopi), så en manager
+// kan force-pushe en specifik ældre version til én bruger uden at ændre den
+// version alle andre klienter auto-opdaterer til.
+const HISTORY_RETENTION = 10
 const WORK_DIR_PREFIX = 'tcd-hub-update-'
 
 function updatesDir(dataDir) {
@@ -29,6 +34,34 @@ function updatesDir(dataDir) {
 
 function manifestPath(dataDir) {
   return path.join(updatesDir(dataDir), MANIFEST_FILE)
+}
+
+function historyPath(dataDir) {
+  return path.join(updatesDir(dataDir), HISTORY_FILE)
+}
+
+/** Liste over tidligere publicerede versioner (nyeste først), inkl. den aktuelle. */
+function readHistory(dataDir) {
+  try {
+    const raw = fs.readFileSync(historyPath(dataDir), 'utf8')
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeHistory(dataDir, history) {
+  const tmp = historyPath(dataDir) + '.' + process.pid + '.tmp'
+  fs.writeFileSync(tmp, JSON.stringify(history, null, 2))
+  fs.renameSync(tmp, historyPath(dataDir))
+}
+
+/** Finder manifestet for en specifik version (aktuel eller tidligere), eller null. */
+function getManifestForVersion(dataDir, version) {
+  const current = readManifest(dataDir)
+  if (current && current.version === version) return current
+  return readHistory(dataDir).find((entry) => entry.version === version) || null
 }
 
 function parseVersion(value) {
@@ -158,13 +191,27 @@ async function publishUpdate(dataDir, { zipPath, version, notes, publishedBy }) 
   fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2))
   fs.renameSync(tmp, manifestPath(dataDir))
 
+  // Behold op til HISTORY_RETENTION versioner (denne + tidligere), så en
+  // manager senere kan vælge en specifik version at force-pushe til én bruger.
+  const history = readHistory(dataDir).filter((entry) => entry.version !== version)
+  history.unshift(manifest)
+  const retained = history.slice(0, HISTORY_RETENTION)
+  writeHistory(dataDir, retained)
+
+  const retainedVersions = new Set(retained.map((entry) => entry.version))
+  const retainedFiles = new Set(retained.map((entry) => entry.file))
+
   for (const name of fs.readdirSync(dir)) {
     const fullPath = path.join(dir, name)
-    if (name.toLowerCase().endsWith('.zip') && name !== fileName) {
-      try { fs.unlinkSync(fullPath) } catch { /* en anden klient kan være i gang med den */ }
-    } else if (name !== version && name !== MANIFEST_FILE && fs.statSync(fullPath).isDirectory()) {
-      // Ryd tidligere versioners udpakkede mapper.
-      try { fs.rmSync(fullPath, { recursive: true, force: true }) } catch { /* i brug */ }
+    if (name.toLowerCase().endsWith('.zip')) {
+      if (!retainedFiles.has(name)) {
+        try { fs.unlinkSync(fullPath) } catch { /* en anden klient kan være i gang med den */ }
+      }
+    } else if (name !== MANIFEST_FILE && name !== HISTORY_FILE && fs.statSync(fullPath).isDirectory()) {
+      if (!retainedVersions.has(name)) {
+        // Ryd udpakkede mapper for versioner der er faldet ud af historikken.
+        try { fs.rmSync(fullPath, { recursive: true, force: true }) } catch { /* i brug */ }
+      }
     }
   }
   return manifest
@@ -455,6 +502,8 @@ function cleanupOldWorkDirs() {
 
 module.exports = {
   readManifest,
+  readHistory,
+  getManifestForVersion,
   isNewerVersion,
   versionFromFilename,
   publishUpdate,

@@ -417,13 +417,29 @@ app.whenReady().then(() => {
     return manifest
   })
 
-  ipcMain.handle('updates:install', async () => {
+  ipcMain.handle('updates:history', () => {
+    const current = updater.readManifest(store.dataDir)
+    const history = updater.readHistory(store.dataDir)
+    if (current && !history.some((entry) => entry.version === current.version)) {
+      return [current, ...history]
+    }
+    return history
+  })
+
+  ipcMain.handle('updates:install', async (_event, payload) => {
     if (!app.isPackaged) {
       throw new Error('Opdatering kan kun installeres fra den byggede app (ikke i udviklingstilstand)')
     }
     if (updateInProgress) return
-    const manifest = updater.readManifest(store.dataDir)
-    if (!manifest || !updater.isNewerVersion(manifest.version, app.getVersion())) {
+    const requestedVersion = payload && payload.version ? String(payload.version) : null
+    const manifest = requestedVersion
+      ? updater.getManifestForVersion(store.dataDir, requestedVersion)
+      : updater.readManifest(store.dataDir)
+
+    if (requestedVersion && !manifest) {
+      throw new Error(`Version ${requestedVersion} findes ikke længere i opdateringshistorikken`)
+    }
+    if (!requestedVersion && (!manifest || !updater.isNewerVersion(manifest.version, app.getVersion()))) {
       throw new Error('Der er ingen nyere version at installere')
     }
 
