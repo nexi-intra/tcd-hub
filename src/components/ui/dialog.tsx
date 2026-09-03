@@ -1,46 +1,13 @@
-import { ComponentProps, useEffect, useState } from "react"
+import { ComponentProps } from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import XIcon from "lucide-react/dist/esm/icons/x"
 
 import { cn } from "@/lib/utils"
-import { registerModalOpen, registerModalClosed } from "@/lib/modalStack"
 
 function Dialog({
-  open: controlledOpen,
-  onOpenChange,
   ...props
 }: ComponentProps<typeof DialogPrimitive.Root>) {
-  // Spejler Radix' åben/lukket-tilstand uanset om dialogen er styret udefra
-  // (open-prop) eller styres internt af Radix selv (kun Trigger, intet
-  // open-prop) — begge mønstre bruges i appen. Bruges til at registrere sig i
-  // den globale dialog-tæller, så globale Escape-lyttere ("gå tilbage") ved at
-  // der er en åben dialog og lader Radix lukke den først, i stedet for at
-  // navigere væk samtidig.
-  const [internalOpen, setInternalOpen] = useState(controlledOpen ?? false)
-  useEffect(() => {
-    if (controlledOpen !== undefined) setInternalOpen(controlledOpen)
-  }, [controlledOpen])
-  const effectiveOpen = controlledOpen !== undefined ? controlledOpen : internalOpen
-
-  useEffect(() => {
-    if (!effectiveOpen) return
-    registerModalOpen()
-    return () => registerModalClosed()
-  }, [effectiveOpen])
-
-  const handleOpenChange = (value: boolean) => {
-    if (controlledOpen === undefined) setInternalOpen(value)
-    onOpenChange?.(value)
-  }
-
-  return (
-    <DialogPrimitive.Root
-      data-slot="dialog"
-      open={effectiveOpen}
-      onOpenChange={handleOpenChange}
-      {...props}
-    />
-  )
+  return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
 function DialogTrigger({
