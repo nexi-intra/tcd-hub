@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { UserProfile } from '@/components/UserProfile'
 import { SickLeaveDialog } from '@/components/SickLeaveDialog'
+import { GuideReviewAlert } from '@/components/GuideReviewAlert'
 import { EmailNotifications } from '@/components/EmailNotifications'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -1331,6 +1332,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           v{appVersion}
         </div>
       )}
+
+      <GuideReviewAlert onOpenGuideLibrary={() => onNavigate('guides')} />
 
       <Dialog open={showQuickAssignDialog} onOpenChange={setShowQuickAssignDialog}>
         <DialogContent className="sm:max-w-[450px]">
