@@ -1,15 +1,44 @@
 "use client"
 
-import { ComponentProps } from "react"
+import { ComponentProps, useEffect, useState } from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { registerModalOpen, registerModalClosed } from "@/lib/modalStack"
 
 function AlertDialog({
+  open: controlledOpen,
+  onOpenChange,
   ...props
 }: ComponentProps<typeof AlertDialogPrimitive.Root>) {
-  return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
+  // Se dialog.tsx for forklaring — spejler åben/lukket-tilstand uanset om
+  // dialogen er styret udefra eller kun via Trigger (begge mønstre bruges).
+  const [internalOpen, setInternalOpen] = useState(controlledOpen ?? false)
+  useEffect(() => {
+    if (controlledOpen !== undefined) setInternalOpen(controlledOpen)
+  }, [controlledOpen])
+  const effectiveOpen = controlledOpen !== undefined ? controlledOpen : internalOpen
+
+  useEffect(() => {
+    if (!effectiveOpen) return
+    registerModalOpen()
+    return () => registerModalClosed()
+  }, [effectiveOpen])
+
+  const handleOpenChange = (value: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(value)
+    onOpenChange?.(value)
+  }
+
+  return (
+    <AlertDialogPrimitive.Root
+      data-slot="alert-dialog"
+      open={effectiveOpen}
+      onOpenChange={handleOpenChange}
+      {...props}
+    />
+  )
 }
 
 function AlertDialogTrigger({

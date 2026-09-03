@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { UserProfile } from '@/components/UserProfile'
 import { UserRole, getRoleDisplayName } from '@/lib/userRoles'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
+import { isAnyModalOpen } from '@/lib/modalStack'
 
 export interface TeamEmployee {
   id: string
@@ -32,6 +33,7 @@ export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isAnyModalOpen()) return
         onNavigateBack()
       }
     }

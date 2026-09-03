@@ -22,6 +22,7 @@ import { newId } from '@/lib/utils'
 import { parseLocalDate } from '@/lib/dateUtils'
 import { appendToKvArray, updateKvArrayItem, removeFromKvArray, upsertInKvArray, setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
 import { cn } from '@/lib/utils'
+import { isAnyModalOpen } from '@/lib/modalStack'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
 import React from 'react'
@@ -102,6 +103,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isAnyModalOpen()) return
         onNavigateBack()
       }
     }

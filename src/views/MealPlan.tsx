@@ -11,6 +11,7 @@ import { AutoText } from '@/components/AutoText'
 import { useAutoTranslate } from '@/lib/useAutoTranslate'
 import { toast } from 'sonner'
 import { getWeekNumber, getStartOfWeek, formatDate } from '@/lib/dateUtils'
+import { isAnyModalOpen } from '@/lib/modalStack'
 import type { WeekMenu } from '@/lib/types'
 
 interface MealPlanProps {
@@ -54,6 +55,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isAnyModalOpen()) return
         onNavigateBack()
       }
     }

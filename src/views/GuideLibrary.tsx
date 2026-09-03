@@ -21,6 +21,7 @@ import { CategoryManager } from '@/components/CategoryManager'
 import { UserProfile } from '@/components/UserProfile'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { isAnyModalOpen } from '@/lib/modalStack'
 import { toast } from 'sonner'
 
 const defaultCategories: string[] = ['Procedures', 'Technical', 'HR', 'Safety', 'General']
@@ -61,6 +62,7 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isAnyModalOpen()) return
         onNavigateBack()
       }
     }

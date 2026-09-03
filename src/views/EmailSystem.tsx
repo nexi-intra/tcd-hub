@@ -38,6 +38,7 @@ import { toast } from 'sonner'
 import { AutoText } from '@/components/AutoText'
 import { cn, newId } from '@/lib/utils'
 import { appendToKvArray } from '@/lib/kvArrays'
+import { isAnyModalOpen } from '@/lib/modalStack'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { Email, EmailFolder, VacationEntry, VacationStatus } from '@/lib/types'
 
@@ -109,6 +110,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isAnyModalOpen()) return
         onNavigateBack()
       }
     }
