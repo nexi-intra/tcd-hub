@@ -124,6 +124,74 @@ function App() {
   }, [userSession])
 
   useEffect(() => {
+    // Rapportér denne klients app-version til den fælles KV-nøgle "client-versions",
+    // så Manager Panel kan se hvem der kører hvilken version. Kun i desktop-appen.
+    if (!userSession || !window.electronUpdates) return
+
+    const reportVersion = async () => {
+      try {
+        const status = await window.electronUpdates!.getStatus()
+        await setKvObjectField('client-versions', userSession.email, {
+          version: status.currentVersion,
+          platform: navigator.platform || 'unknown',
+          lastSeen: Date.now(),
+        })
+      } catch (error) {
+        console.error('Kunne ikke rapportere app-version:', error)
+      }
+    }
+
+    reportVersion()
+    const interval = setInterval(reportVersion, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [userSession])
+
+  useEffect(() => {
+    // Lytter efter en manager-udløst "tving opdatering" (Manager Panel → Datalagring).
+    // Nøglen er et opslagsobjekt keyet pr. email; hvis vores email dukker op, trigges
+    // en automatisk opdatering uden at brugeren skal klikke noget.
+    if (!userSession || !window.electronUpdates) return
+    const handledRequests = new Set<number>()
+
+    const checkForcedUpdate = async () => {
+      try {
+        const requests = await window.kv.get<Record<string, { requestedAt: number; requestedBy: string; version?: string }>>('force-update-requests') || {}
+        const request = requests[userSession.email]
+        if (!request || handledRequests.has(request.requestedAt)) return
+        handledRequests.add(request.requestedAt)
+
+        await deleteKvObjectField('force-update-requests', userSession.email)
+        toast.info(
+          request.version
+            ? `En manager har udløst en tvungen opdatering til v${request.version} — appen opdateres automatisk om lidt…`
+            : 'En manager har udløst en tvungen opdatering — appen opdateres automatisk om lidt…',
+          { duration: 6000 }
+        )
+
+        if (request.version) {
+          // Manageren har valgt en specifik version — installér den direkte,
+          // uanset om den er nyere/ældre end den aktuelt publicerede.
+          await window.electronUpdates!.install(request.version)
+        } else {
+          const manifest = await window.electronUpdates!.check()
+          if (manifest) {
+            await window.electronUpdates!.install()
+          }
+        }
+      } catch (error) {
+        console.error('Tvungen opdatering fejlede:', error)
+        toast.error('Tvungen opdatering fejlede — prøv igen fra Manager Panel')
+      }
+    }
+
+    checkForcedUpdate()
+    const unsubscribe = window.kv.subscribe((changedKeys) => {
+      if (changedKeys.includes('force-update-requests')) checkForcedUpdate()
+    })
+    return () => unsubscribe()
+  }, [userSession])
+
+  useEffect(() => {
     // Auto-login: gyldigt lokalt "husk mig"-token logger brugeren direkte ind.
     const restoreSession = async () => {
       try {

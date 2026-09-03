@@ -28,6 +28,7 @@ import React from 'react'
 import { ManualVacationGrant } from '@/components/ManualVacationGrant'
 import { DataStorageManager } from '@/components/DataStorageManager'
 import { UpdateManager } from '@/components/UpdateManager'
+import { ClientVersionManager } from '@/components/ClientVersionManager'
 import { GameLeaderboardAdmin } from '@/components/GameLeaderboardAdmin'
 import { vacationApprovedEmail, vacationRejectedEmail, vacationEditedEmail, vacationDeletedEmail, userApprovedEmail, userRejectedEmail } from '@/lib/emailTemplates'
 import type { BirthdayEntry, SickLeaveEntry, VacationEntry, VacationStatus } from '@/lib/types'
@@ -1794,6 +1795,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
           <TabsContent value="data-storage" className="space-y-6">
             <UpdateManager userEmail={userEmail} />
+            <ClientVersionManager managerEmail={userEmail} users={users} />
             <DataStorageManager />
           </TabsContent>
 
@@ -2208,7 +2210,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                                       <div
                                         key={vacation.id}
                                         className={cn(
-                                          "text-[9px] px-1 py-0.5 rounded truncate font-medium",
+                                          "text-[9px] leading-[1.6] px-1 py-0.5 rounded truncate font-medium",
                                           vacation.id === previewVacation.id && "ring-1 ring-amber-500"
                                         )}
                                         style={{ 

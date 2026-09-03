@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { UserProfile } from '@/components/UserProfile'
 import { SickLeaveDialog } from '@/components/SickLeaveDialog'
+import { GuideReviewAlert } from '@/components/GuideReviewAlert'
 import { EmailNotifications } from '@/components/EmailNotifications'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -60,6 +61,17 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [showCommentDialog, setShowCommentDialog] = useState(false)
   const [selectedUserForComment, setSelectedUserForComment] = useState<{ name: string; roleId: string; currentComment?: string } | null>(null)
   const [newComment, setNewComment] = useState('')
+  const [appVersion, setAppVersion] = useState<string>('')
+
+  useEffect(() => {
+    const loadVersion = async () => {
+      if (window.electronUpdates) {
+        const status = await window.electronUpdates.getStatus()
+        setAppVersion(status.currentVersion)
+      }
+    }
+    loadVersion()
+  }, [])
   
   useEffect(() => {
     const checkUserRole = async () => {
@@ -1303,7 +1315,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
                         {module.title}
                       </h3>
                       
-                      <p className="text-muted-foreground text-xs leading-relaxed mb-3 md:mb-4 flex-1">
+                      <p className="text-muted-foreground text-xs leading-relaxed mb-3 md:mb-4 flex-1 min-h-[2.5rem] line-clamp-2">
                         {module.description}
                       </p>
                     </div>
@@ -1314,6 +1326,14 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           })}
         </motion.div>
       </div>
+
+      {appVersion && (
+        <div className="fixed bottom-3 left-3 z-10 text-[11px] font-medium text-muted-foreground/50 select-none pointer-events-none">
+          v{appVersion}
+        </div>
+      )}
+
+      <GuideReviewAlert onOpenGuideLibrary={() => onNavigate('guides')} />
 
       <Dialog open={showQuickAssignDialog} onOpenChange={setShowQuickAssignDialog}>
         <DialogContent className="sm:max-w-[450px]">

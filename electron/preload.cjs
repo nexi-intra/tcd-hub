@@ -21,9 +21,10 @@ contextBridge.exposeInMainWorld('electronKv', {
 contextBridge.exposeInMainWorld('electronUpdates', {
   getStatus: () => ipcRenderer.invoke('updates:status'),
   check: () => ipcRenderer.invoke('updates:check'),
+  history: () => ipcRenderer.invoke('updates:history'),
   selectZip: () => ipcRenderer.invoke('updates:select-zip'),
   publish: (payload) => ipcRenderer.invoke('updates:publish', payload),
-  install: () => ipcRenderer.invoke('updates:install'),
+  install: (version) => ipcRenderer.invoke('updates:install', version ? { version } : undefined),
   onUpdateAvailable: (callback) => {
     const listener = (_event, manifest) => callback(manifest)
     ipcRenderer.on('updates:available', listener)
@@ -33,6 +34,11 @@ contextBridge.exposeInMainWorld('electronUpdates', {
     const listener = (_event, progress) => callback(progress)
     ipcRenderer.on('updates:progress', listener)
     return () => ipcRenderer.removeListener('updates:progress', listener)
+  },
+  onPublishProgress: (callback) => {
+    const listener = (_event, progress) => callback(progress)
+    ipcRenderer.on('updates:publish-progress', listener)
+    return () => ipcRenderer.removeListener('updates:publish-progress', listener)
   },
 })
 

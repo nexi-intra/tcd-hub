@@ -30,8 +30,12 @@ export function useKV<T>(key: string, initialValue: T): [T, (value: SetValue<T>)
     }
 
     load()
+    // Only reload when *this specific key* changes (not on all changes).
+    // This prevents unnecessary re-renders when other keys are modified.
     const unsubscribe = window.kv.subscribe((changedKeys) => {
-      if (changedKeys.includes(key)) load()
+      if (changedKeys.includes(key)) {
+        load()
+      }
     })
 
     return () => {

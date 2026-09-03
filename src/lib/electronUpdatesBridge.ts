@@ -37,12 +37,22 @@ export interface UpdateProgress {
   fileCount?: number
 }
 
+export type PublishPhase = 'hashing-source' | 'uploading' | 'verifying' | 'extracting' | 'indexing'
+
+export interface PublishProgress {
+  phase: PublishPhase
+  percent: number
+}
+
 export interface ElectronUpdatesApi {
   getStatus(): Promise<UpdateStatus>
   check(): Promise<UpdateManifest | null>
+  history(): Promise<UpdateManifest[]>
   selectZip(): Promise<SelectedZip | null>
-  publish(payload: { zipPath: string; version: string; notes: string; publishedBy: string }): Promise<UpdateManifest>
-  install(): Promise<void>
+  publish(payload: { zipPath: string; version: string; notes: string; publishedBy: string; skipDelta?: boolean }): Promise<UpdateManifest>
+  install(version?: string): Promise<void>
   onUpdateAvailable(callback: (manifest: UpdateManifest) => void): () => void
   onProgress(callback: (progress: UpdateProgress) => void): () => void
+  onPublishProgress(callback: (progress: PublishProgress) => void): () => void
 }
+

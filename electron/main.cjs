@@ -93,9 +93,30 @@ function checkForUpdates() {
   }
 }
 
+// Debounce batches of changed keys to reduce re-render storms in renderer.
+// When multiple files change within 100ms, batch them into a single broadcast.
+function createDebouncedBroadcast(delayMs = 100) {
+  let timer = null
+  let pendingKeys = new Set()
+
+  return (changedKeys) => {
+    changedKeys.forEach(k => pendingKeys.add(k))
+    
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      if (pendingKeys.size > 0) {
+        broadcast('kv:changed', Array.from(pendingKeys))
+        pendingKeys.clear()
+      }
+      timer = null
+    }, delayMs)
+  }
+}
+
 function startWatcher() {
   if (stopWatcher) stopWatcher()
-  stopWatcher = store.watch((changedKeys) => broadcast('kv:changed', changedKeys))
+  const debouncedBroadcast = createDebouncedBroadcast(100)
+  stopWatcher = store.watch((changedKeys) => debouncedBroadcast(changedKeys))
 }
 
 // --- Automatisk daglig backup -------------------------------------------
@@ -379,30 +400,51 @@ app.whenReady().then(() => {
 
   ipcMain.handle('updates:publish', async (_event, payload) => {
     const version = String(payload.version)
-    if (!updater.isNewerVersion(version, app.getVersion())) {
-      throw new Error(`Version ${version} er ikke nyere end denne app (${app.getVersion()})`)
+    // Tillader at publicere den samme version som denne app selv kører — andre
+    // klienter kan sagtens være bagud (fx stadig på 1.4.0), selvom manageren
+    // allerede er opdateret. Kun reelle nedgraderinger blokeres.
+    if (updater.isNewerVersion(app.getVersion(), version)) {
+      throw new Error(`Version ${version} er ældre end denne app (${app.getVersion()})`)
     }
     const existingManifest = updater.readManifest(store.dataDir)
-    if (existingManifest && !updater.isNewerVersion(version, existingManifest.version)) {
-      throw new Error(`Version ${version} er ikke nyere end den seneste publicerede version (${existingManifest.version})`)
+    if (existingManifest && updater.isNewerVersion(existingManifest.version, version)) {
+      throw new Error(`Version ${version} er ældre end den seneste publicerede version (${existingManifest.version})`)
     }
     const manifest = await updater.publishUpdate(store.dataDir, {
       zipPath: String(payload.zipPath),
       version,
       notes: String(payload.notes || ''),
       publishedBy: String(payload.publishedBy || ''),
+      skipDelta: !!payload.skipDelta,
+      onProgress: (progress) => broadcast('updates:publish-progress', progress),
     })
     checkForUpdates()
     return manifest
   })
 
-  ipcMain.handle('updates:install', async () => {
+  ipcMain.handle('updates:history', () => {
+    const current = updater.readManifest(store.dataDir)
+    const history = updater.readHistory(store.dataDir)
+    if (current && !history.some((entry) => entry.version === current.version)) {
+      return [current, ...history]
+    }
+    return history
+  })
+
+  ipcMain.handle('updates:install', async (_event, payload) => {
     if (!app.isPackaged) {
       throw new Error('Opdatering kan kun installeres fra den byggede app (ikke i udviklingstilstand)')
     }
     if (updateInProgress) return
-    const manifest = updater.readManifest(store.dataDir)
-    if (!manifest || !updater.isNewerVersion(manifest.version, app.getVersion())) {
+    const requestedVersion = payload && payload.version ? String(payload.version) : null
+    const manifest = requestedVersion
+      ? updater.getManifestForVersion(store.dataDir, requestedVersion)
+      : updater.readManifest(store.dataDir)
+
+    if (requestedVersion && !manifest) {
+      throw new Error(`Version ${requestedVersion} findes ikke længere i opdateringshistorikken`)
+    }
+    if (!requestedVersion && (!manifest || !updater.isNewerVersion(manifest.version, app.getVersion()))) {
       throw new Error('Der er ingen nyere version at installere')
     }
 
