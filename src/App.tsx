@@ -20,7 +20,6 @@ import { UpdateNotification } from '@/components/UpdateNotification'
 import { GuideImportStatus } from '@/components/GuideImportStatus'
 import { toast, Toaster } from 'sonner'
 import { setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
-import { isAnyModalOpen } from '@/lib/modalStack'
 
 type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games' | 'projects' | 'notebook'
 
@@ -330,21 +329,10 @@ function App() {
     setCurrentView('hub')
   }
 
-  useEffect(() => {
-    // Går kun tilbage til Hub hvis der ikke er en åben dialog nogen steder i
-    // appen — ellers skal Escape først lukke den dialog (ét skridt ad gangen).
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (isAnyModalOpen()) return
-        if (currentView !== 'hub') {
-          setCurrentView('hub')
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleEscapeKey)
-    return () => window.removeEventListener('keydown', handleEscapeKey)
-  }, [currentView])
+  // Bemærk: der er IKKE en global Escape-lytter her længere. Hver view ejer nu
+  // sin egen Escape-håndtering (luk egen dialog → naviger tilbage), så vi
+  // undgår kapløb mellem en global fallback og viewets egen lytter, som begge
+  // lyttede på 'window' og kunne fyre i uforudsigelig rækkefølge.
 
   if (isCheckingAuth) {
     return null

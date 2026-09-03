@@ -14,6 +14,7 @@ import { AutoText } from '@/components/AutoText'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { newId } from '@/lib/utils'
 import { appendToKvArray, upsertInKvArray, removeFromKvArray } from '@/lib/kvArrays'
+import { isAnyModalOpen } from '@/lib/modalStack'
 import { format, parseISO, formatDistanceToNow } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 
@@ -73,6 +74,20 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     loadUserInfo()
     loadNotifications()
   }, [userEmail])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (showNotifications) { setShowNotifications(false); return }
+      if (showCreateDialog) { setShowCreateDialog(false); return }
+      if (showEditDialog) { setShowEditDialog(false); return }
+      if (showViewDialog) { setShowViewDialog(false); setSelectedNote(null); return }
+      if (isAnyModalOpen()) return
+      onNavigateBack()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onNavigateBack, showNotifications, showCreateDialog, showEditDialog, showViewDialog])
 
   const loadNotes = async () => {
     const allNotes = (await window.kv.get<Note[]>('notebook-notes')) || []

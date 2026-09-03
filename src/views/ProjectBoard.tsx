@@ -16,6 +16,7 @@ import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { newId } from '@/lib/utils'
 import { appendToKvArray, updateKvArrayItem, removeFromKvArray } from '@/lib/kvArrays'
+import { isAnyModalOpen } from '@/lib/modalStack'
 import { format } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 
@@ -64,6 +65,17 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
     }
     loadUserName()
   }, [userEmail])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (isCreateDialogOpen) { setIsCreateDialogOpen(false); return }
+      if (isAnyModalOpen()) return
+      onNavigateBack()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onNavigateBack, isCreateDialogOpen])
 
   const handleCreateProject = async () => {
     if (!newTitle.trim()) {
