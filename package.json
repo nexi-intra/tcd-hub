@@ -36,6 +36,12 @@
             "package.json",
             "!node_modules/**"
         ],
+        "extraFiles": [
+            {
+                "from": "tcd-hub.config.json",
+                "to": "tcd-hub.config.json"
+            }
+        ],
         "win": {
             "target": [
                 "zip"
