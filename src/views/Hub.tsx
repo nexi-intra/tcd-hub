@@ -25,7 +25,8 @@ import nexiLogo from '@/assets/images/nexi-logo.svg'
 import nexiLogoWhite from '@/assets/images/nexi-logo-white.svg'
 import { format, isSameDay, parseISO } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
-import type { ShiftRole, ShiftAssignment, SickLeaveEntry, VacationEntry, WeekMenu } from '@/lib/types'
+import type { ShiftRole, ShiftAssignment, SickLeaveEntry, VacationEntry, WeekMenu, Email } from '@/lib/types'
+import type { Guide } from '@/lib/guideTypes'
 
 interface HubModule {
   id: string
@@ -50,9 +51,12 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [showSickLeaveDialog, setShowSickLeaveDialog] = useState(false)
   const [showEmailNotifications, setShowEmailNotifications] = useState(false)
   // useKV abonnerer automatisk på ændringer — ingen manuel subscribe-boilerplate nødvendig.
-  const [emails] = useKV<Array<{ to: string; read: boolean; folderId?: string }>>('emails', [])
+  // Hentes ÉN gang her og sendes ned som props til NotificationCenter/GuideReviewAlert,
+  // så vi undgår flere uafhængige KV-lyttere for de samme nøgler på den mest besøgte skærm.
+  const [emails] = useKV<Email[]>('emails', [])
   const [vacationsForBadge] = useKV<VacationEntry[]>('vacation-entries', [])
   const [sickLeaveForBadge] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
+  const [guidesForAlerts] = useKV<Guide[]>('guides', [])
 
   const unreadInboxCount = useMemo(() => (
     (emails || []).filter(e => e.to === userEmail && !e.read && (e.folderId === undefined || e.folderId === null || e.folderId === '')).length
@@ -923,14 +927,14 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.35 }}
           >
-            <NotificationCenter userEmail={userEmail} isAdminOrManager={isAdminOrManager} />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.35 }}
-          >
-            <NotificationCenter userEmail={userEmail} isAdminOrManager={isAdminOrManager} />
+            <NotificationCenter
+              userEmail={userEmail}
+              isAdminOrManager={isAdminOrManager}
+              emails={emails}
+              vacations={vacationsForBadge}
+              sickLeave={sickLeaveForBadge}
+              guides={guidesForAlerts}
+            />
           </motion.div>
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -1324,7 +1328,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         </div>
       )}
 
-      <GuideReviewAlert onOpenGuideLibrary={() => onNavigate('guides')} />
+      <GuideReviewAlert onOpenGuideLibrary={() => onNavigate('guides')} guides={guidesForAlerts} />
 
       <Dialog open={showQuickAssignDialog} onOpenChange={setShowQuickAssignDialog}>
         <DialogContent className="sm:max-w-[450px]">

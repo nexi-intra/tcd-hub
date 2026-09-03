@@ -34,17 +34,19 @@ interface NotificationItem {
 interface NotificationCenterProps {
   userEmail: string
   isAdminOrManager: boolean
+  // Sendes ned fra Hub (som allerede læser disse) i stedet for egne useKV-kald her —
+  // undgår flere uafhængige KV-lyttere for samme nøgler på den mest besøgte skærm.
+  emails: Email[] | undefined
+  vacations: VacationEntry[] | undefined
+  sickLeave: SickLeaveEntry[] | undefined
+  guides: Guide[] | undefined
 }
 
 /** Samlet klokke-ikon på Hub: aggregerer alle "kræver din opmærksomhed"-kilder på tværs af moduler. */
-export function NotificationCenter({ userEmail, isAdminOrManager }: NotificationCenterProps) {
+export function NotificationCenter({ userEmail, isAdminOrManager, emails, vacations, sickLeave, guides }: NotificationCenterProps) {
   const { language } = useLanguage()
   const [open, setOpen] = useState(false)
-  const [emails] = useKV<Email[]>('emails', [])
   const [notebookNotifications] = useKV<NotebookNotification[]>('notebook-notifications', [])
-  const [vacations] = useKV<VacationEntry[]>('vacation-entries', [])
-  const [sickLeave] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
-  const [guides] = useKV<Guide[]>('guides', [])
   const [birthdays] = useKV<BirthdayEntry[]>('employee-birthdays', [])
 
   const items = useMemo<NotificationItem[]>(() => {

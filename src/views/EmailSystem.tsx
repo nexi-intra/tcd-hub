@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactElement } from 'react'
+import { useState, useEffect, useMemo, type ReactElement } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { vacationApprovedEmail, vacationRejectedEmail } from '@/lib/emailTemplates'
 import { 
@@ -232,12 +232,24 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
   // ---- Samtale-tråde: svar bærer threadId = original-mailens id ----
   const threadKeyOf = (email: Email) => email.threadId ?? email.id
 
-  /** Alle mails i samme tråd som gives mail, hvor jeg er afsender eller modtager. */
+  // Bygges ÉN gang pr. emails/userEmail-ændring (ikke pr. render/pr. række) —
+  // undgår O(tråde × alle-emails) genberegning ved hvert 5-sekunders auto-refresh.
+  const conversationsByThreadKey = useMemo(() => {
+    const map = new Map<string, Email[]>()
+    for (const e of (emails || [])) {
+      if (e.to !== userEmail && e.from !== userEmail) continue
+      const key = threadKeyOf(e)
+      const list = map.get(key)
+      if (list) list.push(e)
+      else map.set(key, [e])
+    }
+    for (const list of map.values()) list.sort((a, b) => a.timestamp - b.timestamp)
+    return map
+  }, [emails, userEmail])
+
+  /** Alle mails i samme tråd som given mail, hvor jeg er afsender eller modtager. */
   const getConversation = (email: Email): Email[] => {
-    const key = threadKeyOf(email)
-    return (emails || [])
-      .filter(e => threadKeyOf(e) === key && (e.to === userEmail || e.from === userEmail))
-      .sort((a, b) => a.timestamp - b.timestamp)
+    return conversationsByThreadKey.get(threadKeyOf(email)) || [email]
   }
 
   /** Reducerer en synlig mail-liste til én række pr. tråd (nyeste mail vinder). */
@@ -1169,8 +1181,9 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                           </div>
                         ) : (
                           groupByThread(view === 'inbox' ? inboxEmails : view === 'sent' ? sentEmails : folderEmails).map((email) => {
-                            const conversationCount = getConversation(email).length
-                            const hasUnreadInThread = getConversation(email).some(e => !e.read && e.to === userEmail)
+                            const conversation = getConversation(email)
+                            const conversationCount = conversation.length
+                            const hasUnreadInThread = conversation.some(e => !e.read && e.to === userEmail)
                             return (
                             <motion.div
                               key={email.id}

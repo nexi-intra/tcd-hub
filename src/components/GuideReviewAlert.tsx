@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Warning, Books } from '@phosphor-icons/react'
@@ -7,29 +7,19 @@ import type { Guide } from '@/lib/guideTypes'
 
 interface GuideReviewAlertProps {
   onOpenGuideLibrary: () => void
+  // Sendes ned fra Hub (som allerede læser 'guides') i stedet for egen KV-læsning her —
+  // undgår en ekstra uafhængig lytter for samme nøgle på den mest besøgte skærm.
+  guides: Guide[] | undefined
 }
 
 // Vises i main Hub når en eller flere guides har overskredet deres
 // gennemgangsfrist. Kan lukkes for denne session, men dukker op igen ved
 // næste besøg i Hub (og på alle klienter), indtil guiden(erne) er opdateret.
-export function GuideReviewAlert({ onOpenGuideLibrary }: GuideReviewAlertProps) {
-  const [guides, setGuides] = useState<Guide[]>([])
+export function GuideReviewAlert({ onOpenGuideLibrary, guides }: GuideReviewAlertProps) {
   const [dismissed, setDismissed] = useState(false)
 
-  useEffect(() => {
-    const load = async () => {
-      const stored = await window.kv.get<Guide[]>('guides')
-      setGuides(stored || [])
-    }
-    load()
-    const unsubscribe = window.kv.subscribe((changedKeys) => {
-      if (changedKeys.includes('guides')) load()
-    })
-    return () => unsubscribe()
-  }, [])
-
   const overdueGuides = useMemo(
-    () => guides.filter((g) => getReviewStatus(g) === 'overdue'),
+    () => (guides || []).filter((g) => getReviewStatus(g) === 'overdue'),
     [guides]
   )
 
