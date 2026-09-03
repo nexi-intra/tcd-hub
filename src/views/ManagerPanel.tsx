@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
+import { useKV } from '@/hooks/useKV'
 import { UserProfile } from '@/components/UserProfile'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
@@ -55,6 +56,7 @@ interface ManagerPanelProps {
 export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPanelProps) {
   // Deep-link (fx knappen i ferieanmodnings-mails) kan bede om en bestemt fane.
   const [initialTab] = useState(() => consumeNavigationParams()?.tab ?? 'permissions')
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [users, setUsers] = useState<User[]>([])
   const [pendingUsers, setPendingUsers] = useState<User[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
@@ -93,6 +95,9 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false)
   const [isOffboardingOpen, setIsOffboardingOpen] = useState(false)
   const [selectedVacationIds, setSelectedVacationIds] = useState<string[]>([])
+  // Hvilke ferieanmodninger DENNE manager allerede har set — bruges til at fjerne
+  // Hub-advarslen/notifikationen, uden at røre selve "afventer godkendelse"-status.
+  const [seenVacationRequestIds, setSeenVacationRequestIds] = useKV<string[]>(`seen-vacation-requests-${userEmail}`, [])
   const [isBulkProcessing, setIsBulkProcessing] = useState(false)
 
   useEffect(() => {
@@ -108,6 +113,19 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     }
     checkAccess()
   }, [userEmail])
+
+  useEffect(() => {
+    // Så snart manageren har fanen "Anmodninger" åben, regnes de synlige afventende
+    // anmodninger for "set" — Hub-badge/notifikation forsvinder, men selve fanens
+    // eget badge (nedenfor) fortsætter uændret med at vise alle afventende.
+    if (activeTab !== 'vacation-requests' || vacationEntries.length === 0) return
+    const pendingIds = vacationEntries.map(v => v.id)
+    setSeenVacationRequestIds(current => {
+      const currentIds = current || []
+      const missing = pendingIds.filter(id => !currentIds.includes(id))
+      return missing.length > 0 ? [...currentIds, ...missing] : currentIds
+    })
+  }, [activeTab, vacationEntries, setSeenVacationRequestIds])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -829,7 +847,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           </div>
         </motion.div>
 
-        <Tabs defaultValue={initialTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-7 max-w-6xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />

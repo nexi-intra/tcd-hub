@@ -40,10 +40,13 @@ interface NotificationCenterProps {
   vacations: VacationEntry[] | undefined
   sickLeave: SickLeaveEntry[] | undefined
   guides: Guide[] | undefined
+  // Ferieanmodninger denne manager allerede har set inde i Manager Panel — skal
+  // ikke blive ved med at poppe op her, selvom de stadig afventer godkendelse.
+  seenVacationRequestIds: string[] | undefined
 }
 
 /** Samlet klokke-ikon på Hub: aggregerer alle "kræver din opmærksomhed"-kilder på tværs af moduler. */
-export function NotificationCenter({ userEmail, isAdminOrManager, emails, vacations, sickLeave, guides }: NotificationCenterProps) {
+export function NotificationCenter({ userEmail, isAdminOrManager, emails, vacations, sickLeave, guides, seenVacationRequestIds }: NotificationCenterProps) {
   const { language } = useLanguage()
   const [open, setOpen] = useState(false)
   const [notebookNotifications] = useKV<NotebookNotification[]>('notebook-notifications', [])
@@ -81,7 +84,8 @@ export function NotificationCenter({ userEmail, isAdminOrManager, emails, vacati
     })
 
     if (isAdminOrManager) {
-      const pendingVacations = (vacations || []).filter(v => v.status === 'pending')
+      const seenIds = seenVacationRequestIds || []
+      const pendingVacations = (vacations || []).filter(v => v.status === 'pending' && !seenIds.includes(v.id))
       pendingVacations.forEach(v => {
         result.push({
           id: `vacation-${v.id}`,
@@ -136,7 +140,7 @@ export function NotificationCenter({ userEmail, isAdminOrManager, emails, vacati
     })
 
     return result.sort((a, b) => b.timestamp - a.timestamp)
-  }, [emails, notebookNotifications, vacations, sickLeave, guides, birthdays, userEmail, isAdminOrManager, language])
+  }, [emails, notebookNotifications, vacations, sickLeave, guides, birthdays, userEmail, isAdminOrManager, language, seenVacationRequestIds])
 
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
   useEffect(() => {

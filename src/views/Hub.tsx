@@ -57,6 +57,9 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [vacationsForBadge] = useKV<VacationEntry[]>('vacation-entries', [])
   const [sickLeaveForBadge] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
   const [guidesForAlerts] = useKV<Guide[]>('guides', [])
+  // Ferieanmodninger manageren allerede har set inde i Manager Panel — bruges til
+  // at fjerne Hub-advarslen/notifikationen uden at røre selve godkendelses-status.
+  const [seenVacationRequestIds] = useKV<string[]>(`seen-vacation-requests-${userEmail}`, [])
 
   const unreadInboxCount = useMemo(() => (
     (emails || []).filter(e => e.to === userEmail && !e.read && (e.folderId === undefined || e.folderId === null || e.folderId === '')).length
@@ -64,10 +67,11 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
 
   const pendingVacationRequests = useMemo(() => {
     if (!isAdminOrManager) return 0
-    const pendingVacations = (vacationsForBadge || []).filter(v => v.status === 'pending').length
+    const seenIds = seenVacationRequestIds || []
+    const pendingVacations = (vacationsForBadge || []).filter(v => v.status === 'pending' && !seenIds.includes(v.id)).length
     const pendingSickLeave = (sickLeaveForBadge || []).filter(s => s.status === 'pending').length
     return pendingVacations + pendingSickLeave
-  }, [isAdminOrManager, vacationsForBadge, sickLeaveForBadge])
+  }, [isAdminOrManager, vacationsForBadge, sickLeaveForBadge, seenVacationRequestIds])
   
   const [teamTasks, setTeamTasks] = useState<Array<{ taskName: string; taskColor: string; people: Array<{ name: string; comment?: string }>; roleId: string }>>([])
   const [peopleOff, setPeopleOff] = useState<Array<{ name: string; type: 'vacation' | 'single' }>>([])
@@ -934,6 +938,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
               vacations={vacationsForBadge}
               sickLeave={sickLeaveForBadge}
               guides={guidesForAlerts}
+              seenVacationRequestIds={seenVacationRequestIds}
             />
           </motion.div>
           <motion.div
