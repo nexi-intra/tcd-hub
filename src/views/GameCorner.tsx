@@ -55,8 +55,8 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
       }
       onNavigateBack()
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [currentView, onNavigateBack])
 
   const games: GameModule[] = [

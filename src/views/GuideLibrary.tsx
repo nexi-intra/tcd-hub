@@ -74,8 +74,8 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
       onNavigateBack()
     }
     
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [onNavigateBack, chatOpen, categoryManagerOpen, exportDialogOpen, viewerOpen, dialogOpen])
 
   const needsReviewCount = useMemo(() => {

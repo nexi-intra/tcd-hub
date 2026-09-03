@@ -85,8 +85,8 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
       if (isAnyModalOpen()) return
       onNavigateBack()
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [onNavigateBack, showNotifications, showCreateDialog, showEditDialog, showViewDialog])
 
   const loadNotes = async () => {

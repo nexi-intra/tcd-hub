@@ -73,8 +73,8 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
       if (isAnyModalOpen()) return
       onNavigateBack()
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [onNavigateBack, isCreateDialogOpen])
 
   const handleCreateProject = async () => {
