@@ -91,7 +91,8 @@ export function SingleDayOffDialog({ userEmail }: SingleDayOffDialogProps) {
           message: emailContent.body,
           timestamp: Date.now(),
           read: false,
-          type: 'single-day-off-request'
+          type: 'single-day-off-request',
+          actionLink: { view: 'manager', tab: 'vacation-requests', label: 'Gå til ferieanmodninger' }
         }))
 
         const managerNotifications = managers.map((manager) => ({

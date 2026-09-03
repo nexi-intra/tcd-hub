@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, MagnifyingGlass, PencilSimple, Trash, X, Lock, LockOpen, Eye, Bell } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, MagnifyingGlass, PencilSimple, Trash, X, Lock, LockOpen, Eye, Bell, PushPin, Tag } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,9 +12,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner'
 import { AutoText } from '@/components/AutoText'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { newId } from '@/lib/utils'
+import { newId, cn } from '@/lib/utils'
 import { appendToKvArray, upsertInKvArray, removeFromKvArray } from '@/lib/kvArrays'
 import { isAnyModalOpen } from '@/lib/modalStack'
+import { consumeNavigationParams } from '@/lib/appNavigation'
 import { format, parseISO, formatDistanceToNow } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 
@@ -29,6 +30,8 @@ interface Note {
   lastEditedBy?: string
   lastEditedByName?: string
   isPersonal: boolean
+  tags?: string[]
+  pinned?: boolean
 }
 
 interface Notification {
@@ -53,7 +56,7 @@ const PREVIEW_LINES = 8
 export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookProps) {
   const { t, language } = useLanguage()
   const [notes, setNotes] = useState<Note[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(() => consumeNavigationParams()?.search ?? '')
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -61,6 +64,8 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
   const [noteTitle, setNoteTitle] = useState('')
   const [noteContent, setNoteContent] = useState('')
+  const [noteTags, setNoteTags] = useState('')
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'shared' | 'personal'>('shared')
   const [isCreatingPersonal, setIsCreatingPersonal] = useState(false)
   const [userName, setUserName] = useState('')
@@ -143,6 +148,21 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     await loadNotifications()
   }
 
+  /** Parser komma-separeret tag-input til en unik, trimmet liste. */
+  const parseTags = (input: string): string[] => {
+    const seen = new Set<string>()
+    const result: string[] = []
+    for (const raw of input.split(',')) {
+      const tag = raw.trim()
+      if (!tag) continue
+      const key = tag.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      result.push(tag)
+    }
+    return result
+  }
+
   const handleCreateNote = async () => {
     if (!noteTitle.trim()) {
       toast.error(t.notebook.titleRequired)
@@ -153,6 +173,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
       return
     }
 
+    const tags = parseTags(noteTags)
     const newNote: Note = {
       id: `note_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       title: noteTitle.trim(),
@@ -162,6 +183,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isPersonal: isCreatingPersonal,
+      ...(tags.length > 0 ? { tags } : {}),
     }
 
     const updatedNotes = await appendToKvArray('notebook-notes', [newNote])
@@ -169,6 +191,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
 
     setNoteTitle('')
     setNoteContent('')
+    setNoteTags('')
     setShowCreateDialog(false)
     toast.success(t.notebook.noteCreated)
   }
@@ -184,10 +207,12 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
       return
     }
 
+    const tags = parseTags(noteTags)
     const updatedNote: Note = {
       ...selectedNote,
       title: noteTitle.trim(),
       content: noteContent.trim(),
+      tags: tags.length > 0 ? tags : undefined,
       updatedAt: new Date().toISOString(),
       lastEditedBy: userEmail,
       lastEditedByName: userName,
@@ -223,6 +248,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
 
     setNoteTitle('')
     setNoteContent('')
+    setNoteTags('')
     setSelectedNote(null)
     setShowEditDialog(false)
     toast.success(t.notebook.noteUpdated)
@@ -243,6 +269,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     setIsCreatingPersonal(isPersonal)
     setNoteTitle('')
     setNoteContent('')
+    setNoteTags('')
     setShowCreateDialog(true)
   }
 
@@ -259,6 +286,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     setSelectedNote(note)
     setNoteTitle(note.title)
     setNoteContent(note.content)
+    setNoteTags((note.tags || []).join(', '))
     setShowEditDialog(true)
   }
 
@@ -281,15 +309,47 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     setShowViewDialog(true)
   }
 
-  const filteredNotes = notes.filter(note => {
-    const matchesSearch = searchQuery.trim() === '' ||
-      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchQuery.toLowerCase())
+  /** Pin/unpin — fælles "vigtig note"-markør (ingen redigerings-notifikation). */
+  const togglePin = async (note: Note) => {
+    if (!canEditNote(note)) return
+    const updatedNotes = await upsertInKvArray('notebook-notes', [{ ...note, pinned: !note.pinned }])
+    setNotes(updatedNotes)
+    toast.success(
+      note.pinned
+        ? (language === 'da' ? 'Note frigjort' : 'Note unpinned')
+        : (language === 'da' ? 'Note fastgjort' : 'Note pinned')
+    )
+  }
 
-    const matchesTab = activeTab === 'shared' ? !note.isPersonal : (note.isPersonal && note.creatorEmail === userEmail)
+  const filteredNotes = notes
+    .filter(note => {
+      const matchesSearch = searchQuery.trim() === '' ||
+        note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (note.tags || []).some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
 
-    return matchesSearch && matchesTab
-  })
+      const matchesTab = activeTab === 'shared' ? !note.isPersonal : (note.isPersonal && note.creatorEmail === userEmail)
+
+      const matchesTag = !activeTagFilter ||
+        (note.tags || []).some(tag => tag.toLowerCase() === activeTagFilter.toLowerCase())
+
+      return matchesSearch && matchesTab && matchesTag
+    })
+    // Fastgjorte først, derefter senest opdaterede.
+    .sort((a, b) => {
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    })
+
+  /** Alle unikke tags i den aktive fane (til filterrækken). */
+  const availableTags = Array.from(
+    new Map(
+      notes
+        .filter(note => (activeTab === 'shared' ? !note.isPersonal : (note.isPersonal && note.creatorEmail === userEmail)))
+        .flatMap(note => note.tags || [])
+        .map(tag => [tag.toLowerCase(), tag] as const)
+    ).values()
+  ).sort((a, b) => a.localeCompare(b, 'da'))
 
   const formatDate = (dateString: string) => {
     try {
@@ -330,6 +390,129 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
     }
     
     return isOwner || isManager
+  }
+
+  const isTagActive = (tag: string) => activeTagFilter?.toLowerCase() === tag.toLowerCase()
+
+  /** Fælles note-kort for begge faner (delte + personlige). */
+  const renderNoteCard = (note: Note) => {
+    const { preview, isTruncated } = getTruncatedContent(note.content)
+
+    return (
+      <motion.div
+        key={note.id}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="relative"
+      >
+        <Card className={cn(
+          "p-3 h-[280px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group",
+          note.pinned && "border-primary/50 bg-primary/[0.04]"
+        )}>
+          <div className="flex justify-between items-start mb-1.5 gap-2 flex-shrink-0">
+            <h3 className="font-semibold text-sm line-clamp-2 flex-1">
+              {note.pinned && (
+                <PushPin size={13} weight="fill" className="text-primary inline-block mr-1 align-[-1px]" />
+              )}
+              <AutoText text={note.title} />
+            </h3>
+            {canEditNote(note) && (
+              <div className={cn(
+                "flex gap-1 transition-opacity",
+                note.pinned ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              )}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-6 w-6", note.pinned && "text-primary")}
+                  onClick={() => togglePin(note)}
+                  title={note.pinned ? (language === 'da' ? 'Frigør note' : 'Unpin note') : (language === 'da' ? 'Fastgør note' : 'Pin note')}
+                >
+                  <PushPin size={12} weight={note.pinned ? 'fill' : 'regular'} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => openEditDialog(note)}
+                >
+                  <PencilSimple size={12} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-destructive hover:text-destructive"
+                  onClick={() => openDeleteDialog(note)}
+                >
+                  <Trash size={12} />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 mb-1.5 overflow-hidden relative">
+            <p className="text-xs leading-[1.4] text-muted-foreground whitespace-pre-wrap line-clamp-[12]">
+              <AutoText text={preview} />
+            </p>
+            {isTruncated && (
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-card/95">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 h-7 text-xs shadow-lg"
+                  onClick={() => openViewDialog(note)}
+                >
+                  <Eye size={12} />
+                  {language === 'da' ? 'Læs mere' : 'Read More'}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {note.tags && note.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-1.5 flex-shrink-0">
+              {note.tags.map(tag => (
+                <Badge
+                  key={tag}
+                  variant={isTagActive(tag) ? 'default' : 'outline'}
+                  className="text-[10px] h-4 px-1.5 cursor-pointer"
+                  onClick={() => setActiveTagFilter(isTagActive(tag) ? null : tag)}
+                >
+                  #{tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-0.5 text-xs text-muted-foreground border-t pt-1.5 flex-shrink-0">
+            {!note.isPersonal && (
+              <div className="flex items-center justify-between gap-2">
+                <Badge variant="secondary" className="text-xs h-4 px-1.5">
+                  {note.creatorName}
+                </Badge>
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <span className="font-medium">{language === 'da' ? 'Oprettet:' : 'Created:'}</span>
+              <span>{formatShortDate(note.createdAt)}</span>
+            </div>
+            {note.lastEditedBy && note.createdAt !== note.updatedAt && (
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">{language === 'da' ? 'Redigeret af:' : 'Edited by:'}</span>
+                  <span>{note.lastEditedByName || note.lastEditedBy}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">{language === 'da' ? 'Dato:' : 'Date:'}</span>
+                  <span>{formatShortDate(note.updatedAt)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+      </motion.div>
+    )
   }
 
   return (
@@ -421,6 +604,33 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                 )}
               </div>
 
+              {availableTags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 mb-6">
+                  <Tag size={16} className="text-muted-foreground shrink-0" />
+                  {availableTags.map(tag => (
+                    <Badge
+                      key={tag}
+                      variant={isTagActive(tag) ? 'default' : 'secondary'}
+                      className="cursor-pointer select-none"
+                      onClick={() => setActiveTagFilter(isTagActive(tag) ? null : tag)}
+                    >
+                      #{tag}
+                    </Badge>
+                  ))}
+                  {activeTagFilter && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setActiveTagFilter(null)}
+                    >
+                      <X size={12} className="mr-1" />
+                      {language === 'da' ? 'Ryd tag-filter' : 'Clear tag filter'}
+                    </Button>
+                  )}
+                </div>
+              )}
+
               <TabsContent value="shared" className="mt-0">
                 {filteredNotes.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
@@ -428,90 +638,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                   </div>
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredNotes.map((note) => {
-                      const { preview, isTruncated } = getTruncatedContent(note.content)
-                      
-                      return (
-                        <motion.div
-                          key={note.id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          className="relative"
-                        >
-                          <Card className="p-3 h-[280px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
-                            <div className="flex justify-between items-start mb-1.5 gap-2 flex-shrink-0">
-                              <h3 className="font-semibold text-sm line-clamp-2 flex-1">
-                                <AutoText text={note.title} />
-                              </h3>
-                              {canEditNote(note) && (
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() => openEditDialog(note)}
-                                  >
-                                    <PencilSimple size={12} />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 text-destructive hover:text-destructive"
-                                    onClick={() => openDeleteDialog(note)}
-                                  >
-                                    <Trash size={12} />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="flex-1 mb-1.5 overflow-hidden relative">
-                              <p className="text-xs leading-[1.4] text-muted-foreground whitespace-pre-wrap line-clamp-[12]">
-                                <AutoText text={preview} />
-                              </p>
-                              {isTruncated && (
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-card/95">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-2 h-7 text-xs shadow-lg"
-                                    onClick={() => openViewDialog(note)}
-                                  >
-                                    <Eye size={12} />
-                                    {language === 'da' ? 'Læs mere' : 'Read More'}
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="space-y-0.5 text-xs text-muted-foreground border-t pt-1.5 flex-shrink-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <Badge variant="secondary" className="text-xs h-4 px-1.5">
-                                  {note.creatorName}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium">{language === 'da' ? 'Oprettet:' : 'Created:'}</span>
-                                <span>{formatShortDate(note.createdAt)}</span>
-                              </div>
-                              {note.lastEditedBy && note.createdAt !== note.updatedAt && (
-                                <div className="flex flex-col gap-0.5">
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium">{language === 'da' ? 'Redigeret af:' : 'Edited by:'}</span>
-                                    <span>{note.lastEditedByName || note.lastEditedBy}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium">{language === 'da' ? 'Dato:' : 'Date:'}</span>
-                                    <span>{formatShortDate(note.updatedAt)}</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </Card>
-                        </motion.div>
-                      )
-                    })}
+                    {filteredNotes.map(renderNoteCard)}
                   </div>
                 )}
               </TabsContent>
@@ -523,85 +650,7 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                   </div>
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredNotes.map((note) => {
-                      const { preview, isTruncated } = getTruncatedContent(note.content)
-                      
-                      return (
-                        <motion.div
-                          key={note.id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          className="relative"
-                        >
-                          <Card className="p-3 h-[280px] flex flex-col hover:shadow-lg transition-all duration-200 hover:scale-[1.02] group">
-                            <div className="flex justify-between items-start mb-1.5 gap-2 flex-shrink-0">
-                              <h3 className="font-semibold text-sm line-clamp-2 flex-1">
-                                <AutoText text={note.title} />
-                              </h3>
-                              {canEditNote(note) && (
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() => openEditDialog(note)}
-                                  >
-                                    <PencilSimple size={12} />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 text-destructive hover:text-destructive"
-                                    onClick={() => openDeleteDialog(note)}
-                                  >
-                                    <Trash size={12} />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="flex-1 mb-1.5 overflow-hidden relative">
-                              <p className="text-xs leading-[1.4] text-muted-foreground whitespace-pre-wrap line-clamp-[12]">
-                                <AutoText text={preview} />
-                              </p>
-                              {isTruncated && (
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-card/95">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-2 h-7 text-xs shadow-lg"
-                                    onClick={() => openViewDialog(note)}
-                                  >
-                                    <Eye size={12} />
-                                    {language === 'da' ? 'Læs mere' : 'Read More'}
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="space-y-0.5 text-xs text-muted-foreground border-t pt-1.5 flex-shrink-0">
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium">{language === 'da' ? 'Oprettet:' : 'Created:'}</span>
-                                <span>{formatShortDate(note.createdAt)}</span>
-                              </div>
-                              {note.lastEditedBy && note.createdAt !== note.updatedAt && (
-                                <div className="flex flex-col gap-0.5">
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium">{language === 'da' ? 'Redigeret af:' : 'Edited by:'}</span>
-                                    <span>{note.lastEditedByName || note.lastEditedBy}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium">{language === 'da' ? 'Dato:' : 'Date:'}</span>
-                                    <span>{formatShortDate(note.updatedAt)}</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </Card>
-                        </motion.div>
-                      )
-                    })}
+                    {filteredNotes.map(renderNoteCard)}
                   </div>
                 )}
               </TabsContent>
@@ -633,6 +682,13 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                 onChange={(e) => setNoteContent(e.target.value)}
                 rows={12}
                 className="resize-none"
+              />
+            </div>
+            <div>
+              <Input
+                placeholder={language === 'da' ? 'Tags adskilt med komma — fx procedure, onboarding' : 'Tags separated by comma — e.g. procedure, onboarding'}
+                value={noteTags}
+                onChange={(e) => setNoteTags(e.target.value)}
               />
             </div>
           </div>
@@ -669,6 +725,13 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
                 className="resize-none"
               />
             </div>
+            <div>
+              <Input
+                placeholder={language === 'da' ? 'Tags adskilt med komma — fx procedure, onboarding' : 'Tags separated by comma — e.g. procedure, onboarding'}
+                value={noteTags}
+                onChange={(e) => setNoteTags(e.target.value)}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
@@ -696,6 +759,13 @@ export function VirtualNotebook({ onNavigateBack, userEmail }: VirtualNotebookPr
               <AutoText text={selectedNote?.content} />
             </p>
           </div>
+          {selectedNote?.tags && selectedNote.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {selectedNote.tags.map(tag => (
+                <Badge key={tag} variant="outline" className="text-xs">#{tag}</Badge>
+              ))}
+            </div>
+          )}
           {selectedNote && selectedNote.lastEditedBy && selectedNote.createdAt !== selectedNote.updatedAt && (
             <div className="text-xs text-muted-foreground border-t pt-3">
               <div className="flex items-center gap-2">

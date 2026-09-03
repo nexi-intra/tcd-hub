@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { UserProfile } from '@/components/UserProfile'
 import { SickLeaveDialog } from '@/components/SickLeaveDialog'
 import { GuideReviewAlert } from '@/components/GuideReviewAlert'
+import { NotificationCenter } from '@/components/NotificationCenter'
+import { AnnouncementsBoard } from '@/components/AnnouncementsBoard'
 import { EmailNotifications } from '@/components/EmailNotifications'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -44,6 +46,7 @@ interface HubProps {
 export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const { t, language } = useLanguage()
   const [isAdminOrManager, setIsAdminOrManager] = useState(false)
+  const [currentUserName, setCurrentUserName] = useState(userEmail)
   const [showSickLeaveDialog, setShowSickLeaveDialog] = useState(false)
   const [showEmailNotifications, setShowEmailNotifications] = useState(false)
   // useKV abonnerer automatisk på ændringer — ingen manuel subscribe-boilerplate nødvendig.
@@ -93,6 +96,14 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       setIsAdminOrManager(access)
     }
     checkUserRole()
+  }, [userEmail])
+
+  useEffect(() => {
+    const loadName = async () => {
+      const usersData = (await window.kv.get<Record<string, { fullName: string }>>('users')) || {}
+      setCurrentUserName(usersData[userEmail]?.fullName || userEmail)
+    }
+    loadName()
   }, [userEmail])
 
   useEffect(() => {
@@ -910,6 +921,20 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <NotificationCenter userEmail={userEmail} isAdminOrManager={isAdminOrManager} />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <NotificationCenter userEmail={userEmail} isAdminOrManager={isAdminOrManager} />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
           >
             <UserProfile 
@@ -1010,6 +1035,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             transition={{ delay: 0.3, duration: 0.6 }}
           >Terminal Configuration & Dispatch Hub</motion.h1>
         </motion.header>
+
+        <AnnouncementsBoard userEmail={userEmail} userName={currentUserName} canPost={isAdminOrManager} />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

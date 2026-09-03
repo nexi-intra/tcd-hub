@@ -19,7 +19,8 @@ import {
   Folder,
   FolderOpen,
   Plus,
-  Pencil
+  Pencil,
+  ChatCircle
 } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -39,6 +40,7 @@ import { AutoText } from '@/components/AutoText'
 import { cn, newId } from '@/lib/utils'
 import { appendToKvArray } from '@/lib/kvArrays'
 import { isAnyModalOpen } from '@/lib/modalStack'
+import { consumeNavigationParams, navigateTo, type AppViewId } from '@/lib/appNavigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { Email, EmailFolder, VacationEntry, VacationStatus } from '@/lib/types'
 
@@ -62,7 +64,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
   const [selectedVacation, setSelectedVacation] = useState<VacationEntry | null>(null)
   const [showCalendarPreview, setShowCalendarPreview] = useState(false)
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(() => consumeNavigationParams()?.search ?? '')
   const [dateFilter, setDateFilter] = useState<string>('all')
   const [senderFilter, setSenderFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
@@ -79,6 +81,8 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
     subject: '',
     message: ''
   })
+  // Sættes ved "Svar" så den sendte mail bliver del af samme samtale-tråd.
+  const [composeThreadId, setComposeThreadId] = useState<string | null>(null)
 
   useEffect(() => {
     const loadUserAndData = async () => {
@@ -225,6 +229,30 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
 
   const unreadCount = inboxEmails.filter(email => !email.read).length
 
+  // ---- Samtale-tråde: svar bærer threadId = original-mailens id ----
+  const threadKeyOf = (email: Email) => email.threadId ?? email.id
+
+  /** Alle mails i samme tråd som gives mail, hvor jeg er afsender eller modtager. */
+  const getConversation = (email: Email): Email[] => {
+    const key = threadKeyOf(email)
+    return (emails || [])
+      .filter(e => threadKeyOf(e) === key && (e.to === userEmail || e.from === userEmail))
+      .sort((a, b) => a.timestamp - b.timestamp)
+  }
+
+  /** Reducerer en synlig mail-liste til én række pr. tråd (nyeste mail vinder). */
+  const groupByThread = (list: Email[]): Email[] => {
+    const newestPerThread = new Map<string, Email>()
+    for (const email of list) {
+      const key = threadKeyOf(email)
+      const existing = newestPerThread.get(key)
+      if (!existing || email.timestamp > existing.timestamp) {
+        newestPerThread.set(key, email)
+      }
+    }
+    return Array.from(newestPerThread.values()).sort((a, b) => b.timestamp - a.timestamp)
+  }
+
   const handleSendEmail = async () => {
     if (!composeData.to || !composeData.subject || !composeData.message) {
       toast.error(t.email.fillAllFields)
@@ -244,7 +272,8 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
       subject: composeData.subject,
       message: composeData.message,
       timestamp: Date.now(),
-      read: false
+      read: false,
+      ...(composeThreadId ? { threadId: composeThreadId } : {})
     }
 
     // Atomar append — to brugere der sender samtidig taber ikke længere hinandens mails.
@@ -264,6 +293,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
 
     toast.success(t.email.emailSent)
     setComposeData({ to: '', subject: '', message: '' })
+    setComposeThreadId(null)
     setView('sent')
   }
 
@@ -283,8 +313,13 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
 
   const handleEmailClick = (email: Email) => {
     setSelectedEmail(email)
-    if (!email.read && email.to === userEmail) {
-      handleMarkAsRead(email.id)
+    // Markér hele samtalens ulæste indbakke-mails som læst på én gang.
+    const unreadInThread = getConversation(email).filter(e => !e.read && e.to === userEmail)
+    if (unreadInThread.length > 0) {
+      const ids = new Set(unreadInThread.map(e => e.id))
+      setEmails(currentEmails =>
+        (currentEmails || []).map(e => (ids.has(e.id) ? { ...e, read: true } : e))
+      )
     }
   }
 
@@ -665,7 +700,10 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
           >
             <Card className="p-4 space-y-2">
               <Button
-                onClick={() => setView('compose')}
+                onClick={() => {
+                  setComposeThreadId(null)
+                  setView('compose')
+                }}
                 className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white gap-2"
                 size="lg"
               >
@@ -845,6 +883,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                     <button
                       key={user.email}
                       onClick={() => {
+                        setComposeThreadId(null)
                         setView('compose')
                         setComposeData(prev => ({ ...prev, to: user.email }))
                       }}
@@ -1129,7 +1168,10 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                             )}
                           </div>
                         ) : (
-                          (view === 'inbox' ? inboxEmails : view === 'sent' ? sentEmails : folderEmails).map((email) => (
+                          groupByThread(view === 'inbox' ? inboxEmails : view === 'sent' ? sentEmails : folderEmails).map((email) => {
+                            const conversationCount = getConversation(email).length
+                            const hasUnreadInThread = getConversation(email).some(e => !e.read && e.to === userEmail)
+                            return (
                             <motion.div
                               key={email.id}
                               draggable
@@ -1139,7 +1181,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                               className={cn(
                                 "w-full text-left p-4 rounded-lg border transition-all duration-200",
                                 "hover:bg-muted hover:border-primary/40 cursor-move",
-                                !email.read && view === 'inbox' && "bg-primary/5 border-primary/20 font-semibold",
+                                hasUnreadInThread && view === 'inbox' && "bg-primary/5 border-primary/20 font-semibold",
                                 draggedEmail?.id === email.id && "opacity-50"
                               )}
                               whileHover={{ scale: 1.01 }}
@@ -1149,7 +1191,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                 <Avatar className="h-10 w-10 mt-1">
                                   <AvatarFallback className={cn(
                                     "text-sm",
-                                    !email.read && view === 'inbox' ? "bg-primary text-primary-foreground" : "bg-muted"
+                                    hasUnreadInThread && view === 'inbox' ? "bg-primary text-primary-foreground" : "bg-muted"
                                   )}>
                                     {getInitials(view === 'inbox' ? email.from : email.to)}
                                   </AvatarFallback>
@@ -1158,7 +1200,7 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                   <div className="flex items-center justify-between gap-2 mb-1">
                                     <span className={cn(
                                       "text-sm truncate min-w-0",
-                                      !email.read && view === 'inbox' && "font-bold"
+                                      hasUnreadInThread && view === 'inbox' && "font-bold"
                                     )}>
                                       {view === 'inbox' ? email.from : email.to}
                                     </span>
@@ -1168,28 +1210,44 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                                     </div>
                                   </div>
                                   <div className={cn(
-                                    "text-sm mb-1 truncate",
-                                    !email.read && view === 'inbox' ? "font-semibold" : "font-medium"
+                                    "text-sm mb-1 truncate flex items-center gap-2",
+                                    hasUnreadInThread && view === 'inbox' ? "font-semibold" : "font-medium"
                                   )}>
-                                    <AutoText text={email.subject} />
+                                    <span className="truncate"><AutoText text={email.subject} /></span>
+                                    {conversationCount > 1 && (
+                                      <Badge variant="secondary" className="shrink-0 h-5 px-1.5 text-xs gap-1">
+                                        <ChatCircle size={12} />
+                                        {conversationCount}
+                                      </Badge>
+                                    )}
                                   </div>
                                   <p className="text-sm text-muted-foreground truncate">
                                     <AutoText text={email.message} />
                                   </p>
                                 </div>
-                                {!email.read && view === 'inbox' && (
+                                {hasUnreadInThread && view === 'inbox' && (
                                   <EnvelopeOpen size={20} className="text-primary flex-shrink-0" weight="fill" />
                                 )}
                               </div>
                             </motion.div>
-                          ))
+                            )
+                          })
                         )}
                       </div>
                     </ScrollArea>
                   </motion.div>
                 )}
 
-                {selectedEmail && (
+                {selectedEmail && (() => {
+                  const conversation = getConversation(selectedEmail)
+                  const original = conversation[0] ?? selectedEmail
+                  const latest = conversation[conversation.length - 1] ?? selectedEmail
+                  // Ældre ferieanmodnings-mails (før actionLink fandtes) genkendes på type-markøren.
+                  const detailActionLink = selectedEmail.actionLink
+                    ?? ((selectedEmail.type === 'vacation-request' || selectedEmail.type === 'single-day-off-request') && isManager
+                      ? { view: 'manager', tab: 'vacation-requests', label: 'Gå til ferieanmodninger' }
+                      : undefined)
+                  return (
                   <motion.div
                     key="detail"
                     initial={{ opacity: 0, y: 20 }}
@@ -1221,10 +1279,11 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                         </Button>
                         <Button
                           onClick={() => {
+                            setComposeThreadId(threadKeyOf(selectedEmail))
                             setView('compose')
                             setComposeData({
-                              to: selectedEmail.from,
-                              subject: `Re: ${selectedEmail.subject}`,
+                              to: latest.from === userEmail ? latest.to : latest.from,
+                              subject: original.subject.startsWith('Re: ') ? original.subject : `Re: ${original.subject}`,
                               message: ''
                             })
                             setSelectedEmail(null)
@@ -1249,42 +1308,73 @@ export function EmailSystem({ onNavigateBack, onLogout, userEmail: propUserEmail
                     </div>
 
                     <div className="border rounded-lg p-6">
-                      <h2 className="text-2xl font-bold mb-4"><AutoText text={selectedEmail.subject} /></h2>
-                      
-                      <div className="flex items-start gap-3 mb-6">
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback className="bg-primary text-primary-foreground">
-                            {getInitials(view === 'inbox' ? selectedEmail.from : selectedEmail.to)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-semibold">
-                                {view === 'inbox' ? selectedEmail.from : selectedEmail.to}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                til {view === 'inbox' ? selectedEmail.to : selectedEmail.from}
-                              </div>
-                            </div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Clock size={14} />
-                              {formatTimestamp(selectedEmail.timestamp)}
-                            </div>
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <h2 className="text-2xl font-bold"><AutoText text={original.subject} /></h2>
+                        {conversation.length > 1 && (
+                          <Badge variant="secondary" className="gap-1">
+                            <ChatCircle size={14} />
+                            {conversation.length} beskeder
+                          </Badge>
+                        )}
                       </div>
 
-                      <Separator className="my-6" />
-
-                      <div className="prose prose-sm max-w-none">
-                        <p className="whitespace-pre-wrap text-foreground leading-relaxed">
-                          <AutoText text={selectedEmail.message} />
-                        </p>
+                      <div className="space-y-4">
+                        {conversation.map((msg, index) => {
+                          const isMine = msg.from === userEmail
+                          const senderName = users.find(u => u.email === msg.from)?.name || msg.from
+                          return (
+                            <div
+                              key={msg.id}
+                              className={cn(
+                                "rounded-lg border p-4",
+                                isMine ? "bg-primary/5 border-primary/20" : "bg-card",
+                                index === conversation.length - 1 && conversation.length > 1 && "ring-1 ring-primary/30"
+                              )}
+                            >
+                              <div className="flex items-start gap-3 mb-3">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarFallback className={cn(isMine ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground")}>
+                                    {getInitials(msg.from)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="font-semibold truncate">{isMine ? 'Dig' : senderName}</div>
+                                    <div className="text-sm text-muted-foreground flex items-center gap-1 shrink-0">
+                                      <Clock size={14} />
+                                      {formatTimestamp(msg.timestamp)}
+                                    </div>
+                                  </div>
+                                  <div className="text-sm text-muted-foreground truncate">
+                                    til {msg.to === userEmail ? 'dig' : (users.find(u => u.email === msg.to)?.name || msg.to)}
+                                  </div>
+                                </div>
+                              </div>
+                              <p className="whitespace-pre-wrap text-foreground leading-relaxed text-sm">
+                                <AutoText text={msg.message} />
+                              </p>
+                            </div>
+                          )
+                        })}
                       </div>
+
+                      {detailActionLink && (
+                        <>
+                          <Separator className="my-6" />
+                          <Button
+                            onClick={() => navigateTo(detailActionLink.view as AppViewId, { tab: detailActionLink.tab })}
+                            className="gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
+                            size="lg"
+                          >
+                            <Umbrella size={20} weight="bold" />
+                            {detailActionLink.label}
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </motion.div>
-                )}
+                  )
+                })()}
 
                 {view === 'vacation-requests' && (
                   <motion.div

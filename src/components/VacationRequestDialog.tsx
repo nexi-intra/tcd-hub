@@ -89,7 +89,8 @@ export function VacationRequestDialog({ userEmail }: VacationRequestDialogProps)
           message: emailContent.body,
           timestamp: Date.now(),
           read: false,
-          type: 'vacation-request'
+          type: 'vacation-request',
+          actionLink: { view: 'manager', tab: 'vacation-requests', label: 'Gå til ferieanmodninger' }
         }))
 
         const managerNotifications = managers.map((manager) => ({

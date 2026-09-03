@@ -22,6 +22,7 @@ import { UserProfile } from '@/components/UserProfile'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { isAnyModalOpen } from '@/lib/modalStack'
+import { consumeNavigationParams } from '@/lib/appNavigation'
 import { toast } from 'sonner'
 
 const defaultCategories: string[] = ['Procedures', 'Technical', 'HR', 'Safety', 'General']
@@ -44,7 +45,7 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
   const importJob = useSyncExternalStore(guideImportManager.subscribe, guideImportManager.getJob)
   const isImporting = importJob !== null
   const importInputRef = useRef<HTMLInputElement>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(() => consumeNavigationParams()?.search ?? '')
   const [activeCategory, setActiveCategory] = useState<string>('All')
   const [showNeedsReview, setShowNeedsReview] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)

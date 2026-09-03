@@ -23,6 +23,7 @@ import { parseLocalDate } from '@/lib/dateUtils'
 import { appendToKvArray, updateKvArrayItem, removeFromKvArray, upsertInKvArray, setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
 import { cn } from '@/lib/utils'
 import { isAnyModalOpen } from '@/lib/modalStack'
+import { consumeNavigationParams } from '@/lib/appNavigation'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
 import React from 'react'
@@ -31,6 +32,8 @@ import { DataStorageManager } from '@/components/DataStorageManager'
 import { UpdateManager } from '@/components/UpdateManager'
 import { ClientVersionManager } from '@/components/ClientVersionManager'
 import { GameLeaderboardAdmin } from '@/components/GameLeaderboardAdmin'
+import { OnboardingWizard, OffboardingWizard } from '@/components/OnboardingWizard'
+import { Checkbox } from '@/components/ui/checkbox'
 import { vacationApprovedEmail, vacationRejectedEmail, vacationEditedEmail, vacationDeletedEmail, userApprovedEmail, userRejectedEmail } from '@/lib/emailTemplates'
 import type { BirthdayEntry, SickLeaveEntry, VacationEntry, VacationStatus } from '@/lib/types'
 
@@ -50,6 +53,8 @@ interface ManagerPanelProps {
 }
 
 export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPanelProps) {
+  // Deep-link (fx knappen i ferieanmodnings-mails) kan bede om en bestemt fane.
+  const [initialTab] = useState(() => consumeNavigationParams()?.tab ?? 'permissions')
   const [users, setUsers] = useState<User[]>([])
   const [pendingUsers, setPendingUsers] = useState<User[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
@@ -85,6 +90,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const [editingBirthday, setEditingBirthday] = useState<BirthdayEntry | null>(null)
   const [birthdayDate, setBirthdayDate] = useState('')
   const [birthYear, setBirthYear] = useState('')
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false)
+  const [isOffboardingOpen, setIsOffboardingOpen] = useState(false)
+  const [selectedVacationIds, setSelectedVacationIds] = useState<string[]>([])
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false)
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -543,6 +552,74 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     setIsEditVacationDialogOpen(true)
   }
 
+  const toggleVacationSelected = (id: string) => {
+    setSelectedVacationIds(current =>
+      current.includes(id) ? current.filter(v => v !== id) : [...current, id]
+    )
+  }
+
+  /** Batch-afgørelse: opdaterer hver valgt anmodning atomart og sender alle mails/notifikationer i ét skriv pr. nøgle. */
+  const handleBulkVacationDecision = async (status: 'approved' | 'rejected') => {
+    const selected = vacationEntries.filter(v => selectedVacationIds.includes(v.id))
+    if (selected.length === 0) return
+    setIsBulkProcessing(true)
+
+    try {
+      const emailItems: Array<{ id: string } & Record<string, unknown>> = []
+      const notificationItems: Array<{ id: string } & Record<string, unknown>> = []
+      let succeeded = 0
+
+      for (const vacation of selected) {
+        const updated = await updateKvArrayItem<VacationEntry>('vacation-entries', vacation.id, (v) => ({
+          ...v, status: status as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString(),
+        }))
+        if (!updated) continue
+        succeeded++
+
+        const emailContent = status === 'approved'
+          ? vacationApprovedEmail(vacation.startDate, vacation.endDate, userEmail, vacation.notes)
+          : vacationRejectedEmail(vacation.startDate, vacation.endDate, userEmail, vacation.notes)
+        const emailId = newId('email')
+        emailItems.push({
+          id: emailId,
+          from: userEmail,
+          to: vacation.userEmail,
+          subject: emailContent.subject,
+          message: emailContent.body,
+          timestamp: Date.now(),
+          read: false,
+        })
+        notificationItems.push({
+          id: newId('notif'),
+          type: 'email' as const,
+          message: status === 'approved' ? 'Din ferieansøgning blev godkendt!' : 'Din ferieansøgning blev afvist',
+          timestamp: Date.now(),
+          read: false,
+          from: userEmail,
+          emailId,
+        })
+      }
+
+      if (emailItems.length > 0) {
+        await appendToKvArray('emails', emailItems)
+        await appendToKvArray('email-notifications', notificationItems)
+      }
+
+      await loadVacationEntries()
+      setSelectedVacationIds([])
+
+      if (succeeded === 0) {
+        toast.error('Ingen af anmodningerne findes længere')
+      } else if (status === 'approved') {
+        toast.success(`${succeeded} ${succeeded === 1 ? 'anmodning' : 'anmodninger'} godkendt`)
+      } else {
+        toast.success(`${succeeded} ${succeeded === 1 ? 'anmodning' : 'anmodninger'} afvist`)
+      }
+    } finally {
+      setIsBulkProcessing(false)
+    }
+  }
+
   const handleSaveVacationEdit = async () => {
     if (!editingVacation || !editVacationStartDate || !editVacationEndDate) {
       toast.error('Start- og slutdato skal udfyldes')
@@ -752,7 +829,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           </div>
         </motion.div>
 
-        <Tabs defaultValue="permissions" className="space-y-6">
+        <Tabs defaultValue={initialTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-7 max-w-6xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
@@ -855,6 +932,22 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   <Badge variant="outline" className="text-sm">
                     {users.length} {users.length === 1 ? 'Bruger' : 'Brugere'}
                   </Badge>
+                  <Button
+                    onClick={() => setIsOnboardingOpen(true)}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <UserIcon size={18} weight="bold" />
+                    Onboarding
+                  </Button>
+                  <Button
+                    onClick={() => setIsOffboardingOpen(true)}
+                    variant="outline"
+                    className="gap-2 text-destructive hover:text-destructive"
+                  >
+                    <UserIcon size={18} weight="bold" />
+                    Offboarding
+                  </Button>
                   <Button 
                     onClick={() => setIsCreateDialogOpen(true)}
                     className="gap-2"
@@ -1104,6 +1197,97 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               </div>
 
               {sickLeaveEntries.length > 0 && (() => {
+                // Mønster-analyse: ugedags-heatmap (90 dage) + alarm ved ≥3 sygemeldinger på 30 dage.
+                const now = Date.now()
+                const DAY_MS = 86400000
+                const last90 = sickLeaveEntries.filter(e => {
+                  const d = parseLocalDate(e.startDate)
+                  return !isNaN(d.getTime()) && now - d.getTime() <= 90 * DAY_MS
+                })
+
+                const weekdayLabels = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn']
+                const weekdayCounts = new Array(7).fill(0)
+                last90.forEach(e => {
+                  const d = parseLocalDate(e.startDate)
+                  if (isNaN(d.getTime())) return
+                  weekdayCounts[(d.getDay() + 6) % 7]++
+                })
+                const maxWeekday = Math.max(...weekdayCounts, 1)
+
+                const last30ByEmployee = new Map<string, { name: string; count: number }>()
+                sickLeaveEntries.forEach(e => {
+                  const d = parseLocalDate(e.startDate)
+                  if (isNaN(d.getTime()) || now - d.getTime() > 30 * DAY_MS) return
+                  const existing = last30ByEmployee.get(e.userEmail)
+                  if (existing) existing.count++
+                  else last30ByEmployee.set(e.userEmail, { name: e.userName, count: 1 })
+                })
+                const frequencyAlerts = Array.from(last30ByEmployee.values())
+                  .filter(s => s.count >= 3)
+                  .sort((a, b) => b.count - a.count)
+
+                return (
+                  <Card className="p-4 mb-6 border">
+                    <div className="flex items-center gap-2 mb-4">
+                      <WaveSine size={20} className="text-primary" weight="duotone" />
+                      <h3 className="font-bold text-lg">Mønstre & Alarmer</h3>
+                      <span className="text-xs text-muted-foreground ml-1">(seneste 90 dage)</span>
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-2 mb-2">
+                      {weekdayLabels.map((label, i) => {
+                        const count = weekdayCounts[i]
+                        const intensity = count / maxWeekday
+                        return (
+                          <div key={label} className="flex flex-col items-center gap-1.5">
+                            <div
+                              className="w-full h-16 rounded-lg border flex items-end justify-center pb-1 transition-colors"
+                              style={{
+                                backgroundColor: count === 0
+                                  ? 'transparent'
+                                  : `oklch(0.55 0.18 25 / ${0.12 + intensity * 0.55})`
+                              }}
+                              title={`${count} ${count === 1 ? 'sygemelding' : 'sygemeldinger'} på ${label.toLowerCase()}dage`}
+                            >
+                              <span className={cn("text-sm font-bold", count === 0 ? "text-muted-foreground/40" : "text-foreground")}>
+                                {count}
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted-foreground font-medium">{label}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Ugedage hvor sygemeldinger typisk starter — en tydelig overvægt af mandage/fredage kan være værd at kigge nærmere på.
+                    </p>
+
+                    {frequencyAlerts.length > 0 && (
+                      <div className="p-4 rounded-lg border-2 border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-600/60">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FirstAidKit size={18} className="text-amber-600 dark:text-amber-400" weight="fill" />
+                          <span className="font-semibold text-sm">Usædvanlig hyppighed (≥3 sygemeldinger på 30 dage)</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {frequencyAlerts.map(alert => (
+                            <div key={alert.name} className="flex items-center justify-between text-sm">
+                              <span className="font-medium">{alert.name}</span>
+                              <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30">
+                                {alert.count} sygemeldinger
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Overvej en omsorgssamtale — hyppigt fravær kan skyldes forhold der kræver støtte.
+                        </p>
+                      </div>
+                    )}
+                  </Card>
+                )
+              })()}
+
+              {sickLeaveEntries.length > 0 && (() => {
                 const employeeStats = new Map<string, { 
                   name: string
                   email: string
@@ -1296,6 +1480,46 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                 </p>
               </div>
 
+              {vacationEntries.length > 1 && (
+                <div className="mb-4 flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-card">
+                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer select-none">
+                    <Checkbox
+                      checked={selectedVacationIds.length === vacationEntries.length && vacationEntries.length > 0}
+                      onCheckedChange={(checked) =>
+                        setSelectedVacationIds(checked ? vacationEntries.map(v => v.id) : [])
+                      }
+                    />
+                    Vælg alle
+                  </label>
+                  {selectedVacationIds.length > 0 && (
+                    <>
+                      <Badge variant="secondary">{selectedVacationIds.length} valgt</Badge>
+                      <div className="flex gap-2 ml-auto">
+                        <Button
+                          size="sm"
+                          disabled={isBulkProcessing}
+                          onClick={() => handleBulkVacationDecision('approved')}
+                          className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
+                        >
+                          <Check size={16} weight="bold" />
+                          {isBulkProcessing ? 'Behandler…' : `Godkend valgte (${selectedVacationIds.length})`}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={isBulkProcessing}
+                          onClick={() => handleBulkVacationDecision('rejected')}
+                          className="gap-2"
+                        >
+                          <X size={16} weight="bold" />
+                          Afvis valgte
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {vacationEntries.length === 0 ? (
                 <div className="text-center py-12">
                   <Umbrella size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
@@ -1313,10 +1537,18 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                       key={vacation.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col gap-4 p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all"
+                      className={cn(
+                        "flex flex-col gap-4 p-5 rounded-xl border-2 bg-card hover:shadow-md transition-all",
+                        selectedVacationIds.includes(vacation.id) && "border-primary/60 bg-primary/[0.03]"
+                      )}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-4 flex-1">
+                          <Checkbox
+                            checked={selectedVacationIds.includes(vacation.id)}
+                            onCheckedChange={() => toggleVacationSelected(vacation.id)}
+                            className="shrink-0"
+                          />
                           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-primary flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             {firstLetter}
                           </div>
@@ -2284,6 +2516,26 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         onOpenChange={setIsManualGrantDialogOpen}
         managerEmail={userEmail}
         onSuccess={loadVacationEntries}
+      />
+
+      <OnboardingWizard
+        open={isOnboardingOpen}
+        onOpenChange={setIsOnboardingOpen}
+        onCompleted={() => {
+          loadUsers()
+          loadBirthdays()
+        }}
+      />
+
+      <OffboardingWizard
+        open={isOffboardingOpen}
+        onOpenChange={setIsOffboardingOpen}
+        currentUserEmail={userEmail}
+        onCompleted={() => {
+          loadUsers()
+          loadBirthdays()
+          loadVacationEntries()
+        }}
       />
 
       <Dialog open={isEditBirthdayDialogOpen} onOpenChange={setIsEditBirthdayDialogOpen}>

@@ -96,6 +96,12 @@ export interface Email {
   read: boolean
   starred?: boolean
   folderId?: string
+  /** Samtale-id: svar peger på original-mailens id, så tråden kan samles. */
+  threadId?: string
+  /** Historisk markør sat af enkelte afsendere (fx 'vacation-request'). */
+  type?: string
+  /** Handlings-knap i bunden af mailen — deep-link til et view/fane. */
+  actionLink?: { view: string; tab?: string; label: string }
 }
 
 /** KV: 'email-folders'. */

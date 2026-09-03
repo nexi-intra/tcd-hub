@@ -17,6 +17,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { newId } from '@/lib/utils'
 import { appendToKvArray, updateKvArrayItem, removeFromKvArray } from '@/lib/kvArrays'
 import { isAnyModalOpen } from '@/lib/modalStack'
+import { consumeNavigationParams } from '@/lib/appNavigation'
 import { format } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
 
@@ -52,7 +53,7 @@ export function ProjectBoard({ onNavigateBack, userEmail }: ProjectBoardProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(() => consumeNavigationParams()?.search ?? '')
   const [filterUser, setFilterUser] = useState<'all' | 'my' | 'unassigned'>('all')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest')
   const [currentUserName, setCurrentUserName] = useState('')

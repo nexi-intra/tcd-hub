@@ -7,8 +7,12 @@ import { AnimatedBackground } from '@/components/AnimatedBackground'
 import { BirthdayCelebration } from '@/components/BirthdayCelebration'
 import { UpdateNotification } from '@/components/UpdateNotification'
 import { GuideImportStatus } from '@/components/GuideImportStatus'
+import { LoginDigest } from '@/components/LoginDigest'
+import { WhatsNewDialog } from '@/components/WhatsNewDialog'
+import { CommandPalette } from '@/components/CommandPalette'
 import { toast, Toaster } from 'sonner'
 import { setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
+import { NAVIGATE_EVENT, type AppViewId } from '@/lib/appNavigation'
 
 // Lazy-loadet: Hub og Auth vises altid lige efter opstart/login, så de
 // forbliver i hoved-bundlen. Alle andre views hentes først når brugeren
@@ -342,6 +346,17 @@ function App() {
     setCurrentView('hub')
   }
 
+  useEffect(() => {
+    // Deep-links fra fx emails, notifikationscenter og command palette.
+    if (!userSession) return
+    const handleDeepLink = (e: Event) => {
+      const view = (e as CustomEvent).detail?.view as AppViewId | undefined
+      if (view) setCurrentView(view)
+    }
+    window.addEventListener(NAVIGATE_EVENT, handleDeepLink)
+    return () => window.removeEventListener(NAVIGATE_EVENT, handleDeepLink)
+  }, [userSession])
+
   // Bemærk: der er IKKE en global Escape-lytter her længere. Hver view ejer nu
   // sin egen Escape-håndtering (luk egen dialog → naviger tilbage), så vi
   // undgår kapløb mellem en global fallback og viewets egen lytter, som begge
@@ -372,6 +387,9 @@ function App() {
         <UpdateNotification />
         <GuideImportStatus onOpenGuideLibrary={() => handleNavigate('guides')} />
         <BirthdayCelebration userEmail={userSession.email} />
+        <LoginDigest userEmail={userSession.email} />
+        <WhatsNewDialog />
+        <CommandPalette userEmail={userSession.email} />
         {currentView === 'hub' && <Hub onNavigate={handleNavigate} onLogout={handleLogout} userEmail={userSession.email} />}
         <Suspense fallback={<ViewLoadingFallback />}>
           {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
