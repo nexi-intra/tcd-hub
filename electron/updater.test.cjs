@@ -96,6 +96,29 @@ test('publishUpdate indexes every file so clients can diff them', async (t) => {
   assert.ok(manifest.files.every((entry) => /^[0-9a-f]{64}$/.test(entry.sha256)))
 })
 
+test('publishUpdate with skipDelta omits the file index, forcing every client (including old ones) onto the safe full-zip path', async (t) => {
+  const dataDir = makeTempDir(t, 'tcd-data-')
+  const installDir = makeTempDir(t, 'tcd-install-')
+  const zipPath = buildReleaseZip(t)
+
+  const manifest = await publishUpdate(dataDir, { zipPath, version: '9.9.9', notes: '', publishedBy: '', skipDelta: true })
+
+  assert.equal(manifest.files, undefined)
+  assert.equal(manifest.deltaDir, undefined)
+  assert.equal(fs.existsSync(path.join(dataDir, 'updates', '9.9.9')), false)
+
+  const prepared = await prepareUpdate({
+    dataDir,
+    manifest,
+    exePath: path.join(installDir, EXE_NAME),
+    installDir,
+  })
+  t.after(() => fs.rmSync(prepared.workDir, { recursive: true, force: true }))
+
+  assert.ok(fs.existsSync(path.join(prepared.stagingDir, EXE_NAME)))
+  assert.ok(fs.existsSync(path.join(prepared.stagingDir, 'resources', 'app.asar')))
+})
+
 test('publishUpdate retains earlier versions in history so a manager can pick one later', async (t) => {
   const dataDir = makeTempDir(t, 'tcd-data-')
 

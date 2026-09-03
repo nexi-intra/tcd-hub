@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
+import { Checkbox } from '@/components/ui/checkbox'
 import { ArrowsClockwise, CloudArrowUp, Info, Package, RocketLaunch } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import type { SelectedZip, UpdateStatus, PublishProgress } from '@/lib/electronUpdatesBridge'
@@ -32,6 +33,7 @@ export function UpdateManager({ userEmail }: UpdateManagerProps) {
   const [version, setVersion] = useState('')
   const [notes, setNotes] = useState('')
   const [publishProgress, setPublishProgress] = useState<PublishProgress | null>(null)
+  const [skipDelta, setSkipDelta] = useState(false)
 
   const refreshStatus = useCallback(async () => {
     if (!window.electronUpdates) return
@@ -99,6 +101,7 @@ export function UpdateManager({ userEmail }: UpdateManagerProps) {
         version: version.trim(),
         notes: notes.trim(),
         publishedBy: userEmail,
+        skipDelta,
       })
       toast.success(`Version ${manifest.version} er publiceret. Alle klienter får besked inden for 15 minutter.`, { duration: 8000 })
       setSelectedZip(null)
@@ -215,6 +218,16 @@ export function UpdateManager({ userEmail }: UpdateManagerProps) {
                 Bemærk: versionen er den samme som den du selv kører — det er fint hvis andre klienter stadig er bagud, de opdaterer stadig. Klienter der allerede har denne version, opdaterer ikke igen.
               </p>
             )}
+            <label className="flex items-start gap-2.5 rounded-lg border bg-muted/40 p-3 cursor-pointer">
+              <Checkbox checked={skipDelta} onCheckedChange={(checked) => setSkipDelta(checked === true)} className="mt-0.5" />
+              <span className="text-sm">
+                <span className="font-medium">Tving fuld installation for alle klienter</span>
+                <br />
+                <span className="text-muted-foreground text-xs">
+                  Slår hurtig delta-opdatering fra for denne udgivelse. Anbefales hvis ældre klienter fejler ved opdatering (fx "ENOENT ... app.asar") — fuld installation virker altid, uanset hvilken version klienten kører nu.
+                </span>
+              </span>
+            </label>
             {publishProgress && (
               <div className="space-y-2 rounded-lg border bg-muted/40 p-4">
                 <div className="flex items-center justify-between text-sm">

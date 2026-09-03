@@ -172,7 +172,7 @@ function versionFromFilename(fileName) {
  * Kopierer zip'en til <datamappe>/updates/, verificerer kopien og skriver
  * manifestet. Gamle zip-filer ryddes op bagefter.
  */
-async function publishUpdate(dataDir, { zipPath, version, notes, publishedBy, onProgress = () => {} }) {
+async function publishUpdate(dataDir, { zipPath, version, notes, publishedBy, skipDelta = false, onProgress = () => {} }) {
   if (!parseVersion(version)) {
     throw new Error('Versionsnummeret skal have formatet X.Y.Z, fx 1.2.0')
   }
@@ -215,17 +215,23 @@ async function publishUpdate(dataDir, { zipPath, version, notes, publishedBy, on
 
   // Udpakket kopi + filindeks, så klienter kun behøver hente de ændrede filer.
   // Zip'en bevares, fordi klienter før 1.3.0 kun kan opdatere fra den.
-  onProgress({ phase: 'extracting', percent: 0 })
-  const versionDir = path.join(dir, version)
-  await fsp.rm(versionDir, { recursive: true, force: true })
-  await extractZip(target, versionDir)
-  onProgress({ phase: 'extracting', percent: 100 })
+  // skipDelta: klienter (også ældre installer uden nyeste rettelser) afgør selv
+  // delta vs. fuld installation ud fra om manifest.files findes — så uden
+  // filindeks tvinges ALLE klienter til den sikre fulde zip-installation,
+  // uanset hvilken kode-version de selv kører.
+  if (!skipDelta) {
+    onProgress({ phase: 'extracting', percent: 0 })
+    const versionDir = path.join(dir, version)
+    await fsp.rm(versionDir, { recursive: true, force: true })
+    await extractZip(target, versionDir)
+    onProgress({ phase: 'extracting', percent: 100 })
 
-  onProgress({ phase: 'indexing', percent: 0 })
-  manifest.files = await buildFileIndex(versionDir, ({ done, total }) => {
-    onProgress({ phase: 'indexing', percent: total > 0 ? Math.round((done / total) * 100) : 100 })
-  })
-  manifest.deltaDir = version
+    onProgress({ phase: 'indexing', percent: 0 })
+    manifest.files = await buildFileIndex(versionDir, ({ done, total }) => {
+      onProgress({ phase: 'indexing', percent: total > 0 ? Math.round((done / total) * 100) : 100 })
+    })
+    manifest.deltaDir = version
+  }
 
   const tmp = manifestPath(dataDir) + '.' + process.pid + '.tmp'
   fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2))

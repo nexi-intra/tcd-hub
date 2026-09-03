@@ -415,6 +415,7 @@ app.whenReady().then(() => {
       version,
       notes: String(payload.notes || ''),
       publishedBy: String(payload.publishedBy || ''),
+      skipDelta: !!payload.skipDelta,
       onProgress: (progress) => broadcast('updates:publish-progress', progress),
     })
     checkForUpdates()
