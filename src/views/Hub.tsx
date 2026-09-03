@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus, ChatText, Notebook, X, PencilSimple } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { hasManagerAccess } from '@/lib/userRoles'
+import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
 import nexiLogo from '@/assets/images/nexi-logo.svg'
 import nexiLogoWhite from '@/assets/images/nexi-logo-white.svg'
@@ -45,8 +46,21 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const [isAdminOrManager, setIsAdminOrManager] = useState(false)
   const [showSickLeaveDialog, setShowSickLeaveDialog] = useState(false)
   const [showEmailNotifications, setShowEmailNotifications] = useState(false)
-  const [unreadInboxCount, setUnreadInboxCount] = useState(0)
-  const [pendingVacationRequests, setPendingVacationRequests] = useState(0)
+  // useKV abonnerer automatisk på ændringer — ingen manuel subscribe-boilerplate nødvendig.
+  const [emails] = useKV<Array<{ to: string; read: boolean; folderId?: string }>>('emails', [])
+  const [vacationsForBadge] = useKV<VacationEntry[]>('vacation-entries', [])
+  const [sickLeaveForBadge] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
+
+  const unreadInboxCount = useMemo(() => (
+    (emails || []).filter(e => e.to === userEmail && !e.read && (e.folderId === undefined || e.folderId === null || e.folderId === '')).length
+  ), [emails, userEmail])
+
+  const pendingVacationRequests = useMemo(() => {
+    if (!isAdminOrManager) return 0
+    const pendingVacations = (vacationsForBadge || []).filter(v => v.status === 'pending').length
+    const pendingSickLeave = (sickLeaveForBadge || []).filter(s => s.status === 'pending').length
+    return pendingVacations + pendingSickLeave
+  }, [isAdminOrManager, vacationsForBadge, sickLeaveForBadge])
   
   const [teamTasks, setTeamTasks] = useState<Array<{ taskName: string; taskColor: string; people: Array<{ name: string; comment?: string }>; roleId: string }>>([])
   const [peopleOff, setPeopleOff] = useState<Array<{ name: string; type: 'vacation' | 'single' }>>([])
@@ -80,46 +94,6 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
     }
     checkUserRole()
   }, [userEmail])
-
-  useEffect(() => {
-    const loadUnreadCount = async () => {
-      const emails = (await window.kv.get<Array<{ to: string; read: boolean; folderId?: string }>>('emails')) || []
-      const unreadInbox = emails.filter(e => e.to === userEmail && !e.read && (e.folderId === undefined || e.folderId === null || e.folderId === '')).length
-      setUnreadInboxCount(unreadInbox)
-    }
-    loadUnreadCount()
-
-    const unsubscribe = window.kv.subscribe((changedKeys) => {
-      if (changedKeys.includes('emails')) loadUnreadCount()
-    })
-    return () => unsubscribe()
-  }, [userEmail])
-
-  useEffect(() => {
-    const loadPendingVacationRequests = async () => {
-      if (!isAdminOrManager) {
-        setPendingVacationRequests(0)
-        return
-      }
-      
-      const vacations = (await window.kv.get<VacationEntry[]>('vacation-entries')) || []
-      const sickLeave = (await window.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
-      
-      const pendingVacations = vacations.filter(v => v.status === 'pending').length
-      const pendingSickLeave = sickLeave.filter(s => s.status === 'pending').length
-      
-      setPendingVacationRequests(pendingVacations + pendingSickLeave)
-    }
-    
-    loadPendingVacationRequests()
-
-    const unsubscribe = window.kv.subscribe((changedKeys) => {
-      if (changedKeys.includes('vacation-entries') || changedKeys.includes('sick-leave-entries')) {
-        loadPendingVacationRequests()
-      }
-    })
-    return () => unsubscribe()
-  }, [isAdminOrManager])
 
   useEffect(() => {
     const loadOverviewData = async () => {
@@ -1010,17 +984,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       />
       <EmailNotifications
         open={showEmailNotifications}
-        onOpenChange={(open) => {
-          setShowEmailNotifications(open)
-          if (!open) {
-            const loadUnreadCount = async () => {
-              const emails = (await window.kv.get<Array<{ to: string; read: boolean; folderId?: string }>>('emails')) || []
-              const unreadInbox = emails.filter(e => e.to === userEmail && !e.read && !e.folderId).length
-              setUnreadInboxCount(unreadInbox)
-            }
-            loadUnreadCount()
-          }
-        }}
+        onOpenChange={setShowEmailNotifications}
         userEmail={userEmail}
       />
       <div className="container mx-auto px-4 sm:px-6 pt-56 sm:pt-60 pb-12 sm:pb-20 max-w-7xl relative z-10">
