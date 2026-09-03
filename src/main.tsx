@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from "react-error-boundary";
 import { localKv } from './lib/localKvStore'
 import { createElectronKv } from './lib/electronKvBridge'
+import { withErrorToast } from './lib/kvErrorToast'
 
 import App from './App.tsx'
 import { ErrorFallback } from './ErrorFallback.tsx'
@@ -12,7 +13,7 @@ import "./main.css"
 // clients see the same data. In the browser, localStorage is used instead.
 async function bootstrap() {
   if (window.electronKv) {
-    window.kv = createElectronKv(window.electronKv)
+    window.kv = withErrorToast(createElectronKv(window.electronKv))
 
     // One-time migration: carry over old localStorage data into the shared
     // store the first time the desktop app starts against an empty folder.
@@ -28,7 +29,7 @@ async function bootstrap() {
       console.error('KV migration from localStorage failed:', error)
     }
   } else {
-    window.kv = localKv
+    window.kv = withErrorToast(localKv)
   }
 
   createRoot(document.getElementById('root')!).render(
