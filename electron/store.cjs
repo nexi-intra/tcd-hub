@@ -74,8 +74,9 @@ function createStore(dataDir) {
     return path.join(dataDir, keyToFilename(key))
   }
 
-  function get(key) {
-    const cached = readCache.get(key)
+  function get(key, options) {
+    const skipCache = options && options.skipCache
+    const cached = !skipCache && readCache.get(key)
     if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
       // Return cached value immediately, refresh in background.
       setImmediate(() => {
@@ -207,7 +208,7 @@ function createStore(dataDir) {
     acquireLock(key)
     try {
       if (operation.op === 'setField' || operation.op === 'deleteField') {
-        const current = get(key)
+        const current = get(key, { skipCache: true })
         const root = current && typeof current === 'object' && !Array.isArray(current) ? current : {}
         if (operation.op === 'setField') root[operation.field] = operation.value
         else delete root[operation.field]
@@ -215,7 +216,7 @@ function createStore(dataDir) {
         return root
       }
 
-      const current = get(key)
+      const current = get(key, { skipCache: true })
       const path = operation.path && operation.path.length > 0 ? operation.path : null
       let root
       let list

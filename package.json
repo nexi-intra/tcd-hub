@@ -18,7 +18,8 @@
         "electron:build:installer": "npm run build && electron-builder --win nsis",
         "test:store": "node --test electron/store.test.cjs",
         "test:updater": "node --test electron/updater.test.cjs",
-        "test": "node --test electron/*.test.cjs"
+        "test:unit": "vitest run",
+        "test": "node --test electron/*.test.cjs && vitest run"
     },
     "build": {
         "appId": "com.nexigroup.tcdhub",
@@ -133,7 +134,8 @@
         "tailwindcss": "^4.1.11",
         "typescript": "~5.7.2",
         "typescript-eslint": "^8.38.0",
-        "vite": "^7.3.2"
+        "vite": "^7.3.2",
+        "vitest": "^4.1.11"
     },
     "workspaces": {
         "packages": [
