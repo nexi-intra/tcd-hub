@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { GameController, ArrowLeft, RocketLaunch, Cube, Bird, SquaresFour, WaveSine } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { NexiFlyer } from '@/components/NexiFlyer'
 import { Tetris } from '@/components/Tetris'
 import { NeonSnake } from '@/components/NeonSnake'
 import { cn } from '@/lib/utils'
+import { isAnyDialogOpen } from '@/lib/modalStack'
 
 interface GameCornerProps {
   onNavigateBack: () => void
@@ -31,6 +32,32 @@ interface GameModule {
 export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const { language } = useLanguage()
   const [currentView, setCurrentView] = useState<GameView>('hub')
+
+  // Signalerer til den globale Escape-håndtering (App.tsx) at et spil er
+  // aktivt, så Escape først går tilbage til spil-menuen her, i stedet for at
+  // hoppe direkte til main Hub. Se lib/modalStack.ts.
+  useEffect(() => {
+    if (currentView !== 'hub') {
+      document.body.setAttribute('data-game-active', 'true')
+    } else {
+      document.body.removeAttribute('data-game-active')
+    }
+    return () => document.body.removeAttribute('data-game-active')
+  }, [currentView])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (isAnyDialogOpen()) return
+      if (currentView !== 'hub') {
+        setCurrentView('hub')
+        return
+      }
+      onNavigateBack()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [currentView, onNavigateBack])
 
   const games: GameModule[] = [
     {

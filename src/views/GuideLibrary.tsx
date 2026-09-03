@@ -60,16 +60,23 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
   }, [exportDialogOpen])
 
   useEffect(() => {
+    // Lukker vores egne kendte dialoger direkte, i stedet for kun at stole på
+    // at Radix selv har nået at lukke dem inden vi tjekker DOM'en — undgår en
+    // kapløbstilstand ved store/komplekse dialoger (fx guide-preview).
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (isAnyModalOpen()) return
-        onNavigateBack()
-      }
+      if (e.key !== 'Escape') return
+      if (chatOpen) { setChatOpen(false); return }
+      if (categoryManagerOpen) { setCategoryManagerOpen(false); return }
+      if (exportDialogOpen) { setExportDialogOpen(false); return }
+      if (viewerOpen) { setViewerOpen(false); setViewGuide(null); return }
+      if (dialogOpen) { setDialogOpen(false); setEditGuide(undefined); setImportDraft(null); return }
+      if (isAnyModalOpen()) return
+      onNavigateBack()
     }
     
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onNavigateBack])
+  }, [onNavigateBack, chatOpen, categoryManagerOpen, exportDialogOpen, viewerOpen, dialogOpen])
 
   const needsReviewCount = useMemo(() => {
     return (guides || []).filter((g) => {
