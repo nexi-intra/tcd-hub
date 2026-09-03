@@ -2,6 +2,16 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { PencilSimple, Trash, Eye, FileDoc, Timer, CheckCircle } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
 import { getReviewStatus } from '@/lib/guideTypes'
@@ -28,6 +38,7 @@ const categoryColors: Record<string, string> = {
 
 export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed, matchSnippet }: GuideCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const reviewStatus = getReviewStatus(guide)
 
   const handleCardClick = () => {
@@ -169,11 +180,30 @@ export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed, mat
                   variant="ghost"
                   size="icon"
                   className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200"
-                  onClick={() => onDelete(guide.id)}
+                  onClick={() => setConfirmDeleteOpen(true)}
                 >
                   <Trash size={18} weight="duotone" />
                 </Button>
               </motion.div>
+              <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Slet guide?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Er du sikker på at du vil slette <strong>{guide.title}</strong>? Denne handling kan ikke fortrydes.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annullér</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={() => onDelete(guide.id)}
+                    >
+                      Slet guide
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               {onMarkReviewed && (reviewStatus === 'overdue' || reviewStatus === 'due-soon') && (
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="ml-auto">
                   <Button

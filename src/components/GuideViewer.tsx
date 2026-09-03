@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { DownloadSimple, FileDoc, Timer, Image as ImageIcon, FileArrowDown, FolderOpen } from '@phosphor-icons/react'
+import { DownloadSimple, FileDoc, Timer, Image as ImageIcon, FileArrowDown, FolderOpen, PencilSimple } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
 import { getReviewStatus, REVIEW_INTERVAL_CHOICES, guidePlainText } from '@/lib/guideTypes'
 import { guideToDocModel, resolveAuthorName, type DocModel } from '@/lib/docModel'
@@ -36,6 +36,7 @@ interface GuideViewerProps {
   guide: Guide | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  onEdit?: (guide: Guide) => void
 }
 
 const categoryColors: Record<string, string> = {
@@ -73,7 +74,7 @@ function StepImage({ imageId, className }: { imageId: string; className?: string
   return <img src={url} alt="" className={cn('max-h-96 rounded border border-gray-200 shadow-sm object-contain mx-auto', className)} />
 }
 
-export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
+export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerProps) {
   const [authorName, setAuthorName] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
@@ -279,6 +280,20 @@ export function GuideViewer({ guide, open, onOpenChange }: GuideViewerProps) {
               )}
             </div>
             <div className="flex flex-col gap-2 flex-shrink-0 w-full sm:w-auto">
+              {onEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    onOpenChange(false)
+                    onEdit(guide)
+                  }}
+                  className="w-full sm:w-auto gap-2"
+                >
+                  <PencilSimple size={16} weight="bold" />
+                  Redigér
+                </Button>
+              )}
               {hasSections && (
                 <div className="flex items-center gap-1 rounded-lg border p-0.5 bg-muted/40 self-stretch sm:self-end">
                   <Button

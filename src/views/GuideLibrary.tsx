@@ -538,6 +538,7 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
           setViewerOpen(open)
           if (!open) setViewGuide(null)
         }}
+        onEdit={handleEditGuide}
       />
 
       <CategoryManager
