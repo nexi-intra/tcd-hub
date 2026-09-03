@@ -1,16 +1,28 @@
 import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { GameController, ArrowLeft, RocketLaunch, Cube, Bird, SquaresFour, WaveSine } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { EndlessDodger } from '@/components/EndlessDodger'
-import { BrickBreak } from '@/components/BrickBreak'
-import { NexiFlyer } from '@/components/NexiFlyer'
-import { Tetris } from '@/components/Tetris'
-import { NeonSnake } from '@/components/NeonSnake'
 import { cn } from '@/lib/utils'
 import { isAnyDialogOpen } from '@/lib/modalStack'
+
+// Hvert spil hentes kun når spilleren rent faktisk vælger det, i stedet for at
+// alle 5 spils kode indlæses samlet blot ved at åbne Spil Hjørnet.
+const EndlessDodger = lazy(() => import('@/components/EndlessDodger').then(m => ({ default: m.EndlessDodger })))
+const BrickBreak = lazy(() => import('@/components/BrickBreak').then(m => ({ default: m.BrickBreak })))
+const NexiFlyer = lazy(() => import('@/components/NexiFlyer').then(m => ({ default: m.NexiFlyer })))
+const Tetris = lazy(() => import('@/components/Tetris').then(m => ({ default: m.Tetris })))
+const NeonSnake = lazy(() => import('@/components/NeonSnake').then(m => ({ default: m.NeonSnake })))
+
+/** Vises kortvarigt mens et spils kode hentes ved første valg. */
+function GameLoadingFallback() {
+  return (
+    <div className="min-h-[400px] flex items-center justify-center">
+      <div className="h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+    </div>
+  )
+}
 
 interface GameCornerProps {
   onNavigateBack: () => void
@@ -225,7 +237,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
           </div>
 
           <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
-            <EndlessDodger userEmail={userEmail} />
+            <Suspense fallback={<GameLoadingFallback />}>
+              <EndlessDodger userEmail={userEmail} />
+            </Suspense>
           </div>
         </div>
       </div>
@@ -299,7 +313,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
           </div>
 
           <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
-            <BrickBreak userEmail={userEmail} />
+            <Suspense fallback={<GameLoadingFallback />}>
+              <BrickBreak userEmail={userEmail} />
+            </Suspense>
           </div>
         </div>
       </div>
@@ -373,7 +389,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
           </div>
 
           <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
-            <NexiFlyer userEmail={userEmail} />
+            <Suspense fallback={<GameLoadingFallback />}>
+              <NexiFlyer userEmail={userEmail} />
+            </Suspense>
           </div>
         </div>
       </div>
@@ -447,7 +465,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
           </div>
 
           <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
-            <Tetris userEmail={userEmail} />
+            <Suspense fallback={<GameLoadingFallback />}>
+              <Tetris userEmail={userEmail} />
+            </Suspense>
           </div>
         </div>
       </div>
@@ -521,7 +541,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
           </div>
 
           <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
-            <NeonSnake userEmail={userEmail} />
+            <Suspense fallback={<GameLoadingFallback />}>
+              <NeonSnake userEmail={userEmail} />
+            </Suspense>
           </div>
         </div>
       </div>

@@ -477,7 +477,8 @@ export function GuideLibrary({ onNavigateBack, onLogout, userEmail }: GuideLibra
               }}
             >
               <div className="h-32 w-32 rounded-[2rem] bg-gradient-to-br from-primary to-accent shadow-2xl shadow-primary/40 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/50 to-accent/50 blur-2xl animate-pulse" />
+                {/* Ren opacity-puls uden blur — blur+animation kræver dyr GPU-re-rasterisering hvert frame */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 animate-pulse" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,white,transparent)] opacity-20" />
                 <Books size={64} weight="duotone" className="text-primary-foreground relative z-10 drop-shadow-lg" />
               </div>

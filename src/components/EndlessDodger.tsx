@@ -180,12 +180,9 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   const [score, setScore] = useState(0)
   const [wave, setWave] = useState(1)
   const [lives, setLives] = useState(STARTING_LIVES)
-  const [spaceshipX, setSpaceshipX] = useState(0)
-  const [chickens, setChickens] = useState<Chicken[]>([])
-  const [eggs, setEggs] = useState<Egg[]>([])
-  const [bullets, setBullets] = useState<Bullet[]>([])
-  const [particles, setParticles] = useState<Particle[]>([])
-  const [powerUps, setPowerUps] = useState<PowerUp[]>([])
+  // Spillets bevægelige objekter (skib, høns, æg, kugler, partikler, powerups) lever
+  // KUN i refs og tegnes direkte på canvas i rAF-loopet — de er bevidst IKKE React
+  // state, da det ville betyde 5+ state-opdateringer og re-renders 60 gange i sekundet.
   const [hasShield, setHasShield] = useState(false)
   const [isRapidFire, setIsRapidFire] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
@@ -217,6 +214,9 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   }, [globalLeaderboard, setGlobalLeaderboard])
 
   const gameAreaRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
+  const pendingFirstSpawnRef = useRef(false)
   const animationFrameRef = useRef<number | null>(null)
   const waveBannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const rapidFireTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -348,14 +348,12 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
   }
 
   const spawnWave = (waveNumber: number) => {
-    if (!gameAreaRef.current) return
-    const rect = gameAreaRef.current.getBoundingClientRect()
     const settings = DIFFICULTY_SETTINGS[difficultyRef.current]
 
     const rows = Math.min(settings.rows + Math.floor((waveNumber - 1) / 3), 6)
     const cols = Math.min(settings.cols + Math.floor((waveNumber - 1) / 2), 10)
 
-    formationRectWidthRef.current = rect.width
+    const rectWidth = formationRectWidthRef.current
     formationOffsetXRef.current = 0
     formationDescentRef.current = 0
     formationDirRef.current = 1
@@ -370,7 +368,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
           id: waveNumber * 10000 + row * 100 + col,
           row,
           col,
-          x: getBaseX(col, cols, rect.width),
+          x: getBaseX(col, cols, rectWidth),
           y: getBaseY(row),
           alive: true,
           variant: Math.floor(Math.random() * CHICKEN_VARIANTS.length)
@@ -379,11 +377,8 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     }
 
     chickensRef.current = newChickens
-    setChickens(newChickens)
     eggsRef.current = []
-    setEggs([])
     bulletsRef.current = []
-    setBullets([])
 
     setWaveBanner(waveNumber)
     if (waveBannerTimeoutRef.current) clearTimeout(waveBannerTimeoutRef.current)
@@ -406,6 +401,225 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     })
   }
 
+  /** Holder canvas' tegne-buffer og CSS-størrelse synkroniseret med det (responsive) spilområde. */
+  const syncCanvasSize = (rect: DOMRect) => {
+    formationRectWidthRef.current = rect.width
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const width = Math.max(1, Math.round(rect.width))
+    const height = GAME_AREA_HEIGHT
+    if (lastCanvasSizeRef.current.width === width && lastCanvasSizeRef.current.height === height) return
+    lastCanvasSizeRef.current = { width, height }
+    const dpr = window.devicePixelRatio || 1
+    canvas.width = width * dpr
+    canvas.height = height * dpr
+    canvas.style.width = `${width}px`
+    canvas.style.height = `${height}px`
+    const ctx = canvas.getContext('2d')
+    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  }
+
+  const drawChicken = (ctx: CanvasRenderingContext2D, chicken: Chicken) => {
+    const variant = CHICKEN_VARIANTS[chicken.variant]
+    const wobble = Math.sin(Date.now() / 160 + chicken.col) * 0.12
+
+    ctx.save()
+    ctx.translate(chicken.x + CHICKEN_SIZE / 2, chicken.y + CHICKEN_SIZE / 2)
+    ctx.scale(1, 1 + wobble)
+    ctx.translate(-CHICKEN_SIZE / 2, -CHICKEN_SIZE / 2)
+
+    ctx.fillStyle = 'rgba(0,0,0,0.08)'
+    ctx.beginPath()
+    ctx.ellipse(10, 26, 5, 8, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.fillStyle = variant.body
+    ctx.beginPath()
+    ctx.ellipse(21, 24, 15, 13, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.arc(21, 12, 9, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.strokeStyle = variant.comb
+    ctx.lineWidth = 3
+    ctx.lineCap = 'round'
+    ctx.beginPath()
+    ctx.moveTo(14, 6)
+    ctx.quadraticCurveTo(16, 0, 19, 6)
+    ctx.quadraticCurveTo(21, 1, 23, 6)
+    ctx.quadraticCurveTo(26, 0, 28, 6)
+    ctx.stroke()
+
+    ctx.fillStyle = variant.beak
+    ctx.beginPath()
+    ctx.moveTo(28, 12)
+    ctx.lineTo(36, 14)
+    ctx.lineTo(28, 16)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.fillStyle = '#1a1a1a'
+    ctx.beginPath()
+    ctx.arc(25, 10, 1.6, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.restore()
+  }
+
+  const drawEgg = (ctx: CanvasRenderingContext2D, egg: Egg) => {
+    const cx = egg.x + EGG_SIZE / 2
+    const cy = egg.y + EGG_SIZE / 2
+    const rx = (EGG_SIZE / 2) * (7 / 9)
+    const ry = (EGG_SIZE / 2) * (8.5 / 9)
+
+    const gradient = ctx.createRadialGradient(cx - rx * 0.3, cy - ry * 0.5, 1, cx, cy, Math.max(rx, ry))
+    gradient.addColorStop(0, '#fffef2')
+    gradient.addColorStop(1, '#f0e6c8')
+
+    ctx.save()
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+    ctx.fillStyle = gradient
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)'
+    ctx.lineWidth = 0.5
+    ctx.stroke()
+    ctx.restore()
+  }
+
+  const drawBullet = (ctx: CanvasRenderingContext2D, bullet: Bullet) => {
+    ctx.save()
+    const gradient = ctx.createLinearGradient(bullet.x, bullet.y, bullet.x, bullet.y + BULLET_HEIGHT)
+    gradient.addColorStop(0, '#ffffff')
+    gradient.addColorStop(0.5, '#22d3ee')
+    gradient.addColorStop(1, '#0891b2')
+    ctx.fillStyle = gradient
+    ctx.shadowColor = '#22d3ee'
+    ctx.shadowBlur = 8
+    ctx.beginPath()
+    ctx.roundRect(bullet.x, bullet.y, BULLET_WIDTH, BULLET_HEIGHT, BULLET_WIDTH / 2)
+    ctx.fill()
+    ctx.restore()
+  }
+
+  const drawPowerUp = (ctx: CanvasRenderingContext2D, powerUp: PowerUp) => {
+    const cx = powerUp.x + POWERUP_SIZE / 2
+    const cy = powerUp.y + POWERUP_SIZE / 2
+    const r = POWERUP_SIZE / 2
+    const isShield = powerUp.type === 'shield'
+
+    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+    gradient.addColorStop(0, isShield ? '#60a5fa' : '#fde047')
+    gradient.addColorStop(1, isShield ? '#1d4ed8' : '#d97706')
+
+    ctx.save()
+    ctx.shadowColor = isShield ? '#60a5fa' : '#fde047'
+    ctx.shadowBlur = 12
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.fillStyle = gradient
+    ctx.fill()
+    ctx.shadowBlur = 0
+    ctx.lineWidth = 2
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'
+    ctx.stroke()
+
+    ctx.strokeStyle = '#ffffff'
+    ctx.fillStyle = '#ffffff'
+    ctx.lineWidth = 2.5
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    if (isShield) {
+      ctx.beginPath()
+      ctx.moveTo(cx - 6, cy)
+      ctx.lineTo(cx - 2, cy + 5)
+      ctx.lineTo(cx + 7, cy - 6)
+      ctx.stroke()
+    } else {
+      ctx.beginPath()
+      ctx.moveTo(cx + 2, cy - 8)
+      ctx.lineTo(cx - 5, cy + 1)
+      ctx.lineTo(cx - 1, cy + 1)
+      ctx.lineTo(cx - 3, cy + 8)
+      ctx.lineTo(cx + 6, cy - 2)
+      ctx.lineTo(cx + 1, cy - 2)
+      ctx.closePath()
+      ctx.fill()
+    }
+    ctx.restore()
+  }
+
+  const drawSpaceship = (ctx: CanvasRenderingContext2D, x: number, hasShieldNow: boolean) => {
+    const y = GAME_AREA_HEIGHT - SPACESHIP_SIZE - 10
+
+    if (hasShieldNow) {
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(x + SPACESHIP_SIZE / 2, y + SPACESHIP_SIZE / 2, SPACESHIP_SIZE / 2 + 8, 0, Math.PI * 2)
+      ctx.strokeStyle = '#60a5fa'
+      ctx.lineWidth = 2
+      ctx.shadowColor = 'rgba(96, 165, 250, 0.7)'
+      ctx.shadowBlur = 16
+      ctx.globalAlpha = 0.6 + Math.sin(Date.now() / 250) * 0.4
+      ctx.stroke()
+      ctx.restore()
+    }
+
+    ctx.save()
+    ctx.translate(x, y)
+    const gradient = ctx.createLinearGradient(0, 0, 0, SPACESHIP_SIZE)
+    gradient.addColorStop(0, '#3b82f6')
+    gradient.addColorStop(1, '#8b5cf6')
+    ctx.beginPath()
+    ctx.moveTo(25, 10)
+    ctx.lineTo(40, 42)
+    ctx.lineTo(25, 38)
+    ctx.lineTo(10, 42)
+    ctx.closePath()
+    ctx.fillStyle = gradient
+    ctx.fill()
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 2
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(25, 28, 4, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(0,255,255,0.8)'
+    ctx.fill()
+    ctx.restore()
+  }
+
+  /** Tegner samtlige spilobjekter (høns, æg, kugler, powerups, partikler, skib) imperativt på canvas hvert frame. */
+  const draw = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const width = lastCanvasSizeRef.current.width || formationRectWidthRef.current
+    ctx.clearRect(0, 0, width, GAME_AREA_HEIGHT)
+
+    particlesRef.current.forEach(p => {
+      ctx.save()
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife)
+      ctx.fillStyle = p.color
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    })
+
+    chickensRef.current.forEach(chicken => {
+      if (chicken.alive) drawChicken(ctx, chicken)
+    })
+
+    eggsRef.current.forEach(egg => drawEgg(ctx, egg))
+    bulletsRef.current.forEach(bullet => drawBullet(ctx, bullet))
+    powerUpsRef.current.forEach(powerUp => drawPowerUp(ctx, powerUp))
+
+    drawSpaceship(ctx, spaceshipXRef.current, hasShieldRef.current)
+  }
+
   const startGame = () => {
     difficultyRef.current = difficulty
     scoreRef.current = 0
@@ -419,20 +633,17 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     setHasShield(false)
     setIsRapidFire(false)
     particlesRef.current = []
-    setParticles([])
     powerUpsRef.current = []
-    setPowerUps([])
+    chickensRef.current = []
+    eggsRef.current = []
+    bulletsRef.current = []
     gameStateRef.current = 'playing'
     setGameState('playing')
 
-    if (gameAreaRef.current) {
-      const rect = gameAreaRef.current.getBoundingClientRect()
-      const startX = (rect.width - SPACESHIP_SIZE) / 2
-      setSpaceshipX(startX)
-      spaceshipXRef.current = startX
-    }
-
-    spawnWave(1)
+    // Canvas/spilområdet monter først når React har committet 'playing'-visningen,
+    // så vi kan ikke måle gameAreaRef her endnu. I stedet sætter vi et flag som
+    // runGameLoop tjekker på sit allerførste tick (hvor ref'en garanteret er klar).
+    pendingFirstSpawnRef.current = true
 
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
     animationFrameRef.current = requestAnimationFrame(runGameLoop)
@@ -505,7 +716,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       particlesRef.current = particlesRef.current
         .map(p => ({ ...p, x: p.x + p.vx, y: p.y + p.vy, vy: p.vy + 0.1, life: p.life - 1 }))
         .filter(p => p.life > 0)
-      setParticles([...particlesRef.current])
+      draw()
       frames++
       if (frames < 28) requestAnimationFrame(outroLoop)
     }
@@ -519,16 +730,21 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     if (!gameAreaRef.current || gameStateRef.current !== 'playing') return
 
     const rect = gameAreaRef.current.getBoundingClientRect()
+    syncCanvasSize(rect)
     const settings = DIFFICULTY_SETTINGS[difficultyRef.current]
+
+    if (pendingFirstSpawnRef.current) {
+      pendingFirstSpawnRef.current = false
+      spaceshipXRef.current = (rect.width - SPACESHIP_SIZE) / 2
+      spawnWave(1)
+    }
 
     const moveSpeed = 9
     if (keysPressed.current.has('arrowleft') || keysPressed.current.has('a')) {
       spaceshipXRef.current = Math.max(0, spaceshipXRef.current - moveSpeed)
-      setSpaceshipX(spaceshipXRef.current)
     }
     if (keysPressed.current.has('arrowright') || keysPressed.current.has('d')) {
       spaceshipXRef.current = Math.min(rect.width - SPACESHIP_SIZE, spaceshipXRef.current + moveSpeed)
-      setSpaceshipX(spaceshipXRef.current)
     }
     if (keysPressed.current.has(' ')) {
       fireBullet()
@@ -562,7 +778,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
     const invaded = updatedChickens.some(c => c.alive && c.y + CHICKEN_SIZE >= invasionLineY)
     if (invaded) {
       chickensRef.current = updatedChickens
-      setChickens(updatedChickens)
+      draw()
       triggerDeath()
       return
     }
@@ -683,11 +899,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
       .filter(p => p.life > 0)
 
     chickensRef.current = updatedChickens
-    setChickens(updatedChickens)
-    setEggs([...eggsRef.current])
-    setBullets([...bulletsRef.current])
-    setPowerUps([...powerUpsRef.current])
-    setParticles([...particlesRef.current])
+    draw()
 
     if (eggHit) {
       livesRef.current -= 1
@@ -947,6 +1159,13 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
               />
             ))}
 
+            {/* Alle bevægelige spilobjekter (høns, æg, kugler, powerups, partikler, skib) tegnes
+                imperativt på canvas fra runGameLoop/draw() — ingen DOM-noder pr. spilobjekt. */}
+            <canvas
+              ref={canvasRef}
+              className="absolute inset-0 pointer-events-none"
+            />
+
             <AnimatePresence>
               {isShaking && (
                 <motion.div
@@ -974,149 +1193,6 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {particles.map(p => (
-              <div
-                key={p.id}
-                className="absolute rounded-full pointer-events-none"
-                style={{
-                  left: p.x - p.size / 2,
-                  top: p.y - p.size / 2,
-                  width: p.size,
-                  height: p.size,
-                  backgroundColor: p.color,
-                  opacity: Math.max(0, p.life / p.maxLife)
-                }}
-              />
-            ))}
-
-            {chickens.filter(c => c.alive).map(chicken => {
-              const variant = CHICKEN_VARIANTS[chicken.variant]
-              const wobble = Math.sin(Date.now() / 160 + chicken.col) * 0.12
-
-              return (
-                <div
-                  key={chicken.id}
-                  className="absolute"
-                  style={{
-                    left: `${chicken.x}px`,
-                    top: `${chicken.y}px`,
-                    width: `${CHICKEN_SIZE}px`,
-                    height: `${CHICKEN_SIZE}px`,
-                    transform: `scaleY(${1 + wobble})`
-                  }}
-                >
-                  <svg width={CHICKEN_SIZE} height={CHICKEN_SIZE} viewBox="0 0 42 42">
-                    <ellipse cx="21" cy="24" rx="15" ry="13" fill={variant.body} />
-                    <circle cx="21" cy="12" r="9" fill={variant.body} />
-                    <path d="M14 6 Q16 0 19 6 Q21 1 23 6 Q26 0 28 6" stroke={variant.comb} strokeWidth="3" fill="none" strokeLinecap="round" />
-                    <path d="M28 12 L36 14 L28 16 Z" fill={variant.beak} />
-                    <circle cx="25" cy="10" r="1.6" fill="#1a1a1a" />
-                    <ellipse cx="10" cy="26" rx="5" ry="8" fill="rgba(0,0,0,0.08)" />
-                  </svg>
-                </div>
-              )
-            })}
-
-            {eggs.map(egg => (
-              <div
-                key={egg.id}
-                className="absolute"
-                style={{ left: `${egg.x}px`, top: `${egg.y}px`, width: `${EGG_SIZE}px`, height: `${EGG_SIZE}px` }}
-              >
-                <svg width={EGG_SIZE} height={EGG_SIZE} viewBox="0 0 18 18">
-                  <ellipse cx="9" cy="9" rx="7" ry="8.5" fill="url(#eggGradient)" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
-                  <defs>
-                    <radialGradient id="eggGradient" cx="35%" cy="30%">
-                      <stop offset="0%" stopColor="#fffef2" />
-                      <stop offset="100%" stopColor="#f0e6c8" />
-                    </radialGradient>
-                  </defs>
-                </svg>
-              </div>
-            ))}
-
-            {bullets.map(bullet => (
-              <div
-                key={bullet.id}
-                className="absolute rounded-full"
-                style={{
-                  left: `${bullet.x}px`,
-                  top: `${bullet.y}px`,
-                  width: `${BULLET_WIDTH}px`,
-                  height: `${BULLET_HEIGHT}px`,
-                  background: 'linear-gradient(180deg, #ffffff, #22d3ee, #0891b2)',
-                  boxShadow: '0 0 10px #22d3ee, 0 0 4px #ffffff'
-                }}
-              />
-            ))}
-
-            {powerUps.map(powerUp => (
-              <div
-                key={powerUp.id}
-                className="absolute rounded-full flex items-center justify-center border-2 border-white/60"
-                style={{
-                  left: `${powerUp.x}px`,
-                  top: `${powerUp.y}px`,
-                  width: `${POWERUP_SIZE}px`,
-                  height: `${POWERUP_SIZE}px`,
-                  background: powerUp.type === 'shield'
-                    ? 'radial-gradient(circle, #60a5fa, #1d4ed8)'
-                    : 'radial-gradient(circle, #fde047, #d97706)',
-                  boxShadow: powerUp.type === 'shield' ? '0 0 12px #60a5fa' : '0 0 12px #fde047'
-                }}
-              >
-                {powerUp.type === 'shield'
-                  ? <ShieldCheck size={18} weight="fill" className="text-white" />
-                  : <RapidFireIcon size={18} weight="fill" className="text-white" />
-                }
-              </div>
-            ))}
-
-            {hasShield && (
-              <div
-                className="absolute rounded-full border-2 border-blue-400 animate-pulse pointer-events-none"
-                style={{
-                  left: `${spaceshipX - 8}px`,
-                  bottom: '2px',
-                  width: `${SPACESHIP_SIZE + 16}px`,
-                  height: `${SPACESHIP_SIZE + 16}px`,
-                  boxShadow: '0 0 16px rgba(96, 165, 250, 0.7)'
-                }}
-              />
-            )}
-
-            <div
-              className="absolute"
-              style={{
-                left: `${spaceshipX}px`,
-                bottom: '10px',
-                width: `${SPACESHIP_SIZE}px`,
-                height: `${SPACESHIP_SIZE}px`,
-              }}
-            >
-              <svg
-                width={SPACESHIP_SIZE}
-                height={SPACESHIP_SIZE}
-                viewBox="0 0 50 50"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M25 10 L40 42 L25 38 L10 42 Z"
-                  fill="url(#spaceshipGradient)"
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                />
-                <circle cx="25" cy="28" r="4" fill="#00ffff" opacity="0.8" />
-                <defs>
-                  <linearGradient id="spaceshipGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#3b82f6" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
           </motion.div>
         </Card>
       )}

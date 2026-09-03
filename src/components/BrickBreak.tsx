@@ -194,12 +194,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   const [lives, setLives] = useState(3)
   const [bricks, setBricks] = useState<Brick[]>([])
   const [balls, setBalls] = useState<Ball[]>([])
-  const [paddle, setPaddle] = useState<Paddle>({
-    x: GAME_WIDTH / 2 - INITIAL_PADDLE_WIDTH / 2,
-    y: GAME_HEIGHT - 40,
-    width: INITIAL_PADDLE_WIDTH,
-    height: PADDLE_HEIGHT
-  })
   const [users, setUsers] = useState<User[]>([])
   const [ballAttachedToPaddle, setBallAttachedToPaddle] = useState(true)
   const [powerUps, setPowerUps] = useState<PowerUp[]>([])
@@ -260,6 +254,10 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     }
   }, [])
   const mouseXRef = useRef<number>(GAME_WIDTH / 2)
+  // Tastatur-tilstand for paddle-bevægelse — læses direkte i rAF-loopet
+  // (combinedLoop) i stedet for et separat setInterval, så bevægelsen altid
+  // er synkroniseret med selve tegne-loopet i stedet for at køre på sit eget ur.
+  const pressedKeysRef = useRef<Set<string>>(new Set())
   const ballsRef = useRef<Ball[]>([])
   const bricksRef = useRef<Brick[]>([])
   const brickParticlesRef = useRef<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number; color: string; size: number }[]>([])
@@ -509,7 +507,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setBallAttachedToPaddle(true)
     setBalls(newBalls)
     setBricks(newBricks)
-    setPaddle(newPaddle)
     setScore(0)
     setLevel(1)
     setLives(3)
@@ -563,7 +560,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
     setBallAttachedToPaddle(true)
     setBalls(newBalls)
     setBricks(newBricks)
-    setPaddle(newPaddle)
     setLevel(newLevel)
     setPowerUps([])
     setHasShield(false)
@@ -751,7 +747,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           width: Math.max(INITIAL_PADDLE_WIDTH * 0.6, 60)
         }
         paddleRef.current = newSmallPaddle
-        setPaddle(newSmallPaddle)
         setShrinkPaddleTimeLeft(10)
         toast.success(message)
         
@@ -765,7 +760,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                 width: INITIAL_PADDLE_WIDTH
               }
               paddleRef.current = resetPaddle
-              setPaddle(resetPaddle)
               return 0
             }
             return prev - 1
@@ -780,7 +774,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
           width: Math.min(INITIAL_PADDLE_WIDTH * 1.5, 200)
         }
         paddleRef.current = newWidePaddle
-        setPaddle(newWidePaddle)
         setEnlargePaddleTimeLeft(10)
         toast.success(message)
         
@@ -794,7 +787,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
                 width: INITIAL_PADDLE_WIDTH
               }
               paddleRef.current = resetPaddle
-              setPaddle(resetPaddle)
               return 0
             }
             return prev - 1
@@ -1695,7 +1687,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       const newX = Math.max(0, Math.min(GAME_WIDTH - currentPaddle.width, mouseX - currentPaddle.width / 2))
       
       paddleRef.current = { ...currentPaddle, x: newX }
-      setPaddle({ ...currentPaddle, x: newX })
     }
 
     const handleClick = (e: MouseEvent) => {
@@ -1727,9 +1718,6 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
   useEffect(() => {
     if (gameState !== 'playing' && gameState !== 'waitingToLaunch') return
 
-    const pressedKeys = new Set<string>()
-    const PADDLE_SPEED = 8
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === ' ' && gameState === 'waitingToLaunch') {
         e.preventDefault()
@@ -1739,46 +1727,47 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
       
       if (['ArrowLeft', 'ArrowRight', 'a', 'A', 'd', 'D'].includes(e.key)) {
         e.preventDefault()
-        pressedKeys.add(e.key.toLowerCase())
+        pressedKeysRef.current.add(e.key.toLowerCase())
       }
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      pressedKeys.delete(e.key.toLowerCase())
+      pressedKeysRef.current.delete(e.key.toLowerCase())
     }
-
-    const updatePaddleFromKeys = () => {
-      if (gameState !== 'playing' && gameState !== 'waitingToLaunch') return
-
-      const currentPaddle = paddleRef.current
-      let newX = currentPaddle.x
-
-      if (pressedKeys.has('arrowleft') || pressedKeys.has('a')) {
-        newX -= PADDLE_SPEED
-      }
-      if (pressedKeys.has('arrowright') || pressedKeys.has('d')) {
-        newX += PADDLE_SPEED
-      }
-
-      newX = Math.max(0, Math.min(GAME_WIDTH - currentPaddle.width, newX))
-
-      if (newX !== currentPaddle.x) {
-        paddleRef.current = { ...currentPaddle, x: newX }
-        setPaddle({ ...currentPaddle, x: newX })
-      }
-    }
-
-    const keyboardInterval = setInterval(updatePaddleFromKeys, 16)
 
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
 
     return () => {
-      clearInterval(keyboardInterval)
+      pressedKeysRef.current.clear()
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
   }, [gameState])
+
+  const PADDLE_KEY_SPEED = 8
+
+  /** Opdaterer paddle-position ud fra aktuelt nedtrykte taster — kaldes fra rAF-loopet. */
+  const updatePaddleFromKeys = () => {
+    const pressedKeys = pressedKeysRef.current
+    if (pressedKeys.size === 0) return
+
+    const currentPaddle = paddleRef.current
+    let newX = currentPaddle.x
+
+    if (pressedKeys.has('arrowleft') || pressedKeys.has('a')) {
+      newX -= PADDLE_KEY_SPEED
+    }
+    if (pressedKeys.has('arrowright') || pressedKeys.has('d')) {
+      newX += PADDLE_KEY_SPEED
+    }
+
+    newX = Math.max(0, Math.min(GAME_WIDTH - currentPaddle.width, newX))
+
+    if (newX !== currentPaddle.x) {
+      paddleRef.current = { ...currentPaddle, x: newX }
+    }
+  }
 
   useEffect(() => {
     if (gameState !== 'playing' && gameState !== 'waitingToLaunch') return
@@ -1787,6 +1776,7 @@ export function BrickBreak({ userEmail = 'guest@example.com' }: BrickBreakProps 
 
     const combinedLoop = () => {
       if (gameState === 'playing' || gameState === 'waitingToLaunch') {
+        updatePaddleFromKeys()
         gameLoop()
         draw()
         animationFrameId = requestAnimationFrame(combinedLoop)
