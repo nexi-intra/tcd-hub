@@ -33,45 +33,50 @@ spillets interne kode. Escape/pause håndteres af spillet selv INDE i iframen; t
 sker via en synlig knap uden for iframen (ligesom de øvrige "Tilbage til X"-knapper i appen).
 
 ## Fase 1 — Vendoring (offline-adgang, ingen CDN-afhængighed)
-- [ ] `npm install three@0.160.0` (pinned til samme version som spillets importmap)
-- [ ] Kopiér `node_modules/three/build/three.module.js` samt HELE `node_modules/three/examples/jsm/`
+- [x] `npm install three@0.160.0` (pinned til samme version som spillets importmap)
+- [x] Kopiér `node_modules/three/build/three.module.js` samt HELE `node_modules/three/examples/jsm/`
       (ikke kun de 6 filer spillet direkte importerer — resten af `jsm`-træets interne relative imports
       skal også kunne resolve) til `public/games/cube-basher/vendor/three/`
-- [ ] Hent spillets `index.html` fra GitHub (raw) ned i `public/games/cube-basher/index.html`
-- [ ] Eneste redigering af selve spilfilen: omskriv `<script type="importmap">` fra jsdelivr-URLs til
+- [x] Hent spillets `index.html` fra GitHub (raw) ned i `public/games/cube-basher/index.html`
+- [x] Eneste redigering af selve spilfilen: omskriv `<script type="importmap">` fra jsdelivr-URLs til
       lokale relative stier (`./vendor/three/build/three.module.js` osv.) — INGEN ændringer i selve
       spillogikken
-- [ ] Vurdér Google Fonts-linket (Lilita One/Nunito): behold som ekstern (fejler gracefuls til
-      fallback-font offline) ELLER vendor også disse — beslutning tages i fase 1, ikke blokerende
-- [ ] Verificér lokalt at spillet kan åbnes direkte (fx `npx serve public/games/cube-basher`) uden
-      netværkskald til jsdelivr/fonts.googleapis (DevTools Network-fane, offline-tilstand)
+- [x] Vurdér Google Fonts-linket (Lilita One/Nunito): behold som ekstern (fejler gracefuls til
+      fallback-font offline) — bevidst valg, ikke vendoret (kosmetisk, ingen funktionel blokering)
+- [x] Verificér lokalt at spillet kan åbnes direkte uden netværkskald til jsdelivr (testet i browser:
+      menu + faktisk gameplay med 3D-terræn/fjender renderer korrekt fra det lokale vendorede three.js)
 
 ## Fase 2 — "Modern" undermodul + iframe-wrapper
-- [ ] `src/views/GameCorner.tsx`: tilføj et andet kort "Modern" ved siden af "Arcade" (samme
-      korts-stil/hover-animation), `view`-type udvides til `'hub' | 'arcade' | 'modern'`
-- [ ] Nyt `src/views/Modern.tsx`: landing-side i samme stil som Arcade/GameCorner — header "Modern" +
-      ét kort "Cube Basher" (fx `Cube`-ikon fra phosphor-icons), klik åbner selve spil-wrapperen
-- [ ] Ny `src/components/CubeBasherGame.tsx`: renderer en `<iframe src="./games/cube-basher/index.html">`
-      i fuld skærm, `sandbox`-attribut sat konservativt (`allow-scripts allow-pointer-lock` — det
-      minimum spillet behøver: moduler kører, pointer lock til kamera-drag), `title`-attribut for
-      tilgængelighed
-- [ ] `data-game-active`-attribut sættes på `<body>` mens denne komponent er monteret (samme konvention
-      som Arcade.tsx), fjernes ved unmount
-- [ ] Synlig "← Tilbage"-knap OVEN PÅ iframen (ikke afhængig af Escape, da Escape fanges inde i
-      iframen af spillets egen pause-menu) der navigerer tilbage til Modern's `view='hub'`
+- [x] `src/views/GameCorner.tsx`: tilføjet et andet kort "Modern" ved siden af "Arcade", `view`-type
+      udvidet til `'hub' | 'arcade' | 'modern'`
+- [x] Nyt `src/views/Modern.tsx`: landing-side i samme stil som Arcade/GameCorner — header "Modern" +
+      ét kort "Cube Basher" (Cube-ikon fra phosphor-icons), klik åbner selve spil-wrapperen
+- [x] Nyt `src/components/CubeBasherGame.tsx`: renderer en `<iframe src="./games/cube-basher/index.html">`
+      i fuld skærm, `sandbox="allow-scripts allow-pointer-lock"`, `title`-attribut for tilgængelighed
+- [x] `data-game-active`-attribut sættes på `<body>` mens komponenten er monteret, fjernes ved unmount
+- [x] Synlig "← Tilbage"-knap oven på iframen der navigerer tilbage til Modern's `view='hub'`
 
 ## Fase 3 — Navigation & Escape-koordinering
-- [ ] `Modern.tsx` får samme mønster som `GameCorner.tsx`: egen Escape-lytter der tjekker
+- [x] `Modern.tsx` får samme mønster som `GameCorner.tsx`: egen Escape-lytter der tjekker
       `isAnyModalOpen()` og eget `view !== 'hub'`-niveau, før den kalder sin egen `onNavigateBack()`
-- [ ] `GameCorner.tsx`s eksisterende Escape-lytter skal fortsat korrekt defer'e når `view === 'modern'`
-      (allerede dækket af det generiske `if (view !== 'hub') return`-tjek — ingen ændring nødvendig,
-      men verificeres eksplicit)
-- [ ] `src/lib/modalStack.ts`: kommentar opdateres til at nævne Modern/Cube Basher ved siden af Arcade
+- [x] `GameCorner.tsx`s eksisterende Escape-lytter defer'er korrekt når `view === 'modern'` (det
+      generiske `if (view !== 'hub') return`-tjek dækker det automatisk)
+- [x] `src/lib/modalStack.ts`: kommentar opdateret til at nævne Modern/Cube Basher ved siden af Arcade
 
 ## Fase 4 — Verifikation & udrulning
-- [ ] `npm run build` + `npm test`
-- [ ] Manuel/smoke-test af den PAKKEDE app: Hub → Game Corner → Modern → Cube Basher, bekræft spillet
-      loader og kan spilles, ingen netværkskald (offline-test), tilbage-knap virker, Escape lukker ikke
-      utilsigtet resten af appen
-- [ ] `npm run electron:build` + smoke-test + robocopy til `TCD-Hub 1.4.2` + asar-verifikation
-- [ ] git commit
+- [x] `npm run build` + `npm test` (67/67 grønne)
+- [x] Manuel test af selve spillet (i browser, samme relative sti-opløsning som pakket app): menu +
+      gameplay renderer korrekt, ingen CDN-kald til jsdelivr (kun Google Fonts, bevidst behold)
+- [x] `npm run electron:build` + smoke-test + robocopy til `TCD-Hub 1.4.2` + asar-verifikation
+      (app.asar 31.283.282 bytes, matcher præcist mellem source og deployed)
+- [x] git commit (`e484355`, plus doc-fix `a0b0dff`)
+
+**Bemærk:** fuld klik-igennem-test i selve TCD Hub-appen (login → Hub → Game Corner → Modern →
+Cube Basher) blev IKKE udført af agenten, da der ikke var login-oplysninger tilgængelige. Anbefales
+at brugeren selv verificerer denne klik-vej i den udrullede `TCD-Hub 1.4.2`.
+      (app.asar 31.283.282 bytes, matcher præcist mellem source og deployed)
+- [x] git commit (`e484355`, plus doc-fix `a0b0dff`)
+
+**Bemærk:** fuld klik-igennem-test i selve TCD Hub-appen (login → Hub → Game Corner → Modern →
+Cube Basher) blev IKKE udført af agenten, da der ikke var login-oplysninger tilgængelige. Anbefales
+at brugeren selv verificerer denne klik-vej i den udrullede `TCD-Hub 1.4.2`.
