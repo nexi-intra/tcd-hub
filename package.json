@@ -1,7 +1,7 @@
 {
     "name": "tcd-hub",
     "private": true,
-    "version": "1.4.1",
+    "version": "1.4.2",
     "type": "module",
     "main": "electron/main.cjs",
     "scripts": {
@@ -18,7 +18,8 @@
         "electron:build:installer": "npm run build && electron-builder --win nsis",
         "test:store": "node --test electron/store.test.cjs",
         "test:updater": "node --test electron/updater.test.cjs",
-        "test": "node --test electron/*.test.cjs"
+        "test:unit": "vitest run",
+        "test": "node --test electron/*.test.cjs && vitest run"
     },
     "build": {
         "appId": "com.nexigroup.tcdhub",
@@ -112,6 +113,7 @@
         "recharts": "^2.15.1",
         "sonner": "^2.0.1",
         "tailwind-merge": "^3.0.2",
+        "three": "^0.160.0",
         "tw-animate-css": "^1.2.4",
         "uuid": "^11.1.1",
         "vaul": "^1.1.2",
@@ -133,7 +135,8 @@
         "tailwindcss": "^4.1.11",
         "typescript": "~5.7.2",
         "typescript-eslint": "^8.38.0",
-        "vite": "^7.3.2"
+        "vite": "^7.3.2",
+        "vitest": "^4.1.11"
     },
     "workspaces": {
         "packages": [

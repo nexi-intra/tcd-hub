@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import { Trash, Plus, PencilSimple, Check, X } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface CategoryManagerProps {
   open: boolean
@@ -29,6 +30,7 @@ export function CategoryManager({
   onUpdateCategories,
   guides,
 }: CategoryManagerProps) {
+  const { t } = useLanguage()
   const [newCategory, setNewCategory] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -36,35 +38,35 @@ export function CategoryManager({
   const handleAddCategory = () => {
     const trimmed = newCategory.trim()
     if (!trimmed) {
-      toast.error('Kategoriavn kan ikke være tomt')
+      toast.error(t.categoryManager.nameEmpty)
       return
     }
     if (categories.includes(trimmed)) {
-      toast.error('Denne kategori eksisterer allerede')
+      toast.error(t.categoryManager.alreadyExists)
       return
     }
     onUpdateCategories([...categories, trimmed])
     setNewCategory('')
-    toast.success('Kategori tilføjet!')
+    toast.success(t.categoryManager.added)
   }
 
   const handleDeleteCategory = (category: string) => {
     if (category === 'General') {
-      toast.error('General kategorien kan ikke slettes')
+      toast.error(t.categoryManager.generalCannotBeDeleted)
       return
     }
     const guidesInCategory = guides.filter((g) => g.category === category)
     if (guidesInCategory.length > 0) {
-      toast.error(`Kan ikke slette: ${guidesInCategory.length} guide(r) bruger denne kategori`)
+      toast.error(`${t.categoryManager.cannotDeleteInUsePrefix} ${guidesInCategory.length} ${t.categoryManager.cannotDeleteInUseSuffix}`)
       return
     }
     onUpdateCategories(categories.filter((c) => c !== category))
-    toast.success('Kategori slettet!')
+    toast.success(t.categoryManager.deleted)
   }
 
   const handleStartEdit = (category: string) => {
     if (category === 'General') {
-      toast.error('General kategorien kan ikke redigeres')
+      toast.error(t.categoryManager.generalCannotBeEdited)
       return
     }
     setEditingId(category)
@@ -74,17 +76,17 @@ export function CategoryManager({
   const handleSaveEdit = (oldCategory: string) => {
     const trimmed = editValue.trim()
     if (!trimmed) {
-      toast.error('Kategoriavn kan ikke være tomt')
+      toast.error(t.categoryManager.nameEmpty)
       return
     }
     if (trimmed !== oldCategory && categories.includes(trimmed)) {
-      toast.error('Denne kategori eksisterer allerede')
+      toast.error(t.categoryManager.alreadyExists)
       return
     }
     const newCategories = categories.map((c) => (c === oldCategory ? trimmed : c))
     onUpdateCategories(newCategories)
     setEditingId(null)
-    toast.success('Kategori opdateret!')
+    toast.success(t.categoryManager.updated)
   }
 
   const handleCancelEdit = () => {
@@ -100,22 +102,22 @@ export function CategoryManager({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Administrer kategorier</DialogTitle>
+          <DialogTitle className="text-2xl">{t.guideLibrary.manageCategories}</DialogTitle>
           <DialogDescription>
-            Tilføj, rediger eller slet kategorier til dine guides
+            {t.categoryManager.description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="new-category">Tilføj ny kategori</Label>
+              <Label htmlFor="new-category">{t.categoryManager.addNewCategory}</Label>
               <div className="flex gap-2">
                 <Input
                   id="new-category"
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  placeholder="Skriv kategorinavn..."
+                  placeholder={t.categoryManager.namePlaceholder}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleAddCategory()
                   }}
@@ -129,11 +131,11 @@ export function CategoryManager({
             <Separator />
 
             <div className="space-y-2">
-              <Label>Eksisterende kategorier ({categories.length})</Label>
+              <Label>{t.categoryManager.existingCategoriesPrefix} ({categories.length})</Label>
               <div className="space-y-2">
                 {categories.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    Ingen kategorier endnu
+                    {t.categoryManager.noneYet}
                   </div>
                 ) : (
                   categories.map((category) => {
@@ -186,12 +188,12 @@ export function CategoryManager({
                                 <div className="font-medium">{category}</div>
                                 {isFixed && (
                                   <span className="text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
-                                    Standard
+                                    {t.categoryManager.standardBadge}
                                   </span>
                                 )}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {count} {count === 1 ? 'guide' : 'guides'}
+                                {count} {count === 1 ? t.guideLibrary.guideSingular : t.guideLibrary.guidePlural}
                               </div>
                             </div>
                             {!isFixed && (
@@ -231,10 +233,10 @@ export function CategoryManager({
         <div className="flex items-center justify-between">
           <div className="text-xs text-muted-foreground flex items-center gap-1">
             <kbd className="px-2 py-1 bg-muted rounded border border-border font-mono text-xs">ESC</kbd>
-            <span>for at lukke</span>
+            <span>{t.categoryManager.closeHintSuffix}</span>
           </div>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Luk
+            {t.common.close}
           </Button>
         </div>
       </DialogContent>

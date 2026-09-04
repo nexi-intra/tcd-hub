@@ -1,16 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Hub } from '@/views/Hub'
-import { GuideLibrary } from '@/views/GuideLibrary'
-import { VacationCalendar } from '@/views/VacationCalendar'
-import { ShiftSchedule } from '@/views/ShiftSchedule'
-import { AdminPanel } from '@/views/AdminPanel'
-import { ManagerPanel } from '@/views/ManagerPanel'
-import { TeamOverview } from '@/views/TeamOverview'
-import { EmailSystem } from '@/views/EmailSystem'
-import { MealPlan } from '@/views/MealPlan'
-import { GameCorner } from '@/views/GameCorner'
-import { ProjectBoard } from '@/views/ProjectBoard'
-import { VirtualNotebook } from '@/views/VirtualNotebook'
 import { Auth } from '@/views/Auth'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
@@ -18,8 +7,37 @@ import { AnimatedBackground } from '@/components/AnimatedBackground'
 import { BirthdayCelebration } from '@/components/BirthdayCelebration'
 import { UpdateNotification } from '@/components/UpdateNotification'
 import { GuideImportStatus } from '@/components/GuideImportStatus'
+import { LoginDigest } from '@/components/LoginDigest'
+import { WhatsNewDialog } from '@/components/WhatsNewDialog'
+import { CommandPalette } from '@/components/CommandPalette'
+import { StorageConnectionBanner } from '@/components/StorageConnectionBanner'
 import { toast, Toaster } from 'sonner'
 import { setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
+import { NAVIGATE_EVENT, type AppViewId } from '@/lib/appNavigation'
+
+// Lazy-loadet: Hub og Auth vises altid lige efter opstart/login, så de
+// forbliver i hoved-bundlen. Alle andre views hentes først når brugeren
+// rent faktisk navigerer derhen — reducerer opstarts-bundlen markant.
+const GuideLibrary = lazy(() => import('@/views/GuideLibrary').then(m => ({ default: m.GuideLibrary })))
+const VacationCalendar = lazy(() => import('@/views/VacationCalendar').then(m => ({ default: m.VacationCalendar })))
+const ShiftSchedule = lazy(() => import('@/views/ShiftSchedule').then(m => ({ default: m.ShiftSchedule })))
+const AdminPanel = lazy(() => import('@/views/AdminPanel').then(m => ({ default: m.AdminPanel })))
+const ManagerPanel = lazy(() => import('@/views/ManagerPanel').then(m => ({ default: m.ManagerPanel })))
+const TeamOverview = lazy(() => import('@/views/TeamOverview').then(m => ({ default: m.TeamOverview })))
+const EmailSystem = lazy(() => import('@/views/EmailSystem').then(m => ({ default: m.EmailSystem })))
+const MealPlan = lazy(() => import('@/views/MealPlan').then(m => ({ default: m.MealPlan })))
+const GameCorner = lazy(() => import('@/views/GameCorner').then(m => ({ default: m.GameCorner })))
+const ProjectBoard = lazy(() => import('@/views/ProjectBoard').then(m => ({ default: m.ProjectBoard })))
+const VirtualNotebook = lazy(() => import('@/views/VirtualNotebook').then(m => ({ default: m.VirtualNotebook })))
+
+/** Vises kortvarigt mens et views kode hentes ved første besøg. */
+function ViewLoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+    </div>
+  )
+}
 
 type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games' | 'projects' | 'notebook'
 
@@ -330,17 +348,20 @@ function App() {
   }
 
   useEffect(() => {
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (currentView !== 'hub') {
-          setCurrentView('hub')
-        }
-      }
+    // Deep-links fra fx emails, notifikationscenter og command palette.
+    if (!userSession) return
+    const handleDeepLink = (e: Event) => {
+      const view = (e as CustomEvent).detail?.view as AppViewId | undefined
+      if (view) setCurrentView(view)
     }
+    window.addEventListener(NAVIGATE_EVENT, handleDeepLink)
+    return () => window.removeEventListener(NAVIGATE_EVENT, handleDeepLink)
+  }, [userSession])
 
-    window.addEventListener('keydown', handleEscapeKey)
-    return () => window.removeEventListener('keydown', handleEscapeKey)
-  }, [currentView])
+  // Bemærk: der er IKKE en global Escape-lytter her længere. Hver view ejer nu
+  // sin egen Escape-håndtering (luk egen dialog → naviger tilbage), så vi
+  // undgår kapløb mellem en global fallback og viewets egen lytter, som begge
+  // lyttede på 'window' og kunne fyre i uforudsigelig rækkefølge.
 
   if (isCheckingAuth) {
     return null
@@ -353,6 +374,7 @@ function App() {
           <Toaster position="top-center" richColors />
           <AnimatedBackground />
           <UpdateNotification />
+          <StorageConnectionBanner />
           <Auth onAuthenticated={handleAuthenticated} />
         </LanguageProvider>
       </ThemeProvider>
@@ -365,20 +387,26 @@ function App() {
         <Toaster position="top-center" richColors />
         <AnimatedBackground />
         <UpdateNotification />
+        <StorageConnectionBanner />
         <GuideImportStatus onOpenGuideLibrary={() => handleNavigate('guides')} />
         <BirthdayCelebration userEmail={userSession.email} />
+        <LoginDigest userEmail={userSession.email} />
+        <WhatsNewDialog />
+        <CommandPalette userEmail={userSession.email} />
         {currentView === 'hub' && <Hub onNavigate={handleNavigate} onLogout={handleLogout} userEmail={userSession.email} />}
-        {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
-        {currentView === 'calendar' && <VacationCalendar onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
-        {currentView === 'shifts' && <ShiftSchedule onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
-        {currentView === 'admin' && <AdminPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
-        {currentView === 'manager' && <ManagerPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
-        {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
-        {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
-        {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} />}
-        {currentView === 'games' && <GameCorner onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
-        {currentView === 'projects' && <ProjectBoard onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
-        {currentView === 'notebook' && <VirtualNotebook onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
+        <Suspense fallback={<ViewLoadingFallback />}>
+          {currentView === 'guides' && <GuideLibrary onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
+          {currentView === 'calendar' && <VacationCalendar onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
+          {currentView === 'shifts' && <ShiftSchedule onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
+          {currentView === 'admin' && <AdminPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
+          {currentView === 'manager' && <ManagerPanel onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
+          {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
+          {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
+          {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} />}
+          {currentView === 'games' && <GameCorner onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
+          {currentView === 'projects' && <ProjectBoard onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
+          {currentView === 'notebook' && <VirtualNotebook onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
+        </Suspense>
       </LanguageProvider>
     </ThemeProvider>
   )

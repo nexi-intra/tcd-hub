@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { AutoText } from '@/components/AutoText'
 import { useAutoTranslate } from '@/lib/useAutoTranslate'
 import { cn } from '@/lib/utils'
+import { isAnyModalOpen } from '@/lib/modalStack'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -164,6 +165,7 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isAnyModalOpen()) return
         onNavigateBack()
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault()
@@ -184,8 +186,8 @@ export function ShiftSchedule({ onNavigateBack, onLogout, userEmail: propUserEma
       }
     }
     
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [onNavigateBack, selectedMonth, selectedYear])
 
   useEffect(() => {

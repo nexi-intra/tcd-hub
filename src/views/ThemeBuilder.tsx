@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/useKV'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface ThemeBuilderProps {
   onNavigateBack: () => void
@@ -122,6 +123,7 @@ const presetThemes = [
 ]
 
 export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
+  const { t } = useLanguage()
   const [savedThemes, setSavedThemes] = useKV<CustomTheme[]>('custom-themes', [])
   const [activeTheme, setActiveTheme] = useKV<string>(`active-theme-${userEmail}`, 'default')
   const [themeName, setThemeName] = useState('')
@@ -176,7 +178,7 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
   const togglePreview = () => {
     if (!previewMode) {
       applyTheme(colors, radius)
-      toast.success('Preview mode activated')
+      toast.success(t.themeBuilder.previewActivated)
     } else {
       if (activeTheme && activeTheme !== 'default') {
         const theme = savedThemes?.find(t => t.id === activeTheme)
@@ -188,14 +190,14 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
       } else {
         resetTheme()
       }
-      toast.info('Preview mode deactivated')
+      toast.info(t.themeBuilder.previewDeactivated)
     }
     setPreviewMode(!previewMode)
   }
 
   const saveTheme = () => {
     if (!themeName.trim()) {
-      toast.error('Please enter a theme name')
+      toast.error(t.themeBuilder.enterThemeName)
       return
     }
 
@@ -209,7 +211,7 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
     }
 
     setSavedThemes((current) => [...(current || []), newTheme])
-    toast.success(`Theme "${themeName}" saved successfully`)
+    toast.success(`${t.themeBuilder.themeSavedPrefix} "${themeName}" ${t.themeBuilder.themeSavedSuffix}`)
     setThemeName('')
   }
 
@@ -217,7 +219,7 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
     setActiveTheme(themeId)
     const theme = savedThemes?.find(t => t.id === themeId)
     if (theme) {
-      toast.success(`Applied theme: ${theme.name}`)
+      toast.success(`${t.themeBuilder.appliedThemePrefix} ${theme.name}`)
     }
   }
 
@@ -227,7 +229,7 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
       setActiveTheme('default')
       resetTheme()
     }
-    toast.success('Theme deleted')
+    toast.success(t.themeBuilder.themeDeleted)
   }
 
   const loadPreset = (preset: typeof presetThemes[0]) => {
@@ -236,7 +238,7 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
     if (previewMode) {
       applyTheme(preset.colors, radius)
     }
-    toast.success(`Loaded preset: ${preset.name}`)
+    toast.success(`${t.themeBuilder.loadedPresetPrefix} ${preset.name}`)
   }
 
   const exportTheme = () => {
@@ -259,7 +261,7 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
     linkElement.setAttribute('download', exportFileDefaultName)
     linkElement.click()
     
-    toast.success('Theme exported')
+    toast.success(t.themeBuilder.themeExported)
   }
 
   const importTheme = () => {
@@ -279,9 +281,9 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
             if (previewMode) {
               applyTheme(theme.colors, theme.radius)
             }
-            toast.success(`Imported theme: ${theme.name}`)
+            toast.success(`${t.themeBuilder.importedThemePrefix} ${theme.name}`)
           } catch (error) {
-            toast.error('Invalid theme file')
+            toast.error(t.themeBuilder.invalidThemeFile)
           }
         }
         reader.readAsText(file)
@@ -306,9 +308,9 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
             <div>
               <h1 className="text-4xl font-bold flex items-center gap-3 bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
                 <Palette size={40} className="text-primary" />
-                Theme Builder
+                {t.themeBuilder.title}
               </h1>
-              <p className="text-muted-foreground mt-1">Create and customize your own color schemes</p>
+              <p className="text-muted-foreground mt-1">{t.themeBuilder.subtitle}</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -318,7 +320,7 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
               className="gap-2"
             >
               <Eye size={20} />
-              {previewMode ? 'Exit Preview' : 'Preview'}
+              {previewMode ? t.themeBuilder.exitPreview : t.themeBuilder.preview}
             </Button>
           </div>
         </div>
@@ -327,15 +329,15 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Create Custom Theme</CardTitle>
-                <CardDescription>Design your perfect color palette</CardDescription>
+                <CardTitle>{t.themeBuilder.createCustomTheme}</CardTitle>
+                <CardDescription>{t.themeBuilder.designDescription}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="theme-name">Theme Name</Label>
+                  <Label htmlFor="theme-name">{t.themeBuilder.themeNameLabel}</Label>
                   <Input
                     id="theme-name"
-                    placeholder="My Awesome Theme"
+                    placeholder={t.themeBuilder.themeNamePlaceholder}
                     value={themeName}
                     onChange={(e) => setThemeName(e.target.value)}
                   />
@@ -343,34 +345,34 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
 
                 <Tabs defaultValue="main" className="w-full">
                   <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="main">Main Colors</TabsTrigger>
-                    <TabsTrigger value="action">Action Colors</TabsTrigger>
-                    <TabsTrigger value="ui">UI Elements</TabsTrigger>
-                    <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                    <TabsTrigger value="main">{t.themeBuilder.tabs.main}</TabsTrigger>
+                    <TabsTrigger value="action">{t.themeBuilder.tabs.action}</TabsTrigger>
+                    <TabsTrigger value="ui">{t.themeBuilder.tabs.ui}</TabsTrigger>
+                    <TabsTrigger value="advanced">{t.themeBuilder.tabs.advanced}</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="main" className="space-y-4 mt-4">
                     <ColorInput
-                      label="Background"
-                      description="Main page background"
+                      label={t.themeBuilder.colors.background.label}
+                      description={t.themeBuilder.colors.background.description}
                       value={colors.background}
                       onChange={(v) => handleColorChange('background', v)}
                     />
                     <ColorInput
-                      label="Foreground"
-                      description="Primary text color"
+                      label={t.themeBuilder.colors.foreground.label}
+                      description={t.themeBuilder.colors.foreground.description}
                       value={colors.foreground}
                       onChange={(v) => handleColorChange('foreground', v)}
                     />
                     <ColorInput
-                      label="Card Background"
-                      description="Card and container background"
+                      label={t.themeBuilder.colors.card.label}
+                      description={t.themeBuilder.colors.card.description}
                       value={colors.card}
                       onChange={(v) => handleColorChange('card', v)}
                     />
                     <ColorInput
-                      label="Card Text"
-                      description="Text on cards"
+                      label={t.themeBuilder.colors.cardForeground.label}
+                      description={t.themeBuilder.colors.cardForeground.description}
                       value={colors.cardForeground}
                       onChange={(v) => handleColorChange('cardForeground', v)}
                     />
@@ -378,38 +380,38 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
 
                   <TabsContent value="action" className="space-y-4 mt-4">
                     <ColorInput
-                      label="Primary"
-                      description="Main brand/action color"
+                      label={t.themeBuilder.colors.primary.label}
+                      description={t.themeBuilder.colors.primary.description}
                       value={colors.primary}
                       onChange={(v) => handleColorChange('primary', v)}
                     />
                     <ColorInput
-                      label="Primary Text"
-                      description="Text on primary color"
+                      label={t.themeBuilder.colors.primaryForeground.label}
+                      description={t.themeBuilder.colors.primaryForeground.description}
                       value={colors.primaryForeground}
                       onChange={(v) => handleColorChange('primaryForeground', v)}
                     />
                     <ColorInput
-                      label="Secondary"
-                      description="Supporting action color"
+                      label={t.themeBuilder.colors.secondary.label}
+                      description={t.themeBuilder.colors.secondary.description}
                       value={colors.secondary}
                       onChange={(v) => handleColorChange('secondary', v)}
                     />
                     <ColorInput
-                      label="Secondary Text"
-                      description="Text on secondary color"
+                      label={t.themeBuilder.colors.secondaryForeground.label}
+                      description={t.themeBuilder.colors.secondaryForeground.description}
                       value={colors.secondaryForeground}
                       onChange={(v) => handleColorChange('secondaryForeground', v)}
                     />
                     <ColorInput
-                      label="Accent"
-                      description="Highlight and emphasis color"
+                      label={t.themeBuilder.colors.accent.label}
+                      description={t.themeBuilder.colors.accent.description}
                       value={colors.accent}
                       onChange={(v) => handleColorChange('accent', v)}
                     />
                     <ColorInput
-                      label="Accent Text"
-                      description="Text on accent color"
+                      label={t.themeBuilder.colors.accentForeground.label}
+                      description={t.themeBuilder.colors.accentForeground.description}
                       value={colors.accentForeground}
                       onChange={(v) => handleColorChange('accentForeground', v)}
                     />
@@ -417,32 +419,32 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
 
                   <TabsContent value="ui" className="space-y-4 mt-4">
                     <ColorInput
-                      label="Muted Background"
-                      description="Subdued background areas"
+                      label={t.themeBuilder.colors.muted.label}
+                      description={t.themeBuilder.colors.muted.description}
                       value={colors.muted}
                       onChange={(v) => handleColorChange('muted', v)}
                     />
                     <ColorInput
-                      label="Muted Text"
-                      description="De-emphasized text"
+                      label={t.themeBuilder.colors.mutedForeground.label}
+                      description={t.themeBuilder.colors.mutedForeground.description}
                       value={colors.mutedForeground}
                       onChange={(v) => handleColorChange('mutedForeground', v)}
                     />
                     <ColorInput
-                      label="Border"
-                      description="Borders and dividers"
+                      label={t.themeBuilder.colors.border.label}
+                      description={t.themeBuilder.colors.border.description}
                       value={colors.border}
                       onChange={(v) => handleColorChange('border', v)}
                     />
                     <ColorInput
-                      label="Input Border"
-                      description="Form input borders"
+                      label={t.themeBuilder.colors.input.label}
+                      description={t.themeBuilder.colors.input.description}
                       value={colors.input}
                       onChange={(v) => handleColorChange('input', v)}
                     />
                     <ColorInput
-                      label="Focus Ring"
-                      description="Focus indicator color"
+                      label={t.themeBuilder.colors.ring.label}
+                      description={t.themeBuilder.colors.ring.description}
                       value={colors.ring}
                       onChange={(v) => handleColorChange('ring', v)}
                     />
@@ -450,42 +452,42 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
 
                   <TabsContent value="advanced" className="space-y-4 mt-4">
                     <ColorInput
-                      label="Destructive"
-                      description="Warning/dangerous actions"
+                      label={t.themeBuilder.colors.destructive.label}
+                      description={t.themeBuilder.colors.destructive.description}
                       value={colors.destructive}
                       onChange={(v) => handleColorChange('destructive', v)}
                     />
                     <ColorInput
-                      label="Destructive Text"
-                      description="Text on destructive color"
+                      label={t.themeBuilder.colors.destructiveForeground.label}
+                      description={t.themeBuilder.colors.destructiveForeground.description}
                       value={colors.destructiveForeground}
                       onChange={(v) => handleColorChange('destructiveForeground', v)}
                     />
                     <ColorInput
-                      label="Popover Background"
-                      description="Dropdown and popover background"
+                      label={t.themeBuilder.colors.popover.label}
+                      description={t.themeBuilder.colors.popover.description}
                       value={colors.popover}
                       onChange={(v) => handleColorChange('popover', v)}
                     />
                     <ColorInput
-                      label="Popover Text"
-                      description="Text on popovers"
+                      label={t.themeBuilder.colors.popoverForeground.label}
+                      description={t.themeBuilder.colors.popoverForeground.description}
                       value={colors.popoverForeground}
                       onChange={(v) => handleColorChange('popoverForeground', v)}
                     />
                     <div className="space-y-2">
-                      <Label>Border Radius</Label>
+                      <Label>{t.themeBuilder.borderRadiusLabel}</Label>
                       <Select value={radius} onValueChange={handleRadiusChange}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="0rem">None (Square)</SelectItem>
-                          <SelectItem value="0.375rem">Small</SelectItem>
-                          <SelectItem value="0.5rem">Medium</SelectItem>
-                          <SelectItem value="0.75rem">Default</SelectItem>
-                          <SelectItem value="1rem">Large</SelectItem>
-                          <SelectItem value="1.5rem">Extra Large</SelectItem>
+                          <SelectItem value="0rem">{t.themeBuilder.radiusOptions.none}</SelectItem>
+                          <SelectItem value="0.375rem">{t.themeBuilder.radiusOptions.small}</SelectItem>
+                          <SelectItem value="0.5rem">{t.themeBuilder.radiusOptions.medium}</SelectItem>
+                          <SelectItem value="0.75rem">{t.themeBuilder.radiusOptions.default}</SelectItem>
+                          <SelectItem value="1rem">{t.themeBuilder.radiusOptions.large}</SelectItem>
+                          <SelectItem value="1.5rem">{t.themeBuilder.radiusOptions.extraLarge}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -495,15 +497,15 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
                 <div className="flex gap-3 pt-4 border-t">
                   <Button onClick={saveTheme} className="gap-2">
                     <FloppyDisk size={20} />
-                    Save Theme
+                    {t.themeBuilder.saveTheme}
                   </Button>
                   <Button variant="outline" onClick={exportTheme} className="gap-2">
                     <Download size={20} />
-                    Export
+                    {t.themeBuilder.export}
                   </Button>
                   <Button variant="outline" onClick={importTheme} className="gap-2">
                     <Upload size={20} />
-                    Import
+                    {t.themeBuilder.import}
                   </Button>
                 </div>
               </CardContent>
@@ -511,26 +513,26 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle>Preview Components</CardTitle>
-                <CardDescription>See how your theme looks on different elements</CardDescription>
+                <CardTitle>{t.themeBuilder.previewComponentsTitle}</CardTitle>
+                <CardDescription>{t.themeBuilder.previewComponentsDescription}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex gap-2">
-                    <Button>Primary Button</Button>
-                    <Button variant="secondary">Secondary</Button>
-                    <Button variant="outline">Outline</Button>
-                    <Button variant="destructive">Destructive</Button>
+                    <Button>{t.themeBuilder.primaryButton}</Button>
+                    <Button variant="secondary">{t.themeBuilder.secondaryButton}</Button>
+                    <Button variant="outline">{t.themeBuilder.outlineButton}</Button>
+                    <Button variant="destructive">{t.themeBuilder.destructiveButton}</Button>
                   </div>
                   
                   <Card className="p-4">
-                    <h3 className="font-semibold mb-2">Sample Card</h3>
-                    <p className="text-sm text-muted-foreground">This is how cards will look with your theme.</p>
+                    <h3 className="font-semibold mb-2">{t.themeBuilder.sampleCard}</h3>
+                    <p className="text-sm text-muted-foreground">{t.themeBuilder.sampleCardText}</p>
                   </Card>
 
                   <div className="space-y-2">
-                    <Label>Sample Input</Label>
-                    <Input placeholder="Type something..." />
+                    <Label>{t.themeBuilder.sampleInputLabel}</Label>
+                    <Input placeholder={t.themeBuilder.sampleInputPlaceholder} />
                   </div>
 
                   <div className="flex gap-2">
@@ -548,8 +550,8 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Your Themes</CardTitle>
-                <CardDescription>Saved custom themes</CardDescription>
+                <CardTitle>{t.themeBuilder.yourThemesTitle}</CardTitle>
+                <CardDescription>{t.themeBuilder.yourThemesDescription}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <motion.div
@@ -560,13 +562,13 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
                   onClick={() => {
                     setActiveTheme('default')
                     resetTheme()
-                    toast.success('Applied default theme')
+                    toast.success(t.themeBuilder.appliedDefaultTheme)
                   }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <div className="font-semibold">Default Theme</div>
-                  <div className="text-sm text-muted-foreground mt-1">Original system theme</div>
+                  <div className="font-semibold">{t.themeBuilder.defaultThemeName}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{t.themeBuilder.defaultThemeDescription}</div>
                 </motion.div>
 
                 {(savedThemes || []).map((theme) => (
@@ -608,7 +610,7 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
 
                 {(!savedThemes || savedThemes.length === 0) && (
                   <div className="text-center py-8 text-muted-foreground text-sm">
-                    No saved themes yet. Create your first theme!
+                    {t.themeBuilder.noSavedThemes}
                   </div>
                 )}
               </CardContent>
@@ -616,8 +618,8 @@ export function ThemeBuilder({ onNavigateBack, userEmail }: ThemeBuilderProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle>Preset Themes</CardTitle>
-                <CardDescription>Quick start with these presets</CardDescription>
+                <CardTitle>{t.themeBuilder.presetThemesTitle}</CardTitle>
+                <CardDescription>{t.themeBuilder.presetThemesDescription}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {presetThemes.map((preset, index) => (

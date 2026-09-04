@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { UserProfile } from '@/components/UserProfile'
 import { toast } from 'sonner'
 import { appendToKvArray, removeFromKvArray, setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
+import { isAnyModalOpen } from '@/lib/modalStack'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -14,9 +15,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { format } from 'date-fns'
-import { da } from 'date-fns/locale'
+import { da, enUS } from 'date-fns/locale'
 import { UserRole, ADMIN_EMAIL, hasAdminAccess, getRoleDisplayName, getRoleDescription } from '@/lib/userRoles'
 import { hashPassword } from '@/lib/passwords'
+import { useLanguage } from '@/contexts/LanguageContext'
 import type { SickLeaveEntry, ShiftRole } from '@/lib/types'
 
 interface User {
@@ -32,6 +34,8 @@ interface AdminPanelProps {
 }
 
 export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEmail }: AdminPanelProps) {
+  const { t, language } = useLanguage()
+  const dateLocale = language === 'en' ? enUS : da
   const [users, setUsers] = useState<User[]>([])
   const [sickLeaveEntries, setSickLeaveEntries] = useState<SickLeaveEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -71,12 +75,13 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isAnyModalOpen()) return
         onNavigateBack()
       }
     }
     
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [onNavigateBack])
 
   const loadUsers = async () => {
@@ -121,7 +126,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
 
   const handleAddRole = async () => {
     if (!newRoleName.trim()) {
-      toast.error('Indtast et rolle navn')
+      toast.error(t.adminPanel.roles.nameRequired)
       return
     }
 
@@ -136,7 +141,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
     setNewRoleName('')
     setNewRoleColor('#8b5cf6')
     setShowRoleDialog(false)
-    toast.success('Opgave tilføjet')
+    toast.success(t.adminPanel.roles.added)
   }
 
   const handleDeleteRole = async (roleId: string) => {
@@ -147,7 +152,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
     const assignmentIdsToRemove = assignments.filter(a => a.roleId === roleId).map(a => a.id)
     await removeFromKvArray('shift-assignments', assignmentIdsToRemove)
 
-    toast.success('Opgave slettet')
+    toast.success(t.adminPanel.roles.deleted)
   }
 
   const openEmployeeDialog = (employee?: User) => {
@@ -173,24 +178,24 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
 
   const handleSaveEmployee = async () => {
     if (!employeeForm.email.trim() || !employeeForm.fullName.trim()) {
-      toast.error('Email og navn er påkrævet')
+      toast.error(t.adminPanel.employees.emailNameRequired)
       return
     }
 
     if (!editingEmployee && !employeeForm.password.trim()) {
-      toast.error('Kodeord er påkrævet for nye medarbejdere')
+      toast.error(t.adminPanel.employees.passwordRequired)
       return
     }
 
     const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean }>>('users') || {}
 
     if (!editingEmployee && usersData[employeeForm.email]) {
-      toast.error('En bruger med denne email eksisterer allerede')
+      toast.error(t.adminPanel.employees.emailExists)
       return
     }
 
     if (editingEmployee && editingEmployee.email !== employeeForm.email && usersData[employeeForm.email]) {
-      toast.error('En bruger med denne email eksisterer allerede')
+      toast.error(t.adminPanel.employees.emailExists)
       return
     }
 
@@ -209,12 +214,12 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
 
     await loadUsers()
     setShowEmployeeDialog(false)
-    toast.success(editingEmployee ? 'Medarbejder opdateret' : 'Medarbejder oprettet')
+    toast.success(editingEmployee ? t.adminPanel.employees.updated : t.adminPanel.employees.created)
   }
 
   const handleDeleteEmployee = async (email: string) => {
     if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-      toast.error('Kan ikke slette admin brugeren')
+      toast.error(t.adminPanel.users.cannotDeleteAdmin)
       return
     }
 
@@ -222,7 +227,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
     if (usersData && usersData[email]) {
       await deleteKvObjectField('users', email)
       await loadUsers()
-      toast.success('Medarbejder slettet')
+      toast.success(t.adminPanel.employees.deleted)
     }
   }
 
@@ -241,13 +246,13 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
       })
       await loadUsers()
       
-      toast.success(`Bruger ændret til ${getRoleDisplayName(newRole)}`)
+      toast.success(`${t.adminPanel.users.roleChangedPrefix} ${getRoleDisplayName(newRole, language)}`)
     }
   }
 
   const deleteUser = async (email: string) => {
     if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-      toast.error('Kan ikke slette admin brugeren')
+      toast.error(t.adminPanel.users.cannotDeleteAdmin)
       return
     }
 
@@ -256,7 +261,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
       delete usersData[email]
       await window.kv.set('users', usersData)
       await loadUsers()
-      toast.success('Bruger slettet')
+      toast.success(t.adminPanel.users.deleted)
     }
   }
 
@@ -266,21 +271,21 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
         return (
           <Badge className="bg-gradient-to-r from-accent via-primary to-accent text-white">
             <Crown size={14} className="mr-1" weight="fill" />
-            Administrator
+            {t.teamOverview.roleAdmin}
           </Badge>
         )
       case 'manager':
         return (
           <Badge className="bg-gradient-to-r from-primary to-accent text-white">
             <ShieldCheck size={14} className="mr-1" weight="fill" />
-            Manager
+            {t.teamOverview.roleManager}
           </Badge>
         )
       default:
         return (
           <Badge variant="secondary">
             <UserIcon size={14} className="mr-1" />
-            Bruger
+            {t.teamOverview.userSingular}
           </Badge>
         )
     }
@@ -298,11 +303,11 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
         <Card className="p-8 max-w-md relative z-10 border-2">
           <div className="text-center space-y-4">
             <ShieldCheck size={64} className="text-destructive mx-auto" weight="duotone" />
-            <h2 className="text-2xl font-bold">Ingen Adgang</h2>
-            <p className="text-muted-foreground">Du har ikke administratorrettigheder til denne side.</p>
+            <h2 className="text-2xl font-bold">{t.adminPanel.noAccess.title}</h2>
+            <p className="text-muted-foreground">{t.adminPanel.noAccess.description}</p>
             <Button onClick={onNavigateBack} className="w-full">
               <ArrowLeft size={20} className="mr-2" />
-              Tilbage til Hub
+              {t.adminPanel.noAccess.backToHub}
             </Button>
           </div>
         </Card>
@@ -328,7 +333,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                 className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
               >
                 <ArrowLeft size={20} />
-                Tilbage
+                {t.common.back}
               </Button>
             </motion.div>
           </div>
@@ -353,7 +358,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
         >
           <div className="flex items-center gap-6">
             <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
-              Admin Panel
+              {t.adminPanel.title}
             </h1>
           </div>
         </motion.div>
@@ -362,15 +367,15 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
           <TabsList className="grid w-full grid-cols-3 max-w-2xl">
             <TabsTrigger value="users" className="gap-2">
               <UserGear size={18} />
-              Brugere
+              {t.adminPanel.tabs.users}
             </TabsTrigger>
             <TabsTrigger value="shift-management" className="gap-2">
               <UserIcon size={18} />
-              Medarbejdere & Opgaver
+              {t.adminPanel.tabs.shiftManagement}
             </TabsTrigger>
             <TabsTrigger value="sick-leave" className="gap-2">
               <FirstAidKit size={18} />
-              Sygemeldinger
+              {t.adminPanel.tabs.sickLeave}
             </TabsTrigger>
           </TabsList>
 
@@ -379,17 +384,17 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <UserGear size={28} className="text-primary" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Brugeroversigt</h2>
+                  <h2 className="text-2xl font-bold">{t.adminPanel.users.overview}</h2>
                 </div>
                 <Badge variant="outline" className="text-sm">
-                  {users.length} {users.length === 1 ? 'Bruger' : 'Brugere'}
+                  {users.length} {users.length === 1 ? t.teamOverview.userSingular : t.teamOverview.userPlural}
                 </Badge>
               </div>
 
             {isLoading ? (
-              <p className="text-muted-foreground text-center py-12">Indlæser brugere...</p>
+              <p className="text-muted-foreground text-center py-12">{t.adminPanel.users.loading}</p>
             ) : users.length === 0 ? (
-              <p className="text-muted-foreground text-center py-12">Ingen brugere fundet</p>
+              <p className="text-muted-foreground text-center py-12">{t.adminPanel.users.noneFound}</p>
             ) : (
               <div className="space-y-3">
                 {users.map((user) => (
@@ -417,7 +422,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                           )}
                         </div>
                         <div className="text-sm text-muted-foreground truncate">{user.email}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{getRoleDescription(user.role)}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{getRoleDescription(user.role, language)}</div>
                       </div>
                       <div className="flex items-center gap-3">
                         {getRoleBadge(user.role)}
@@ -437,19 +442,19 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                               <SelectItem value="user">
                                 <div className="flex items-center gap-2">
                                   <UserIcon size={16} />
-                                  Bruger
+                                  {t.teamOverview.userSingular}
                                 </div>
                               </SelectItem>
                               <SelectItem value="manager">
                                 <div className="flex items-center gap-2">
                                   <ShieldCheck size={16} />
-                                  Manager
+                                  {t.teamOverview.roleManager}
                                 </div>
                               </SelectItem>
                               <SelectItem value="admin">
                                 <div className="flex items-center gap-2">
                                   <Crown size={16} />
-                                  Administrator
+                                  {t.teamOverview.roleAdmin}
                                 </div>
                               </SelectItem>
                             </SelectContent>
@@ -462,18 +467,18 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Slet bruger?</AlertDialogTitle>
+                                <AlertDialogTitle>{t.adminPanel.users.deleteTitle}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Er du sikker på at du vil slette <strong>{user.fullName}</strong>? Denne handling kan ikke fortrydes.
+                                  {t.adminPanel.users.deleteConfirmPrefix} <strong>{user.fullName}</strong>{t.adminPanel.users.deleteConfirmSuffix}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => deleteUser(user.email)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  Slet bruger
+                                  {t.adminPanel.users.deleteAction}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -481,7 +486,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                         </>
                       ) : (
                         <Badge variant="outline" className="ml-2">
-                          Permanent Admin
+                          {t.adminPanel.users.permanentAdmin}
                         </Badge>
                       )}
                     </div>
@@ -496,22 +501,22 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
               <div className="flex items-start gap-3">
                 <Crown size={24} className="text-accent mt-0.5" weight="fill" />
                 <div>
-                  <h3 className="font-bold text-lg mb-1">Administrator</h3>
-                  <p className="text-sm text-muted-foreground">{getRoleDescription('admin')}</p>
+                  <h3 className="font-bold text-lg mb-1">{t.teamOverview.roleAdmin}</h3>
+                  <p className="text-sm text-muted-foreground">{getRoleDescription('admin', language)}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <ShieldCheck size={24} className="text-primary mt-0.5" weight="fill" />
                 <div>
-                  <h3 className="font-bold text-lg mb-1">Manager</h3>
-                  <p className="text-sm text-muted-foreground">{getRoleDescription('manager')}</p>
+                  <h3 className="font-bold text-lg mb-1">{t.teamOverview.roleManager}</h3>
+                  <p className="text-sm text-muted-foreground">{getRoleDescription('manager', language)}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <UserIcon size={24} className="text-secondary mt-0.5" />
                 <div>
-                  <h3 className="font-bold text-lg mb-1">Bruger</h3>
-                  <p className="text-sm text-muted-foreground">{getRoleDescription('user')}</p>
+                  <h3 className="font-bold text-lg mb-1">{t.teamOverview.userSingular}</h3>
+                  <p className="text-sm text-muted-foreground">{getRoleDescription('user', language)}</p>
                 </div>
               </div>
             </div>
@@ -523,21 +528,21 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <FirstAidKit size={28} className="text-destructive" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Sygemeldinger</h2>
+                  <h2 className="text-2xl font-bold">{t.adminPanel.tabs.sickLeave}</h2>
                 </div>
                 <Badge variant="outline" className="text-sm">
-                  {sickLeaveEntries.length} {sickLeaveEntries.length === 1 ? 'sygemelding' : 'sygemeldinger'}
+                  {sickLeaveEntries.length} {sickLeaveEntries.length === 1 ? t.adminPanel.sickLeave.entrySingular : t.adminPanel.sickLeave.entryPlural}
                 </Badge>
               </div>
 
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
-                  Sygemeldinger sendes automatisk til Jacob.remmer@nexigroup.com når de indsendes. Ingen godkendelse påkrævet.
+                  {t.adminPanel.sickLeave.description}
                 </p>
               </div>
 
               {sickLeaveEntries.length === 0 ? (
-                <p className="text-muted-foreground text-center py-12">Ingen sygemeldinger</p>
+                <p className="text-muted-foreground text-center py-12">{t.adminPanel.sickLeave.none}</p>
               ) : (
                 <div className="space-y-3">
                   {sickLeaveEntries.map((entry) => (
@@ -556,20 +561,20 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                           <div className="text-sm text-muted-foreground">{entry.userEmail}</div>
                           <div className="flex flex-col gap-1 mt-2 text-sm">
                             <span className="font-medium">
-                              {format(new Date(entry.startDate), 'd. MMM', { locale: da })} - {format(new Date(entry.endDate || entry.startDate), 'd. MMM yyyy', { locale: da })}
+                              {format(new Date(entry.startDate), 'd. MMM', { locale: dateLocale })} - {format(new Date(entry.endDate || entry.startDate), 'd. MMM yyyy', { locale: dateLocale })}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              Indsendt: {format(new Date(entry.submittedAt), 'd. MMM yyyy HH:mm', { locale: da })}
+                              {t.adminPanel.sickLeave.submittedPrefix}: {format(new Date(entry.submittedAt), 'd. MMM yyyy HH:mm', { locale: dateLocale })}
                             </span>
                             {entry.reason && (
-                              <span className="text-muted-foreground mt-1">Bemærkninger: {entry.reason}</span>
+                              <span className="text-muted-foreground mt-1">{t.adminPanel.sickLeave.notesPrefix}: {entry.reason}</span>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <Badge className="bg-green-500 text-white">
                             <Check size={14} className="mr-1" />
-                            Registreret
+                            {t.adminPanel.sickLeave.registered}
                           </Badge>
                         </div>
                       </div>
@@ -585,11 +590,11 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <UserCircle size={28} className="text-primary" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Medarbejdere</h2>
+                  <h2 className="text-2xl font-bold">{t.adminPanel.employees.title}</h2>
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant="outline" className="text-sm">
-                    {users.length} {users.length === 1 ? 'Medarbejder' : 'Medarbejdere'}
+                    {users.length} {users.length === 1 ? t.adminPanel.employees.singular : t.adminPanel.employees.plural}
                   </Badge>
                   <Button
                     onClick={() => openEmployeeDialog()}
@@ -597,23 +602,23 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                     className="gap-2 bg-gradient-to-r from-primary to-accent"
                   >
                     <Plus size={16} />
-                    Tilføj Medarbejder
+                    {t.adminPanel.employees.add}
                   </Button>
                 </div>
               </div>
 
               {isLoading ? (
-                <p className="text-muted-foreground text-center py-12">Indlæser medarbejdere...</p>
+                <p className="text-muted-foreground text-center py-12">{t.adminPanel.employees.loading}</p>
               ) : users.length === 0 ? (
                 <div className="text-center py-12">
                   <UserCircle size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
-                  <p className="text-muted-foreground mb-4">Ingen medarbejdere endnu</p>
+                  <p className="text-muted-foreground mb-4">{t.adminPanel.employees.none}</p>
                   <Button
                     onClick={() => openEmployeeDialog()}
                     className="gap-2"
                   >
                     <Plus size={20} />
-                    Tilføj Din Første Medarbejder
+                    {t.adminPanel.employees.addFirst}
                   </Button>
                 </div>
               ) : (
@@ -664,18 +669,18 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Slet medarbejder?</AlertDialogTitle>
+                                  <AlertDialogTitle>{t.adminPanel.employees.deleteTitle}</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Er du sikker på at du vil slette <strong>{user.fullName}</strong>? Denne handling kan ikke fortrydes.
+                                    {t.adminPanel.employees.deleteConfirmPrefix} <strong>{user.fullName}</strong>{t.adminPanel.employees.deleteConfirmSuffix}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                  <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={() => handleDeleteEmployee(user.email)}
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   >
-                                    Slet medarbejder
+                                    {t.adminPanel.employees.deleteAction}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -693,11 +698,11 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <Tag size={28} className="text-accent" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Opgaver / Roller</h2>
+                  <h2 className="text-2xl font-bold">{t.adminPanel.roles.title}</h2>
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant="outline" className="text-sm">
-                    {shiftRoles.length} {shiftRoles.length === 1 ? 'Opgave' : 'Opgaver'}
+                    {shiftRoles.length} {shiftRoles.length === 1 ? t.adminPanel.roles.singular : t.adminPanel.roles.plural}
                   </Badge>
                   <Button
                     onClick={() => setShowRoleDialog(true)}
@@ -705,27 +710,27 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                     className="gap-2 bg-gradient-to-r from-primary to-accent"
                   >
                     <Plus size={16} />
-                    Tilføj Opgave
+                    {t.adminPanel.roles.add}
                   </Button>
                 </div>
               </div>
 
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
-                  Disse opgaver/roller kan tildeles medarbejdere i vagtplanen.
+                  {t.adminPanel.roles.description}
                 </p>
               </div>
 
               {shiftRoles.length === 0 ? (
                 <div className="text-center py-12">
                   <Tag size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
-                  <p className="text-muted-foreground mb-4">Ingen opgaver endnu</p>
+                  <p className="text-muted-foreground mb-4">{t.adminPanel.roles.none}</p>
                   <Button
                     onClick={() => setShowRoleDialog(true)}
                     className="gap-2"
                   >
                     <Plus size={20} />
-                    Tilføj Din Første Opgave
+                    {t.adminPanel.roles.addFirst}
                   </Button>
                 </div>
               ) : (
@@ -750,7 +755,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                         <div className="flex-1">
                           <div className="font-bold text-lg">{role.name}</div>
                           <div className="text-sm text-muted-foreground">
-                            Farve: <span className="font-mono">{role.color}</span>
+                            {t.adminPanel.roles.colorPrefix}: <span className="font-mono">{role.color}</span>
                           </div>
                         </div>
                         <div
@@ -761,7 +766,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                             border: `2px solid ${role.color}`
                           }}
                         >
-                          Eksempel
+                          {t.adminPanel.roles.example}
                         </div>
                       </div>
                       <AlertDialog>
@@ -776,18 +781,18 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Slet opgave?</AlertDialogTitle>
+                            <AlertDialogTitle>{t.adminPanel.roles.deleteTitle}</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Er du sikker på at du vil slette <strong>{role.name}</strong>? Alle vagter tildelt til denne opgave vil også blive fjernet. Denne handling kan ikke fortrydes.
+                              {t.adminPanel.roles.deleteConfirmPrefix} <strong>{role.name}</strong>{t.adminPanel.roles.deleteConfirmSuffix}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Annuller</AlertDialogCancel>
+                            <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDeleteRole(role.id)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
-                              Slet opgave
+                              {t.adminPanel.roles.deleteAction}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -803,21 +808,21 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
         <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Tilføj Ny Opgave / Rolle</DialogTitle>
+              <DialogTitle>{t.adminPanel.roleDialog.title}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div>
-                <Label htmlFor="role-name">Opgave Navn</Label>
+                <Label htmlFor="role-name">{t.adminPanel.roleDialog.nameLabel}</Label>
                 <Input
                   id="role-name"
                   value={newRoleName}
                   onChange={(e) => setNewRoleName(e.target.value)}
-                  placeholder="F.eks. Supervisor, Tekniker, Support"
+                  placeholder={t.adminPanel.roleDialog.namePlaceholder}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddRole()}
                 />
               </div>
               <div>
-                <Label htmlFor="role-color">Farve</Label>
+                <Label htmlFor="role-color">{t.adminPanel.roleDialog.colorLabel}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="role-color"
@@ -835,7 +840,7 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
               </div>
               <Button onClick={handleAddRole} className="w-full gap-2">
                 <Plus size={20} />
-                Opret Opgave
+                {t.adminPanel.roleDialog.submit}
               </Button>
             </div>
           </DialogContent>
@@ -844,44 +849,44 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
         <Dialog open={showEmployeeDialog} onOpenChange={setShowEmployeeDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingEmployee ? 'Rediger Medarbejder' : 'Tilføj Ny Medarbejder'}</DialogTitle>
+              <DialogTitle>{editingEmployee ? t.adminPanel.employeeDialog.editTitle : t.adminPanel.employeeDialog.addTitle}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div>
-                <Label htmlFor="employee-name">Fulde Navn</Label>
+                <Label htmlFor="employee-name">{t.adminPanel.employeeDialog.fullNameLabel}</Label>
                 <Input
                   id="employee-name"
                   value={employeeForm.fullName}
                   onChange={(e) => setEmployeeForm({ ...employeeForm, fullName: e.target.value })}
-                  placeholder="F.eks. John Doe"
+                  placeholder={t.adminPanel.employeeDialog.fullNamePlaceholder}
                 />
               </div>
               <div>
-                <Label htmlFor="employee-email">Email</Label>
+                <Label htmlFor="employee-email">{t.adminPanel.employeeDialog.emailLabel}</Label>
                 <Input
                   id="employee-email"
                   type="email"
                   value={employeeForm.email}
                   onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })}
-                  placeholder="john.doe@nexigroup.com"
+                  placeholder={t.adminPanel.employeeDialog.emailPlaceholder}
                   disabled={!!editingEmployee}
                 />
                 {editingEmployee && (
-                  <p className="text-xs text-muted-foreground mt-1">Email kan ikke ændres efter oprettelse</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t.adminPanel.employeeDialog.emailImmutableHint}</p>
                 )}
               </div>
               <div>
-                <Label htmlFor="employee-password">Kodeord {editingEmployee && '(lad stå tom for at beholde nuværende)'}</Label>
+                <Label htmlFor="employee-password">{t.adminPanel.employeeDialog.passwordLabel} {editingEmployee && t.adminPanel.employeeDialog.passwordKeepHint}</Label>
                 <Input
                   id="employee-password"
                   type="password"
                   value={employeeForm.password}
                   onChange={(e) => setEmployeeForm({ ...employeeForm, password: e.target.value })}
-                  placeholder={editingEmployee ? 'Lad tom for at beholde' : 'Indtast kodeord'}
+                  placeholder={editingEmployee ? t.adminPanel.employeeDialog.passwordPlaceholderKeep : t.adminPanel.employeeDialog.passwordPlaceholderNew}
                 />
               </div>
               <div>
-                <Label htmlFor="employee-role">Rolle</Label>
+                <Label htmlFor="employee-role">{t.adminPanel.employeeDialog.roleLabel}</Label>
                 <Select
                   value={employeeForm.role}
                   onValueChange={(value) => setEmployeeForm({ ...employeeForm, role: value as UserRole })}
@@ -893,19 +898,19 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                     <SelectItem value="user">
                       <div className="flex items-center gap-2">
                         <UserIcon size={16} />
-                        Bruger
+                        {t.teamOverview.userSingular}
                       </div>
                     </SelectItem>
                     <SelectItem value="manager">
                       <div className="flex items-center gap-2">
                         <ShieldCheck size={16} />
-                        Manager
+                        {t.teamOverview.roleManager}
                       </div>
                     </SelectItem>
                     <SelectItem value="admin">
                       <div className="flex items-center gap-2">
                         <Crown size={16} />
-                        Administrator
+                        {t.teamOverview.roleAdmin}
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -915,12 +920,12 @@ export function AdminPanel({ onNavigateBack, onLogout, userEmail: currentUserEma
                 {editingEmployee ? (
                   <>
                     <PencilSimple size={20} />
-                    Gem Ændringer
+                    {t.adminPanel.employeeDialog.saveChanges}
                   </>
                 ) : (
                   <>
                     <Plus size={20} />
-                    Opret Medarbejder
+                    {t.adminPanel.employeeDialog.createEmployee}
                   </>
                 )}
               </Button>

@@ -16,6 +16,7 @@ import { cn, newId } from '@/lib/utils'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import { getWeekNumber as getISOWeekNumber, parseLocalDate } from '@/lib/dateUtils'
 import { appendToKvArray, removeFromKvArray } from '@/lib/kvArrays'
+import { isAnyModalOpen } from '@/lib/modalStack'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { vacationApprovedEmail, vacationRejectedEmail, vacationCancelledByEmployeeEmail } from '@/lib/emailTemplates'
 import type { VacationStatus, VacationEntry, BirthdayEntry } from '@/lib/types'
@@ -70,6 +71,7 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (isAnyModalOpen()) return
         onNavigateBack()
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault()
@@ -90,8 +92,8 @@ export function VacationCalendar({ onNavigateBack, onLogout, userEmail: propUser
       }
     }
     
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [onNavigateBack, selectedMonth, selectedYear])
 
   const isWeekend = (date: Date) => {

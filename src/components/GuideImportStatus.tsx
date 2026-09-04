@@ -7,6 +7,7 @@ import { FileArrowUp } from '@phosphor-icons/react'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { guideImportManager } from '@/lib/guideImportManager'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface GuideImportStatusProps {
   /** Kaldes når brugeren klikker "Åbn bibliotek" i afslutnings-toasten. */
@@ -14,6 +15,7 @@ interface GuideImportStatusProps {
 }
 
 export function GuideImportStatus({ onOpenGuideLibrary }: GuideImportStatusProps) {
+  const { t } = useLanguage()
   const job = useSyncExternalStore(guideImportManager.subscribe, guideImportManager.getJob)
   const [elapsedMs, setElapsedMs] = useState(0)
 
@@ -34,9 +36,9 @@ export function GuideImportStatus({ onOpenGuideLibrary }: GuideImportStatusProps
     if (completion.error) {
       toast.error(completion.error)
     } else if (completion.title) {
-      toast.success(`"${completion.title}" er importeret`, {
-        description: 'Åbn Guide Biblioteket for at gennemgå og gemme guiden.',
-        action: { label: 'Åbn bibliotek', onClick: onOpenGuideLibrary },
+      toast.success(`"${completion.title}" ${t.guideImportStatus.importedSuffix}`, {
+        description: t.guideImportStatus.openLibraryDescription,
+        action: { label: t.guideImportStatus.openLibrary, onClick: onOpenGuideLibrary },
         duration: 10000,
       })
     }
@@ -56,7 +58,7 @@ export function GuideImportStatus({ onOpenGuideLibrary }: GuideImportStatusProps
               <FileArrowUp size={18} weight="bold" className="text-primary animate-pulse" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold truncate">Importerer guide…</div>
+              <div className="text-sm font-semibold truncate">{t.guideImportStatus.importingGuide}</div>
               <div className="text-xs text-muted-foreground truncate">{job.fileName}</div>
             </div>
             <div className="text-xs font-mono text-muted-foreground shrink-0">
@@ -66,12 +68,12 @@ export function GuideImportStatus({ onOpenGuideLibrary }: GuideImportStatusProps
           <Progress value={job.progress?.percent ?? 3} className="h-2" />
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground truncate">
-              {job.progress?.message || 'Starter…'}
+              {job.progress?.message || t.guideImportStatus.starting}
             </p>
             <p className="text-xs font-semibold text-primary shrink-0">{Math.round(job.progress?.percent ?? 0)} %</p>
           </div>
           <p className="text-[11px] text-muted-foreground/70">
-            Fortsætter i baggrunden, uanset hvor du navigerer hen i appen.
+            {t.guideImportStatus.backgroundHint}
           </p>
         </motion.div>
       )}

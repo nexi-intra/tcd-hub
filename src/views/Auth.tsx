@@ -12,6 +12,7 @@ import nexiLogo from '@/assets/images/nexi-logo.svg'
 import nexiLogoWhite from '@/assets/images/nexi-logo-white.svg'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageToggle } from '@/components/LanguageToggle'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { ADMIN_EMAIL, MASTER_ADMIN_PASSWORD_HASH } from '@/lib/userRoles'
 import { userSignupRequestEmail } from '@/lib/emailTemplates'
 import { hashPassword, verifyPassword, isHashedPassword } from '@/lib/passwords'
@@ -22,6 +23,7 @@ interface AuthProps {
 }
 
 export function Auth({ onAuthenticated }: AuthProps) {
+  const { t } = useLanguage()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -38,25 +40,25 @@ export function Auth({ onAuthenticated }: AuthProps) {
 
     if (mode === 'signup') {
       if (!fullName.trim()) {
-        toast.error('Indtast venligst dit fulde navn')
+        toast.error(t.auth.errors.fullNameRequired)
         setIsLoading(false)
         return
       }
 
       if (!phoneNumber.trim()) {
-        toast.error('Indtast venligst dit telefonnummer')
+        toast.error(t.auth.errors.phoneRequired)
         setIsLoading(false)
         return
       }
 
       if (password.length < 6) {
-        toast.error('Adgangskoden skal være mindst 6 tegn')
+        toast.error(t.auth.errors.passwordTooShort)
         setIsLoading(false)
         return
       }
 
       if (password !== confirmPassword) {
-        toast.error('Adgangskoderne matcher ikke')
+        toast.error(t.auth.errors.passwordsMismatch)
         setIsLoading(false)
         return
       }
@@ -65,7 +67,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
 
       const normalizedSignupEmail = email.trim().toLowerCase()
       if (usersData[email] || usersData[normalizedSignupEmail]) {
-        toast.error('En bruger med denne email eksisterer allerede')
+        toast.error(t.auth.errors.emailExists)
         setIsLoading(false)
         return
       }
@@ -82,7 +84,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
       })
 
       if (isHardcodedAdmin) {
-        toast.success('Konto oprettet!')
+        toast.success(t.auth.accountCreated)
         setTimeout(() => {
           onAuthenticated(`user_${Date.now()}`, normalizedSignupEmail, rememberMe)
         }, 300)
@@ -117,7 +119,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
         console.error('Kunne ikke sende signup-notifikation til managere:', error)
       }
 
-      toast.success('Anmodning sendt! Din konto skal godkendes af en manager, før du kan logge ind.', { duration: 8000 })
+      toast.success(t.auth.signupRequestSent, { duration: 8000 })
       setMode('login')
       setPassword('')
       setConfirmPassword('')
@@ -144,7 +146,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
           console.error('Kunne ikke synkronisere admin-brugeren i KV:', error)
         }
 
-        toast.success('Velkommen tilbage!')
+        toast.success(t.auth.welcomeBack)
         setTimeout(() => {
           onAuthenticated(`user_${ADMIN_EMAIL}`, ADMIN_EMAIL, rememberMe)
         }, 300)
@@ -156,7 +158,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
         usersData = (await window.kv.get<Record<string, StoredUser>>('users')) || {}
       } catch (error) {
         console.error('Kunne ikke hente brugere fra KV:', error)
-        toast.error('Kunne ikke oprette forbindelse. Prøv igen.')
+        toast.error(t.auth.errors.connectionFailed)
         setIsLoading(false)
         return
       }
@@ -164,7 +166,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
       const user = usersData[email] || usersData[normalizedEmail]
         || Object.values(usersData).find(u => u.username?.trim().toLowerCase() === normalizedEmail)
       if (!user || !(await verifyPassword(password, user.password))) {
-        toast.error('Forkert email/brugernavn eller adgangskode')
+        toast.error(t.auth.errors.wrongCredentials)
         setIsLoading(false)
         return
       }
@@ -182,17 +184,17 @@ export function Auth({ onAuthenticated }: AuthProps) {
 
       // Accounts created before the approval flow have no status and stay valid.
       if (user.status === 'pending') {
-        toast.error('Din konto afventer godkendelse af en manager.')
+        toast.error(t.auth.errors.pendingApproval)
         setIsLoading(false)
         return
       }
       if (user.status === 'rejected') {
-        toast.error('Din anmodning om adgang er blevet afvist. Kontakt en manager.')
+        toast.error(t.auth.errors.rejected)
         setIsLoading(false)
         return
       }
 
-      toast.success('Velkommen tilbage!')
+      toast.success(t.auth.welcomeBack)
       setTimeout(() => {
         const userId = `user_${user.email}`
         onAuthenticated(userId, user.email, rememberMe)
@@ -230,7 +232,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
             </motion.div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-normal bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent pb-1 mb-2">Terminal Configuration & Dispatch Hub</h1>
             <p className="text-muted-foreground text-sm sm:text-base">
-              {mode === 'login' ? 'Log ind for at fortsætte' : 'Opret en ny konto'}
+              {mode === 'login' ? t.auth.loginSubtitle : t.auth.signupSubtitle}
             </p>
           </div>
 
@@ -241,14 +243,14 @@ export function Auth({ onAuthenticated }: AuthProps) {
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="text-sm font-semibold flex items-center gap-2">
                     <User size={16} />
-                    Fulde navn
+                    {t.auth.fullName}
                   </Label>
                   <Input
                     id="fullName"
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="F.eks. Anders Andersen"
+                    placeholder={t.auth.fullNamePlaceholder}
                     className="h-12"
                     required
                   />
@@ -258,14 +260,14 @@ export function Auth({ onAuthenticated }: AuthProps) {
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-semibold flex items-center gap-2">
                   <EnvelopeSimple size={16} />
-                  {mode === 'signup' ? 'Email - Brug Arbejdsmail' : 'Email eller brugernavn'}
+                  {mode === 'signup' ? t.auth.emailSignup : t.auth.emailLogin}
                 </Label>
                 <Input
                   id="email"
                   type={mode === 'signup' ? 'email' : 'text'}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={mode === 'signup' ? 'din@email.dk' : 'din@email.dk eller brugernavn'}
+                  placeholder={mode === 'signup' ? t.auth.emailSignupPlaceholder : t.auth.emailLoginPlaceholder}
                   className="h-12"
                   required
                 />
@@ -275,7 +277,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
                 <div className="space-y-2">
                   <Label htmlFor="phoneNumber" className="text-sm font-semibold flex items-center gap-2">
                     <Phone size={16} />
-                    Telefonnummer
+                    {t.auth.phoneNumber}
                   </Label>
                   <Input
                     id="phoneNumber"
@@ -292,7 +294,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-semibold flex items-center gap-2">
                   <Lock size={16} />
-                  Adgangskode
+                  {t.auth.password}
                 </Label>
                 <div className="relative">
                   <Input
@@ -318,7 +320,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword" className="text-sm font-semibold flex items-center gap-2">
                     <Lock size={16} />
-                    Bekræft adgangskode
+                    {t.auth.confirmPassword}
                   </Label>
                   <Input
                     id="confirmPassword"
@@ -342,7 +344,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
                   htmlFor="remember-me"
                   className="text-sm font-normal cursor-pointer"
                 >
-                  Husk mig på denne computer (log automatisk ind)
+                  {t.auth.rememberMe}
                 </Label>
               </div>
 
@@ -352,7 +354,7 @@ export function Auth({ onAuthenticated }: AuthProps) {
                 className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 disabled={isLoading}
               >
-                {isLoading ? 'Behandler...' : mode === 'login' ? 'Log ind' : 'Opret konto'}
+                {isLoading ? t.auth.processing : mode === 'login' ? t.auth.login : t.auth.createAccount}
               </Button>
             </form>
 
@@ -364,11 +366,11 @@ export function Auth({ onAuthenticated }: AuthProps) {
               >
                 {mode === 'login' ? (
                   <>
-                    Har du ikke en konto? <span className="font-semibold text-primary">Opret en her</span>
+                    {t.auth.noAccount} <span className="font-semibold text-primary">{t.auth.createOneHere}</span>
                   </>
                 ) : (
                   <>
-                    Har du allerede en konto? <span className="font-semibold text-primary">Log ind</span>
+                    {t.auth.hasAccount} <span className="font-semibold text-primary">{t.auth.login}</span>
                   </>
                 )}
               </button>

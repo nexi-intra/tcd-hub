@@ -2,11 +2,22 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { PencilSimple, Trash, Eye, FileDoc, Timer, CheckCircle } from '@phosphor-icons/react'
 import { Guide } from '@/lib/types'
 import { getReviewStatus } from '@/lib/guideTypes'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface GuideCardProps {
   guide: Guide
@@ -27,7 +38,10 @@ const categoryColors: Record<string, string> = {
 }
 
 export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed, matchSnippet }: GuideCardProps) {
+  const { t, language } = useLanguage()
+  const dateLocale = language === 'en' ? 'en-US' : 'da-DK'
   const [isExpanded, setIsExpanded] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const reviewStatus = getReviewStatus(guide)
 
   const handleCardClick = () => {
@@ -85,7 +99,7 @@ export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed, mat
                     <Badge variant="secondary" className="text-xs font-mono">v{guide.version}</Badge>
                   )}
                   <span className="text-xs text-muted-foreground">
-                    {new Date(guide.updatedAt).toLocaleDateString('da-DK', {
+                    {new Date(guide.updatedAt).toLocaleDateString(dateLocale, {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',
@@ -96,21 +110,21 @@ export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed, mat
                   {reviewStatus === 'overdue' ? (
                     <Badge variant="outline" className="text-xs font-semibold gap-1 bg-destructive/10 text-destructive border-destructive/40">
                       <Timer size={12} weight="bold" />
-                      Skal opdateres
+                      {t.guideCard.overdueBadge}
                     </Badge>
                   ) : reviewStatus === 'due-soon' ? (
                     <Badge variant="outline" className="text-xs font-semibold gap-1 bg-yellow-500/10 text-yellow-600 border-yellow-500/40">
                       <Timer size={12} weight="bold" />
-                      Opdateres senest {guide.nextReviewAt ? new Date(guide.nextReviewAt).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' }) : ''}
+                      {t.guideCard.dueSoonPrefix} {guide.nextReviewAt ? new Date(guide.nextReviewAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' }) : ''}
                     </Badge>
                   ) : reviewStatus === 'ok' ? (
                     <Badge variant="outline" className="text-xs gap-1 text-muted-foreground border-border">
                       <Timer size={12} />
-                      Næste tjek {guide.nextReviewAt ? new Date(guide.nextReviewAt).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                      {t.guideCard.nextCheckPrefix} {guide.nextReviewAt ? new Date(guide.nextReviewAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="text-xs gap-1 text-muted-foreground/60 border-border/60">
-                      Intet interval
+                      {t.guideCard.noInterval}
                     </Badge>
                   )}
                 </div>
@@ -134,10 +148,10 @@ export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed, mat
               <div className="rounded-lg bg-muted/50 border border-border px-3 py-2">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                    Match {matchSnippet.reference}
+                    {t.guideCard.matchPrefix} {matchSnippet.reference}
                   </span>
                   <span className="text-[10px] font-semibold text-muted-foreground">
-                    {matchSnippet.relevance} % relevans
+                    {matchSnippet.relevance} {t.guideCard.relevanceSuffix}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-2 break-words">{matchSnippet.text}</p>
@@ -169,11 +183,30 @@ export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed, mat
                   variant="ghost"
                   size="icon"
                   className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200"
-                  onClick={() => onDelete(guide.id)}
+                  onClick={() => setConfirmDeleteOpen(true)}
                 >
                   <Trash size={18} weight="duotone" />
                 </Button>
               </motion.div>
+              <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t.guideCard.deleteTitle}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t.guideCard.deleteConfirmPrefix} <strong>{guide.title}</strong>{t.guideCard.deleteConfirmSuffix}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={() => onDelete(guide.id)}
+                    >
+                      {t.guideCard.deleteAction}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               {onMarkReviewed && (reviewStatus === 'overdue' || reviewStatus === 'due-soon') && (
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="ml-auto">
                   <Button
@@ -183,7 +216,7 @@ export function GuideCard({ guide, onEdit, onDelete, onView, onMarkReviewed, mat
                     onClick={() => onMarkReviewed(guide)}
                   >
                     <CheckCircle size={16} weight="bold" />
-                    Gennemgået
+                    {t.guideCard.markReviewed}
                   </Button>
                 </motion.div>
               )}

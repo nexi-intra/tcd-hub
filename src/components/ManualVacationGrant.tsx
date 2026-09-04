@@ -14,6 +14,7 @@ import { newId } from '@/lib/utils'
 import { parseLocalDate } from '@/lib/dateUtils'
 import { appendToKvArray } from '@/lib/kvArrays'
 import type { VacationEntry } from '@/lib/types'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface User {
   email: string
@@ -28,6 +29,7 @@ interface ManualVacationGrantProps {
 }
 
 export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSuccess }: ManualVacationGrantProps) {
+  const { t } = useLanguage()
   const [users, setUsers] = useState<User[]>([])
   const [selectedUser, setSelectedUser] = useState('')
   const [grantType, setGrantType] = useState<'single' | 'vacation'>('single')
@@ -57,17 +59,17 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
     e.preventDefault()
 
     if (!selectedUser) {
-      toast.error('Vælg en bruger')
+      toast.error(t.manualVacationGrant.selectUser)
       return
     }
 
     if (!startDate) {
-      toast.error('Vælg en startdato')
+      toast.error(t.manualVacationGrant.selectStartDate)
       return
     }
 
     if (grantType === 'vacation' && !endDate) {
-      toast.error('Vælg en slutdato for ferie')
+      toast.error(t.manualVacationGrant.selectEndDateForVacation)
       return
     }
 
@@ -75,7 +77,7 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
     const end = grantType === 'single' ? parseLocalDate(startDate) : parseLocalDate(endDate)
 
     if (grantType === 'vacation' && end < start) {
-      toast.error('Slutdato skal være efter startdato')
+      toast.error(t.manualVacationGrant.endBeforeStart)
       return
     }
 
@@ -117,7 +119,7 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
         const notification = {
           id: newId('notif'),
           type: 'email' as const,
-          message: grantType === 'single' ? `Du har fået en fridag!` : `Du har fået ferie!`,
+          message: grantType === 'single' ? t.manualVacationGrant.gotDayOffNotification : t.manualVacationGrant.gotVacationNotification,
           timestamp: Date.now(),
           read: false,
           from: managerEmail,
@@ -129,7 +131,7 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
         console.error('Error sending vacation grant email:', emailError)
       }
 
-      toast.success(grantType === 'single' ? 'Fridag givet!' : 'Ferie givet!')
+      toast.success(grantType === 'single' ? t.manualVacationGrant.dayOffGranted : t.manualVacationGrant.vacationGranted)
       setSelectedUser('')
       setGrantType('single')
       setStartDate('')
@@ -139,7 +141,7 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
       onSuccess()
     } catch (error) {
       console.error('Error granting vacation:', error)
-      toast.error('Kunne ikke give ferie')
+      toast.error(t.manualVacationGrant.grantFailed)
     } finally {
       setIsSubmitting(false)
     }
@@ -151,15 +153,15 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
             <Gift size={28} className="text-accent" weight="duotone" />
-            Giv Ferie eller Fridag
+            {t.manualVacationGrant.title}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="user-select">Vælg bruger *</Label>
+            <Label htmlFor="user-select">{t.manualVacationGrant.selectUserLabel}</Label>
             <Select value={selectedUser} onValueChange={setSelectedUser}>
               <SelectTrigger id="user-select">
-                <SelectValue placeholder="Vælg en bruger" />
+                <SelectValue placeholder={t.manualVacationGrant.selectUser} />
               </SelectTrigger>
               <SelectContent>
                 {users.map((user) => (
@@ -172,7 +174,7 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="grant-type">Type *</Label>
+            <Label htmlFor="grant-type">{t.manualVacationGrant.typeLabel}</Label>
             <Select value={grantType} onValueChange={(value: 'single' | 'vacation') => setGrantType(value)}>
               <SelectTrigger id="grant-type">
                 <SelectValue />
@@ -181,13 +183,13 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
                 <SelectItem value="single">
                   <div className="flex items-center gap-2">
                     <CalendarCheck size={16} />
-                    Enkelt fridag
+                    {t.manualVacationGrant.singleDayOff}
                   </div>
                 </SelectItem>
                 <SelectItem value="vacation">
                   <div className="flex items-center gap-2">
                     <Gift size={16} />
-                    Ferie (flere dage)
+                    {t.manualVacationGrant.vacationMultiDay}
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -195,7 +197,7 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="start-date">{grantType === 'single' ? 'Dato *' : 'Startdato *'}</Label>
+            <Label htmlFor="start-date">{grantType === 'single' ? t.manualVacationGrant.dateLabel : t.manualVacationGrant.startDateLabel}</Label>
             <DatePickerField
               id="start-date"
               value={startDate}
@@ -205,7 +207,7 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
 
           {grantType === 'vacation' && (
             <div className="space-y-2">
-              <Label htmlFor="end-date">Slutdato *</Label>
+              <Label htmlFor="end-date">{t.manualVacationGrant.endDateLabel}</Label>
               <DatePickerField
                 id="end-date"
                 value={endDate}
@@ -216,12 +218,12 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Bemærkninger (valgfri)</Label>
+            <Label htmlFor="notes">{t.manualVacationGrant.notesLabel}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Tilføj evt. bemærkninger..."
+              placeholder={t.manualVacationGrant.notesPlaceholder}
               rows={3}
             />
           </div>
@@ -233,7 +235,7 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
-              Annuller
+              {t.common.cancel}
             </Button>
             <Button
               type="submit"
@@ -241,7 +243,7 @@ export function ManualVacationGrant({ open, onOpenChange, managerEmail, onSucces
               className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
             >
               <Gift size={18} weight="bold" />
-              {isSubmitting ? 'Giver...' : (grantType === 'single' ? 'Giv Fridag' : 'Giv Ferie')}
+              {isSubmitting ? t.manualVacationGrant.granting : (grantType === 'single' ? t.manualVacationGrant.grantDayOff : t.manualVacationGrant.grantVacation)}
             </Button>
           </DialogFooter>
         </form>

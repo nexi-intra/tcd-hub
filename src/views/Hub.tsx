@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Books, Users, Calendar, Gear, ChatCircle, FileText, Folder, FirstAidKit, Envelope, ClipboardText, ShieldCheck, ForkKnife, CheckCircle, User, GameController, Warning, UserPlus, ChatText, Notebook, X, PencilSimple } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { UserProfile } from '@/components/UserProfile'
 import { SickLeaveDialog } from '@/components/SickLeaveDialog'
 import { GuideReviewAlert } from '@/components/GuideReviewAlert'
+import { NotificationCenter } from '@/components/NotificationCenter'
+import { AnnouncementsBoard } from '@/components/AnnouncementsBoard'
 import { EmailNotifications } from '@/components/EmailNotifications'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -17,12 +19,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { hasManagerAccess } from '@/lib/userRoles'
+import { useKV } from '@/hooks/useKV'
 import { useLanguage } from '@/contexts/LanguageContext'
 import nexiLogo from '@/assets/images/nexi-logo.svg'
 import nexiLogoWhite from '@/assets/images/nexi-logo-white.svg'
 import { format, isSameDay, parseISO } from 'date-fns'
 import { da, enUS } from 'date-fns/locale'
-import type { ShiftRole, ShiftAssignment, SickLeaveEntry, VacationEntry, WeekMenu } from '@/lib/types'
+import type { ShiftRole, ShiftAssignment, SickLeaveEntry, VacationEntry, WeekMenu, Email } from '@/lib/types'
+import type { Guide } from '@/lib/guideTypes'
 
 interface HubModule {
   id: string
@@ -43,10 +47,31 @@ interface HubProps {
 export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   const { t, language } = useLanguage()
   const [isAdminOrManager, setIsAdminOrManager] = useState(false)
+  const [currentUserName, setCurrentUserName] = useState(userEmail)
   const [showSickLeaveDialog, setShowSickLeaveDialog] = useState(false)
   const [showEmailNotifications, setShowEmailNotifications] = useState(false)
-  const [unreadInboxCount, setUnreadInboxCount] = useState(0)
-  const [pendingVacationRequests, setPendingVacationRequests] = useState(0)
+  // useKV abonnerer automatisk på ændringer — ingen manuel subscribe-boilerplate nødvendig.
+  // Hentes ÉN gang her og sendes ned som props til NotificationCenter/GuideReviewAlert,
+  // så vi undgår flere uafhængige KV-lyttere for de samme nøgler på den mest besøgte skærm.
+  const [emails] = useKV<Email[]>('emails', [])
+  const [vacationsForBadge] = useKV<VacationEntry[]>('vacation-entries', [])
+  const [sickLeaveForBadge] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
+  const [guidesForAlerts] = useKV<Guide[]>('guides', [])
+  // Ferieanmodninger manageren allerede har set inde i Manager Panel — bruges til
+  // at fjerne Hub-advarslen/notifikationen uden at røre selve godkendelses-status.
+  const [seenVacationRequestIds] = useKV<string[]>(`seen-vacation-requests-${userEmail}`, [])
+
+  const unreadInboxCount = useMemo(() => (
+    (emails || []).filter(e => e.to === userEmail && !e.read && (e.folderId === undefined || e.folderId === null || e.folderId === '')).length
+  ), [emails, userEmail])
+
+  const pendingVacationRequests = useMemo(() => {
+    if (!isAdminOrManager) return 0
+    const seenIds = seenVacationRequestIds || []
+    const pendingVacations = (vacationsForBadge || []).filter(v => v.status === 'pending' && !seenIds.includes(v.id)).length
+    const pendingSickLeave = (sickLeaveForBadge || []).filter(s => s.status === 'pending').length
+    return pendingVacations + pendingSickLeave
+  }, [isAdminOrManager, vacationsForBadge, sickLeaveForBadge, seenVacationRequestIds])
   
   const [teamTasks, setTeamTasks] = useState<Array<{ taskName: string; taskColor: string; people: Array<{ name: string; comment?: string }>; roleId: string }>>([])
   const [peopleOff, setPeopleOff] = useState<Array<{ name: string; type: 'vacation' | 'single' }>>([])
@@ -82,44 +107,12 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
   }, [userEmail])
 
   useEffect(() => {
-    const loadUnreadCount = async () => {
-      const emails = (await window.kv.get<Array<{ to: string; read: boolean; folderId?: string }>>('emails')) || []
-      const unreadInbox = emails.filter(e => e.to === userEmail && !e.read && (e.folderId === undefined || e.folderId === null || e.folderId === '')).length
-      setUnreadInboxCount(unreadInbox)
+    const loadName = async () => {
+      const usersData = (await window.kv.get<Record<string, { fullName: string }>>('users')) || {}
+      setCurrentUserName(usersData[userEmail]?.fullName || userEmail)
     }
-    loadUnreadCount()
-
-    const unsubscribe = window.kv.subscribe((changedKeys) => {
-      if (changedKeys.includes('emails')) loadUnreadCount()
-    })
-    return () => unsubscribe()
+    loadName()
   }, [userEmail])
-
-  useEffect(() => {
-    const loadPendingVacationRequests = async () => {
-      if (!isAdminOrManager) {
-        setPendingVacationRequests(0)
-        return
-      }
-      
-      const vacations = (await window.kv.get<VacationEntry[]>('vacation-entries')) || []
-      const sickLeave = (await window.kv.get<SickLeaveEntry[]>('sick-leave-entries')) || []
-      
-      const pendingVacations = vacations.filter(v => v.status === 'pending').length
-      const pendingSickLeave = sickLeave.filter(s => s.status === 'pending').length
-      
-      setPendingVacationRequests(pendingVacations + pendingSickLeave)
-    }
-    
-    loadPendingVacationRequests()
-
-    const unsubscribe = window.kv.subscribe((changedKeys) => {
-      if (changedKeys.includes('vacation-entries') || changedKeys.includes('sick-leave-entries')) {
-        loadPendingVacationRequests()
-      }
-    })
-    return () => unsubscribe()
-  }, [isAdminOrManager])
 
   useEffect(() => {
     const loadOverviewData = async () => {
@@ -936,6 +929,21 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <NotificationCenter
+              userEmail={userEmail}
+              isAdminOrManager={isAdminOrManager}
+              emails={emails}
+              vacations={vacationsForBadge}
+              sickLeave={sickLeaveForBadge}
+              guides={guidesForAlerts}
+              seenVacationRequestIds={seenVacationRequestIds}
+            />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
           >
             <UserProfile 
@@ -1010,17 +1018,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       />
       <EmailNotifications
         open={showEmailNotifications}
-        onOpenChange={(open) => {
-          setShowEmailNotifications(open)
-          if (!open) {
-            const loadUnreadCount = async () => {
-              const emails = (await window.kv.get<Array<{ to: string; read: boolean; folderId?: string }>>('emails')) || []
-              const unreadInbox = emails.filter(e => e.to === userEmail && !e.read && !e.folderId).length
-              setUnreadInboxCount(unreadInbox)
-            }
-            loadUnreadCount()
-          }
-        }}
+        onOpenChange={setShowEmailNotifications}
         userEmail={userEmail}
       />
       <div className="container mx-auto px-4 sm:px-6 pt-56 sm:pt-60 pb-12 sm:pb-20 max-w-7xl relative z-10">
@@ -1046,6 +1044,8 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
             transition={{ delay: 0.3, duration: 0.6 }}
           >Terminal Configuration & Dispatch Hub</motion.h1>
         </motion.header>
+
+        <AnnouncementsBoard userEmail={userEmail} userName={currentUserName} canPost={isAdminOrManager} />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1333,7 +1333,7 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
         </div>
       )}
 
-      <GuideReviewAlert onOpenGuideLibrary={() => onNavigate('guides')} />
+      <GuideReviewAlert onOpenGuideLibrary={() => onNavigate('guides')} guides={guidesForAlerts} />
 
       <Dialog open={showQuickAssignDialog} onOpenChange={setShowQuickAssignDialog}>
         <DialogContent className="sm:max-w-[450px]">

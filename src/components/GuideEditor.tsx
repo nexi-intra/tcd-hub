@@ -35,6 +35,7 @@ import {
 import { detectLanguage, type GuideLanguage } from '@/lib/translator'
 import { bumpVersion, saveVersionSnapshot, getVersionHistory } from '@/lib/guideStore'
 import type { GuideImportDraft } from '@/lib/docxImporter'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface GuideEditorProps {
   open: boolean
@@ -55,6 +56,7 @@ function emptySection(): GuideSection {
 
 /** Miniature af et gemt billede (loader objekt-URL fra chunked KV). */
 function ImageThumb({ imageId, onRemove }: { imageId: string; onRemove?: () => void }) {
+  const { t } = useLanguage()
   const [url, setUrl] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -78,7 +80,7 @@ function ImageThumb({ imageId, onRemove }: { imageId: string; onRemove?: () => v
           type="button"
           onClick={onRemove}
           className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity"
-          aria-label="Fjern billede"
+          aria-label={t.guideEditor.removeImage}
         >
           <X size={12} weight="bold" />
         </button>
@@ -89,6 +91,7 @@ function ImageThumb({ imageId, onRemove }: { imageId: string; onRemove?: () => v
 
 /** Drop-zone + fil-vælger, der uploader billeder til fileStorage og returnerer fileIds. */
 function ImageDropZone({ onUploaded, compact }: { onUploaded: (fileIds: string[]) => void; compact?: boolean }) {
+  const { t } = useLanguage()
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -96,7 +99,7 @@ function ImageDropZone({ onUploaded, compact }: { onUploaded: (fileIds: string[]
   const uploadFiles = useCallback(async (files: File[]) => {
     const images = files.filter((f) => f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp)$/i.test(f.name))
     if (images.length === 0) {
-      toast.error('Kun billeder kan tilføjes her')
+      toast.error(t.guideEditor.onlyImagesAllowed)
       return
     }
     setIsUploading(true)
@@ -106,7 +109,7 @@ function ImageDropZone({ onUploaded, compact }: { onUploaded: (fileIds: string[]
         const stored = await fileStorage.uploadImage(file)
         ids.push(stored.fileId)
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Kunne ikke uploade billede')
+        toast.error(error instanceof Error ? error.message : t.guideEditor.uploadImageFailed)
       }
     }
     setIsUploading(false)
@@ -142,12 +145,13 @@ function ImageDropZone({ onUploaded, compact }: { onUploaded: (fileIds: string[]
         }}
       />
       <ImageIcon size={compact ? 22 : 20} />
-      {!compact && <span className="text-xs font-medium">{isUploading ? 'Uploader…' : 'Træk billeder hertil eller klik'}</span>}
+      {!compact && <span className="text-xs font-medium">{isUploading ? t.guideEditor.uploading : t.guideEditor.dropImagesHint}</span>}
     </div>
   )
 }
 
 export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories, onCreateCategory, importDraft, userEmail }: GuideEditorProps) {
+  const { t, language: appLanguage } = useLanguage()
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string>(categories[0] || 'General')
   const [tags, setTags] = useState('')
@@ -309,32 +313,32 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
       ? entry.snapshot.sections.map((s) => ({ ...s, steps: s.steps.map((st) => ({ ...st, imageIds: [...st.imageIds] })) }))
       : [emptySection()])
     setCoverImageId(entry.snapshot.coverImageId)
-    setChangeNote(`Gendannet fra version ${entry.version}`)
+    setChangeNote(`${t.guideEditor.restoredFromVersionPrefix} ${entry.version}`)
     setShowHistory(false)
-    toast.success(`Version ${entry.version} gendannet — gem for at oprette en ny version`)
+    toast.success(`${t.guideEditor.versionRestoredPrefix} ${entry.version} ${t.guideEditor.versionRestoredSuffix}`)
   }
 
   const handleCreateCategory = () => {
     const name = newCategoryName.trim()
     if (!name) {
-      toast.error('Kategorinavn kan ikke være tomt')
+      toast.error(t.guideEditor.categoryNameEmpty)
       return
     }
     if (categories.some((c) => c.toLowerCase() === name.toLowerCase())) {
-      toast.error('Kategorien findes allerede')
+      toast.error(t.guideEditor.categoryExists)
       return
     }
     if (onCreateCategory?.(name)) {
       setCategory(name)
       setIsCreatingCategory(false)
       setNewCategoryName('')
-      toast.success(`Kategorien "${name}" oprettet`)
+      toast.success(`${t.guideEditor.categoryCreatedPrefix} "${name}" ${t.guideEditor.categoryCreatedSuffix}`)
     }
   }
 
   const handleSave = async () => {
     if (!title.trim()) {
-      toast.error('Titel er påkrævet')
+      toast.error(t.guideEditor.titleRequired)
       return
     }
     const cleanedSections = sections
@@ -348,7 +352,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
       .filter((s) => s.heading || s.steps.length > 0)
 
     if (cleanedSections.length === 0 && !wordFile && !migrated?.fileUrl) {
-      toast.error('Tilføj mindst én sektion med indhold eller et Word-dokument')
+      toast.error(t.guideEditor.atLeastOneSectionRequired)
       return
     }
 
@@ -406,7 +410,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
       onOpenChange(false)
     } catch (error) {
       console.error('Kunne ikke gemme guide:', error)
-      toast.error(error instanceof Error ? error.message : 'Kunne ikke gemme guiden')
+      toast.error(error instanceof Error ? error.message : t.guideEditor.saveFailed)
     } finally {
       setIsSaving(false)
     }
@@ -421,18 +425,18 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
           <div className="flex items-center justify-between gap-3">
             <div>
               <DialogTitle className="text-xl">
-                {migrated ? 'Rediger guide' : 'Ny guide'}
+                {migrated ? t.guideEditor.editTitle : t.guideEditor.newTitle}
               </DialogTitle>
               <DialogDescription className="mt-1">
                 {migrated
-                  ? <>Version {migrated.version || '1.00'} → gemmes som <Badge variant="secondary" className="font-mono">{nextVersion}</Badge></>
-                  : 'Trin-for-trin guide med sektioner, billeder og versionering'}
+                  ? <>Version {migrated.version || '1.00'} {t.guideEditor.versionArrowSuffix} <Badge variant="secondary" className="font-mono">{nextVersion}</Badge></>
+                  : t.guideEditor.newGuideDescription}
               </DialogDescription>
             </div>
             {migrated && history.length > 0 && (
               <Button variant="outline" size="sm" onClick={() => setShowHistory((v) => !v)} className="gap-2 shrink-0">
                 <ClockCounterClockwise size={16} />
-                Historik ({history.length})
+                {t.guideEditor.historyButtonPrefix} ({history.length})
               </Button>
             )}
           </div>
@@ -444,20 +448,20 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
               <div className="rounded-xl border-2 border-border bg-muted/30 p-4 space-y-2">
                 <h4 className="text-sm font-bold flex items-center gap-2">
                   <ClockCounterClockwise size={16} />
-                  Versionshistorik
+                  {t.guideEditor.versionHistory}
                 </h4>
                 {history.map((entry) => (
                   <div key={`${entry.version}-${entry.savedAt}`} className="flex items-center gap-3 p-2 rounded-lg bg-card border">
                     <Badge variant="outline" className="font-mono shrink-0">v{entry.version}</Badge>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-medium truncate">
-                        {new Date(entry.savedAt).toLocaleString('da-DK')} · {entry.savedBy}
+                        {new Date(entry.savedAt).toLocaleString(appLanguage === 'en' ? 'en-US' : 'da-DK')} · {entry.savedBy}
                       </div>
                       {entry.changeNote && <div className="text-xs text-muted-foreground truncate">{entry.changeNote}</div>}
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => restoreVersion(entry)} className="gap-1.5 shrink-0">
                       <ArrowCounterClockwise size={14} />
-                      Gendan
+                      {t.guideEditor.restore}
                     </Button>
                   </div>
                 ))}
@@ -466,29 +470,29 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2 sm:col-span-2 lg:col-span-4">
-                <Label htmlFor="guide-title">Titel *</Label>
+                <Label htmlFor="guide-title">{t.guideEditor.titleLabel}</Label>
                 <Input
                   id="guide-title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="fx DESK3500 klargøring"
+                  placeholder={t.guideEditor.titlePlaceholder}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Kategori</Label>
+                <Label>{t.guideEditor.categoryLabel}</Label>
                 {isCreatingCategory ? (
                   <div className="flex items-center gap-2">
                     <Input
                       value={newCategoryName}
                       onChange={(e) => setNewCategoryName(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory() } }}
-                      placeholder="Ny kategori…"
+                      placeholder={t.guideEditor.newCategoryPlaceholder}
                       autoFocus
                     />
-                    <Button size="icon" className="shrink-0 h-9 w-9" onClick={handleCreateCategory} aria-label="Opret kategori">
+                    <Button size="icon" className="shrink-0 h-9 w-9" onClick={handleCreateCategory} aria-label={t.guideEditor.createCategoryAriaLabel}>
                       <Plus size={16} weight="bold" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="shrink-0 h-9 w-9" onClick={() => { setIsCreatingCategory(false); setNewCategoryName('') }} aria-label="Annuller">
+                    <Button size="icon" variant="ghost" className="shrink-0 h-9 w-9" onClick={() => { setIsCreatingCategory(false); setNewCategoryName('') }} aria-label={t.common.cancel}>
                       <X size={16} />
                     </Button>
                   </div>
@@ -501,7 +505,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
                       </SelectContent>
                     </Select>
                     {onCreateCategory && (
-                      <Button size="icon" variant="outline" className="shrink-0 h-9 w-9" onClick={() => setIsCreatingCategory(true)} title="Opret ny kategori">
+                      <Button size="icon" variant="outline" className="shrink-0 h-9 w-9" onClick={() => setIsCreatingCategory(true)} title={t.guideEditor.createNewCategoryTitle}>
                         <Plus size={16} weight="bold" />
                       </Button>
                     )}
@@ -509,29 +513,29 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="guide-tags">Tags (kommasepareret)</Label>
+                <Label htmlFor="guide-tags">{t.guideEditor.tagsLabel}</Label>
                 <Input
                   id="guide-tags"
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
-                  placeholder="terminal, opsætning, SAP"
+                  placeholder={t.guideEditor.tagsPlaceholder}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Sprog</Label>
+                <Label>{t.guideEditor.guideLanguageLabel}</Label>
                 <Select value={language} onValueChange={(v) => setLanguage(v as GuideLanguage | 'auto')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="auto">Automatisk (registreres ved gemning)</SelectItem>
-                    <SelectItem value="da">Dansk</SelectItem>
-                    <SelectItem value="en">Engelsk</SelectItem>
+                    <SelectItem value="auto">{t.guideEditor.languageAuto}</SelectItem>
+                    <SelectItem value="da">{t.guideEditor.languageDanish}</SelectItem>
+                    <SelectItem value="en">{t.guideEditor.languageEnglish}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Timer size={16} />
-                  Opdaterings-interval
+                  {t.guideEditor.reviewIntervalLabel}
                 </Label>
                 <Select
                   value={reviewInterval === null ? 'none' : String(reviewInterval)}
@@ -548,14 +552,14 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   {reviewInterval
-                    ? `Guiden markeres som "skal opdateres" ${REVIEW_INTERVAL_CHOICES.find((c) => c.value === reviewInterval)?.label.toLowerCase()} efter seneste gemning/gennemgang.`
-                    : 'Guiden får ingen påmindelse om opdatering.'}
+                    ? `${t.guideEditor.reviewIntervalHintPrefix} ${REVIEW_INTERVAL_CHOICES.find((c) => c.value === reviewInterval)?.label.toLowerCase()} ${t.guideEditor.reviewIntervalHintSuffix}`
+                    : t.guideEditor.reviewIntervalHintNone}
                 </p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Forsidebillede (bruges på DOCX-forsiden)</Label>
+              <Label>{t.guideEditor.coverImageLabel}</Label>
               <div className="flex items-center gap-3">
                 {coverImageId ? (
                   <ImageThumb imageId={coverImageId} onRemove={() => setCoverImageId(undefined)} />
@@ -567,8 +571,8 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-base font-bold">Sektioner & trin</Label>
-                <span className="text-xs text-muted-foreground">Nummereres automatisk: 1.0, 1.1, 1.2 …</span>
+                <Label className="text-base font-bold">{t.guideEditor.sectionsLabel}</Label>
+                <span className="text-xs text-muted-foreground">{t.guideEditor.numberingHint}</span>
               </div>
 
               {sections.map((section, sIndex) => (
@@ -578,7 +582,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
                     <Input
                       value={section.heading}
                       onChange={(e) => updateSection(section.id, { heading: e.target.value })}
-                      placeholder="Sektionsoverskrift, fx 'Print label'"
+                      placeholder={t.guideEditor.sectionHeadingPlaceholder}
                       className="font-semibold"
                     />
                     <div className="flex items-center gap-1 shrink-0">
@@ -602,7 +606,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
                           <Textarea
                             value={step.text}
                             onChange={(e) => updateStep(section.id, step.id, e.target.value)}
-                            placeholder="Beskriv trinnet…"
+                            placeholder={t.guideEditor.stepPlaceholder}
                             rows={2}
                             className="resize-y min-h-[60px]"
                           />
@@ -632,7 +636,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
                     ))}
                     <Button variant="outline" size="sm" onClick={() => addStep(section.id)} className="gap-1.5 ml-10">
                       <Plus size={14} weight="bold" />
-                      Tilføj trin
+                      {t.guideEditor.addStep}
                     </Button>
                   </div>
                 </div>
@@ -640,12 +644,12 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
 
               <Button variant="outline" onClick={() => setSections((prev) => [...prev, emptySection()])} className="w-full gap-2 border-dashed">
                 <Plus size={18} weight="bold" />
-                Tilføj sektion
+                {t.guideEditor.addSection}
               </Button>
             </div>
 
             <div className="space-y-2">
-              <Label>Word-vedhæftning (valgfri)</Label>
+              <Label>{t.guideEditor.wordAttachmentLabel}</Label>
               {wordFile ? (
                 <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
                   <FileDoc size={22} className="text-primary shrink-0" />
@@ -665,7 +669,7 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
               ) : (
                 <Button variant="outline" size="sm" onClick={() => wordInputRef.current?.click()} className="gap-2">
                   <Upload size={16} />
-                  Vedhæft Word-fil
+                  {t.guideEditor.attachWordFile}
                 </Button>
               )}
               <input
@@ -683,12 +687,12 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
 
             {migrated && (
               <div className="space-y-2">
-                <Label htmlFor="guide-changenote">Versionsnote (valgfri)</Label>
+                <Label htmlFor="guide-changenote">{t.guideEditor.versionNoteLabel}</Label>
                 <Input
                   id="guide-changenote"
                   value={changeNote}
                   onChange={(e) => setChangeNote(e.target.value)}
-                  placeholder="Hvad er ændret i denne version?"
+                  placeholder={t.guideEditor.versionNotePlaceholder}
                 />
               </div>
             )}
@@ -697,10 +701,10 @@ export function GuideEditor({ open, onOpenChange, onSave, editGuide, categories,
 
         <DialogFooter className="px-6 py-4 border-t flex-shrink-0">
           <Button variant="outline" onClick={() => { cleanupSessionImages(); onOpenChange(false) }} disabled={isSaving}>
-            Annuller
+            {t.common.cancel}
           </Button>
           <Button onClick={handleSave} disabled={isSaving} className="gap-2">
-            {isSaving ? 'Gemmer…' : migrated ? `Gem som v${nextVersion}` : 'Opret guide'}
+            {isSaving ? t.guideEditor.saving : migrated ? `${t.guideEditor.saveAsVersionPrefix}${nextVersion}` : t.guideEditor.createGuide}
           </Button>
         </DialogFooter>
       </DialogContent>
