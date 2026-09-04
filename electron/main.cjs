@@ -312,6 +312,14 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Support-diagnostik: viser om WebGL kører på rigtig GPU eller software.
+  // Læses først efter 5s — ved ready-tid melder alt altid "disabled" (GPU-
+  // processen er ikke færdiginitialiseret). Korrupte GPU-cache-mapper i
+  // userData ("Unable to move the cache: Access is denied") kan slå GPU'en
+  // helt fra — fix: slet GPUCache/Cache/Dawn*-mapperne i %APPDATA%\tcd-hub.
+  setTimeout(() => {
+    try { console.log('TCD Hub: GPU feature status', JSON.stringify(app.getGPUFeatureStatus())) } catch { /* ikke kritisk */ }
+  }, 5000)
   const resolved = resolveDataDir()
   store = createResilientStore(createStore(resolved.dir), createStore(localCacheDir()), { onSyncResult: handleSyncResult })
   dataDirSource = resolved.source

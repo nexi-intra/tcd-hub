@@ -1952,6 +1952,11 @@ addEventListener('keydown', e => {
   }
 });
 addEventListener('keyup', e => keys[e.code] = false);
+// TCD Hub-patch: keyup går tabt hvis vinduet/iframen mister fokus mens en tast
+// holdes nede (spilleren "løber selv" bagefter) — nulstil alle taster ved fokustab.
+const releaseAllKeys = () => { for (const k in keys) keys[k] = false; };
+addEventListener('blur', releaseAllKeys);
+document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAllKeys(); });
 
 /* ---------- mouse camera: drag to orbit, scroll to zoom ---------- */
 let camYaw = 0, camPitch = 0.66, camDist = 17.2;

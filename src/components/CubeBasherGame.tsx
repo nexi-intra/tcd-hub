@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { ArrowLeft } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -16,6 +16,7 @@ interface CubeBasherGameProps {
 // event-listeners) uden at vi skal røre ved spillets interne kode.
 export function CubeBasherGame({ onNavigateBack }: CubeBasherGameProps) {
   const { language } = useLanguage()
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
     document.body.setAttribute('data-game-active', 'true')
@@ -31,16 +32,20 @@ export function CubeBasherGame({ onNavigateBack }: CubeBasherGameProps) {
           nodeIntegrationInSubFrames ikke sat) forhindrer stadig Node/Electron-adgang
           uafhængigt af denne attribut, så det er trygt at undlade den her. */}
       <iframe
+        ref={iframeRef}
         src="./games/cube-basher/index.html"
         title="Cube Basher"
         className="w-full h-full border-0"
+        onLoad={() => iframeRef.current?.focus()}
       />
-      <div className="absolute top-4 left-4 z-10">
+      {/* Ingen backdrop-blur her: backdrop-filter oven på levende WebGL-indhold
+          tvinger compositoren til at re-blurre spillet hver eneste frame. */}
+      <div className="absolute top-4 left-4 z-10 opacity-50 hover:opacity-100 transition-opacity">
         <Button
           onClick={onNavigateBack}
           variant="outline"
           size="sm"
-          className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg gap-2 font-semibold"
+          className="bg-background shadow-lg gap-2 font-semibold"
         >
           <ArrowLeft size={16} weight="bold" />
           {language === 'da' ? 'Tilbage' : 'Back'}
