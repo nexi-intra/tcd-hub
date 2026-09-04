@@ -705,9 +705,9 @@ export function Hub({ onNavigate, onLogout, userEmail }: HubProps) {
       category: 'social',
     },
     {
-      id: 'arcade',
-      title: t.hub.modules.arcade,
-      description: t.hub.descriptions.arcade,
+      id: 'games',
+      title: t.hub.modules.games,
+      description: t.hub.descriptions.games,
       icon: <GameController size={48} weight="duotone" />,
       color: 'oklch(0.45 0.17 278)',
       gradient: 'from-[oklch(0.45_0.17_278)] via-[oklch(0.52_0.15_272)] to-[oklch(0.41_0.17_280)]',

@@ -566,7 +566,7 @@ export function Arcade({ onNavigateBack, userEmail }: ArcadeProps) {
               className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold"
             >
               <ArrowLeft size={20} weight="bold" />
-              {language === 'da' ? 'Tilbage til Hub' : 'Back to Hub'}
+              {language === 'da' ? 'Tilbage til Spilhjørnet' : 'Back to Game Corner'}
             </Button>
           </motion.div>
         </div>

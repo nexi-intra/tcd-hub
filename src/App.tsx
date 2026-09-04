@@ -26,7 +26,7 @@ const ManagerPanel = lazy(() => import('@/views/ManagerPanel').then(m => ({ defa
 const TeamOverview = lazy(() => import('@/views/TeamOverview').then(m => ({ default: m.TeamOverview })))
 const EmailSystem = lazy(() => import('@/views/EmailSystem').then(m => ({ default: m.EmailSystem })))
 const MealPlan = lazy(() => import('@/views/MealPlan').then(m => ({ default: m.MealPlan })))
-const Arcade = lazy(() => import('@/views/Arcade').then(m => ({ default: m.Arcade })))
+const GameCorner = lazy(() => import('@/views/GameCorner').then(m => ({ default: m.GameCorner })))
 const ProjectBoard = lazy(() => import('@/views/ProjectBoard').then(m => ({ default: m.ProjectBoard })))
 const VirtualNotebook = lazy(() => import('@/views/VirtualNotebook').then(m => ({ default: m.VirtualNotebook })))
 
@@ -39,7 +39,7 @@ function ViewLoadingFallback() {
   )
 }
 
-type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'arcade' | 'projects' | 'notebook'
+type View = 'hub' | 'guides' | 'calendar' | 'shifts' | 'admin' | 'manager' | 'team' | 'email' | 'meals' | 'games' | 'projects' | 'notebook'
 
 interface UserSession {
   userId: string
@@ -334,8 +334,8 @@ function App() {
       setCurrentView('email')
     } else if (moduleId === 'meals') {
       setCurrentView('meals')
-    } else if (moduleId === 'arcade') {
-      setCurrentView('arcade')
+    } else if (moduleId === 'games') {
+      setCurrentView('games')
     } else if (moduleId === 'projects') {
       setCurrentView('projects')
     } else if (moduleId === 'notebook') {
@@ -403,7 +403,7 @@ function App() {
           {currentView === 'team' && <TeamOverview onNavigateBack={handleNavigateBack} onLogout={handleLogout} />}
           {currentView === 'email' && <EmailSystem onNavigateBack={handleNavigateBack} onLogout={handleLogout} userEmail={userSession.email} />}
           {currentView === 'meals' && <MealPlan onNavigateBack={handleNavigateBack} />}
-          {currentView === 'arcade' && <Arcade onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
+          {currentView === 'games' && <GameCorner onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
           {currentView === 'projects' && <ProjectBoard onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
           {currentView === 'notebook' && <VirtualNotebook onNavigateBack={handleNavigateBack} userEmail={userSession.email} />}
         </Suspense>

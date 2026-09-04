@@ -10,7 +10,8 @@ export function isAnyDialogOpen(): boolean {
 // Bruges af de globale/øverste Escape-lyttere (App.tsx m.fl.) til at afgøre om
 // Escape skal navigere ét skridt tilbage, eller lade noget andet forbruge den
 // først — enten en åben dialog, ELLER et modul med sit eget interne
-// "tilbage"-niveau (fx Arcade: spil → spil-menu → main Hub), signaleret
+// "tilbage"-niveau (fx GameCorner → Arcade: spil → spil-menu → Arcade-menu →
+// main Hub), signaleret
 // via `data-game-active` på <body>. Moduler med deres eget interne niveau må
 // IKKE selv bruge denne funktion til at afgøre om DE skal reagere (den vil jo
 // altid være true mens deres eget niveau er aktivt) — brug isAnyDialogOpen().

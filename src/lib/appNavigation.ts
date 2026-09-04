@@ -13,7 +13,7 @@ export type AppViewId =
   | 'team'
   | 'email'
   | 'meals'
-  | 'arcade'
+  | 'games'
   | 'projects'
   | 'notebook'
 
