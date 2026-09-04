@@ -27,32 +27,30 @@
 - Bygget output havner i `dist/client/` (IKKE `dist/` roden — `outDir: 'dist/client'` i vite.config.js).
 
 ## Fase 1 — Nyt "Modern"-ikon
-- [ ] `src/views/GameCorner.tsx`: Modern-kortets ikon ændres fra `Cube` til `Headset` (esports/moderne
-      gaming-tema, adskiller sig tydeligt fra Arcades `Joystick` og Cube Bashers eget `Cube`-kort-ikon)
-- [ ] `src/views/Modern.tsx`: header-ikonet ændres tilsvarende til `Headset` (Cube Basher-KORTETS eget
-      ikon forbliver `Cube` — kun modul-niveauets ikon skifter)
+- [x] `src/views/GameCorner.tsx`: Modern-kortets ikon ændret fra `Cube` til `Headset`
+- [x] `src/views/Modern.tsx`: header-ikonet ændret tilsvarende til `Headset` (Cube Basher-kortets eget
+      ikon forbliver `Cube`)
 
 ## Fase 2 — Byg The Librarian 2 fra lokal kilde
-- [ ] Rediger `C:\TCD Tools\the-librarian-2-main\vite.config.js`: `base: '/'` → `base: './'`
-- [ ] `npm install` + `npm run build` i den mappe (egen package.json/dependencies, adskilt fra TCD Hub's)
-- [ ] Verificér `dist/client/index.html` refererer relative stier (ikke `/assets/...`)
+- [x] Rediger `C:\TCD Tools\the-librarian-2-main\vite.config.js`: `base: '/'` → `base: './'`
+- [x] `npm install` + `npm run build` (49 moduler, 1,06 MB JS + 41 KB CSS)
+- [x] Verificeret: `dist/client/index.html` refererer relative stier (`./assets/...`)
+- [x] Ekstra (brugerønske): to karakternavne omdøbt i `src/data/characters.js` — `name: 'Marion'` →
+      `'Jacob'`, `name: 'Wolfe'` → `'Lasse'` (kun visningsnavnet; interne id'er `marion`/`wolfe` uændret)
 
 ## Fase 3 — Vendoring + wrapper-komponent
-- [ ] Kopiér `dist/client/*` til `tcd-hub-github/public/games/the-librarian-2/`
-- [ ] Nyt `src/components/TheLibrarian2Game.tsx` — samme mønster som `CubeBasherGame.tsx`: iframe UDEN
-      sandbox-attribut, `data-game-active` på body mens monteret, refokusering ved mount/window-focus/
-      pointerdown/visibilitychange, synlig "Tilbage"-knap uden backdrop-blur
+- [x] Kopieret `dist/client/*` til `tcd-hub-github/public/games/the-librarian-2/`
+- [x] Nyt `src/components/TheLibrarian2Game.tsx` — samme mønster som `CubeBasherGame.tsx`
 
 ## Fase 4 — Wire ind i Modern.tsx
-- [ ] `src/views/Modern.tsx`: udvid `view`-type + grid med endnu et kort **"The Librarian"** (VISNINGSNAVN
-      uden "2" efter brugerønske — interne fil-/komponentnavne beholder "the-librarian-2"/
-      `TheLibrarian2Game` for at matche kildeprojektet, samme konvention som EndlessDodger.tsx der viser
-      "Chickeninvasion"), samme korts-stil som Cube Basher-kortet, klik renderer `<TheLibrarian2Game>`
+- [x] `src/views/Modern.tsx`: `view`-type + grid udvidet med kort **"The Librarian"** (Books-ikon),
+      klik renderer `<TheLibrarian2Game>`
 
 ## Fase 5 — Verifikation & udrulning
-- [ ] `npm run build` + `npm test` (67/67 grønne)
-- [ ] Browser-test af det vendorede spil (samme teknik som Cube Basher: file://-iframe uden sandbox,
-      tjek at UI/canvas initialiserer og reagerer på input)
-- [ ] `npm run electron:build` (INGEN dev-server kørende samtidig!) + smoke-test + robocopy til
-      `TCD-Hub 1.4.2` + asar-verifikation
-- [ ] git commit
+- [x] `npm run build` + `npm test` (67/67 grønne)
+- [x] Browser-test af det vendorede spil: menu + karaktervalg viste "Jacob"/"Lasse" korrekt, ingen
+      "Not allowed to load local resource"-fejl
+- [x] `npm run electron:build` + smoke-test + robocopy til `TCD-Hub 1.4.2` + asar-verifikation
+      (35.265.483 bytes, matcher præcist — ~4 MB større end før, svarer til det vendorede spils
+      JS+CSS+billeder)
+- [x] git commit (`7f5dc5f`)
