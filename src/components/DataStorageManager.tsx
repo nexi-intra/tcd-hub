@@ -6,9 +6,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { FolderOpen, DownloadSimple, UploadSimple, HardDrives, Info } from '@phosphor-icons/react'
+import { FolderOpen, DownloadSimple, UploadSimple, HardDrives, Info, CloudCheck, CloudSlash } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { createBackup, downloadBackup, parseBackup, restoreBackup, type BackupFile } from '@/lib/backup'
+import { useStorageConnection } from '@/hooks/useStorageConnection'
 
 interface StorageInfo {
   dataDir: string
@@ -28,6 +29,7 @@ export function DataStorageManager() {
   const [isBusy, setIsBusy] = useState(false)
   const [pendingImport, setPendingImport] = useState<BackupFile | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const connectionStatus = useStorageConnection()
 
   useEffect(() => {
     if (isDesktopApp) {
@@ -115,8 +117,30 @@ export function DataStorageManager() {
             <div className="rounded-lg border bg-muted/40 p-4 space-y-1">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nuværende datamappe</p>
               <p className="font-mono text-sm break-all">{storageInfo?.dataDir || 'Indlæser…'}</p>
-              {storageInfo && (
-                <Badge variant="secondary" className="mt-1">{sourceLabels[storageInfo.source]}</Badge>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                {storageInfo && (
+                  <Badge variant="secondary">{sourceLabels[storageInfo.source]}</Badge>
+                )}
+                {connectionStatus && (
+                  connectionStatus.connected ? (
+                    <Badge className="gap-1 bg-green-600/15 text-green-700 dark:text-green-400 border-green-600/30">
+                      <CloudCheck size={14} weight="fill" />
+                      Forbundet
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="gap-1">
+                      <CloudSlash size={14} weight="fill" />
+                      {connectionStatus.startedDisconnected ? 'Ikke forbundet — lokal tilstand' : 'Forbindelse mistet'}
+                    </Badge>
+                  )
+                )}
+              </div>
+              {connectionStatus && !connectionStatus.connected && (
+                <p className="text-xs text-muted-foreground pt-1">
+                  {connectionStatus.startedDisconnected
+                    ? 'Den foretrukne delte mappe kunne ikke nås ved opstart. Genstart appen, når forbindelsen er tilbage.'
+                    : 'Forbindelsen forsøges automatisk genoprettet i baggrunden.'}
+                </p>
               )}
             </div>
             <div className="flex items-start gap-2 text-sm text-muted-foreground">

@@ -10,6 +10,7 @@ import { GuideImportStatus } from '@/components/GuideImportStatus'
 import { LoginDigest } from '@/components/LoginDigest'
 import { WhatsNewDialog } from '@/components/WhatsNewDialog'
 import { CommandPalette } from '@/components/CommandPalette'
+import { StorageConnectionBanner } from '@/components/StorageConnectionBanner'
 import { toast, Toaster } from 'sonner'
 import { setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
 import { NAVIGATE_EVENT, type AppViewId } from '@/lib/appNavigation'
@@ -373,6 +374,7 @@ function App() {
           <Toaster position="top-center" richColors />
           <AnimatedBackground />
           <UpdateNotification />
+          <StorageConnectionBanner />
           <Auth onAuthenticated={handleAuthenticated} />
         </LanguageProvider>
       </ThemeProvider>
@@ -385,6 +387,7 @@ function App() {
         <Toaster position="top-center" richColors />
         <AnimatedBackground />
         <UpdateNotification />
+        <StorageConnectionBanner />
         <GuideImportStatus onOpenGuideLibrary={() => handleNavigate('guides')} />
         <BirthdayCelebration userEmail={userSession.email} />
         <LoginDigest userEmail={userSession.email} />

@@ -1,5 +1,18 @@
 import type { KvStore, KvArrayOperation, KvFieldOperation } from './localKvStore'
 
+/** Live status for forbindelsen til den delte datamappe (electron/main.cjs). */
+export interface StorageConnectionStatus {
+  connected: boolean
+  dataDir: string
+  source: 'env' | 'config' | 'user' | 'default'
+  /** Tidsstempel for seneste statusskift. */
+  since: number
+  /** True hvis appen ved opstart måtte falde tilbage fra en foretrukken (men utilgængelig) kilde. */
+  startedDisconnected: boolean
+  /** Kilder ('env'/'config'/'user') der blev forsøgt og fejlede før den nuværende blev valgt. */
+  failedSources: string[]
+}
+
 // Raw API exposed by electron/preload.cjs via contextBridge.
 export interface ElectronKvApi {
   get(key: string): Promise<unknown>
@@ -10,8 +23,11 @@ export interface ElectronKvApi {
   getDataDir(): Promise<string>
   getStorageInfo(): Promise<{ dataDir: string; source: 'env' | 'config' | 'user' | 'default' }>
   chooseDataDir(): Promise<{ dataDir: string; migratedFiles: number } | null>
+  getConnectionStatus(): Promise<StorageConnectionStatus>
+  onConnectionChanged(callback: (status: StorageConnectionStatus) => void): () => void
   onChanged(callback: (changedKeys: string[]) => void): () => void
 }
+
 
 /** Adapts the preload bridge to the app's KvStore interface. */
 export function createElectronKv(api: ElectronKvApi): KvStore {

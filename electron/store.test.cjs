@@ -93,3 +93,74 @@ test('interleaved updates from two store instances keep all items', (t) => {
 
   assert.deepEqual(store.get('emails').map((e) => e.id), ['client1', 'client2', 'client1-again'])
 })
+
+test('scanDirectory reports reachable with an empty snapshot for a fresh directory', (t) => {
+  const { store } = temporaryStore(t)
+  const result = store.scanDirectory(null)
+
+  assert.equal(result.reachable, true)
+  assert.equal(result.snapshot.size, 0)
+  assert.deepEqual(result.changedKeys, [])
+})
+
+test('scanDirectory reports unreachable when the directory has vanished', (t) => {
+  const { directory, store } = temporaryStore(t)
+  fs.rmSync(directory, { recursive: true, force: true })
+
+  const result = store.scanDirectory(null)
+
+  assert.equal(result.reachable, false)
+  assert.equal(result.snapshot, null)
+  assert.deepEqual(result.changedKeys, [])
+})
+
+test('scanDirectory detects added, modified and removed keys against a previous snapshot', (t) => {
+  const { store } = temporaryStore(t)
+  store.set('projects', [{ id: 'p1' }])
+  const first = store.scanDirectory(null)
+  assert.deepEqual(first.changedKeys.sort(), ['projects'])
+
+  // Ingen ændring siden sidste snapshot.
+  const unchanged = store.scanDirectory(first.snapshot)
+  assert.deepEqual(unchanged.changedKeys, [])
+
+  store.set('users', { a: 1 })
+  const afterAdd = store.scanDirectory(unchanged.snapshot)
+  assert.deepEqual(afterAdd.changedKeys, ['users'])
+
+  store.delete('projects')
+  const afterRemove = store.scanDirectory(afterAdd.snapshot)
+  assert.deepEqual(afterRemove.changedKeys, ['projects'])
+})
+
+test('watch reports connection loss and recovery via onConnectionChange', async (t) => {
+  const { directory, store } = temporaryStore(t)
+  const events = []
+  let resolveDisconnected
+  let resolveReconnected
+  const disconnected = new Promise((resolve) => { resolveDisconnected = resolve })
+  const reconnected = new Promise((resolve) => { resolveReconnected = resolve })
+
+  const stop = store.watch(
+    () => {},
+    (connected) => {
+      events.push(connected)
+      if (events.length === 1) resolveDisconnected()
+      if (events.length === 2) resolveReconnected()
+    },
+    5000
+  )
+  t.after(() => stop())
+
+  assert.equal(store.isConnected(), true)
+  fs.rmSync(directory, { recursive: true, force: true })
+
+  await disconnected
+  assert.deepEqual(events, [false])
+  assert.equal(store.isConnected(), false)
+
+  fs.mkdirSync(directory, { recursive: true })
+  await reconnected
+  assert.deepEqual(events, [false, true])
+  assert.equal(store.isConnected(), true)
+})

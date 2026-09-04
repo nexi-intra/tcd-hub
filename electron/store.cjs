@@ -69,6 +69,9 @@ function createStore(dataDir) {
   // Local read cache (3s TTL) to reduce repeated network I/O. Async background refresh.
   const readCache = new Map()
   const CACHE_TTL_MS = 3000
+  // Opdateres af watch()'s polling — true indtil bevist ellers (dvs. optimistisk
+  // ved opstart, før første scanning har kørt).
+  let connected = true
 
   function filePath(key) {
     return path.join(dataDir, keyToFilename(key))
@@ -283,46 +286,64 @@ function createStore(dataDir) {
   }
 
   /**
-   * Polls the directory and invokes onChange(changedKeys: string[]) whenever
-   * files were added, modified, or removed. Returns a stop function.
+   * Ren, tilstandsløs scanning af dataDir — opdager om mappen overhovedet kan
+   * læses (forbindelsen til fx et netværksdrev) samt hvilke nøgler der er
+   * ændret siden forrige snapshot. Ingen sideeffekter, så den kan testes
+   * uafhængigt af watch()'s timer.
    */
-  function watch(onChange, intervalMs = 5000) {
-    let snapshot = takeSnapshot()
-
-    function takeSnapshot() {
-      const result = new Map()
-      let entries = []
-      try {
-        entries = fs.readdirSync(dataDir)
-      } catch {
-        return result
-      }
-      for (const name of entries) {
-        if (!name.endsWith(FILE_EXT)) continue
-        try {
-          const stat = fs.statSync(path.join(dataDir, name))
-          result.set(name, stat.mtimeMs + ':' + stat.size)
-        } catch {
-          // File vanished between readdir and stat — treated as removed.
-        }
-      }
-      return result
+  function scanDirectory(previousSnapshot) {
+    let entries
+    try {
+      entries = fs.readdirSync(dataDir)
+    } catch {
+      return { reachable: false, snapshot: null, changedKeys: [] }
     }
+    const next = new Map()
+    for (const name of entries) {
+      if (!name.endsWith(FILE_EXT)) continue
+      try {
+        const stat = fs.statSync(path.join(dataDir, name))
+        next.set(name, stat.mtimeMs + ':' + stat.size)
+      } catch {
+        // File vanished between readdir and stat — treated as removed.
+      }
+    }
+    const changedKeys = []
+    for (const [name, stamp] of next) {
+      if (previousSnapshot?.get(name) !== stamp) changedKeys.push(filenameToKey(name))
+    }
+    if (previousSnapshot) {
+      for (const name of previousSnapshot.keys()) {
+        if (!next.has(name)) changedKeys.push(filenameToKey(name))
+      }
+    }
+    return { reachable: true, snapshot: next, changedKeys }
+  }
+
+  /**
+   * Polls the directory and invokes onChange(changedKeys: string[]) whenever
+   * files were added, modified, or removed, and onConnectionChange(connected)
+   * whenever dataDir goes from reachable to unreachable or back (e.g. a
+   * network share disconnecting/reconnecting). Returns a stop function.
+   */
+  function watch(onChange, onConnectionChange, intervalMs = 5000) {
+    const initial = scanDirectory(null)
+    let snapshot = initial.snapshot
+    connected = initial.reachable
 
     const timer = setInterval(() => {
-      const next = takeSnapshot()
-      const changed = []
-      for (const [name, stamp] of next) {
-        if (snapshot.get(name) !== stamp) changed.push(filenameToKey(name))
+      const result = scanDirectory(snapshot)
+      if (result.reachable !== connected) {
+        connected = result.reachable
+        onConnectionChange?.(connected)
       }
-      for (const name of snapshot.keys()) {
-        if (!next.has(name)) changed.push(filenameToKey(name))
-      }
-      snapshot = next
-      if (changed.length > 0) {
+      if (!result.reachable) return
+
+      snapshot = result.snapshot
+      if (result.changedKeys.length > 0) {
         // Invalidate cache for changed keys to force fresh read on next get().
-        for (const key of changed) readCache.delete(key)
-        onChange(changed)
+        for (const key of result.changedKeys) readCache.delete(key)
+        onChange(result.changedKeys)
       }
     }, Math.max(intervalMs, 5000))
     timer.unref?.()
@@ -330,7 +351,11 @@ function createStore(dataDir) {
     return () => clearInterval(timer)
   }
 
-  return { get, set, delete: del, keys, watch, update, dumpAll, dataDir }
+  function isConnected() {
+    return connected
+  }
+
+  return { get, set, delete: del, keys, watch, update, dumpAll, dataDir, isConnected, scanDirectory }
 }
 
 module.exports = { createStore }

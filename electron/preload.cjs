@@ -11,6 +11,12 @@ contextBridge.exposeInMainWorld('electronKv', {
   getDataDir: () => ipcRenderer.invoke('kv:data-dir'),
   getStorageInfo: () => ipcRenderer.invoke('kv:storage-info'),
   chooseDataDir: () => ipcRenderer.invoke('kv:choose-data-dir'),
+  getConnectionStatus: () => ipcRenderer.invoke('kv:connection-status'),
+  onConnectionChanged: (callback) => {
+    const listener = (_event, status) => callback(status)
+    ipcRenderer.on('storage:connection-changed', listener)
+    return () => ipcRenderer.removeListener('storage:connection-changed', listener)
+  },
   onChanged: (callback) => {
     const listener = (_event, changedKeys) => callback(changedKeys)
     ipcRenderer.on('kv:changed', listener)

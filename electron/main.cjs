@@ -22,6 +22,9 @@ function userConfigPath() {
  *  3. Folder chosen in the app (Manager Panel), stored in userData
  *  4. Local per-user fallback: <userData>/data
  * If a configured directory can't be created/accessed, falls back to local.
+ * `failedSources` lists any higher-priority candidates that were attempted
+ * and failed before landing on the returned one — used to warn the user that
+ * they silently started in local-only mode instead of the intended shared folder.
  */
 function resolveDataDir() {
   const candidates = []
@@ -56,12 +59,14 @@ function resolveDataDir() {
 
   candidates.push({ dir: path.join(app.getPath('userData'), 'data'), source: 'default' })
 
+  const failedSources = []
   for (const candidate of candidates) {
     try {
       fs.mkdirSync(candidate.dir, { recursive: true })
       fs.accessSync(candidate.dir, fs.constants.W_OK)
-      return candidate
+      return { dir: candidate.dir, source: candidate.source, failedSources }
     } catch (err) {
+      failedSources.push(candidate.source)
       console.error(`TCD Hub: data dir "${candidate.dir}" is not usable (${err.code}), trying next`)
     }
   }
@@ -73,6 +78,13 @@ let dataDirSource = 'default'
 let stopWatcher = null
 let updateCheckTimer = null
 let updateInProgress = false
+// Forbindelsesstatus til den delte datamappe — opdateres af store.watch()'s
+// polling når et netværksdrev forsvinder/kommer tilbage, samt én gang ved
+// opstart hvis appen måtte falde tilbage til en lavere-prioriteret mappe.
+let storageConnected = true
+let storageStartedDisconnected = false
+let storageFailedSources = []
+let storageConnectionSince = Date.now()
 
 const UPDATE_CHECK_INTERVAL = 15 * 60 * 1000
 
@@ -116,7 +128,27 @@ function createDebouncedBroadcast(delayMs = 100) {
 function startWatcher() {
   if (stopWatcher) stopWatcher()
   const debouncedBroadcast = createDebouncedBroadcast(100)
-  stopWatcher = store.watch((changedKeys) => debouncedBroadcast(changedKeys))
+  stopWatcher = store.watch((changedKeys) => debouncedBroadcast(changedKeys), setStorageConnected)
+}
+
+/** Aktuel forbindelsesstatus til den delte datamappe — sendt til renderer ved opstart og efter hver ændring. */
+function getStorageConnectionStatus() {
+  return {
+    connected: storageConnected,
+    dataDir: store.dataDir,
+    source: dataDirSource,
+    since: storageConnectionSince,
+    startedDisconnected: storageStartedDisconnected,
+    failedSources: storageFailedSources,
+  }
+}
+
+/** Kaldes af store.watch() når dataDir skifter mellem tilgængelig/utilgængelig. */
+function setStorageConnected(connected) {
+  if (connected === storageConnected) return
+  storageConnected = connected
+  storageConnectionSince = Date.now()
+  broadcast('storage:connection-changed', getStorageConnectionStatus())
 }
 
 // --- Automatisk daglig backup -------------------------------------------
@@ -202,6 +234,11 @@ function switchDataDir(newDir) {
 
   store = createStore(newDir)
   dataDirSource = 'user'
+  // Netop verificeret tilgængelig ovenfor (mkdirSync+accessSync) — nulstil
+  // eventuel "startede offline"-tilstand fra opstart.
+  storageStartedDisconnected = false
+  storageFailedSources = []
+  setStorageConnected(true)
   startWatcher()
   startAutoBackup()
 
@@ -263,7 +300,14 @@ app.whenReady().then(() => {
   const resolved = resolveDataDir()
   store = createStore(resolved.dir)
   dataDirSource = resolved.source
+  storageStartedDisconnected = resolved.failedSources.length > 0
+  storageFailedSources = resolved.failedSources
+  storageConnected = !storageStartedDisconnected
+  storageConnectionSince = Date.now()
   console.log('TCD Hub: using data directory', store.dataDir)
+  if (storageStartedDisconnected) {
+    console.error('TCD Hub: preferred data dir(s) unavailable at startup, fell back after trying:', resolved.failedSources)
+  }
 
   ipcMain.handle('kv:get', (_event, key) => store.get(key))
   ipcMain.handle('kv:set', (_event, key, value) => store.set(key, value))
@@ -278,6 +322,7 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('kv:data-dir', () => store.dataDir)
   ipcMain.handle('kv:storage-info', () => ({ dataDir: store.dataDir, source: dataDirSource }))
+  ipcMain.handle('kv:connection-status', () => getStorageConnectionStatus())
   ipcMain.handle('kv:choose-data-dir', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     const result = await dialog.showOpenDialog(win, {
