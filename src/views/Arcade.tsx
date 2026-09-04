@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { isAnyDialogOpen } from '@/lib/modalStack'
 
 // Hvert spil hentes kun når spilleren rent faktisk vælger det, i stedet for at
-// alle 5 spils kode indlæses samlet blot ved at åbne Spil Hjørnet.
+// alle 5 spils kode indlæses samlet blot ved at åbne Arcade.
 const EndlessDodger = lazy(() => import('@/components/EndlessDodger').then(m => ({ default: m.EndlessDodger })))
 const BrickBreak = lazy(() => import('@/components/BrickBreak').then(m => ({ default: m.BrickBreak })))
 const NexiFlyer = lazy(() => import('@/components/NexiFlyer').then(m => ({ default: m.NexiFlyer })))
@@ -24,7 +24,7 @@ function GameLoadingFallback() {
   )
 }
 
-interface GameCornerProps {
+interface ArcadeProps {
   onNavigateBack: () => void
   userEmail?: string
 }
@@ -41,7 +41,7 @@ interface GameModule {
   available: boolean
 }
 
-export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
+export function Arcade({ onNavigateBack, userEmail }: ArcadeProps) {
   const { language } = useLanguage()
   const [currentView, setCurrentView] = useState<GameView>('hub')
 
@@ -74,7 +74,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const games: GameModule[] = [
     {
       id: 'endlessdodger',
-      title: 'Hønseinvasionen',
+      title: 'Chickeninvasion',
       description: language === 'da' 
         ? 'Skyd bølge efter bølge af høns ned og undgå deres æg. Hvor langt kan du nå?'
         : 'Blast wave after wave of chickens and dodge their falling eggs. How far can you get?',
@@ -223,7 +223,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                   </div>
                   <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">
-                      Hønseinvasionen
+                      Chickeninvasion
                     </h1>
                     <p className="text-white/90 text-sm sm:text-base">
                       {language === 'da' 
@@ -595,7 +595,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
           >
-            {language === 'da' ? 'Spilhjørnet' : 'Game Corner'}
+            Arcade
           </motion.h1>
           <motion.p
             className="text-lg text-muted-foreground max-w-2xl mx-auto"

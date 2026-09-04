@@ -50,7 +50,7 @@ export function CommandPalette({ userEmail }: CommandPaletteProps) {
     { id: 'team', icon: Users, label: language === 'da' ? 'Team Oversigt' : 'Team Overview' },
     { id: 'email', icon: Envelope, label: language === 'da' ? 'Email' : 'Email' },
     { id: 'meals', icon: ForkKnife, label: language === 'da' ? 'Madplan' : 'Meal Plan' },
-    { id: 'games', icon: GameController, label: language === 'da' ? 'Spilhjørnet' : 'Game Corner' },
+    { id: 'arcade', icon: GameController, label: 'Arcade' },
     { id: 'projects', icon: Kanban, label: language === 'da' ? 'Projekttavle' : 'Project Board' },
     { id: 'notebook', icon: NotePencil, label: language === 'da' ? 'Notesbog' : 'Notebook' },
     { id: 'manager', icon: ManagerIcon, label: 'Manager Panel', managerOnly: true },

@@ -964,7 +964,7 @@ export function EndlessDodger({ userEmail = 'guest@example.com' }: EndlessDodger
             </div>
             <div>
               <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Hønseinvasionen
+                Chickeninvasion
               </h2>
               <p className="text-sm text-muted-foreground">
                 {language === 'da'

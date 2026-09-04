@@ -1976,7 +1976,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                 </TabsTrigger>
                 <TabsTrigger value="dodger-scores" className="gap-2">
                   <RocketLaunch size={18} />
-                  Hønseinvasionen
+                  Chickeninvasion
                 </TabsTrigger>
                 <TabsTrigger value="brick-break-scores" className="gap-2">
                   <Cube size={18} />
@@ -2004,7 +2004,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
           <TabsContent value="dodger-scores" className="space-y-6">
             <GameLeaderboardAdmin
-              gameTitle="Hønseinvasionen"
+              gameTitle="Chickeninvasion"
               icon={<RocketLaunch size={28} className="text-primary" weight="duotone" />}
               leaderboardKey="endless-dodger-global-leaderboard"
               playCountsKey="endless-dodger-play-counts"
