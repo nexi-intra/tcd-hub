@@ -24,11 +24,16 @@ export function CubeBasherGame({ onNavigateBack }: CubeBasherGameProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
+      {/* Ingen sandbox-attribut: Chromium blokerer ALLE file://-ressourcer (inkl.
+          selve iframe-dokumentet) inde i en sandboxed iframe, uanset allow-*-tokens —
+          det var årsagen til at spillet virkede tomt (ingen JS kørte overhovedet).
+          Electrons egen BrowserWindow-sandboxing (nodeIntegration:false,
+          nodeIntegrationInSubFrames ikke sat) forhindrer stadig Node/Electron-adgang
+          uafhængigt af denne attribut, så det er trygt at undlade den her. */}
       <iframe
         src="./games/cube-basher/index.html"
         title="Cube Basher"
         className="w-full h-full border-0"
-        sandbox="allow-scripts allow-pointer-lock"
       />
       <div className="absolute top-4 left-4 z-10">
         <Button
