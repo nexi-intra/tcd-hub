@@ -71,10 +71,10 @@ gennemgang af hver fil):
 - [x] GameLeaderboardAdmin.tsx (~20 strenge)
 
 ## Fase 8 — Resterende mindre komponenter
-- [ ] ManualVacationGrant.tsx (~17 strenge)
-- [ ] SickLeaveManager.tsx (~16 strenge)
-- [ ] OnboardingWizard.tsx (~32 strenge)
-- [ ] StorageConnectionBanner.tsx (~9 strenge)
+- [x] ManualVacationGrant.tsx (~17 strenge)
+- [x] SickLeaveManager.tsx (~16 strenge)
+- [x] OnboardingWizard.tsx (~32 strenge)
+- [x] StorageConnectionBanner.tsx (~9 strenge)
 
 ## Fase 9 — ThemeBuilder.tsx (~75 strenge, tilføj DANSK — filen er i dag kun engelsk)
 
