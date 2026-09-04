@@ -1,18 +1,19 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { GameController, ArrowLeft, Joystick } from '@phosphor-icons/react'
+import { GameController, ArrowLeft, Joystick, Cube } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isAnyModalOpen } from '@/lib/modalStack'
 import { Arcade } from '@/views/Arcade'
+import { Modern } from '@/views/Modern'
 
 interface GameCornerProps {
   onNavigateBack: () => void
   userEmail?: string
 }
 
-type GameCornerView = 'hub' | 'arcade'
+type GameCornerView = 'hub' | 'arcade' | 'modern'
 
 export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
   const { language } = useLanguage()
@@ -32,6 +33,9 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
 
   if (view === 'arcade') {
     return <Arcade onNavigateBack={() => setView('hub')} userEmail={userEmail} />
+  }
+  if (view === 'modern') {
+    return <Modern onNavigateBack={() => setView('hub')} userEmail={userEmail} />
   }
 
   return (
@@ -143,6 +147,56 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                     {language === 'da'
                       ? 'Klassiske arkadespil — konkurrér med kollegaer om de bedste scores!'
                       : 'Classic arcade games — compete with colleagues for the best scores!'}
+                  </p>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55, duration: 0.4 }}
+          >
+            <motion.div
+              initial={{ scale: 1, y: 0, rotate: 0, boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)" }}
+              whileHover={{ scale: 1.08, y: -10, rotate: [0, 3, -3, 0], boxShadow: "0 30px 60px -15px rgba(0, 0, 0, 0.35)" }}
+              whileTap={{ scale: 0.92 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <Card
+                className="relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[180px] sm:min-h-[220px] flex flex-col cursor-pointer hover:border-primary/40"
+                onClick={() => setView('modern')}
+              >
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-br"
+                  style={{ background: 'radial-gradient(circle at top right, oklch(0.55 0.19 25 / 0.08), transparent)' }}
+                  initial={{ opacity: 0 }}
+                  whileHover={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                />
+
+                <div className="relative p-4 md:p-6 flex flex-col flex-1">
+                  <motion.div
+                    className="mb-3 md:mb-4 inline-flex items-center justify-center rounded-2xl p-2 md:p-3 shadow-lg bg-gradient-to-br from-[oklch(0.55_0.19_25)] via-[oklch(0.58_0.17_35)] to-[oklch(0.48_0.20_15)]"
+                    style={{ color: 'white' }}
+                    initial={{ scale: 1, rotate: 0, y: 0 }}
+                    whileHover={{ scale: [1, 1.3, 1.15], rotate: [0, -15, 15, -10, 10, 0], y: [0, -8, 0] }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                  >
+                    <div className="[&>svg]:w-8 [&>svg]:h-8 md:[&>svg]:w-12 md:[&>svg]:h-12">
+                      <Cube size={48} weight="duotone" />
+                    </div>
+                  </motion.div>
+
+                  <h3 className="text-sm sm:text-base md:text-lg font-bold mb-1.5 md:mb-2 text-foreground text-center">
+                    Modern
+                  </h3>
+
+                  <p className="text-muted-foreground text-xs leading-relaxed mb-3 md:mb-4 flex-1">
+                    {language === 'da'
+                      ? 'Større 3D-spil i moderne stil — mere end blot en hurtig omgang.'
+                      : 'Bigger, modern 3D games — more than just a quick round.'}
                   </p>
                 </div>
               </Card>

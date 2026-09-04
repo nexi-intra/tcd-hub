@@ -11,6 +11,7 @@ export function isAnyDialogOpen(): boolean {
 // Escape skal navigere ét skridt tilbage, eller lade noget andet forbruge den
 // først — enten en åben dialog, ELLER et modul med sit eget interne
 // "tilbage"-niveau (fx GameCorner → Arcade: spil → spil-menu → Arcade-menu →
+// main Hub, eller GameCorner → Modern → Cube Basher-iframe → Modern-menu →
 // main Hub), signaleret
 // via `data-game-active` på <body>. Moduler med deres eget interne niveau må
 // IKKE selv bruge denne funktion til at afgøre om DE skal reagere (den vil jo
