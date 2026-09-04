@@ -55,9 +55,9 @@ gennemgang af hver fil):
 - [x] 4c: Ferie Oversigt + Spil + Datalagring faner + delte dialoger
 
 ## Fase 5 — Guide-bibliotek (browsing)
-- [ ] GuideLibrary.tsx (~50 strenge)
-- [ ] GuideCard.tsx (~11 strenge)
-- [ ] GuideImportStatus.tsx (~7 strenge)
+- [x] GuideLibrary.tsx (~50 strenge)
+- [x] GuideCard.tsx (~11 strenge)
+- [x] GuideImportStatus.tsx (~7 strenge)
 
 ## Fase 6 — Guide-redigering
 - [ ] GuideEditor.tsx (~35 strenge)

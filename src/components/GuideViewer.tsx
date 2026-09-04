@@ -17,6 +17,7 @@ import { fileStorage } from '@/lib/fileStorage'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import headerLogoUrl from '@/assets/images/docx/header-logo.png'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
@@ -49,6 +50,7 @@ const categoryColors: Record<string, string> = {
 
 /** Billede i preview — loader objekt-URL fra chunked KV. */
 function StepImage({ imageId, className }: { imageId: string; className?: string }) {
+  const { t } = useLanguage()
   const [url, setUrl] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -64,7 +66,7 @@ function StepImage({ imageId, className }: { imageId: string; className?: string
     return (
       <div className="h-24 rounded border bg-gray-100 flex items-center justify-center px-4 gap-2 text-gray-400">
         <ImageIcon size={20} />
-        <span className="text-xs">Billede kunne ikke indlæses</span>
+        <span className="text-xs">{t.guideViewer.imageLoadFailed}</span>
       </div>
     )
   }
@@ -75,6 +77,7 @@ function StepImage({ imageId, className }: { imageId: string; className?: string
 }
 
 export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerProps) {
+  const { t, language: appLanguage } = useLanguage()
   const [authorName, setAuthorName] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
@@ -154,10 +157,10 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
       const { generateGuideDocx, guideDocxFileName } = await import('@/lib/docxGenerator')
       const blob = await generateGuideDocx(model, authorName || model.authorEmail)
       downloadBlob(blob, guideDocxFileName(model))
-      toast.success('DOCX genereret! Word beregner selv indholdsfortegnelsens sidetal ved åbning.')
+      toast.success(t.guideViewer.docxGenerated)
     } catch (error) {
       console.error('DOCX-generering fejlede:', error)
-      toast.error('Kunne ikke generere DOCX-filen')
+      toast.error(t.guideViewer.docxGenerationFailed)
     } finally {
       setIsGenerating(false)
     }
@@ -173,10 +176,10 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
         if (!root) return
       }
       const filePath = await exportGuideToLibrary(model, authorName || model.authorEmail, root)
-      toast.success(`Eksporteret til ${filePath}`)
+      toast.success(`${t.guideViewer.exportedToPrefix} ${filePath}`)
     } catch (error) {
       console.error('Eksport fejlede:', error)
-      toast.error(error instanceof Error ? error.message : 'Kunne ikke eksportere guiden')
+      toast.error(error instanceof Error ? error.message : t.guideViewer.exportFailed)
     } finally {
       setIsExporting(false)
     }
@@ -184,7 +187,7 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
 
   const handleDownload = async () => {
     if (!guide?.wordFileName) {
-      toast.error('Word-filen er ikke tilgængelig')
+      toast.error(t.guideViewer.wordFileUnavailable)
       return
     }
 
@@ -203,15 +206,15 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         })
       } else {
-        toast.error('Word-filen er ikke tilgængelig')
+        toast.error(t.guideViewer.wordFileUnavailable)
         return
       }
 
       downloadBlob(blob, guide.wordFileName)
-      toast.success('Word-fil downloadet!')
+      toast.success(t.guideViewer.wordFileDownloaded)
     } catch (error) {
       console.error('Error downloading Word file:', error)
-      toast.error('Kunne ikke downloade Word-filen')
+      toast.error(t.guideViewer.wordDownloadFailed)
     }
   }
 
@@ -255,14 +258,14 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
                   >
                     <Timer size={12} />
                     {reviewStatus === 'overdue'
-                      ? 'Skal opdateres'
+                      ? t.guideCard.overdueBadge
                       : guide.nextReviewAt
-                        ? `Opdateres senest ${new Date(guide.nextReviewAt).toLocaleDateString('da-DK')}`
+                        ? `${t.guideCard.dueSoonPrefix} ${new Date(guide.nextReviewAt).toLocaleDateString(appLanguage === 'en' ? 'en-US' : 'da-DK')}`
                         : REVIEW_INTERVAL_CHOICES.find((c) => c.value === guide.reviewIntervalMonths)?.label}
                   </Badge>
                 ) : null}
                 <span className="text-xs text-muted-foreground">
-                  Opdateret: {new Date(guide.updatedAt).toLocaleDateString('da-DK', {
+                  {t.guideViewer.updatedPrefix}: {new Date(guide.updatedAt).toLocaleDateString(appLanguage === 'en' ? 'en-US' : 'da-DK', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
@@ -291,7 +294,7 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
                   className="w-full sm:w-auto gap-2"
                 >
                   <PencilSimple size={16} weight="bold" />
-                  Redigér
+                  {t.guideViewer.edit}
                 </Button>
               )}
               {hasSections && (
@@ -302,7 +305,7 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
                     className="h-7 px-2.5 text-xs flex-1"
                     onClick={() => setViewLanguage(null)}
                   >
-                    {guideLanguage === 'da' ? 'Dansk (original)' : 'English (original)'}
+                    {guideLanguage === 'da' ? t.guideEditor.languageDanish : t.guideEditor.languageEnglish} ({t.guideViewer.originalSuffix})
                   </Button>
                   <Button
                     variant={isTranslated ? 'default' : 'ghost'}
@@ -310,7 +313,7 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
                     className="h-7 px-2.5 text-xs flex-1"
                     onClick={() => setViewLanguage(guideLanguage === 'da' ? 'en' : 'da')}
                   >
-                    {guideLanguage === 'da' ? 'English' : 'Dansk'}
+                    {guideLanguage === 'da' ? t.guideEditor.languageEnglish : t.guideEditor.languageDanish}
                   </Button>
                 </div>
               )}
@@ -326,10 +329,10 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
                   )}
                 >
                   {isTranslating
-                    ? 'Oversætter…'
+                    ? t.guideViewer.translating
                     : translationEngine === 'neural'
-                      ? `Neural oversættelse (offline) — original: ${guideLanguage === 'da' ? 'dansk' : 'engelsk'}`
-                      : `Automatisk oversat (ordbogsbaseret) — original: ${guideLanguage === 'da' ? 'dansk' : 'engelsk'}`}
+                      ? `${t.guideViewer.neuralTranslationPrefix} ${(guideLanguage === 'da' ? t.guideEditor.languageDanish : t.guideEditor.languageEnglish).toLowerCase()}`
+                      : `${t.guideViewer.dictionaryTranslationPrefix} ${(guideLanguage === 'da' ? t.guideEditor.languageDanish : t.guideEditor.languageEnglish).toLowerCase()}`}
                 </p>
               )}
               {hasSections && (
@@ -340,7 +343,7 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
                   className="w-full sm:w-auto gap-2"
                 >
                   <FileArrowDown size={16} weight="bold" />
-                  {isGenerating ? 'Genererer…' : 'Download DOCX'}
+                  {isGenerating ? t.guideViewer.generating : t.guideViewer.downloadDocx}
                 </Button>
               )}
               {hasSections && isExportAvailable() && (
@@ -352,7 +355,7 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
                   className="w-full sm:w-auto gap-2"
                 >
                   <FolderOpen size={16} weight="regular" />
-                  {isExporting ? 'Eksporterer…' : 'Eksportér til bibliotek'}
+                  {isExporting ? t.guideViewer.exporting : t.guideViewer.exportToLibrary}
                 </Button>
               )}
               {(guide.fileUrl || guide.wordFileData) && (
@@ -363,7 +366,7 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
                   className="w-full sm:w-auto gap-2"
                 >
                   <DownloadSimple size={16} weight="regular" />
-                  Vedhæftet Word
+                  {t.guideViewer.attachedWord}
                 </Button>
               )}
             </div>
@@ -390,7 +393,7 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
               <div className="px-10 py-8 space-y-8">
                 <div>
                   <h2 className="text-xl font-bold mb-3" style={{ color: '#1F3763', fontFamily: "'Calibri Light', Calibri, sans-serif" }}>
-                    Indholdsfortegnelse
+                    {t.guideViewer.tableOfContents}
                   </h2>
                   <ol className="space-y-1.5">
                     {model.sections.map((section) => (
@@ -409,7 +412,7 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
                 )}
 
                 <div className="border-t-2 border-dashed border-gray-200 -mx-10 px-10 pt-6 text-[10px] text-gray-400 text-center uppercase tracking-widest">
-                  Sideskift
+                  {t.guideViewer.pageBreak}
                 </div>
 
                 {model.sections.map((section) => (
@@ -452,18 +455,18 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
                   </div>
                   <div>
                     <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
-                      Word-dokument vedhæftet
+                      {t.guideViewer.wordDocumentAttached}
                     </h3>
                     <p className="text-sm text-muted-foreground mb-1 break-all">
-                      {guide.wordFileName || 'dokument.docx'}
+                      {guide.wordFileName || t.guideViewer.defaultDocumentName}
                     </p>
                     {guide.fileSize && (
                       <p className="text-xs text-muted-foreground mb-1">
-                        Størrelse: {(guide.fileSize / 1024).toFixed(2)} KB
+                        {t.guideViewer.sizePrefix}: {(guide.fileSize / 1024).toFixed(2)} KB
                       </p>
                     )}
                     <p className="text-sm text-muted-foreground">
-                      Download filen for at se det fulde indhold med formatering og billeder
+                      {t.guideViewer.downloadHint}
                     </p>
                   </div>
                   <Button
@@ -472,13 +475,13 @@ export function GuideViewer({ guide, open, onOpenChange, onEdit }: GuideViewerPr
                     className="mt-4 w-full sm:w-auto"
                   >
                     <DownloadSimple size={20} weight="bold" className="mr-2" />
-                    Download Word-dokument
+                    {t.guideViewer.downloadWordDocument}
                   </Button>
                 </div>
 
                 {guide.content && guide.content !== 'Se vedhæftet Word-dokument' && (
                   <div className="pt-6 border-t border-border">
-                    <h4 className="text-sm font-semibold text-foreground mb-3">Ekstra noter:</h4>
+                    <h4 className="text-sm font-semibold text-foreground mb-3">{t.guideViewer.extraNotes}</h4>
                     <div className="bg-muted/50 rounded-lg p-4">
                       <p className="whitespace-pre-wrap break-words text-sm">{guide.content}</p>
                     </div>
