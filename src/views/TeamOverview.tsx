@@ -8,6 +8,7 @@ import { UserProfile } from '@/components/UserProfile'
 import { UserRole, getRoleDisplayName } from '@/lib/userRoles'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import { isAnyModalOpen } from '@/lib/modalStack'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export interface TeamEmployee {
   id: string
@@ -23,6 +24,7 @@ interface TeamOverviewProps {
 }
 
 export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
+  const { t } = useLanguage()
   const [employees, setEmployees] = useState<TeamEmployee[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -69,21 +71,21 @@ export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
         return (
           <Badge className="bg-gradient-to-r from-accent via-primary to-accent text-white">
             <Crown size={14} className="mr-1" weight="fill" />
-            Administrator
+            {t.teamOverview.roleAdmin}
           </Badge>
         )
       case 'manager':
         return (
           <Badge className="bg-gradient-to-r from-primary to-accent text-white">
             <ShieldCheck size={14} className="mr-1" weight="fill" />
-            Manager
+            {t.teamOverview.roleManager}
           </Badge>
         )
       default:
         return (
           <Badge variant="secondary">
             <UserCircle size={14} className="mr-1" />
-            Bruger
+            {t.teamOverview.userSingular}
           </Badge>
         )
     }
@@ -106,7 +108,7 @@ export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
                 className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
               >
                 <ArrowLeft size={20} />
-                Tilbage
+                {t.common.back}
               </Button>
             </motion.div>
           </div>
@@ -121,7 +123,7 @@ export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
         >
           <div className="flex flex-col items-center gap-6">
             <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
-              Team Oversigt
+              {t.teamOverview.title}
             </h1>
           </div>
         </motion.div>
@@ -130,31 +132,31 @@ export function TeamOverview({ onNavigateBack, onLogout }: TeamOverviewProps) {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <UserCircle size={28} className="text-primary" weight="duotone" />
-              <h2 className="text-2xl font-bold">Registrerede Brugere</h2>
+              <h2 className="text-2xl font-bold">{t.teamOverview.registeredUsers}</h2>
             </div>
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="text-sm">
-                {employees.length} {employees.length === 1 ? 'Bruger' : 'Brugere'}
+                {employees.length} {employees.length === 1 ? t.teamOverview.userSingular : t.teamOverview.userPlural}
               </Badge>
             </div>
           </div>
 
           <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
             <p className="text-sm text-muted-foreground">
-              Dette er en oversigt over alle brugere der har oprettet en konto og logget ind på hjemmesiden. Brugere oprettes via login-systemet.
+              {t.teamOverview.description}
             </p>
           </div>
 
           {isLoading ? (
             <div className="text-center py-12">
               <UserCircle size={48} className="text-muted-foreground mx-auto mb-4 animate-pulse" weight="duotone" />
-              <p className="text-muted-foreground">Indlæser brugere...</p>
+              <p className="text-muted-foreground">{t.teamOverview.loadingUsers}</p>
             </div>
           ) : !employees.length ? (
             <div className="text-center py-12">
               <UserCircle size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
-              <p className="text-muted-foreground">Ingen registrerede brugere endnu</p>
-              <p className="text-sm text-muted-foreground mt-2">Brugere vil blive vist her når de opretter en konto</p>
+              <p className="text-muted-foreground">{t.teamOverview.noUsers}</p>
+              <p className="text-sm text-muted-foreground mt-2">{t.teamOverview.noUsersHint}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

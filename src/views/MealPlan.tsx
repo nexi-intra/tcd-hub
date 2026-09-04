@@ -8,25 +8,20 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useKV } from '@/hooks/useKV'
 import { AutoText } from '@/components/AutoText'
-import { useAutoTranslate } from '@/lib/useAutoTranslate'
 import { toast } from 'sonner'
 import { getWeekNumber, getStartOfWeek, formatDate } from '@/lib/dateUtils'
 import { isAnyModalOpen } from '@/lib/modalStack'
+import { useLanguage } from '@/contexts/LanguageContext'
 import type { WeekMenu } from '@/lib/types'
 
 interface MealPlanProps {
   onNavigateBack: () => void
 }
 
-const weekDays = [
-  { key: 'monday', label: 'Mandag' },
-  { key: 'tuesday', label: 'Tirsdag' },
-  { key: 'wednesday', label: 'Onsdag' },
-  { key: 'thursday', label: 'Torsdag' },
-  { key: 'friday', label: 'Fredag' }
-] as const
+const weekDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const
 
 export function MealPlan({ onNavigateBack }: MealPlanProps) {
+  const { t } = useLanguage()
   const [weekMenus, setWeekMenus] = useKV<WeekMenu[]>('meal-plan-weeks', [])
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0)
   const [currentMenu, setCurrentMenu] = useState<WeekMenu | null>(null)
@@ -46,7 +41,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
   const currentWeek = getWeekNumber(targetDate)
   const currentYear = targetDate.getFullYear()
   const weekStart = getStartOfWeek(targetDate)
-  const mealPlaceholder = useAutoTranslate('Indtast dagens menu...')
+  const mealPlaceholder = t.mealPlan.mealPlaceholder
 
   useEffect(() => {
     loadCurrentWeek()
@@ -116,7 +111,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
 
     setCurrentMenu(updatedMenu)
     setEditMode(false)
-    toast.success('Madplan gemt!')
+    toast.success(t.mealPlan.saved)
   }
 
   const handleCancel = () => {
@@ -153,7 +148,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
     })
     
     setEditMode(false)
-    toast.success('Madplan ryddet')
+    toast.success(t.mealPlan.cleared)
   }
 
   const goToPreviousWeek = () => {
@@ -188,7 +183,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                 className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
               >
                 <ArrowLeft size={20} />
-                <AutoText text="Tilbage" />
+                {t.common.back}
               </Button>
             </motion.div>
           </div>
@@ -207,10 +202,10 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
           <div className="flex flex-col items-center">
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent flex items-center gap-3 justify-center">
               <ForkKnife size={40} weight="duotone" className="text-primary" />
-              <AutoText text="Madplan" />
+              {t.mealPlan.title}
             </h1>
             <p className="text-muted-foreground mt-3">
-              <AutoText text="Planlæg ugens menuer for mandag til fredag" />
+              {t.mealPlan.subtitle}
             </p>
           </div>
         </motion.header>
@@ -238,11 +233,11 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                     <div className="flex items-center gap-2 mb-1">
                       <CalendarBlank size={24} weight="duotone" className="text-primary" />
                       <h2 className="text-2xl font-bold">
-                        <AutoText text={`Uge ${currentWeek}`} />
+                        {t.mealPlan.week} {currentWeek}
                       </h2>
                       {currentWeekOffset === 0 && (
                         <Badge className="bg-accent text-accent-foreground">
-                          <AutoText text="Denne uge" />
+                          {t.mealPlan.thisWeek}
                         </Badge>
                       )}
                     </div>
@@ -269,7 +264,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                       className="gap-2"
                     >
                       <CalendarBlank size={18} weight="duotone" />
-                      <AutoText text="Gå til nuværende uge" />
+                      {t.mealPlan.goToCurrentWeek}
                     </Button>
                   )}
                 </div>
@@ -287,9 +282,9 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-2xl"><AutoText text="Dagens menuer" /></CardTitle>
+                  <CardTitle className="text-2xl">{t.mealPlan.dailyMenus}</CardTitle>
                   <CardDescription>
-                    <AutoText text={editMode ? 'Rediger menuerne for hver dag' : 'Se ugens planlagte menuer'} />
+                    {editMode ? t.mealPlan.editDescription : t.mealPlan.viewDescription}
                   </CardDescription>
                 </div>
                 
@@ -301,7 +296,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                         className="gap-2"
                       >
                         <ForkKnife size={18} weight="duotone" />
-                        <AutoText text="Rediger madplan" />
+                        {t.mealPlan.editMealPlan}
                       </Button>
                     </>
                   ) : (
@@ -310,7 +305,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                         variant="outline"
                         onClick={handleCancel}
                       >
-                        <AutoText text="Annuller" />
+                        {t.common.cancel}
                       </Button>
                       <Button
                         variant="destructive"
@@ -318,14 +313,14 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                         className="gap-2"
                       >
                         <Trash size={18} weight="duotone" />
-                        <AutoText text="Ryd uge" />
+                        {t.mealPlan.clearWeek}
                       </Button>
                       <Button
                         onClick={handleSave}
                         className="gap-2 bg-gradient-to-r from-primary to-accent"
                       >
                         <FloppyDisk size={18} weight="duotone" />
-                        <AutoText text="Gem" />
+                        {t.common.save}
                       </Button>
                     </>
                   )}
@@ -339,7 +334,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
               <div className="space-y-4">
                 {weekDays.map((day, index) => (
                   <motion.div
-                    key={day.key}
+                    key={day}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 + index * 0.05 }}
@@ -347,18 +342,18 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                       <div className="sm:w-32 shrink-0">
                         <h3 className="font-bold text-lg text-primary">
-                          <AutoText text={day.label} />
+                          {t.mealPlan.days[day]}
                         </h3>
                       </div>
                       
                       <div className="flex-1">
                         {editMode ? (
                           <Textarea
-                            value={tempMeals[day.key]}
+                            value={tempMeals[day]}
                             onChange={(e) =>
                               setTempMeals((prev) => ({
                                 ...prev,
-                                [day.key]: e.target.value
+                                [day]: e.target.value
                               }))
                             }
                             placeholder={mealPlaceholder}
@@ -366,11 +361,11 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                           />
                         ) : (
                           <div className="text-foreground whitespace-pre-wrap min-h-[60px] p-3 rounded-md bg-card">
-                            {currentMenu?.meals[day.key] ? (
-                              <AutoText text={currentMenu.meals[day.key]} />
+                            {currentMenu?.meals[day] ? (
+                              <AutoText text={currentMenu.meals[day]} />
                             ) : (
                               <span className="text-muted-foreground italic">
-                                <AutoText text="Ingen menu planlagt" />
+                                {t.mealPlan.noMenuPlanned}
                               </span>
                             )}
                           </div>
@@ -392,9 +387,9 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
         >
           <Card className="border-2 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-xl"><AutoText text="Tidligere madplaner" /></CardTitle>
+              <CardTitle className="text-xl">{t.mealPlan.previousPlans}</CardTitle>
               <CardDescription>
-                <AutoText text="Gennemse madplaner fra tidligere uger" />
+                {t.mealPlan.previousPlansDescription}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -407,7 +402,7 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                     className="text-center py-8 text-muted-foreground"
                   >
                     <ForkKnife size={48} weight="duotone" className="mx-auto mb-3 opacity-40" />
-                    <p><AutoText text="Ingen tidligere madplaner endnu" /></p>
+                    <p>{t.mealPlan.noPreviousPlans}</p>
                   </motion.div>
                 ) : (
                   <div className="space-y-3">
@@ -450,14 +445,14 @@ export function MealPlan({ onNavigateBack }: MealPlanProps) {
                                 <div className="text-left">
                                   <div className="flex items-center gap-2">
                                     <span className="font-bold">
-                                      <AutoText text={`Uge ${menu.weekNumber}, ${menu.year}`} />
+                                      {t.mealPlan.week} {menu.weekNumber}, {menu.year}
                                     </span>
                                     {isCurrent && (
                                       <Badge
                                         variant="secondary"
                                         className="bg-accent/20 text-accent-foreground"
                                       >
-                                        <AutoText text="Aktuel" />
+                                        {t.mealPlan.current}
                                       </Badge>
                                     )}
                                   </div>

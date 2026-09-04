@@ -1,5 +1,78 @@
 export const translations = {
   da: {
+    auth: {
+      loginSubtitle: "Log ind for at fortsætte",
+      signupSubtitle: "Opret en ny konto",
+      fullName: "Fulde navn",
+      fullNamePlaceholder: "F.eks. Anders Andersen",
+      emailSignup: "Email - Brug Arbejdsmail",
+      emailLogin: "Email eller brugernavn",
+      emailSignupPlaceholder: "din@email.dk",
+      emailLoginPlaceholder: "din@email.dk eller brugernavn",
+      phoneNumber: "Telefonnummer",
+      password: "Adgangskode",
+      confirmPassword: "Bekræft adgangskode",
+      rememberMe: "Husk mig på denne computer (log automatisk ind)",
+      processing: "Behandler...",
+      login: "Log ind",
+      createAccount: "Opret konto",
+      noAccount: "Har du ikke en konto?",
+      createOneHere: "Opret en her",
+      hasAccount: "Har du allerede en konto?",
+      errors: {
+        fullNameRequired: "Indtast venligst dit fulde navn",
+        phoneRequired: "Indtast venligst dit telefonnummer",
+        passwordTooShort: "Adgangskoden skal være mindst 6 tegn",
+        passwordsMismatch: "Adgangskoderne matcher ikke",
+        emailExists: "En bruger med denne email eksisterer allerede",
+        connectionFailed: "Kunne ikke oprette forbindelse. Prøv igen.",
+        wrongCredentials: "Forkert email/brugernavn eller adgangskode",
+        pendingApproval: "Din konto afventer godkendelse af en manager.",
+        rejected: "Din anmodning om adgang er blevet afvist. Kontakt en manager."
+      },
+      accountCreated: "Konto oprettet!",
+      signupRequestSent: "Anmodning sendt! Din konto skal godkendes af en manager, før du kan logge ind.",
+      welcomeBack: "Velkommen tilbage!"
+    },
+    teamOverview: {
+      title: "Team Oversigt",
+      registeredUsers: "Registrerede Brugere",
+      userSingular: "Bruger",
+      userPlural: "Brugere",
+      roleAdmin: "Administrator",
+      roleManager: "Manager",
+      description: "Dette er en oversigt over alle brugere der har oprettet en konto og logget ind på hjemmesiden. Brugere oprettes via login-systemet.",
+      loadingUsers: "Indlæser brugere...",
+      noUsers: "Ingen registrerede brugere endnu",
+      noUsersHint: "Brugere vil blive vist her når de opretter en konto"
+    },
+    mealPlan: {
+      title: "Madplan",
+      subtitle: "Planlæg ugens menuer for mandag til fredag",
+      week: "Uge",
+      thisWeek: "Denne uge",
+      goToCurrentWeek: "Gå til nuværende uge",
+      dailyMenus: "Dagens menuer",
+      editDescription: "Rediger menuerne for hver dag",
+      viewDescription: "Se ugens planlagte menuer",
+      editMealPlan: "Rediger madplan",
+      clearWeek: "Ryd uge",
+      noMenuPlanned: "Ingen menu planlagt",
+      mealPlaceholder: "Indtast dagens menu...",
+      previousPlans: "Tidligere madplaner",
+      previousPlansDescription: "Gennemse madplaner fra tidligere uger",
+      noPreviousPlans: "Ingen tidligere madplaner endnu",
+      current: "Aktuel",
+      saved: "Madplan gemt!",
+      cleared: "Madplan ryddet",
+      days: {
+        monday: "Mandag",
+        tuesday: "Tirsdag",
+        wednesday: "Onsdag",
+        thursday: "Torsdag",
+        friday: "Fredag"
+      }
+    },
     hub: {
       title: "Terminal Configuration & Dispatch Hub",
       modules: {
@@ -418,24 +491,30 @@ export const translations = {
       previousWeek: "Forrige uge",
       nextWeek: "Næste uge"
     },
-    auth: {
-      title: "Log ind",
-      email: "Email",
-      password: "Kodeord",
-      login: "Log ind",
-      register: "Opret konto",
-      name: "Navn",
-      phone: "Telefon"
-    },
     profile: {
-      title: "Profil",
-      changePassword: "Skift kodeord",
-      changePhone: "Skift telefonnummer",
-      currentPassword: "Nuværende kodeord",
-      newPassword: "Nyt kodeord",
-      newPhone: "Nyt telefonnummer",
-      save: "Gem",
-      cancel: "Annuller"
+      menuMyAccount: "Min konto",
+      menuSettings: "Indstillinger",
+      menuAdminPanel: "Admin Panel",
+      menuLogout: "Log ud",
+      settingsDescription: "Opdater din adgangskode og telefonnummer",
+      phoneNumber: "Telefonnummer",
+      changePassword: "Skift adgangskode",
+      currentPassword: "Nuværende adgangskode",
+      newPassword: "Ny adgangskode",
+      confirmPassword: "Bekræft adgangskode",
+      saveChanges: "Gem ændringer",
+      cancel: "Annuller",
+      errors: {
+        userNotFound: "Bruger ikke fundet",
+        currentPasswordRequired: "Indtast nuværende adgangskode",
+        currentPasswordWrong: "Nuværende adgangskode er forkert",
+        passwordTooShort: "Adgangskode skal være mindst 6 tegn",
+        passwordMismatch: "Adgangskoderne stemmer ikke overens",
+        generic: "Der opstod en fejl. Prøv venligst igen."
+      },
+      passwordUpdated: "Adgangskode opdateret succesfuldt",
+      settingsUpdated: "Indstillinger opdateret",
+      noChanges: "Ingen ændringer foretaget"
     },
     common: {
       back: "Tilbage",
@@ -585,6 +664,79 @@ export const translations = {
     }
   },
   en: {
+    auth: {
+      loginSubtitle: "Log in to continue",
+      signupSubtitle: "Create a new account",
+      fullName: "Full name",
+      fullNamePlaceholder: "E.g. Anders Andersen",
+      emailSignup: "Email - Use Work Email",
+      emailLogin: "Email or username",
+      emailSignupPlaceholder: "your@email.com",
+      emailLoginPlaceholder: "your@email.com or username",
+      phoneNumber: "Phone number",
+      password: "Password",
+      confirmPassword: "Confirm password",
+      rememberMe: "Remember me on this computer (log in automatically)",
+      processing: "Processing...",
+      login: "Log in",
+      createAccount: "Create account",
+      noAccount: "Don't have an account?",
+      createOneHere: "Create one here",
+      hasAccount: "Already have an account?",
+      errors: {
+        fullNameRequired: "Please enter your full name",
+        phoneRequired: "Please enter your phone number",
+        passwordTooShort: "Password must be at least 6 characters",
+        passwordsMismatch: "Passwords don't match",
+        emailExists: "A user with this email already exists",
+        connectionFailed: "Could not connect. Please try again.",
+        wrongCredentials: "Incorrect email/username or password",
+        pendingApproval: "Your account is awaiting approval from a manager.",
+        rejected: "Your access request has been rejected. Contact a manager."
+      },
+      accountCreated: "Account created!",
+      signupRequestSent: "Request sent! Your account must be approved by a manager before you can log in.",
+      welcomeBack: "Welcome back!"
+    },
+    teamOverview: {
+      title: "Team Overview",
+      registeredUsers: "Registered Users",
+      userSingular: "User",
+      userPlural: "Users",
+      roleAdmin: "Administrator",
+      roleManager: "Manager",
+      description: "This is an overview of all users who have created an account and logged in. Users are created via the login system.",
+      loadingUsers: "Loading users...",
+      noUsers: "No registered users yet",
+      noUsersHint: "Users will be shown here once they create an account"
+    },
+    mealPlan: {
+      title: "Meal Plan",
+      subtitle: "Plan the week's menus from Monday to Friday",
+      week: "Week",
+      thisWeek: "This week",
+      goToCurrentWeek: "Go to current week",
+      dailyMenus: "Daily menus",
+      editDescription: "Edit the menus for each day",
+      viewDescription: "View the week's planned menus",
+      editMealPlan: "Edit meal plan",
+      clearWeek: "Clear week",
+      noMenuPlanned: "No menu planned",
+      mealPlaceholder: "Enter today's menu...",
+      previousPlans: "Previous meal plans",
+      previousPlansDescription: "Browse meal plans from previous weeks",
+      noPreviousPlans: "No previous meal plans yet",
+      current: "Current",
+      saved: "Meal plan saved!",
+      cleared: "Meal plan cleared",
+      days: {
+        monday: "Monday",
+        tuesday: "Tuesday",
+        wednesday: "Wednesday",
+        thursday: "Thursday",
+        friday: "Friday"
+      }
+    },
     hub: {
       title: "Terminal Configuration & Dispatch Hub",
       modules: {
@@ -1003,24 +1155,30 @@ export const translations = {
       previousWeek: "Previous week",
       nextWeek: "Next week"
     },
-    auth: {
-      title: "Login",
-      email: "Email",
-      password: "Password",
-      login: "Login",
-      register: "Create account",
-      name: "Name",
-      phone: "Phone"
-    },
     profile: {
-      title: "Profile",
+      menuMyAccount: "My account",
+      menuSettings: "Settings",
+      menuAdminPanel: "Admin Panel",
+      menuLogout: "Log out",
+      settingsDescription: "Update your password and phone number",
+      phoneNumber: "Phone number",
       changePassword: "Change password",
-      changePhone: "Change phone number",
       currentPassword: "Current password",
       newPassword: "New password",
-      newPhone: "New phone number",
-      save: "Save",
-      cancel: "Cancel"
+      confirmPassword: "Confirm password",
+      saveChanges: "Save changes",
+      cancel: "Cancel",
+      errors: {
+        userNotFound: "User not found",
+        currentPasswordRequired: "Enter your current password",
+        currentPasswordWrong: "Current password is incorrect",
+        passwordTooShort: "Password must be at least 6 characters",
+        passwordMismatch: "Passwords don't match",
+        generic: "An error occurred. Please try again."
+      },
+      passwordUpdated: "Password updated successfully",
+      settingsUpdated: "Settings updated",
+      noChanges: "No changes made"
     },
     common: {
       back: "Back",

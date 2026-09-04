@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { hashPassword, verifyPassword } from '@/lib/passwords'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface UserProfileProps {
   userEmail: string
@@ -38,6 +39,7 @@ interface UserData {
 }
 
 export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hideEmail = false }: UserProfileProps) {
+  const { t } = useLanguage()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
@@ -64,28 +66,28 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
       const userData = usersData[userEmail]
 
       if (!userData) {
-        toast.error('Bruger ikke fundet')
+        toast.error(t.profile.errors.userNotFound)
         return
       }
 
       if (newPassword) {
         if (!currentPassword) {
-          toast.error('Indtast nuværende adgangskode')
+          toast.error(t.profile.errors.currentPasswordRequired)
           return
         }
 
         if (!(await verifyPassword(currentPassword, userData.password))) {
-          toast.error('Nuværende adgangskode er forkert')
+          toast.error(t.profile.errors.currentPasswordWrong)
           return
         }
 
         if (newPassword.length < 6) {
-          toast.error('Adgangskode skal være mindst 6 tegn')
+          toast.error(t.profile.errors.passwordTooShort)
           return
         }
 
         if (newPassword !== confirmPassword) {
-          toast.error('Adgangskoderne stemmer ikke overens')
+          toast.error(t.profile.errors.passwordMismatch)
           return
         }
 
@@ -96,7 +98,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
         }
 
         await window.kv.set('users', usersData)
-        toast.success('Adgangskode opdateret succesfuldt')
+        toast.success(t.profile.passwordUpdated)
       } else if (phoneNumber !== userData.phone) {
         usersData[userEmail] = {
           ...userData,
@@ -104,15 +106,15 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
         }
 
         await window.kv.set('users', usersData)
-        toast.success('Indstillinger opdateret')
+        toast.success(t.profile.settingsUpdated)
       } else {
-        toast.info('Ingen ændringer foretaget')
+        toast.info(t.profile.noChanges)
       }
 
       setSettingsOpen(false)
     } catch (error) {
       console.error('Error in handleSaveSettings:', error)
-      toast.error('Der opstod en fejl. Prøv venligst igen.')
+      toast.error(t.profile.errors.generic)
     }
   }
 
@@ -131,7 +133,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>Min konto</DropdownMenuLabel>
+          <DropdownMenuLabel>{t.profile.menuMyAccount}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-muted-foreground text-sm">
             {userEmail}
@@ -142,7 +144,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
             className="cursor-pointer"
           >
             <Gear size={16} className="mr-2" />
-            Indstillinger
+            {t.profile.menuSettings}
           </DropdownMenuItem>
           {showAdmin && onAdminClick && (
             <DropdownMenuItem 
@@ -150,7 +152,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
               className="cursor-pointer"
             >
               <UserGear size={16} className="mr-2" />
-              Admin Panel
+              {t.profile.menuAdminPanel}
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
@@ -159,7 +161,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
             className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
           >
             <SignOut size={16} className="mr-2" />
-            Log ud
+            {t.profile.menuLogout}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -167,14 +169,14 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Indstillinger</DialogTitle>
+            <DialogTitle>{t.profile.menuSettings}</DialogTitle>
             <DialogDescription>
-              Opdater din adgangskode og telefonnummer
+              {t.profile.settingsDescription}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefonnummer</Label>
+              <Label htmlFor="phone">{t.profile.phoneNumber}</Label>
               <Input
                 id="phone"
                 type="tel"
@@ -185,10 +187,10 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
             </div>
 
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-4">Skift adgangskode</h4>
+              <h4 className="text-sm font-medium mb-4">{t.profile.changePassword}</h4>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="current-password">Nuværende adgangskode</Label>
+                  <Label htmlFor="current-password">{t.profile.currentPassword}</Label>
                   <Input
                     id="current-password"
                     type="password"
@@ -197,7 +199,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="new-password">Ny adgangskode</Label>
+                  <Label htmlFor="new-password">{t.profile.newPassword}</Label>
                   <Input
                     id="new-password"
                     type="password"
@@ -206,7 +208,7 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Bekræft adgangskode</Label>
+                  <Label htmlFor="confirm-password">{t.profile.confirmPassword}</Label>
                   <Input
                     id="confirm-password"
                     type="password"
@@ -219,10 +221,10 @@ export function UserProfile({ userEmail, onLogout, onAdminClick, showAdmin, hide
           </div>
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setSettingsOpen(false)}>
-              Annuller
+              {t.profile.cancel}
             </Button>
             <Button onClick={handleSaveSettings}>
-              Gem ændringer
+              {t.profile.saveChanges}
             </Button>
           </div>
         </DialogContent>
