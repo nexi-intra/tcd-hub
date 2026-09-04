@@ -60,9 +60,9 @@ gennemgang af hver fil):
 - [x] GuideImportStatus.tsx (~7 strenge)
 
 ## Fase 6 — Guide-redigering
-- [ ] GuideEditor.tsx (~35 strenge)
-- [ ] GuideViewer.tsx (~18 strenge)
-- [ ] CategoryManager.tsx (~18 strenge)
+- [x] GuideEditor.tsx (~35 strenge)
+- [x] GuideViewer.tsx (~18 strenge)
+- [x] CategoryManager.tsx (~18 strenge)
 
 ## Fase 7 — Manager-værktøjer (Datalagring-fanens undersider)
 - [ ] UpdateManager.tsx (~26 strenge)

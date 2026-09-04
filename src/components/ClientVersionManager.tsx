@@ -7,6 +7,7 @@ import { Monitor, Lightning, Clock } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { setKvObjectField } from '@/lib/kvArrays'
 import type { UpdateStatus, UpdateManifest } from '@/lib/electronUpdatesBridge'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface ClientVersionManagerProps {
   managerEmail: string
@@ -24,6 +25,7 @@ const OFFLINE_THRESHOLD_MS = 24 * 60 * 60 * 1000
 // Manager Panel → Datalagring: viser hvilken app-version hver bruger kører,
 // og lader manageren tvinge en helt specifik version ud til dem der er bagud.
 export function ClientVersionManager({ managerEmail, users }: ClientVersionManagerProps) {
+  const { t } = useLanguage()
   const isDesktopApp = !!window.electronUpdates
   const [status, setStatus] = useState<UpdateStatus | null>(null)
   const [history, setHistory] = useState<UpdateManifest[]>([])
@@ -76,7 +78,7 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
   const handleForceUpdate = async (email: string) => {
     const version = getSelectedVersion(email)
     if (!version) {
-      toast.error('Ingen version tilgængelig at pushe')
+      toast.error(t.clientVersionManager.noVersionToPush)
       return
     }
     setBusyEmail(email)
@@ -86,11 +88,11 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
         requestedBy: managerEmail,
         version,
       })
-      toast.success(`Version v${version} er sendt til ${email} — de opdateres automatisk ved næste synkronisering`)
+      toast.success(`${t.clientVersionManager.sentToPrefix}${version} ${t.clientVersionManager.sentToMiddle} ${email} ${t.clientVersionManager.sentToSuffix}`)
       await refresh()
     } catch (error) {
       console.error('Kunne ikke sende tvungen opdatering:', error)
-      toast.error('Kunne ikke sende tvungen opdatering')
+      toast.error(t.clientVersionManager.forceUpdateFailed)
     } finally {
       setBusyEmail(null)
     }
@@ -110,22 +112,22 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
           <Monitor size={24} weight="duotone" className="text-white" />
         </div>
         <div>
-          <h3 className="text-lg font-bold">Brugernes app-versioner</h3>
+          <h3 className="text-lg font-bold">{t.clientVersionManager.title}</h3>
           <p className="text-sm text-muted-foreground">
-            Se hvilken version hver bruger kører, og vælg helt præcist hvilken version der skal tvinges ud.
+            {t.clientVersionManager.subtitle}
           </p>
         </div>
       </div>
 
       {history.length === 0 && (
         <p className="text-sm text-muted-foreground rounded-lg border bg-muted/40 p-3">
-          Ingen versioner publiceret endnu — publicér mindst én version ovenfor, før du kan tvinge opdateringer ud.
+          {t.clientVersionManager.noHistoryYet}
         </p>
       )}
 
       <div className="rounded-lg border divide-y">
         {rows.length === 0 && (
-          <p className="p-4 text-sm text-muted-foreground">Ingen brugere fundet.</p>
+          <p className="p-4 text-sm text-muted-foreground">{t.clientVersionManager.noUsersFound}</p>
         )}
         {rows.map(({ user, entry }) => {
           const outdated = entry ? isOutdated(entry.version) : false
@@ -142,7 +144,7 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {neverSeen ? (
-                  <Badge variant="outline">Ikke rapporteret endnu</Badge>
+                  <Badge variant="outline">{t.clientVersionManager.neverReported}</Badge>
                 ) : (
                   <>
                     <Badge variant={outdated ? 'destructive' : 'default'}>
@@ -151,7 +153,7 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
                     {isOffline && (
                       <Badge variant="outline" className="gap-1">
                         <Clock size={12} />
-                        Ikke set i 24t+
+                        {t.clientVersionManager.notSeenIn24h}
                       </Badge>
                     )}
                   </>
@@ -159,7 +161,7 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
                 {pending && (
                   <Badge variant="secondary" className="gap-1">
                     <Lightning size={12} />
-                    v{pending.version || '?'} afventer
+                    v{pending.version || '?'} {t.clientVersionManager.pendingSuffix}
                   </Badge>
                 )}
 
@@ -169,7 +171,7 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
                   disabled={history.length === 0}
                 >
                   <SelectTrigger className="w-[150px] h-9 text-sm">
-                    <SelectValue placeholder="Vælg version" />
+                    <SelectValue placeholder={t.clientVersionManager.selectVersion} />
                   </SelectTrigger>
                   <SelectContent>
                     {history.map((entryManifest) => (
@@ -188,7 +190,7 @@ export function ClientVersionManager({ managerEmail, users }: ClientVersionManag
                   className="gap-1.5"
                 >
                   <Lightning size={14} />
-                  Tving v{selectedVersion || '…'}
+                  {t.clientVersionManager.forcePrefix}{selectedVersion || '…'}
                 </Button>
               </div>
             </div>

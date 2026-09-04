@@ -10,20 +10,16 @@ import { FolderOpen, DownloadSimple, UploadSimple, HardDrives, Info, CloudCheck,
 import { toast } from 'sonner'
 import { createBackup, downloadBackup, parseBackup, restoreBackup, type BackupFile } from '@/lib/backup'
 import { useStorageConnection } from '@/hooks/useStorageConnection'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface StorageInfo {
   dataDir: string
   source: 'env' | 'config' | 'user' | 'default'
 }
 
-const sourceLabels: Record<StorageInfo['source'], string> = {
-  env: 'Sat via miljøvariabel (TCD_HUB_DATA_DIR)',
-  config: 'Sat via tcd-hub.config.json ved siden af programmet',
-  user: 'Valgt her i appen',
-  default: 'Appens egen mappe på denne computer',
-}
-
 export function DataStorageManager() {
+  const { t, language } = useLanguage()
+  const sourceLabels: Record<StorageInfo['source'], string> = t.dataStorageManager.sourceLabels
   const isDesktopApp = !!window.electronKv
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null)
   const [isBusy, setIsBusy] = useState(false)
@@ -46,13 +42,13 @@ export function DataStorageManager() {
         setStorageInfo({ dataDir: result.dataDir, source: 'user' })
         toast.success(
           result.migratedFiles > 0
-            ? `Datamappe skiftet. ${result.migratedFiles} datafiler blev kopieret med over.`
-            : 'Datamappe skiftet.'
+            ? `${t.dataStorageManager.folderChangedWithFilesPrefix} ${result.migratedFiles} ${t.dataStorageManager.folderChangedFilesMiddle}`
+            : t.dataStorageManager.folderChanged
         )
       }
     } catch (error) {
       console.error('Kunne ikke skifte datamappe:', error)
-      toast.error('Kunne ikke skifte datamappe. Tjek at du har adgang til mappen.')
+      toast.error(t.dataStorageManager.folderChangeFailed)
     } finally {
       setIsBusy(false)
     }
@@ -63,15 +59,15 @@ export function DataStorageManager() {
     try {
       const result = await window.electronKv!.retrySync()
       if (result.remaining === 0 && result.succeeded > 0) {
-        toast.success(`${result.succeeded} ${result.succeeded === 1 ? 'ændring' : 'ændringer'} synkroniseret`)
+        toast.success(`${result.succeeded} ${result.succeeded === 1 ? t.dataStorageManager.changeSingular : t.dataStorageManager.changePlural} ${t.dataStorageManager.syncedSuffix}`)
       } else if (result.failed > 0) {
-        toast.error(`${result.failed} ${result.failed === 1 ? 'ændring' : 'ændringer'} kunne ikke synkroniseres endnu`)
+        toast.error(`${result.failed} ${result.failed === 1 ? t.dataStorageManager.changeSingular : t.dataStorageManager.changePlural} ${t.dataStorageManager.syncFailedSuffix}`)
       } else {
-        toast.info('Ingen forbindelse endnu — prøv igen om lidt')
+        toast.info(t.dataStorageManager.noConnectionYet)
       }
     } catch (error) {
       console.error('Manuel gensynkronisering fejlede:', error)
-      toast.error('Kunne ikke synkronisere lige nu')
+      toast.error(t.dataStorageManager.syncNowFailed)
     } finally {
       setIsSyncing(false)
     }
@@ -82,10 +78,10 @@ export function DataStorageManager() {
     try {
       const backup = await createBackup()
       const filename = downloadBackup(backup)
-      toast.success(`Backup gemt som ${filename} (${Object.keys(backup.data).length} datasæt)`)
+      toast.success(`${t.dataStorageManager.backupSavedAsPrefix} ${filename} (${Object.keys(backup.data).length} ${t.dataStorageManager.backupSavedDatasetsSuffix})`)
     } catch (error) {
       console.error('Backup-eksport fejlede:', error)
-      toast.error('Kunne ikke oprette backup')
+      toast.error(t.dataStorageManager.backupCreateFailed)
     } finally {
       setIsBusy(false)
     }
@@ -97,7 +93,7 @@ export function DataStorageManager() {
       setPendingImport(backup)
     } catch (error) {
       console.error('Ugyldig backup-fil:', error)
-      toast.error('Filen er ikke en gyldig TCD Hub-backup')
+      toast.error(t.dataStorageManager.invalidBackupFile)
     }
   }
 
@@ -106,11 +102,11 @@ export function DataStorageManager() {
     setIsBusy(true)
     try {
       const count = await restoreBackup(pendingImport)
-      toast.success(`${count} datasæt genskabt fra backup. Genindlæser…`)
+      toast.success(`${count} ${t.dataStorageManager.datasetsRestoredSuffix}`)
       setTimeout(() => window.location.reload(), 1200)
     } catch (error) {
       console.error('Backup-import fejlede:', error)
-      toast.error('Kunne ikke genskabe backup')
+      toast.error(t.dataStorageManager.restoreFailed)
       setIsBusy(false)
     } finally {
       setPendingImport(null)
@@ -125,9 +121,9 @@ export function DataStorageManager() {
             <HardDrives size={24} weight="duotone" className="text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-bold">Hvor ligger appens data?</h3>
+            <h3 className="text-lg font-bold">{t.dataStorageManager.whereIsDataTitle}</h3>
             <p className="text-sm text-muted-foreground">
-              Vagtplan, ferie, brugere og alt andet gemmes samlet ét sted.
+              {t.dataStorageManager.whereIsDataSubtitle}
             </p>
           </div>
         </div>
@@ -135,8 +131,8 @@ export function DataStorageManager() {
         {isDesktopApp ? (
           <>
             <div className="rounded-lg border bg-muted/40 p-4 space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nuværende datamappe</p>
-              <p className="font-mono text-sm break-all">{storageInfo?.dataDir || 'Indlæser…'}</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.dataStorageManager.currentFolderLabel}</p>
+              <p className="font-mono text-sm break-all">{storageInfo?.dataDir || t.common.loading}</p>
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 {storageInfo && (
                   <Badge variant="secondary">{sourceLabels[storageInfo.source]}</Badge>
@@ -145,12 +141,12 @@ export function DataStorageManager() {
                   connectionStatus.connected ? (
                     <Badge className="gap-1 bg-green-600/15 text-green-700 dark:text-green-400 border-green-600/30">
                       <CloudCheck size={14} weight="fill" />
-                      Forbundet
+                      {t.dataStorageManager.connected}
                     </Badge>
                   ) : (
                     <Badge variant="destructive" className="gap-1">
                       <CloudSlash size={14} weight="fill" />
-                      {connectionStatus.startedDisconnected ? 'Ikke forbundet — lokal tilstand' : 'Forbindelse mistet'}
+                      {connectionStatus.startedDisconnected ? t.dataStorageManager.disconnectedLocalMode : t.dataStorageManager.connectionLost}
                     </Badge>
                   )
                 )}
@@ -158,15 +154,15 @@ export function DataStorageManager() {
               {connectionStatus && !connectionStatus.connected && (
                 <p className="text-xs text-muted-foreground pt-1">
                   {connectionStatus.startedDisconnected
-                    ? 'Den foretrukne delte mappe kunne ikke nås ved opstart. Genstart appen, når forbindelsen er tilbage.'
-                    : 'Forbindelsen forsøges automatisk genoprettet i baggrunden.'}
+                    ? t.dataStorageManager.startedDisconnectedHint
+                    : t.dataStorageManager.reconnectingHint}
                 </p>
               )}
               {connectionStatus && connectionStatus.pendingSyncCount > 0 && (
                 <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t">
                   <p className="text-xs text-muted-foreground">
                     <span className="font-semibold text-foreground">{connectionStatus.pendingSyncCount}</span>{' '}
-                    {connectionStatus.pendingSyncCount === 1 ? 'ændring afventer' : 'ændringer afventer'} synkronisering
+                    {connectionStatus.pendingSyncCount === 1 ? t.dataStorageManager.pendingChangeSingularSuffix : t.dataStorageManager.pendingChangePluralSuffix} {t.dataStorageManager.pendingSyncSuffix}
                   </p>
                   <Button
                     onClick={handleRetrySync}
@@ -176,7 +172,7 @@ export function DataStorageManager() {
                     className="gap-2 shrink-0"
                   >
                     <ArrowsClockwise size={14} className={isSyncing ? 'animate-spin' : ''} />
-                    Prøv igen
+                    {t.dataStorageManager.retry}
                   </Button>
                 </div>
               )}
@@ -184,23 +180,19 @@ export function DataStorageManager() {
             <div className="flex items-start gap-2 text-sm text-muted-foreground">
               <Info size={18} className="shrink-0 mt-0.5" />
               <p>
-                Vælg en fast mappe — fx på et netværksdrev — så peger enhver ny version af appen
-                automatisk på de samme data. Du mister intet ved at opdatere appen. Alle datafiler
-                er krypterede, så passwords m.m. ikke kan læses direkte fra mappen.
+                {t.dataStorageManager.folderInfoText}
               </p>
             </div>
             <Button onClick={handleChooseFolder} disabled={isBusy} className="gap-2">
               <FolderOpen size={18} />
-              Vælg datamappe…
+              {t.dataStorageManager.chooseFolder}
             </Button>
           </>
         ) : (
           <div className="flex items-start gap-2 text-sm text-muted-foreground rounded-lg border bg-muted/40 p-4">
             <Info size={18} className="shrink-0 mt-0.5" />
             <p>
-              Du kører i en browser, så data gemmes i browserens eget lager på denne computer.
-              Brug desktop-appen for at gemme i en fælles mappe (fx netværksdrev). Du kan flytte
-              alt data derover med backup-funktionen herunder: eksportér her, importér i desktop-appen.
+              {t.dataStorageManager.browserNotice}
             </p>
           </div>
         )}
@@ -212,9 +204,9 @@ export function DataStorageManager() {
             <DownloadSimple size={24} weight="duotone" className="text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-bold">Backup</h3>
+            <h3 className="text-lg font-bold">{t.dataStorageManager.backupTitle}</h3>
             <p className="text-sm text-muted-foreground">
-              Én fil med alt: vagtplan, ferie, brugere, spil-resultater, indstillinger osv.
+              {t.dataStorageManager.backupSubtitle}
             </p>
           </div>
         </div>
@@ -222,15 +214,14 @@ export function DataStorageManager() {
         <div className="flex items-start gap-2 text-sm text-muted-foreground">
           <Info size={18} className="shrink-0 mt-0.5" />
           <p>
-            Skal du flytte til en ny version eller en ny computer? Eksportér en backup her,
-            åbn den nye version, og importér filen — så er al historik med.
+            {t.dataStorageManager.backupInfoText}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <Button onClick={handleExport} disabled={isBusy} className="gap-2">
             <DownloadSimple size={18} />
-            Eksportér backup
+            {t.dataStorageManager.exportBackup}
           </Button>
           <Button
             variant="outline"
@@ -239,7 +230,7 @@ export function DataStorageManager() {
             onClick={() => fileInputRef.current?.click()}
           >
             <UploadSimple size={18} />
-            Importér backup…
+            {t.dataStorageManager.importBackup}
           </Button>
           <input
             ref={fileInputRef}
@@ -258,20 +249,19 @@ export function DataStorageManager() {
       <AlertDialog open={!!pendingImport} onOpenChange={(open) => !open && setPendingImport(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Genskab data fra backup?</AlertDialogTitle>
+            <AlertDialogTitle>{t.dataStorageManager.restoreDialogTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               {pendingImport && (
                 <>
-                  Backuppen er fra {new Date(pendingImport.exportedAt).toLocaleString('da-DK')} og
-                  indeholder {Object.keys(pendingImport.data).length} datasæt. Eksisterende data med
-                  samme navne bliver overskrevet. Denne handling kan ikke fortrydes.
+                  {t.dataStorageManager.restoreDialogFromPrefix} {new Date(pendingImport.exportedAt).toLocaleString(language === 'en' ? 'en-US' : 'da-DK')} {t.dataStorageManager.restoreDialogContainsMiddle}{' '}
+                  {Object.keys(pendingImport.data).length} {t.dataStorageManager.restoreDialogDatasetsMiddle}
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annullér</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmImport}>Genskab data</AlertDialogAction>
+            <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmImport}>{t.dataStorageManager.restoreAction}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
