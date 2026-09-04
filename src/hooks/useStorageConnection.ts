@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { StorageConnectionStatus } from '@/lib/electronKvBridge'
+import type { StorageConnectionStatus, StorageSyncResult } from '@/lib/electronKvBridge'
 
-export type { StorageConnectionStatus }
+export type { StorageConnectionStatus, StorageSyncResult }
 
 /**
  * Live forbindelsesstatus til den delte datamappe. Kun relevant i Electron —

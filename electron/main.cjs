@@ -147,6 +147,7 @@ function getStorageConnectionStatus() {
     since: storageConnectionSince,
     startedDisconnected: storageStartedDisconnected,
     failedSources: storageFailedSources,
+    pendingSyncCount: store.getPendingSyncCount(),
   }
 }
 
@@ -155,6 +156,13 @@ function setStorageConnected(connected) {
   if (connected === storageConnected) return
   storageConnected = connected
   storageConnectionSince = Date.now()
+  broadcast('storage:connection-changed', getStorageConnectionStatus())
+}
+
+/** Kaldes af den resiliente store når en offline-kø er (delvist) afspillet mod netværksstien. */
+function handleSyncResult(result) {
+  broadcast('storage:sync-result', result)
+  // Antallet af afventende ændringer kan have ændret sig — opdater også statusvisningen.
   broadcast('storage:connection-changed', getStorageConnectionStatus())
 }
 
@@ -239,7 +247,7 @@ function switchDataDir(newDir) {
 
   fs.writeFileSync(userConfigPath(), JSON.stringify({ dataDir: newDir }, null, 2))
 
-  store = createResilientStore(createStore(newDir), createStore(localCacheDir()))
+  store = createResilientStore(createStore(newDir), createStore(localCacheDir()), { onSyncResult: handleSyncResult })
   dataDirSource = 'user'
   // Netop verificeret tilgængelig ovenfor (mkdirSync+accessSync) — nulstil
   // eventuel "startede offline"-tilstand fra opstart.
@@ -305,7 +313,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   const resolved = resolveDataDir()
-  store = createResilientStore(createStore(resolved.dir), createStore(localCacheDir()))
+  store = createResilientStore(createStore(resolved.dir), createStore(localCacheDir()), { onSyncResult: handleSyncResult })
   dataDirSource = resolved.source
   storageStartedDisconnected = resolved.failedSources.length > 0
   storageFailedSources = resolved.failedSources
@@ -330,6 +338,7 @@ app.whenReady().then(() => {
   ipcMain.handle('kv:data-dir', () => store.dataDir)
   ipcMain.handle('kv:storage-info', () => ({ dataDir: store.dataDir, source: dataDirSource }))
   ipcMain.handle('kv:connection-status', () => getStorageConnectionStatus())
+  ipcMain.handle('kv:retry-sync', () => store.retrySyncNow())
   ipcMain.handle('kv:choose-data-dir', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     const result = await dialog.showOpenDialog(win, {

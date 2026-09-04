@@ -11,6 +11,15 @@ export interface StorageConnectionStatus {
   startedDisconnected: boolean
   /** Kilder ('env'/'config'/'user') der blev forsøgt og fejlede før den nuværende blev valgt. */
   failedSources: string[]
+  /** Antal ændringer lavet mens offline, der endnu ikke er synkroniseret til det delte lager. */
+  pendingSyncCount: number
+}
+
+/** Resultat af en (automatisk eller manuel) afspilning af den offline skrive-kø. */
+export interface StorageSyncResult {
+  succeeded: number
+  failed: number
+  remaining: number
 }
 
 // Raw API exposed by electron/preload.cjs via contextBridge.
@@ -24,9 +33,12 @@ export interface ElectronKvApi {
   getStorageInfo(): Promise<{ dataDir: string; source: 'env' | 'config' | 'user' | 'default' }>
   chooseDataDir(): Promise<{ dataDir: string; migratedFiles: number } | null>
   getConnectionStatus(): Promise<StorageConnectionStatus>
+  retrySync(): Promise<StorageSyncResult>
   onConnectionChanged(callback: (status: StorageConnectionStatus) => void): () => void
+  onSyncResult(callback: (result: StorageSyncResult) => void): () => void
   onChanged(callback: (changedKeys: string[]) => void): () => void
 }
+
 
 
 /** Adapts the preload bridge to the app's KvStore interface. */

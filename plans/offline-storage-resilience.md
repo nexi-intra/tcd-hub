@@ -68,11 +68,11 @@ lille orkestrerings-modul (`electron/offlineSync.cjs`, uden Electron-imports lig
 - [x] Tests for den nye connection-detection-logik (mirroring store.test.cjs-mønsteret)
 
 ## Fase 2 — Lokal spejl-cache + læse-fallback
-- [ ] Instantiér en ANDEN `createStore()`-instans peget på `<userData>/offline-cache` (samme kryptering/atomare skrivninger genbruges)
-- [ ] Ved hver vellykket netværks-læsning/-skrivning: spejl værdien til lokal cache (best-effort, blokerer ikke hovedoperationen)
-- [ ] Ved `get()`-fejl pga. afbrydelse: server transparent fra lokal cache i stedet for at kaste/fejlfortolke som "findes ikke"
-- [ ] Sikr at dette IKKE ændrer opførsel mens man er online (kun et sikkerhedsnet ved afbrydelse)
-- [ ] Tests: simulér netværks-udfald og verificér at læsninger stadig virker fra cache
+- [x] Instantiér en ANDEN `createStore()`-instans peget på `<userData>/offline-cache` (samme kryptering/atomare skrivninger genbruges)
+- [x] Ved hver vellykket netværks-læsning/-skrivning: spejl værdien til lokal cache (best-effort, blokerer ikke hovedoperationen)
+- [x] Ved `get()`-fejl pga. afbrydelse: server transparent fra lokal cache i stedet for at kaste/fejlfortolke som "findes ikke"
+- [x] Sikr at dette IKKE ændrer opførsel mens man er online (kun et sikkerhedsnet ved afbrydelse)
+- [x] Tests: simulér netværks-udfald og verificér at læsninger stadig virker fra cache
 
 ## Fase 3 — Offline skrive-kø + gensynkronisering ved genopretning
 - [ ] Persisteret operations-kø (gemt i den lokale store) — `set`/`update`/`delete` mens offline lægges i køen ud over at blive anvendt lokalt med det samme

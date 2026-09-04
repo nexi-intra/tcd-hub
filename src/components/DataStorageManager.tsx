@@ -6,7 +6,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { FolderOpen, DownloadSimple, UploadSimple, HardDrives, Info, CloudCheck, CloudSlash } from '@phosphor-icons/react'
+import { FolderOpen, DownloadSimple, UploadSimple, HardDrives, Info, CloudCheck, CloudSlash, ArrowsClockwise } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { createBackup, downloadBackup, parseBackup, restoreBackup, type BackupFile } from '@/lib/backup'
 import { useStorageConnection } from '@/hooks/useStorageConnection'
@@ -27,6 +27,7 @@ export function DataStorageManager() {
   const isDesktopApp = !!window.electronKv
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null)
   const [isBusy, setIsBusy] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [pendingImport, setPendingImport] = useState<BackupFile | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const connectionStatus = useStorageConnection()
@@ -54,6 +55,25 @@ export function DataStorageManager() {
       toast.error('Kunne ikke skifte datamappe. Tjek at du har adgang til mappen.')
     } finally {
       setIsBusy(false)
+    }
+  }
+
+  const handleRetrySync = async () => {
+    setIsSyncing(true)
+    try {
+      const result = await window.electronKv!.retrySync()
+      if (result.remaining === 0 && result.succeeded > 0) {
+        toast.success(`${result.succeeded} ${result.succeeded === 1 ? 'ændring' : 'ændringer'} synkroniseret`)
+      } else if (result.failed > 0) {
+        toast.error(`${result.failed} ${result.failed === 1 ? 'ændring' : 'ændringer'} kunne ikke synkroniseres endnu`)
+      } else {
+        toast.info('Ingen forbindelse endnu — prøv igen om lidt')
+      }
+    } catch (error) {
+      console.error('Manuel gensynkronisering fejlede:', error)
+      toast.error('Kunne ikke synkronisere lige nu')
+    } finally {
+      setIsSyncing(false)
     }
   }
 
@@ -141,6 +161,24 @@ export function DataStorageManager() {
                     ? 'Den foretrukne delte mappe kunne ikke nås ved opstart. Genstart appen, når forbindelsen er tilbage.'
                     : 'Forbindelsen forsøges automatisk genoprettet i baggrunden.'}
                 </p>
+              )}
+              {connectionStatus && connectionStatus.pendingSyncCount > 0 && (
+                <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">{connectionStatus.pendingSyncCount}</span>{' '}
+                    {connectionStatus.pendingSyncCount === 1 ? 'ændring afventer' : 'ændringer afventer'} synkronisering
+                  </p>
+                  <Button
+                    onClick={handleRetrySync}
+                    disabled={isSyncing}
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 shrink-0"
+                  >
+                    <ArrowsClockwise size={14} className={isSyncing ? 'animate-spin' : ''} />
+                    Prøv igen
+                  </Button>
+                </div>
               )}
             </div>
             <div className="flex items-start gap-2 text-sm text-muted-foreground">

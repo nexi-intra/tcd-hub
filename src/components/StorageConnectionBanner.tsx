@@ -28,15 +28,38 @@ export function StorageConnectionBanner() {
       }
     } else if (previousConnected.current === true && !status.connected) {
       toast.error(
-        'Mistet forbindelse til den delte datamappe. Du kan roligt fortsætte med at bruge appen.',
+        'Mistet forbindelse til den delte datamappe. Du kan roligt fortsætte med at bruge appen — dine ændringer gemmes lokalt og synkroniseres automatisk, når forbindelsen er tilbage.',
         { id: TOAST_ID, duration: Infinity }
       )
     } else if (previousConnected.current === false && status.connected) {
-      toast.success('Forbindelse til den delte datamappe er genoprettet.', { id: TOAST_ID, duration: 5000 })
+      const pending = status.pendingSyncCount
+      toast.success(
+        pending > 0
+          ? `Forbindelse genoprettet — synkroniserer ${pending} ${pending === 1 ? 'ændring' : 'ændringer'}…`
+          : 'Forbindelse til den delte datamappe er genoprettet.',
+        { id: TOAST_ID, duration: pending > 0 ? Infinity : 5000 }
+      )
     }
 
     previousConnected.current = status.connected
   }, [status])
+
+  useEffect(() => {
+    if (!window.electronKv) return
+    return window.electronKv.onSyncResult((result) => {
+      if (result.failed === 0) {
+        toast.success(
+          `✅ ${result.succeeded} ${result.succeeded === 1 ? 'ændring' : 'ændringer'} synkroniseret`,
+          { id: TOAST_ID, duration: 4000 }
+        )
+      } else {
+        toast.error(
+          `${result.succeeded} ${result.succeeded === 1 ? 'ændring' : 'ændringer'} synkroniseret, men ${result.failed} kunne ikke — prøver igen senere`,
+          { id: TOAST_ID, duration: 8000 }
+        )
+      }
+    })
+  }, [])
 
   if (!status || status.connected) return null
 
@@ -44,6 +67,11 @@ export function StorageConnectionBanner() {
     <div className="fixed bottom-4 left-4 z-[100] flex items-center gap-2 rounded-full bg-destructive text-destructive-foreground px-3 py-1.5 text-xs font-semibold shadow-lg">
       <CloudSlash size={14} weight="fill" />
       {status.startedDisconnected ? 'Ikke forbundet — lokal tilstand' : 'Offline — arbejder lokalt'}
+      {status.pendingSyncCount > 0 && (
+        <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">
+          {status.pendingSyncCount} afventer
+        </span>
+      )}
     </div>
   )
 }
