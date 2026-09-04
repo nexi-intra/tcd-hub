@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react'
 import {
   House, Books, CalendarBlank, ClipboardText, ShieldCheck, ShieldCheck as ManagerIcon,
-  Users, Envelope, ForkKnife, GameController, Kanban, NotePencil, User as UserIcon,
+  Users, Envelope, ForkKnife, GameController, Kanban, NotePencil,
 } from '@phosphor-icons/react'
 import {
-  CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator,
+  CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '@/components/ui/command'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { navigateTo, type AppViewId } from '@/lib/appNavigation'
 import { hasManagerAccess } from '@/lib/userRoles'
-import type { Guide } from '@/lib/guideTypes'
 
 interface ModuleEntry {
   id: AppViewId
@@ -22,27 +21,11 @@ interface CommandPaletteProps {
   userEmail: string
 }
 
-interface NotebookNoteLite {
-  id: string
-  title: string
-  isPersonal: boolean
-  creatorEmail: string
-}
-
-interface ProjectLite {
-  id: string
-  title: string
-}
-
-/** Global hurtig-navigation (Ctrl/Cmd+K) på tværs af moduler, guides, noter, projekter og kolleger. */
+/** Global hurtig-navigation (Ctrl/Cmd+K) mellem moduler. */
 export function CommandPalette({ userEmail }: CommandPaletteProps) {
   const { language } = useLanguage()
   const [open, setOpen] = useState(false)
   const [isManager, setIsManager] = useState(false)
-  const [guides, setGuides] = useState<Guide[]>([])
-  const [notes, setNotes] = useState<NotebookNoteLite[]>([])
-  const [projects, setProjects] = useState<ProjectLite[]>([])
-  const [colleagues, setColleagues] = useState<Array<{ email: string; name: string }>>([])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -59,28 +42,6 @@ export function CommandPalette({ userEmail }: CommandPaletteProps) {
     hasManagerAccess(userEmail).then(setIsManager)
   }, [userEmail])
 
-  // Data hentes først når paletten faktisk åbnes — undgår unødvendige KV-læsninger på hver Hub-render.
-  useEffect(() => {
-    if (!open) return
-    const loadData = async () => {
-      const [guidesData, notesData, projectsData, usersData] = await Promise.all([
-        window.kv.get<Guide[]>('guides'),
-        window.kv.get<NotebookNoteLite[]>('notebook-notes'),
-        window.kv.get<ProjectLite[]>('projects'),
-        window.kv.get<Record<string, { email: string; fullName: string }>>('users'),
-      ])
-      setGuides(guidesData || [])
-      setNotes((notesData || []).filter(n => !n.isPersonal || n.creatorEmail === userEmail))
-      setProjects(projectsData || [])
-      setColleagues(
-        Object.values(usersData || {})
-          .filter(u => u.email !== userEmail)
-          .map(u => ({ email: u.email, name: u.fullName }))
-      )
-    }
-    loadData()
-  }, [open, userEmail])
-
   const modules: ModuleEntry[] = [
     { id: 'hub', icon: House, label: language === 'da' ? 'Forside' : 'Home' },
     { id: 'guides', icon: Books, label: language === 'da' ? 'Guide Bibliotek' : 'Guide Library' },
@@ -96,8 +57,8 @@ export function CommandPalette({ userEmail }: CommandPaletteProps) {
     { id: 'admin', icon: ShieldCheck, label: 'Admin Panel', managerOnly: true },
   ]
 
-  const go = (view: AppViewId, search?: string) => {
-    navigateTo(view, search ? { search } : undefined)
+  const go = (view: AppViewId) => {
+    navigateTo(view)
     setOpen(false)
   }
 
@@ -106,9 +67,9 @@ export function CommandPalette({ userEmail }: CommandPaletteProps) {
       open={open}
       onOpenChange={setOpen}
       title={language === 'da' ? 'Hurtig-navigation' : 'Quick navigation'}
-      description={language === 'da' ? 'Søg på tværs af hele TCD Hub' : 'Search across all of TCD Hub'}
+      description={language === 'da' ? 'Naviger mellem moduler i TCD Hub' : 'Navigate between TCD Hub modules'}
     >
-      <CommandInput placeholder={language === 'da' ? 'Søg efter moduler, guides, noter, kolleger…' : 'Search modules, guides, notes, colleagues…'} />
+      <CommandInput placeholder={language === 'da' ? 'Søg efter et modul…' : 'Search for a module…'} />
       <CommandList>
         <CommandEmpty>{language === 'da' ? 'Intet fundet' : 'Nothing found'}</CommandEmpty>
 
@@ -123,63 +84,8 @@ export function CommandPalette({ userEmail }: CommandPaletteProps) {
             )
           })}
         </CommandGroup>
-
-        {guides.length > 0 && (
-          <>
-            <CommandSeparator />
-            <CommandGroup heading={language === 'da' ? 'Guides' : 'Guides'}>
-              {guides.slice(0, 8).map(g => (
-                <CommandItem key={g.id} value={`guide-${g.title}`} onSelect={() => go('guides', g.title)}>
-                  <Books size={18} className="mr-2" />
-                  {g.title}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </>
-        )}
-
-        {notes.length > 0 && (
-          <>
-            <CommandSeparator />
-            <CommandGroup heading={language === 'da' ? 'Noter' : 'Notes'}>
-              {notes.slice(0, 8).map(n => (
-                <CommandItem key={n.id} value={`note-${n.title}`} onSelect={() => go('notebook', n.title)}>
-                  <NotePencil size={18} className="mr-2" />
-                  {n.title}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </>
-        )}
-
-        {projects.length > 0 && (
-          <>
-            <CommandSeparator />
-            <CommandGroup heading={language === 'da' ? 'Projekter' : 'Projects'}>
-              {projects.slice(0, 8).map(p => (
-                <CommandItem key={p.id} value={`project-${p.title}`} onSelect={() => go('projects', p.title)}>
-                  <Kanban size={18} className="mr-2" />
-                  {p.title}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </>
-        )}
-
-        {colleagues.length > 0 && (
-          <>
-            <CommandSeparator />
-            <CommandGroup heading={language === 'da' ? 'Kolleger' : 'Colleagues'}>
-              {colleagues.slice(0, 12).map(c => (
-                <CommandItem key={c.email} value={`user-${c.name}-${c.email}`} onSelect={() => go('team')}>
-                  <UserIcon size={18} className="mr-2" />
-                  {c.name}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </>
-        )}
       </CommandList>
     </CommandDialog>
   )
 }
+

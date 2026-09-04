@@ -75,11 +75,11 @@ lille orkestrerings-modul (`electron/offlineSync.cjs`, uden Electron-imports lig
 - [x] Tests: simulér netværks-udfald og verificér at læsninger stadig virker fra cache
 
 ## Fase 3 — Offline skrive-kø + gensynkronisering ved genopretning
-- [ ] Persisteret operations-kø (gemt i den lokale store) — `set`/`update`/`delete` mens offline lægges i køen ud over at blive anvendt lokalt med det samme
-- [ ] Ved genopretning: afspil køen i rækkefølge mod netværksstien — array-operationer (append/upsert/remove-by-id) afspilles som operationer via den eksisterende `update()`-mekanisme, ikke som rå overskrivning
-- [ ] Ryd køposter efterhånden som de lykkes; behold + vis fejlede poster tydeligt (sjældent tilfælde)
-- [ ] UI: toast med fremskridt ("Synkroniserer 3 ændringer…" → "✅ Synkroniseret"), Datalagring-panel viser antal afventende + manuel "Prøv igen"-knap
-- [ ] Tests: konkurrerende ændring fra en anden (online) klient mens vi var offline på samme nøgle — begge ændringer skal overleve
+- [x] Persisteret operations-kø (gemt i den lokale store) — `set`/`update`/`delete` mens offline lægges i køen ud over at blive anvendt lokalt med det samme
+- [x] Ved genopretning: afspil køen i rækkefølge mod netværksstien — array-operationer (append/upsert/remove-by-id) afspilles som operationer via den eksisterende `update()`-mekanisme, ikke som rå overskrivning
+- [x] Ryd køposter efterhånden som de lykkes; behold + vis fejlede poster tydeligt (sjældent tilfælde)
+- [x] UI: toast med fremskridt ("Synkroniserer 3 ændringer…" → "✅ Synkroniseret"), Datalagring-panel viser antal afventende + manuel "Prøv igen"-knap
+- [x] Tests: konkurrerende ændring fra en anden (online) klient mens vi var offline på samme nøgle — begge ændringer skal overleve
 
 ## Fase 4 — Finpudsning & kantsager
 - [ ] Backoff/kredsløbsafbryder så en fejlbehæftet (men ikke helt død) sti ikke bliver banket konstant med genforsøg
