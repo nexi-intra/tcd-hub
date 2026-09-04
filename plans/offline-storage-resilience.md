@@ -59,13 +59,13 @@ lille orkestrerings-modul (`electron/offlineSync.cjs`, uden Electron-imports lig
   Datalagring-panel med live status og antal ikke-synkroniserede ændringer.
 
 ## Fase 1 — Forbindelsesstatus: opdag og VIS afbrydelse (ingen offline-skriving endnu)
-- [ ] Udvid `store.watch()`'s polling-loop til at rapportere om `fs.readdirSync(dataDir)` reelt lykkedes (ikke kun ændrede filer)
-- [ ] Ny IPC-broadcast `storage:connection-changed` (connected: boolean, since: timestamp) fra main.cjs
-- [ ] `preload.cjs`: eksponér `onStorageConnectionChanged(callback)` + `getStorageConnectionStatus()`
-- [ ] Ny `src/hooks/useStorageConnection.ts` + globalt banner/toast (mount i App.tsx, ligesom `UpdateNotification`): "⚠️ Mistet forbindelse til datalageret" ved tab, "✅ Forbindelse genoprettet" ved retur, + permanent lille badge mens offline (ikke kun en engangs-toast)
-- [ ] `DataStorageManager.tsx`: vis live forbindelsesstatus ved siden af den eksisterende sti-visning
-- [ ] Håndter "appen startes mens forbindelsen allerede er nede" (ikke kun tab midt i session)
-- [ ] Tests for den nye connection-detection-logik (mirroring store.test.cjs-mønsteret)
+- [x] Udvid `store.watch()`'s polling-loop til at rapportere om `fs.readdirSync(dataDir)` reelt lykkedes (ikke kun ændrede filer)
+- [x] Ny IPC-broadcast `storage:connection-changed` (connected: boolean, since: timestamp) fra main.cjs
+- [x] `preload.cjs`: eksponér `onStorageConnectionChanged(callback)` + `getStorageConnectionStatus()`
+- [x] Ny `src/hooks/useStorageConnection.ts` + globalt banner/toast (mount i App.tsx, ligesom `UpdateNotification`): "⚠️ Mistet forbindelse til datalageret" ved tab, "✅ Forbindelse genoprettet" ved retur, + permanent lille badge mens offline (ikke kun en engangs-toast)
+- [x] `DataStorageManager.tsx`: vis live forbindelsesstatus ved siden af den eksisterende sti-visning
+- [x] Håndter "appen startes mens forbindelsen allerede er nede" (ikke kun tab midt i session)
+- [x] Tests for den nye connection-detection-logik (mirroring store.test.cjs-mønsteret)
 
 ## Fase 2 — Lokal spejl-cache + læse-fallback
 - [ ] Instantiér en ANDEN `createStore()`-instans peget på `<userData>/offline-cache` (samme kryptering/atomare skrivninger genbruges)

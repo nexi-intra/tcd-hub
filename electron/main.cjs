@@ -8,11 +8,18 @@ const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { createStore } = require('./store.cjs')
+const { createResilientStore } = require('./offlineSync.cjs')
 const updater = require('./updater.cjs')
 
 // Brugerens mappevalg fra Manager Panel gemmes her og overlever opdateringer.
 function userConfigPath() {
   return path.join(app.getPath('userData'), 'storage-config.json')
+}
+
+// Lokal spejl-cache af den delte store — altid tilgængelig, bruges som
+// fallback når netværksstien ikke kan læses (se offlineSync.cjs).
+function localCacheDir() {
+  return path.join(app.getPath('userData'), 'offline-cache')
 }
 
 /**
@@ -232,7 +239,7 @@ function switchDataDir(newDir) {
 
   fs.writeFileSync(userConfigPath(), JSON.stringify({ dataDir: newDir }, null, 2))
 
-  store = createStore(newDir)
+  store = createResilientStore(createStore(newDir), createStore(localCacheDir()))
   dataDirSource = 'user'
   // Netop verificeret tilgængelig ovenfor (mkdirSync+accessSync) — nulstil
   // eventuel "startede offline"-tilstand fra opstart.
@@ -298,7 +305,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   const resolved = resolveDataDir()
-  store = createStore(resolved.dir)
+  store = createResilientStore(createStore(resolved.dir), createStore(localCacheDir()))
   dataDirSource = resolved.source
   storageStartedDisconnected = resolved.failedSources.length > 0
   storageFailedSources = resolved.failedSources
