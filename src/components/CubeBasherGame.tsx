@@ -23,6 +23,23 @@ export function CubeBasherGame({ onNavigateBack }: CubeBasherGameProps) {
     return () => document.body.removeAttribute('data-game-active')
   }, [])
 
+  // Spillets tastatur-lyttere bor i iframens EGET window — mister iframen
+  // keyboard-fokus (alt-tab, klik på app-UI, vindue genvinder fokus), går alle
+  // tastetryk til parent-dokumentet og spillet virker "dødt". Skub derfor fokus
+  // tilbage i iframen ved mount og ved enhver hændelse der kan have flyttet det.
+  useEffect(() => {
+    const refocus = () => requestAnimationFrame(() => iframeRef.current?.focus())
+    refocus()
+    window.addEventListener('focus', refocus)
+    document.addEventListener('pointerdown', refocus)
+    document.addEventListener('visibilitychange', refocus)
+    return () => {
+      window.removeEventListener('focus', refocus)
+      document.removeEventListener('pointerdown', refocus)
+      document.removeEventListener('visibilitychange', refocus)
+    }
+  }, [])
+
   return (
     <div className="fixed inset-0 z-50 bg-black">
       {/* Ingen sandbox-attribut: Chromium blokerer ALLE file://-ressourcer (inkl.
