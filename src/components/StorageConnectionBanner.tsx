@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { CloudSlash } from '@phosphor-icons/react'
 import { useStorageConnection } from '@/hooks/useStorageConnection'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 const TOAST_ID = 'storage-connection'
 
@@ -11,6 +12,7 @@ const TOAST_ID = 'storage-connection'
  * ikke kun ser en engangs-toast der forsvinder igen).
  */
 export function StorageConnectionBanner() {
+  const { t } = useLanguage()
   const status = useStorageConnection()
   const previousConnected = useRef<boolean | null>(null)
 
@@ -22,21 +24,21 @@ export function StorageConnectionBanner() {
       // måtte falde tilbage til en lokal reserve-mappe.
       if (status.startedDisconnected) {
         toast.error(
-          'Kunne ikke forbinde til den delte datamappe ved opstart. Appen bruger midlertidigt lokal lagring — genstart appen, når forbindelsen er tilbage, for at synkronisere med resten af teamet.',
+          t.storageConnectionBanner.startupDisconnected,
           { id: TOAST_ID, duration: Infinity }
         )
       }
     } else if (previousConnected.current === true && !status.connected) {
       toast.error(
-        'Mistet forbindelse til den delte datamappe. Du kan roligt fortsætte med at bruge appen — dine ændringer gemmes lokalt og synkroniseres automatisk, når forbindelsen er tilbage.',
+        t.storageConnectionBanner.connectionLost,
         { id: TOAST_ID, duration: Infinity }
       )
     } else if (previousConnected.current === false && status.connected) {
       const pending = status.pendingSyncCount
       toast.success(
         pending > 0
-          ? `Forbindelse genoprettet — synkroniserer ${pending} ${pending === 1 ? 'ændring' : 'ændringer'}…`
-          : 'Forbindelse til den delte datamappe er genoprettet.',
+          ? `${t.storageConnectionBanner.reconnectedSyncingPrefix} ${pending} ${pending === 1 ? t.dataStorageManager.changeSingular : t.dataStorageManager.changePlural}…`
+          : t.storageConnectionBanner.reconnectedNoSyncNeeded,
         { id: TOAST_ID, duration: pending > 0 ? Infinity : 5000 }
       )
     }
@@ -49,12 +51,12 @@ export function StorageConnectionBanner() {
     return window.electronKv.onSyncResult((result) => {
       if (result.failed === 0) {
         toast.success(
-          `✅ ${result.succeeded} ${result.succeeded === 1 ? 'ændring' : 'ændringer'} synkroniseret`,
+          `✅ ${result.succeeded} ${result.succeeded === 1 ? t.dataStorageManager.changeSingular : t.dataStorageManager.changePlural} ${t.dataStorageManager.syncedSuffix}`,
           { id: TOAST_ID, duration: 4000 }
         )
       } else {
         toast.error(
-          `${result.succeeded} ${result.succeeded === 1 ? 'ændring' : 'ændringer'} synkroniseret, men ${result.failed} kunne ikke — prøver igen senere`,
+          `${result.succeeded} ${result.succeeded === 1 ? t.dataStorageManager.changeSingular : t.dataStorageManager.changePlural} ${t.storageConnectionBanner.syncedButFailedMiddle} ${result.failed} ${t.storageConnectionBanner.syncedButFailedSuffix}`,
           { id: TOAST_ID, duration: 8000 }
         )
       }
@@ -66,10 +68,10 @@ export function StorageConnectionBanner() {
   return (
     <div className="fixed bottom-4 left-4 z-[100] flex items-center gap-2 rounded-full bg-destructive text-destructive-foreground px-3 py-1.5 text-xs font-semibold shadow-lg">
       <CloudSlash size={14} weight="fill" />
-      {status.startedDisconnected ? 'Ikke forbundet — lokal tilstand' : 'Offline — arbejder lokalt'}
+      {status.startedDisconnected ? t.dataStorageManager.disconnectedLocalMode : t.storageConnectionBanner.offlineWorkingLocally}
       {status.pendingSyncCount > 0 && (
         <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">
-          {status.pendingSyncCount} afventer
+          {status.pendingSyncCount} {t.storageConnectionBanner.pendingSuffix}
         </span>
       )}
     </div>

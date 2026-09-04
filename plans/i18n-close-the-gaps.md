@@ -65,10 +65,10 @@ gennemgang af hver fil):
 - [x] CategoryManager.tsx (~18 strenge)
 
 ## Fase 7 — Manager-værktøjer (Datalagring-fanens undersider)
-- [ ] UpdateManager.tsx (~26 strenge)
-- [ ] ClientVersionManager.tsx (~12 strenge)
-- [ ] DataStorageManager.tsx (~38 strenge)
-- [ ] GameLeaderboardAdmin.tsx (~20 strenge)
+- [x] UpdateManager.tsx (~26 strenge)
+- [x] ClientVersionManager.tsx (~12 strenge)
+- [x] DataStorageManager.tsx (~38 strenge)
+- [x] GameLeaderboardAdmin.tsx (~20 strenge)
 
 ## Fase 8 — Resterende mindre komponenter
 - [ ] ManualVacationGrant.tsx (~17 strenge)

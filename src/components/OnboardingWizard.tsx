@@ -12,6 +12,7 @@ import { ADMIN_EMAIL, type UserRole } from '@/lib/userRoles'
 import { newId } from '@/lib/utils'
 import { appendToKvArray, upsertInKvArray, removeFromKvArray, setKvObjectField, deleteKvObjectField } from '@/lib/kvArrays'
 import type { ShiftAssignment, VacationEntry, BirthdayEntry } from '@/lib/types'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface WizardProps {
   open: boolean
@@ -55,6 +56,7 @@ function StepIndicator({ current, labels }: { current: number; labels: string[] 
 // ---------------------------------------------------------------------------
 
 export function OnboardingWizard({ open, onOpenChange, onCompleted }: WizardProps) {
+  const { t } = useLanguage()
   const [step, setStep] = useState(1)
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -78,13 +80,13 @@ export function OnboardingWizard({ open, onOpenChange, onCompleted }: WizardProp
   }, [open])
 
   const validateStep1 = async (): Promise<boolean> => {
-    if (!fullName.trim()) { toast.error('Navn er påkrævet'); return false }
+    if (!fullName.trim()) { toast.error(t.onboardingWizard.nameRequired); return false }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email.trim())) { toast.error('Ugyldig email adresse'); return false }
-    if (password.trim().length < 6) { toast.error('Adgangskode skal være mindst 6 tegn'); return false }
-    if (!phone.trim()) { toast.error('Telefon nummer er påkrævet'); return false }
+    if (!emailRegex.test(email.trim())) { toast.error(t.managerPanel.validation.invalidEmail); return false }
+    if (password.trim().length < 6) { toast.error(t.managerPanel.validation.passwordTooShort); return false }
+    if (!phone.trim()) { toast.error(t.managerPanel.validation.createPhoneRequired); return false }
     const usersData = await window.kv.get<Record<string, unknown>>('users') || {}
-    if (usersData[email.trim().toLowerCase()]) { toast.error('En bruger med denne email eksisterer allerede'); return false }
+    if (usersData[email.trim().toLowerCase()]) { toast.error(t.managerPanel.validation.emailExists); return false }
     return true
   }
 
@@ -141,12 +143,12 @@ export function OnboardingWizard({ open, onOpenChange, onCompleted }: WizardProp
         read: false,
       }])
 
-      toast.success(`${fullName.trim()} er oprettet og klar til at logge ind`)
+      toast.success(`${fullName.trim()} ${t.onboardingWizard.createdSuffix}`)
       onOpenChange(false)
       onCompleted()
     } catch (error) {
       console.error('Onboarding fejlede:', error)
-      toast.error(`Kunne ikke oprette bruger: ${error instanceof Error ? error.message : String(error)}`)
+      toast.error(`${t.onboardingWizard.createFailedPrefix} ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setIsWorking(false)
     }
@@ -158,43 +160,43 @@ export function OnboardingWizard({ open, onOpenChange, onCompleted }: WizardProp
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus size={24} className="text-primary" weight="duotone" />
-            Onboarding af ny medarbejder
+            {t.onboardingWizard.title}
           </DialogTitle>
           <DialogDescription>
-            Guidet oprettelse: konto, rolle og fødselsdag på ét sted.
+            {t.onboardingWizard.description}
           </DialogDescription>
         </DialogHeader>
 
-        <StepIndicator current={step} labels={['Konto', 'Fødselsdag', 'Bekræft']} />
+        <StepIndicator current={step} labels={[t.onboardingWizard.steps.account, t.onboardingWizard.steps.birthday, t.onboardingWizard.steps.confirm]} />
 
         {step === 1 && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Fulde navn</Label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Fx Anna Andersen" />
+              <Label>{t.onboardingWizard.fullNameLabel}</Label>
+              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.onboardingWizard.fullNamePlaceholder} />
             </div>
             <div className="space-y-2">
-              <Label>Arbejds-email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="anna.andersen@nexigroup.com" />
+              <Label>{t.onboardingWizard.workEmailLabel}</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.onboardingWizard.workEmailPlaceholder} />
             </div>
             <div className="space-y-2">
-              <Label>Telefon</Label>
+              <Label>{t.onboardingWizard.phoneLabel}</Label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+45 12 34 56 78" />
             </div>
             <div className="space-y-2">
-              <Label>Midlertidig adgangskode (min. 6 tegn)</Label>
-              <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Gives til medarbejderen" />
+              <Label>{t.onboardingWizard.tempPasswordLabel}</Label>
+              <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.onboardingWizard.tempPasswordPlaceholder} />
             </div>
             <div className="space-y-2">
-              <Label>Rolle</Label>
+              <Label>{t.onboardingWizard.roleLabel}</Label>
               <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">
-                    <div className="flex items-center gap-2"><UserIcon size={16} />Bruger</div>
+                    <div className="flex items-center gap-2"><UserIcon size={16} />{t.teamOverview.userSingular}</div>
                   </SelectItem>
                   <SelectItem value="manager">
-                    <div className="flex items-center gap-2"><ShieldCheck size={16} />Manager</div>
+                    <div className="flex items-center gap-2"><ShieldCheck size={16} />{t.teamOverview.roleManager}</div>
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -206,10 +208,10 @@ export function OnboardingWizard({ open, onOpenChange, onCompleted }: WizardProp
           <div className="space-y-4">
             <div className="p-4 rounded-lg bg-muted/50 border text-sm text-muted-foreground flex items-start gap-2">
               <Gift size={18} className="mt-0.5 shrink-0 text-accent" />
-              Fødselsdagen vises i feriekalenderen og fejres automatisk i appen. Trinnet kan springes over.
+              {t.onboardingWizard.birthdayInfoText}
             </div>
             <div className="space-y-2">
-              <Label>Fødselsdato (valgfri)</Label>
+              <Label>{t.onboardingWizard.birthdayDateLabel}</Label>
               <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
             </div>
           </div>
@@ -218,17 +220,17 @@ export function OnboardingWizard({ open, onOpenChange, onCompleted }: WizardProp
         {step === 3 && (
           <div className="space-y-3">
             <div className="rounded-lg border divide-y">
-              <div className="flex justify-between p-3 text-sm"><span className="text-muted-foreground">Navn</span><span className="font-semibold">{fullName}</span></div>
-              <div className="flex justify-between p-3 text-sm"><span className="text-muted-foreground">Email</span><span className="font-semibold">{email.trim().toLowerCase()}</span></div>
-              <div className="flex justify-between p-3 text-sm"><span className="text-muted-foreground">Telefon</span><span className="font-semibold">{phone}</span></div>
-              <div className="flex justify-between p-3 text-sm"><span className="text-muted-foreground">Rolle</span><Badge variant="secondary">{role === 'manager' ? 'Manager' : 'Bruger'}</Badge></div>
+              <div className="flex justify-between p-3 text-sm"><span className="text-muted-foreground">{t.onboardingWizard.summaryName}</span><span className="font-semibold">{fullName}</span></div>
+              <div className="flex justify-between p-3 text-sm"><span className="text-muted-foreground">{t.onboardingWizard.summaryEmail}</span><span className="font-semibold">{email.trim().toLowerCase()}</span></div>
+              <div className="flex justify-between p-3 text-sm"><span className="text-muted-foreground">{t.onboardingWizard.summaryPhone}</span><span className="font-semibold">{phone}</span></div>
+              <div className="flex justify-between p-3 text-sm"><span className="text-muted-foreground">{t.onboardingWizard.summaryRole}</span><Badge variant="secondary">{role === 'manager' ? t.teamOverview.roleManager : t.teamOverview.userSingular}</Badge></div>
               <div className="flex justify-between p-3 text-sm">
-                <span className="text-muted-foreground">Fødselsdag</span>
-                <span className="font-semibold">{birthDate || 'Ikke angivet'}</span>
+                <span className="text-muted-foreground">{t.onboardingWizard.summaryBirthday}</span>
+                <span className="font-semibold">{birthDate || t.onboardingWizard.notSpecified}</span>
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Kontoen godkendes automatisk, og medarbejderen modtager en velkomst-mail i TCD Hub.
+              {t.onboardingWizard.confirmInfoText}
             </p>
           </div>
         )}
@@ -237,18 +239,18 @@ export function OnboardingWizard({ open, onOpenChange, onCompleted }: WizardProp
           {step > 1 && (
             <Button variant="outline" onClick={() => setStep(step - 1)} disabled={isWorking} className="gap-2">
               <ArrowLeft size={16} />
-              Tilbage
+              {t.common.back}
             </Button>
           )}
           {step < 3 ? (
             <Button onClick={handleNext} className="gap-2">
-              {step === 2 && !birthDate ? 'Spring over' : 'Næste'}
+              {step === 2 && !birthDate ? t.onboardingWizard.skip : t.onboardingWizard.next}
               <ArrowRight size={16} />
             </Button>
           ) : (
             <Button onClick={handleConfirm} disabled={isWorking} className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90">
               <Check size={16} weight="bold" />
-              {isWorking ? 'Opretter…' : 'Opret medarbejder'}
+              {isWorking ? t.onboardingWizard.creating : t.onboardingWizard.createEmployee}
             </Button>
           )}
         </DialogFooter>
@@ -273,6 +275,7 @@ interface CleanupPreview {
 }
 
 export function OffboardingWizard({ open, onOpenChange, onCompleted, currentUserEmail }: OffboardingWizardProps) {
+  const { t } = useLanguage()
   const [step, setStep] = useState(1)
   const [employees, setEmployees] = useState<Array<{ email: string; fullName: string }>>([])
   const [selectedEmail, setSelectedEmail] = useState('')
@@ -343,12 +346,12 @@ export function OffboardingWizard({ open, onOpenChange, onCompleted, currentUser
         await removeFromKvArray('vacation-entries', pendingIds)
       }
 
-      toast.success(`${selectedEmployee.fullName} er offboardet — konto, vagter og fødselsdag er ryddet op`)
+      toast.success(`${selectedEmployee.fullName} ${t.onboardingWizard.offboardedSuffix}`)
       onOpenChange(false)
       onCompleted()
     } catch (error) {
       console.error('Offboarding fejlede:', error)
-      toast.error(`Offboarding fejlede: ${error instanceof Error ? error.message : String(error)}`)
+      toast.error(`${t.onboardingWizard.offboardFailedPrefix} ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setIsWorking(false)
     }
@@ -360,21 +363,21 @@ export function OffboardingWizard({ open, onOpenChange, onCompleted, currentUser
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserMinus size={24} className="text-destructive" weight="duotone" />
-            Offboarding af medarbejder
+            {t.onboardingWizard.offboardTitle}
           </DialogTitle>
           <DialogDescription>
-            Fjerner konto, vagter, fødselsdag og afventende anmodninger i ét guidet forløb.
+            {t.onboardingWizard.offboardDescription}
           </DialogDescription>
         </DialogHeader>
 
-        <StepIndicator current={step} labels={['Vælg medarbejder', 'Forhåndsvisning', 'Bekræft']} />
+        <StepIndicator current={step} labels={[t.onboardingWizard.offboardSteps.selectEmployee, t.onboardingWizard.offboardSteps.preview, t.onboardingWizard.offboardSteps.confirm]} />
 
         {step === 1 && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Medarbejder der skal offboardes</Label>
+              <Label>{t.onboardingWizard.selectEmployeeToOffboardLabel}</Label>
               <Select value={selectedEmail} onValueChange={setSelectedEmail}>
-                <SelectTrigger><SelectValue placeholder="Vælg medarbejder…" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t.onboardingWizard.selectEmployeePlaceholder} /></SelectTrigger>
                 <SelectContent>
                   {employees.map(e => (
                     <SelectItem key={e.email} value={e.email}>{e.fullName} ({e.email})</SelectItem>
@@ -389,30 +392,30 @@ export function OffboardingWizard({ open, onOpenChange, onCompleted, currentUser
           <div className="space-y-3">
             <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20 text-sm flex items-start gap-2">
               <Warning size={18} className="mt-0.5 shrink-0 text-destructive" weight="fill" />
-              <span>Følgende ryddes op for <strong>{selectedEmployee.fullName}</strong> — handlingen kan ikke fortrydes.</span>
+              <span>{t.onboardingWizard.willCleanUpForPrefix} <strong>{selectedEmployee.fullName}</strong> {t.onboardingWizard.willCleanUpForSuffix}</span>
             </div>
             <div className="rounded-lg border divide-y text-sm">
               <div className="flex items-center justify-between p-3">
-                <span className="flex items-center gap-2"><Trash size={16} className="text-destructive" />Brugerkonto slettes</span>
-                <Badge variant="destructive">1 konto</Badge>
+                <span className="flex items-center gap-2"><Trash size={16} className="text-destructive" />{t.onboardingWizard.userAccountDeleted}</span>
+                <Badge variant="destructive">{t.onboardingWizard.oneAccount}</Badge>
               </div>
               <div className="flex items-center justify-between p-3">
-                <span className="flex items-center gap-2"><CalendarBlank size={16} className="text-destructive" />Vagt-tildelinger fjernes</span>
+                <span className="flex items-center gap-2"><CalendarBlank size={16} className="text-destructive" />{t.onboardingWizard.shiftAssignmentsRemoved}</span>
                 <Badge variant={preview.shiftAssignmentIds.length > 0 ? 'destructive' : 'secondary'}>
-                  {preview.shiftAssignmentIds.length} {preview.shiftAssignmentIds.length === 1 ? 'vagt' : 'vagter'}
+                  {preview.shiftAssignmentIds.length} {preview.shiftAssignmentIds.length === 1 ? t.onboardingWizard.shiftSingular : t.onboardingWizard.shiftPlural}
                 </Badge>
               </div>
               <div className="flex items-center justify-between p-3">
-                <span className="flex items-center gap-2"><Gift size={16} className="text-destructive" />Fødselsdag fjernes</span>
-                <Badge variant={preview.hasBirthday ? 'destructive' : 'secondary'}>{preview.hasBirthday ? 'Ja' : 'Ingen registreret'}</Badge>
+                <span className="flex items-center gap-2"><Gift size={16} className="text-destructive" />{t.onboardingWizard.birthdayRemoved}</span>
+                <Badge variant={preview.hasBirthday ? 'destructive' : 'secondary'}>{preview.hasBirthday ? t.onboardingWizard.yes : t.onboardingWizard.noneRegistered}</Badge>
               </div>
               <div className="flex items-center justify-between p-3">
-                <span className="flex items-center gap-2"><Trash size={16} className="text-destructive" />Afventende ferieanmodninger fjernes</span>
+                <span className="flex items-center gap-2"><Trash size={16} className="text-destructive" />{t.onboardingWizard.pendingVacationRequestsRemoved}</span>
                 <Badge variant={preview.pendingVacations > 0 ? 'destructive' : 'secondary'}>{preview.pendingVacations}</Badge>
               </div>
               <div className="flex items-center justify-between p-3">
-                <span className="flex items-center gap-2"><Check size={16} className="text-primary" />Ferie-/sygehistorik bevares</span>
-                <Badge variant="secondary">{preview.historicalEntries} poster</Badge>
+                <span className="flex items-center gap-2"><Check size={16} className="text-primary" />{t.onboardingWizard.vacationHistoryKept}</span>
+                <Badge variant="secondary">{preview.historicalEntries} {t.onboardingWizard.entriesSuffix}</Badge>
               </div>
             </div>
           </div>
@@ -421,9 +424,9 @@ export function OffboardingWizard({ open, onOpenChange, onCompleted, currentUser
         {step === 3 && selectedEmployee && (
           <div className="p-4 rounded-lg bg-destructive/10 border-2 border-destructive/30 text-center space-y-2">
             <Warning size={32} className="text-destructive mx-auto" weight="fill" />
-            <p className="font-semibold">Er du helt sikker?</p>
+            <p className="font-semibold">{t.onboardingWizard.areYouSure}</p>
             <p className="text-sm text-muted-foreground">
-              <strong>{selectedEmployee.fullName}</strong> mister adgang til TCD Hub, og alle deres vagter fjernes fra vagtplanen.
+              <strong>{selectedEmployee.fullName}</strong> {t.onboardingWizard.offboardConfirmSuffix}
             </p>
           </div>
         )}
@@ -432,25 +435,25 @@ export function OffboardingWizard({ open, onOpenChange, onCompleted, currentUser
           {step > 1 && (
             <Button variant="outline" onClick={() => setStep(step - 1)} disabled={isWorking} className="gap-2">
               <ArrowLeft size={16} />
-              Tilbage
+              {t.common.back}
             </Button>
           )}
           {step === 1 && (
             <Button onClick={buildPreview} disabled={!selectedEmail} className="gap-2">
-              Næste
+              {t.onboardingWizard.next}
               <ArrowRight size={16} />
             </Button>
           )}
           {step === 2 && (
             <Button onClick={() => setStep(3)} variant="destructive" className="gap-2">
-              Fortsæt
+              {t.onboardingWizard.continue}
               <ArrowRight size={16} />
             </Button>
           )}
           {step === 3 && (
             <Button onClick={handleConfirm} disabled={isWorking} variant="destructive" className="gap-2">
               <UserMinus size={16} weight="bold" />
-              {isWorking ? 'Offboarder…' : 'Offboard medarbejder'}
+              {isWorking ? t.onboardingWizard.offboarding : t.onboardingWizard.offboardEmployee}
             </Button>
           )}
         </DialogFooter>

@@ -8,15 +8,18 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { SickLeaveDialog } from '@/components/SickLeaveDialog'
 import { useKV } from '@/hooks/useKV'
 import { format } from 'date-fns'
-import { da } from 'date-fns/locale'
+import { da, enUS } from 'date-fns/locale'
 import { toast } from 'sonner'
 import type { SickLeaveEntry } from '@/lib/types'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface SickLeaveManagerProps {
   userEmail: string
 }
 
 export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
+  const { t, language } = useLanguage()
+  const dateLocale = language === 'en' ? enUS : da
   const [sickLeaveEntries, setSickLeaveEntries] = useKV<SickLeaveEntry[]>('sick-leave-entries', [])
   const [editingEntry, setEditingEntry] = useState<SickLeaveEntry | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -46,7 +49,7 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
 
   const handleDelete = (entryId: string) => {
     setSickLeaveEntries((current) => (current || []).filter(entry => entry.id !== entryId))
-    toast.success('Sygemelding slettet')
+    toast.success(t.sickLeaveManager.deleted)
   }
 
   const handleEdit = (entry: SickLeaveEntry) => {
@@ -63,9 +66,9 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
     return (
       <Card className="p-8 text-center">
         <FirstAidKit size={48} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
-        <p className="text-muted-foreground text-lg mb-2">Ingen sygemeldinger registreret</p>
+        <p className="text-muted-foreground text-lg mb-2">{t.sickLeaveManager.noneRegistered}</p>
         <p className="text-sm text-muted-foreground">
-          Dine sygemeldinger vil vises her
+          {t.sickLeaveManager.noneRegisteredHint}
         </p>
       </Card>
     )
@@ -80,9 +83,9 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
               <FirstAidKit size={24} weight="duotone" className="text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">Mine Sygemeldinger</h2>
+              <h2 className="text-2xl font-bold">{t.sickLeaveManager.title}</h2>
               <p className="text-sm text-muted-foreground">
-                {sortedEntries.length} {sortedEntries.length === 1 ? 'registrering' : 'registreringer'}
+                {sortedEntries.length} {sortedEntries.length === 1 ? t.sickLeaveManager.entrySingular : t.sickLeaveManager.entryPlural}
               </p>
             </div>
           </div>
@@ -107,15 +110,15 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
                       {(() => {
                         try {
                           const date = new Date(entry.startDate)
-                          if (isNaN(date.getTime())) return 'Ugyldig dato'
-                          return format(date, 'd. MMMM yyyy', { locale: da })
+                          if (isNaN(date.getTime())) return t.sickLeaveManager.invalidDate
+                          return format(date, 'd. MMMM yyyy', { locale: dateLocale })
                         } catch {
-                          return 'Ugyldig dato'
+                          return t.sickLeaveManager.invalidDate
                         }
                       })()}
                     </div>
                     <Badge className={entry.type === 'child' ? "bg-orange-100 text-orange-800 border-orange-300" : "bg-red-100 text-red-800 border-red-300"}>
-                      {entry.type === 'child' ? 'Barn syg' : 'Sygemeldt'}
+                      {entry.type === 'child' ? t.managerPanel.sickLeave.childSickBadge : t.managerPanel.sickLeave.sickBadge}
                     </Badge>
                   </div>
                   {entry.reason && (
@@ -124,18 +127,18 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground mt-1">
-                    Indsendt: {(() => {
+                    {t.managerPanel.sickLeave.submittedPrefix}: {(() => {
                       try {
                         const date = new Date(entry.submittedAt)
-                        if (isNaN(date.getTime())) return 'Ugyldig dato'
-                        return format(date, 'd. MMM yyyy HH:mm', { locale: da })
+                        if (isNaN(date.getTime())) return t.sickLeaveManager.invalidDate
+                        return format(date, 'd. MMM yyyy HH:mm', { locale: dateLocale })
                       } catch {
-                        return 'Ugyldig dato'
+                        return t.sickLeaveManager.invalidDate
                       }
                     })()}
                     {entry.reportedBy && reporterNames[entry.reportedBy] && (
                       <span className="ml-2 text-amber-600 dark:text-amber-400">
-                        • Anmeldt af {reporterNames[entry.reportedBy]}
+                        • {t.sickLeaveManager.reportedByPrefix} {reporterNames[entry.reportedBy]}
                       </span>
                     )}
                   </p>
@@ -149,7 +152,7 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
                   className="gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <PencilSimple size={16} />
-                  Rediger
+                  {t.sickLeaveManager.edit}
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -163,26 +166,26 @@ export function SickLeaveManager({ userEmail }: SickLeaveManagerProps) {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Slet sygemelding?</AlertDialogTitle>
+                      <AlertDialogTitle>{t.managerPanel.sickLeave.deleteTitle}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Er du sikker på at du vil slette sygemeldingen fra <strong>{(() => {
+                        {t.sickLeaveManager.deleteConfirmPrefix} <strong>{(() => {
                           try {
                             const date = new Date(entry.startDate)
-                            if (isNaN(date.getTime())) return 'ugyldig dato'
-                            return format(date, 'd. MMMM yyyy', { locale: da })
+                            if (isNaN(date.getTime())) return t.sickLeaveManager.invalidDateLower
+                            return format(date, 'd. MMMM yyyy', { locale: dateLocale })
                           } catch {
-                            return 'ugyldig dato'
+                            return t.sickLeaveManager.invalidDateLower
                           }
-                        })()}</strong>? Denne handling kan ikke fortrydes.
+                        })()}</strong>{t.sickLeaveManager.deleteConfirmSuffix}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Annuller</AlertDialogCancel>
+                      <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => handleDelete(entry.id)}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        Slet sygemelding
+                        {t.managerPanel.sickLeave.deleteAction}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
