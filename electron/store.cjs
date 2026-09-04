@@ -308,6 +308,40 @@ function createStore(dataDir) {
         // File vanished between readdir and stat — treated as removed.
       }
     }
+    return { reachable: true, snapshot: next, changedKeys: diffSnapshots(previousSnapshot, next) }
+  }
+
+  // Asynkron udgave til watch()-timeren: synkron scanning mod et langsomt
+  // SMB-netværksdrev blokerede main-processens event-loop hvert 5. sekund —
+  // og i Electron routes AL input (tastatur/mus) gennem main, så spil frøs
+  // periodisk for input mens rendering kørte videre.
+  async function scanDirectoryAsync(previousSnapshot) {
+    let entries
+    try {
+      entries = await fs.promises.readdir(dataDir)
+    } catch {
+      return { reachable: false, snapshot: null, changedKeys: [] }
+    }
+    const next = new Map()
+    const stamps = await Promise.all(
+      entries
+        .filter((name) => name.endsWith(FILE_EXT))
+        .map(async (name) => {
+          try {
+            const stat = await fs.promises.stat(path.join(dataDir, name))
+            return [name, stat.mtimeMs + ':' + stat.size]
+          } catch {
+            return null // File vanished between readdir and stat — treated as removed.
+          }
+        })
+    )
+    for (const entry of stamps) {
+      if (entry) next.set(entry[0], entry[1])
+    }
+    return { reachable: true, snapshot: next, changedKeys: diffSnapshots(previousSnapshot, next) }
+  }
+
+  function diffSnapshots(previousSnapshot, next) {
     const changedKeys = []
     for (const [name, stamp] of next) {
       if (previousSnapshot?.get(name) !== stamp) changedKeys.push(filenameToKey(name))
@@ -317,7 +351,7 @@ function createStore(dataDir) {
         if (!next.has(name)) changedKeys.push(filenameToKey(name))
       }
     }
-    return { reachable: true, snapshot: next, changedKeys }
+    return changedKeys
   }
 
   /**
@@ -327,24 +361,32 @@ function createStore(dataDir) {
    * network share disconnecting/reconnecting). Returns a stop function.
    */
   function watch(onChange, onConnectionChange, intervalMs = 5000) {
+    // Første scan er synkron (sker ved opstart, før vinduet vises) så
+    // isConnected() er retvisende med det samme.
     const initial = scanDirectory(null)
     let snapshot = initial.snapshot
     connected = initial.reachable
+    let scanning = false
 
     const timer = setInterval(() => {
-      const result = scanDirectory(snapshot)
-      if (result.reachable !== connected) {
-        connected = result.reachable
-        onConnectionChange?.(connected)
-      }
-      if (!result.reachable) return
+      if (scanning) return // forrige scan (langsomt netværk) kører stadig
+      scanning = true
+      scanDirectoryAsync(snapshot)
+        .then((result) => {
+          if (result.reachable !== connected) {
+            connected = result.reachable
+            onConnectionChange?.(connected)
+          }
+          if (!result.reachable) return
 
-      snapshot = result.snapshot
-      if (result.changedKeys.length > 0) {
-        // Invalidate cache for changed keys to force fresh read on next get().
-        for (const key of result.changedKeys) readCache.delete(key)
-        onChange(result.changedKeys)
-      }
+          snapshot = result.snapshot
+          if (result.changedKeys.length > 0) {
+            // Invalidate cache for changed keys to force fresh read on next get().
+            for (const key of result.changedKeys) readCache.delete(key)
+            onChange(result.changedKeys)
+          }
+        })
+        .finally(() => { scanning = false })
     }, Math.max(intervalMs, 5000))
     timer.unref?.()
 
