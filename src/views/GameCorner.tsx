@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { GameController, ArrowLeft, Joystick, Cube } from '@phosphor-icons/react'
+import { GameController, ArrowLeft, Joystick, Headset } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -185,7 +185,7 @@ export function GameCorner({ onNavigateBack, userEmail }: GameCornerProps) {
                     transition={{ duration: 0.8, ease: "easeInOut" }}
                   >
                     <div className="[&>svg]:w-8 [&>svg]:h-8 md:[&>svg]:w-12 md:[&>svg]:h-12">
-                      <Cube size={48} weight="duotone" />
+                      <Headset size={48} weight="duotone" />
                     </div>
                   </motion.div>
 

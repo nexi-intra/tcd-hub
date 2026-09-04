@@ -1,18 +1,19 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Cube, ArrowLeft } from '@phosphor-icons/react'
+import { Cube, Headset, Books, ArrowLeft } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isAnyModalOpen } from '@/lib/modalStack'
 import { CubeBasherGame } from '@/components/CubeBasherGame'
+import { TheLibrarian2Game } from '@/components/TheLibrarian2Game'
 
 interface ModernProps {
   onNavigateBack: () => void
   userEmail?: string
 }
 
-type ModernView = 'hub' | 'cubebasher'
+type ModernView = 'hub' | 'cubebasher' | 'librarian2'
 
 export function Modern({ onNavigateBack }: ModernProps) {
   const { language } = useLanguage()
@@ -33,6 +34,9 @@ export function Modern({ onNavigateBack }: ModernProps) {
 
   if (view === 'cubebasher') {
     return <CubeBasherGame onNavigateBack={() => setView('hub')} />
+  }
+  if (view === 'librarian2') {
+    return <TheLibrarian2Game onNavigateBack={() => setView('hub')} />
   }
 
   return (
@@ -71,7 +75,7 @@ export function Modern({ onNavigateBack }: ModernProps) {
             className="flex justify-center mb-6"
           >
             <div className="p-6 rounded-3xl bg-gradient-to-br from-[oklch(0.55_0.19_25)] via-[oklch(0.58_0.17_35)] to-[oklch(0.48_0.20_15)] shadow-2xl">
-              <Cube size={64} weight="duotone" className="text-white" />
+              <Headset size={64} weight="duotone" className="text-white" />
             </div>
           </motion.div>
           <motion.h1
@@ -144,6 +148,56 @@ export function Modern({ onNavigateBack }: ModernProps) {
                     {language === 'da'
                       ? 'Overlev 30 minutter mod en voksende hær af onde terninger. Byg din helt og bank fjender med din hammer!'
                       : 'Survive 30 minutes against a growing horde of evil cubes. Level up your hero and bash enemies with your hammer!'}
+                  </p>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55, duration: 0.4 }}
+          >
+            <motion.div
+              initial={{ scale: 1, y: 0, rotate: 0, boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)" }}
+              whileHover={{ scale: 1.08, y: -10, rotate: [0, 3, -3, 0], boxShadow: "0 30px 60px -15px rgba(0, 0, 0, 0.35)" }}
+              whileTap={{ scale: 0.92 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <Card
+                className="relative overflow-hidden border-2 transition-all duration-300 group h-full min-h-[180px] sm:min-h-[220px] flex flex-col cursor-pointer hover:border-primary/40"
+                onClick={() => setView('librarian2')}
+              >
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-br"
+                  style={{ background: 'radial-gradient(circle at top right, oklch(0.55 0.19 25 / 0.08), transparent)' }}
+                  initial={{ opacity: 0 }}
+                  whileHover={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                />
+
+                <div className="relative p-4 md:p-6 flex flex-col flex-1">
+                  <motion.div
+                    className="mb-3 md:mb-4 inline-flex items-center justify-center rounded-2xl p-2 md:p-3 shadow-lg bg-gradient-to-br from-[oklch(0.55_0.19_25)] via-[oklch(0.58_0.17_35)] to-[oklch(0.48_0.20_15)]"
+                    style={{ color: 'white' }}
+                    initial={{ scale: 1, rotate: 0, y: 0 }}
+                    whileHover={{ scale: [1, 1.3, 1.15], rotate: [0, -15, 15, -10, 10, 0], y: [0, -8, 0] }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                  >
+                    <div className="[&>svg]:w-8 [&>svg]:h-8 md:[&>svg]:w-12 md:[&>svg]:h-12">
+                      <Books size={48} weight="duotone" />
+                    </div>
+                  </motion.div>
+
+                  <h3 className="text-sm sm:text-base md:text-lg font-bold mb-1.5 md:mb-2 text-foreground text-center">
+                    The Librarian
+                  </h3>
+
+                  <p className="text-muted-foreground text-xs leading-relaxed mb-3 md:mb-4 flex-1">
+                    {language === 'da'
+                      ? 'Stil bøger tilbage på hylderne hurtigere end børnene kan tage dem ned. Hold Kaos-måleren under 100 % indtil lukketid!'
+                      : 'Shelve books faster than the kids can unshelve them. Keep the Chaos meter under 100% until closing time!'}
                   </p>
                 </div>
               </Card>
