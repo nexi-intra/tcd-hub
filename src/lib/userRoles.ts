@@ -62,16 +62,33 @@ export async function hasManagerAccess(email: string): Promise<boolean> {
   return role === 'admin' || role === 'manager'
 }
 
-export function getRoleDisplayName(role: UserRole): string {
+export function getRoleDisplayName(role: UserRole, language: 'da' | 'en' = 'da'): string {
   const roleNames = {
-    admin: 'Administrator',
-    manager: 'Manager',
-    user: 'Bruger'
+    da: {
+      admin: 'Administrator',
+      manager: 'Manager',
+      user: 'Bruger'
+    },
+    en: {
+      admin: 'Administrator',
+      manager: 'Manager',
+      user: 'User'
+    }
   }
-  return roleNames[role]
+  return roleNames[language][role]
 }
 
-export function getRoleDescription(role: UserRole): string {
+export function getRoleDescription(role: UserRole, language: 'da' | 'en' = 'da'): string {
+  if (language === 'en') {
+    switch (role) {
+      case 'admin':
+        return 'Full access to all features, can manage users and permissions'
+      case 'manager':
+        return 'Can assign permissions, handle sick leave, approve/reject vacation requests and edit guides'
+      case 'user':
+        return 'Standard user access, can view guides and request vacation'
+    }
+  }
   switch (role) {
     case 'admin':
       return 'Fuld adgang til alle funktioner, kan administrere brugere og rettigheder'

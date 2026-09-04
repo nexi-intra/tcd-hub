@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { format } from 'date-fns'
-import { da } from 'date-fns/locale'
+import { da, enUS } from 'date-fns/locale'
 import { UserRole, ADMIN_EMAIL, hasManagerAccess, getRoleDisplayName, getRoleDescription } from '@/lib/userRoles'
 import { hashPassword } from '@/lib/passwords'
 import { newId } from '@/lib/utils'
@@ -27,6 +27,7 @@ import { isAnyModalOpen } from '@/lib/modalStack'
 import { consumeNavigationParams } from '@/lib/appNavigation'
 import { getEmployeeColorByEmail } from '@/lib/employeeColors'
 import { getWeekNumber as getISOWeekNumber } from '@/lib/dateUtils'
+import { useLanguage } from '@/contexts/LanguageContext'
 import React from 'react'
 import { ManualVacationGrant } from '@/components/ManualVacationGrant'
 import { DataStorageManager } from '@/components/DataStorageManager'
@@ -54,6 +55,8 @@ interface ManagerPanelProps {
 }
 
 export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPanelProps) {
+  const { t, language } = useLanguage()
+  const dateLocale = language === 'en' ? enUS : da
   // Deep-link (fx knappen i ferieanmodnings-mails) kan bede om en bestemt fane.
   const [initialTab] = useState(() => consumeNavigationParams()?.tab ?? 'permissions')
   const [activeTab, setActiveTab] = useState(initialTab)
@@ -192,25 +195,25 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
   const handleApproveUser = async (user: User) => {
     const usersData = await window.kv.get<Record<string, { status?: string } & Record<string, unknown>>>('users')
     if (!usersData?.[user.email]) {
-      toast.error('Bruger ikke fundet')
+      toast.error(t.managerPanel.permissions.userNotFound)
       return
     }
     await setKvObjectField('users', user.email, { ...usersData[user.email], status: 'approved' })
     await loadUsers()
     await sendUserDecisionEmail(user, true)
-    toast.success(`${user.fullName} er godkendt og kan nu logge ind`)
+    toast.success(`${user.fullName} ${t.managerPanel.permissions.userApprovedSuffix}`)
   }
 
   const handleRejectUser = async (user: User) => {
     const usersData = await window.kv.get<Record<string, { status?: string } & Record<string, unknown>>>('users')
     if (!usersData?.[user.email]) {
-      toast.error('Bruger ikke fundet')
+      toast.error(t.managerPanel.permissions.userNotFound)
       return
     }
     await setKvObjectField('users', user.email, { ...usersData[user.email], status: 'rejected' })
     await loadUsers()
     await sendUserDecisionEmail(user, false)
-    toast.success(`Anmodningen fra ${user.fullName} er afvist`)
+    toast.success(`${t.managerPanel.permissions.userRequestRejectedPrefix} ${user.fullName} ${t.managerPanel.permissions.userRequestRejectedSuffix}`)
   }
 
   const loadSickLeaveEntries = async () => {
@@ -257,7 +260,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
   const handleSaveBirthday = async () => {
     if (!editingBirthday || !birthdayDate) {
-      toast.error('Vælg venligst en fødselsdato')
+      toast.error(t.managerPanel.birthdays.dateRequiredError)
       return
     }
 
@@ -275,18 +278,18 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     setEditingBirthday(null)
     setBirthdayDate('')
     setBirthYear('')
-    toast.success('Fødselsdag gemt')
+    toast.success(t.managerPanel.birthdays.savedToast)
   }
 
   const deleteBirthday = async (email: string) => {
     await removeFromKvArray('employee-birthdays', [email])
     await loadBirthdays()
-    toast.success('Fødselsdag slettet')
+    toast.success(t.managerPanel.birthdays.deletedToast)
   }
 
   const changeUserRole = async (email: string, newRole: UserRole) => {
     if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-      toast.error('Kan ikke ændre admin brugerens rettigheder')
+      toast.error(t.managerPanel.permissions.cannotChangeAdminRole)
       return
     }
 
@@ -299,13 +302,13 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       })
       await loadUsers()
       
-      toast.success(`Bruger ændret til ${getRoleDisplayName(newRole)}`)
+      toast.success(`${t.managerPanel.permissions.roleChangedPrefix} ${getRoleDisplayName(newRole, language)}`)
     }
   }
 
   const deleteUser = async (email: string) => {
     if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-      toast.error('Kan ikke slette admin brugeren')
+      toast.error(t.managerPanel.permissions.cannotDeleteAdmin)
       return
     }
 
@@ -320,7 +323,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       await removeFromKvArray('shift-assignments', assignmentIdsToRemove)
       
       await loadUsers()
-      toast.success('Bruger slettet')
+      toast.success(t.managerPanel.permissions.deleted)
     }
   }
 
@@ -339,30 +342,30 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
   const handleSaveUserName = async () => {
     if (!editingUser || !newName.trim()) {
-      toast.error('Navn kan ikke være tomt')
+      toast.error(t.managerPanel.validation.nameEmpty)
       return
     }
 
     if (!newEmail.trim()) {
-      toast.error('Email kan ikke være tom')
+      toast.error(t.managerPanel.validation.emailEmpty)
       return
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(newEmail.trim())) {
-      toast.error('Ugyldig email adresse')
+      toast.error(t.managerPanel.validation.invalidEmail)
       return
     }
 
     const trimmedUsername = newUsername.trim()
     if (trimmedUsername && !/^[a-zA-Z0-9._-]{3,32}$/.test(trimmedUsername)) {
-      toast.error('Brugernavn skal være 3-32 tegn (bogstaver, tal, punktum, bindestreg, underscore)')
+      toast.error(t.managerPanel.validation.usernameFormat)
       return
     }
 
     const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string; username?: string }>>('users')
     if (!usersData || !usersData[editingUser.email]) {
-      toast.error('Bruger ikke fundet')
+      toast.error(t.managerPanel.permissions.userNotFound)
       return
     }
 
@@ -371,7 +374,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         userEmail !== editingUser.email && u.username?.toLowerCase() === trimmedUsername.toLowerCase()
       )
       if (usernameTaken) {
-        toast.error('Brugernavnet er allerede i brug')
+        toast.error(t.managerPanel.validation.usernameTaken)
         return
       }
     }
@@ -379,7 +382,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     const userData = usersData[editingUser.email]
 
     if (newPassword && newPassword.length < 6) {
-      toast.error('Adgangskode skal være mindst 6 tegn')
+      toast.error(t.managerPanel.validation.passwordTooShort)
       return
     }
 
@@ -407,37 +410,37 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     setNewPhone('')
     setNewUsername('')
     setNewPassword('')
-    toast.success('Bruger opdateret succesfuldt')
+    toast.success(t.managerPanel.validation.userUpdated)
   }
 
   const handleCreateUser = async () => {
     if (!newUserName.trim()) {
-      toast.error('Navn er påkrævet')
+      toast.error(t.managerPanel.validation.createNameRequired)
       return
     }
     if (!newUserEmail.trim()) {
-      toast.error('Email er påkrævet')
+      toast.error(t.managerPanel.validation.createEmailRequired)
       return
     }
     if (!newUserPassword.trim()) {
-      toast.error('Kode er påkrævet')
+      toast.error(t.managerPanel.validation.createPasswordRequired)
       return
     }
     if (!newUserPhone.trim()) {
-      toast.error('Telefon nummer er påkrævet')
+      toast.error(t.managerPanel.validation.createPhoneRequired)
       return
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(newUserEmail.trim())) {
-      toast.error('Ugyldig email adresse')
+      toast.error(t.managerPanel.validation.invalidEmail)
       return
     }
 
     const usersData = await window.kv.get<Record<string, { email: string; password: string; fullName: string; role: UserRole; isManager: boolean; phone?: string; status?: 'pending' | 'approved' | 'rejected' }>>('users') || {}
     
     if (usersData[newUserEmail.toLowerCase()]) {
-      toast.error('En bruger med denne email eksisterer allerede')
+      toast.error(t.managerPanel.validation.emailExists)
       return
     }
 
@@ -454,7 +457,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       })
     } catch (error) {
       console.error('Failed to save new user:', error)
-      toast.error(`Kunne ikke gemme bruger: ${error instanceof Error ? error.message : String(error)}`)
+      toast.error(`${t.managerPanel.validation.createFailedPrefix}: ${error instanceof Error ? error.message : String(error)}`)
       return
     }
 
@@ -466,13 +469,13 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     setNewUserPassword('')
     setNewUserPhone('')
     
-    toast.success('Bruger oprettet succesfuldt')
+    toast.success(t.managerPanel.validation.userCreated)
   }
 
   const deleteSickLeave = async (id: string) => {
     await removeFromKvArray('sick-leave-entries', [id])
     await loadSickLeaveEntries()
-    toast.success('Sygemelding slettet')
+    toast.success(t.managerPanel.sickLeave.deletedToast)
   }
 
   const handleApproveVacation = async (vacation: VacationEntry) => {
@@ -481,12 +484,12 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       ...v, status: 'approved' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString(),
     }))
     if (!updated) {
-      toast.error('Ferieanmodningen findes ikke længere')
+      toast.error(t.managerPanel.vacationRequests.notFoundError)
       await loadVacationEntries()
       return
     }
     await loadVacationEntries()
-    toast.success('Ferie godkendt')
+    toast.success(t.managerPanel.vacationRequests.approvedToast)
 
     try {
       const emailContent = vacationApprovedEmail(vacation.startDate, vacation.endDate, userEmail, vacation.notes)
@@ -506,7 +509,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       const notification = {
         id: newId('notif'),
         type: 'email' as const,
-        message: `Din ferieansøgning blev godkendt!`,
+        message: t.managerPanel.vacationRequests.approvalEmailNotification,
         timestamp: Date.now(),
         read: false,
         from: userEmail,
@@ -524,12 +527,12 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       ...v, status: 'rejected' as VacationStatus, reviewedBy: userEmail, reviewedAt: new Date().toISOString(),
     }))
     if (!updated) {
-      toast.error('Ferieanmodningen findes ikke længere')
+      toast.error(t.managerPanel.vacationRequests.notFoundError)
       await loadVacationEntries()
       return
     }
     await loadVacationEntries()
-    toast.error('Ferie afvist')
+    toast.error(t.managerPanel.vacationRequests.rejectedToast)
 
     try {
       const emailContent = vacationRejectedEmail(vacation.startDate, vacation.endDate, userEmail, vacation.notes)
@@ -549,7 +552,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       const notification = {
         id: newId('notif'),
         type: 'email' as const,
-        message: `Din ferieansøgning blev afvist`,
+        message: t.managerPanel.vacationRequests.rejectionEmailNotification,
         timestamp: Date.now(),
         read: false,
         from: userEmail,
@@ -610,7 +613,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         notificationItems.push({
           id: newId('notif'),
           type: 'email' as const,
-          message: status === 'approved' ? 'Din ferieansøgning blev godkendt!' : 'Din ferieansøgning blev afvist',
+          message: status === 'approved' ? t.managerPanel.vacationRequests.approvalEmailNotification : t.managerPanel.vacationRequests.rejectionEmailNotification,
           timestamp: Date.now(),
           read: false,
           from: userEmail,
@@ -627,11 +630,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       setSelectedVacationIds([])
 
       if (succeeded === 0) {
-        toast.error('Ingen af anmodningerne findes længere')
+        toast.error(t.managerPanel.vacationRequests.bulkNoneFound)
       } else if (status === 'approved') {
-        toast.success(`${succeeded} ${succeeded === 1 ? 'anmodning' : 'anmodninger'} godkendt`)
+        toast.success(`${succeeded} ${succeeded === 1 ? t.managerPanel.vacationRequests.requestSingular : t.managerPanel.vacationRequests.requestPlural} ${t.managerPanel.vacationRequests.bulkApprovedSuffix}`)
       } else {
-        toast.success(`${succeeded} ${succeeded === 1 ? 'anmodning' : 'anmodninger'} afvist`)
+        toast.success(`${succeeded} ${succeeded === 1 ? t.managerPanel.vacationRequests.requestSingular : t.managerPanel.vacationRequests.requestPlural} ${t.managerPanel.vacationRequests.bulkRejectedSuffix}`)
       }
     } finally {
       setIsBulkProcessing(false)
@@ -640,12 +643,12 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
   const handleSaveVacationEdit = async () => {
     if (!editingVacation || !editVacationStartDate || !editVacationEndDate) {
-      toast.error('Start- og slutdato skal udfyldes')
+      toast.error(t.managerPanel.vacationOverview.startEndRequired)
       return
     }
 
     if (editVacationStartDate > editVacationEndDate) {
-      toast.error('Startdato skal være før slutdato')
+      toast.error(t.managerPanel.vacationOverview.startBeforeEnd)
       return
     }
 
@@ -656,7 +659,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       notes: editVacationNotes.trim() || undefined,
     }))
     if (!editedEntry) {
-      toast.error('Ferieanmodningen findes ikke længere')
+      toast.error(t.managerPanel.vacationRequests.notFoundError)
       await loadVacationEntries()
       setIsEditVacationDialogOpen(false)
       return
@@ -689,7 +692,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       const notification = {
         id: newId('notif'),
         type: 'email' as const,
-        message: `Din ferie er blevet redigeret af en manager`,
+        message: t.managerPanel.vacationOverview.editedNotification,
         timestamp: Date.now(),
         read: false,
         from: userEmail,
@@ -705,7 +708,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     setEditVacationStartDate(undefined)
     setEditVacationEndDate(undefined)
     setEditVacationNotes('')
-    toast.success('Ferie opdateret')
+    toast.success(t.managerPanel.vacationOverview.updatedToast)
   }
 
   const deleteVacation = async (id: string) => {
@@ -713,13 +716,13 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
     const vacationToDelete = allVacationsData.find(v => v.id === id)
     
     if (!vacationToDelete) {
-      toast.error('Ferie ikke fundet')
+      toast.error(t.managerPanel.vacationOverview.notFoundError)
       return
     }
 
     await window.kv.update('vacation-entries', { op: 'remove', ids: [id] })
     await loadVacationEntries()
-    toast.success('Ferie slettet')
+    toast.success(t.managerPanel.vacationOverview.deletedToast)
 
     try {
       const emailContent = vacationDeletedEmail(
@@ -745,7 +748,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       const notification = {
         id: newId('notif'),
         type: 'email' as const,
-        message: `Din ferie er blevet slettet af en manager`,
+        message: t.managerPanel.vacationOverview.deletedNotification,
         timestamp: Date.now(),
         read: false,
         from: userEmail,
@@ -764,21 +767,21 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         return (
           <Badge className="bg-gradient-to-r from-accent via-primary to-accent text-white">
             <Crown size={14} className="mr-1" weight="fill" />
-            Administrator
+            {t.teamOverview.roleAdmin}
           </Badge>
         )
       case 'manager':
         return (
           <Badge className="bg-gradient-to-r from-primary to-accent text-white">
             <ShieldCheck size={14} className="mr-1" weight="fill" />
-            Manager
+            {t.teamOverview.roleManager}
           </Badge>
         )
       default:
         return (
           <Badge variant="secondary">
             <UserIcon size={14} className="mr-1" />
-            Bruger
+            {t.teamOverview.userSingular}
           </Badge>
         )
     }
@@ -796,11 +799,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         <Card className="p-8 max-w-md relative z-10 border-2">
           <div className="text-center space-y-4">
             <ShieldCheck size={64} className="text-destructive mx-auto" weight="duotone" />
-            <h2 className="text-2xl font-bold">Ingen Adgang</h2>
-            <p className="text-muted-foreground">Du skal have manager eller administrator rettigheder for at tilgå denne side.</p>
+            <h2 className="text-2xl font-bold">{t.managerPanel.noAccess.title}</h2>
+            <p className="text-muted-foreground">{t.managerPanel.noAccess.description}</p>
             <Button onClick={onNavigateBack} className="w-full">
               <ArrowLeft size={20} className="mr-2" />
-              Tilbage til Hub
+              {t.managerPanel.noAccess.backToHub}
             </Button>
           </div>
         </Card>
@@ -826,7 +829,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                 className="bg-background/80 backdrop-blur-sm hover:bg-background shadow-lg hover:shadow-xl transition-all duration-300 gap-2 font-semibold px-4"
               >
                 <ArrowLeft size={20} />
-                Tilbage
+                {t.common.back}
               </Button>
             </motion.div>
           </div>
@@ -842,7 +845,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
         >
           <div className="flex flex-col items-center gap-6">
             <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
-              Manager Panel
+              {t.managerPanel.title}
             </h1>
           </div>
         </motion.div>
@@ -851,7 +854,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           <TabsList className="grid w-full grid-cols-7 max-w-6xl">
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck size={18} />
-              Rettigheder
+              {t.managerPanel.tabs.permissions}
               {pendingUsers.length > 0 && (
                 <Badge className="ml-1 h-5 px-1.5 bg-accent text-accent-foreground">
                   {pendingUsers.length}
@@ -860,11 +863,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             </TabsTrigger>
             <TabsTrigger value="sick-leave" className="gap-2">
               <FirstAidKit size={18} />
-              Sygemeldinger
+              {t.managerPanel.tabs.sickLeave}
             </TabsTrigger>
             <TabsTrigger value="vacation-requests" className="gap-2">
               <Umbrella size={18} />
-              Anmodninger
+              {t.managerPanel.tabs.vacationRequests}
               {vacationEntries.length > 0 && (
                 <Badge className="ml-1 h-5 px-1.5 bg-accent text-accent-foreground">
                   {vacationEntries.length}
@@ -873,19 +876,19 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
             </TabsTrigger>
             <TabsTrigger value="vacation-overview" className="gap-2">
               <CalendarBlank size={18} />
-              Ferie Oversigt
+              {t.managerPanel.tabs.vacationOverview}
             </TabsTrigger>
             <TabsTrigger value="birthdays" className="gap-2">
               <Gift size={18} />
-              Fødselsdage
+              {t.managerPanel.tabs.birthdays}
             </TabsTrigger>
             <TabsTrigger value="games" className="gap-2">
               <GameController size={18} />
-              Spil
+              {t.managerPanel.tabs.games}
             </TabsTrigger>
             <TabsTrigger value="data-storage" className="gap-2">
               <HardDrives size={18} />
-              Datalagring
+              {t.managerPanel.tabs.dataStorage}
             </TabsTrigger>
           </TabsList>
 
@@ -895,14 +898,14 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <UserIcon size={28} className="text-amber-600 dark:text-amber-400" weight="duotone" />
-                    <h2 className="text-2xl font-bold">Nye brugeranmodninger</h2>
+                    <h2 className="text-2xl font-bold">{t.managerPanel.permissions.newRequestsTitle}</h2>
                   </div>
                   <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
-                    {pendingUsers.length} {pendingUsers.length === 1 ? 'anmodning' : 'anmodninger'}
+                    {pendingUsers.length} {pendingUsers.length === 1 ? t.managerPanel.permissions.requestSingular : t.managerPanel.permissions.requestPlural}
                   </Badge>
                 </div>
                 <div className="mb-4 p-3 bg-background/60 rounded-lg border text-sm text-muted-foreground">
-                  Disse personer har oprettet en konto og venter på din godkendelse, før de kan logge ind.
+                  {t.managerPanel.permissions.newRequestsDescription}
                 </div>
                 <div className="space-y-3">
                   {pendingUsers.map((user) => (
@@ -915,7 +918,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-lg">{user.fullName}</div>
                         <div className="text-sm text-muted-foreground truncate">{user.email}</div>
-                        {user.phone && <div className="text-xs text-muted-foreground mt-0.5">Telefon: {user.phone}</div>}
+                        {user.phone && <div className="text-xs text-muted-foreground mt-0.5">{t.managerPanel.permissions.phonePrefix}: {user.phone}</div>}
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -923,7 +926,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                           className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                         >
                           <Check size={18} weight="bold" />
-                          Godkend
+                          {t.managerPanel.permissions.approve}
                         </Button>
                         <Button
                           onClick={() => handleRejectUser(user)}
@@ -931,7 +934,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                           className="gap-2"
                         >
                           <X size={18} weight="bold" />
-                          Afvis
+                          {t.managerPanel.permissions.reject}
                         </Button>
                       </div>
                     </motion.div>
@@ -944,11 +947,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={28} className="text-primary" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Brugeroversigt & Rettigheder</h2>
+                  <h2 className="text-2xl font-bold">{t.managerPanel.permissions.overviewTitle}</h2>
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant="outline" className="text-sm">
-                    {users.length} {users.length === 1 ? 'Bruger' : 'Brugere'}
+                    {users.length} {users.length === 1 ? t.teamOverview.userSingular : t.teamOverview.userPlural}
                   </Badge>
                   <Button
                     onClick={() => setIsOnboardingOpen(true)}
@@ -956,7 +959,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                     className="gap-2"
                   >
                     <UserIcon size={18} weight="bold" />
-                    Onboarding
+                    {t.managerPanel.permissions.onboarding}
                   </Button>
                   <Button
                     onClick={() => setIsOffboardingOpen(true)}
@@ -964,22 +967,22 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                     className="gap-2 text-destructive hover:text-destructive"
                   >
                     <UserIcon size={18} weight="bold" />
-                    Offboarding
+                    {t.managerPanel.permissions.offboarding}
                   </Button>
                   <Button 
                     onClick={() => setIsCreateDialogOpen(true)}
                     className="gap-2"
                   >
                     <Plus size={18} weight="bold" />
-                    Opret Bruger
+                    {t.managerPanel.permissions.createUser}
                   </Button>
                 </div>
               </div>
 
               {isLoading ? (
-                <p className="text-muted-foreground text-center py-12">Indlæser brugere...</p>
+                <p className="text-muted-foreground text-center py-12">{t.managerPanel.permissions.loading}</p>
               ) : users.length === 0 ? (
-                <p className="text-muted-foreground text-center py-12">Ingen brugere fundet</p>
+                <p className="text-muted-foreground text-center py-12">{t.managerPanel.permissions.noneFound}</p>
               ) : (
                 <div className="space-y-3">
                   {users.map((user) => (
@@ -998,11 +1001,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                             )}
                           </div>
                           <div className="text-sm text-muted-foreground truncate">{user.email}</div>
-                          <div className="text-xs text-muted-foreground mt-1">{getRoleDescription(user.role)}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{getRoleDescription(user.role, language)}</div>
                         </div>
                         <div className="flex items-center gap-3">
                           {user.status === 'rejected' && (
-                            <Badge variant="destructive" className="text-xs">Afvist</Badge>
+                            <Badge variant="destructive" className="text-xs">{t.managerPanel.permissions.rejectedBadge}</Badge>
                           )}
                           {getRoleBadge(user.role)}
                         </div>
@@ -1029,19 +1032,19 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                                 <SelectItem value="user">
                                   <div className="flex items-center gap-2">
                                     <UserIcon size={16} />
-                                    Bruger
+                                    {t.teamOverview.userSingular}
                                   </div>
                                 </SelectItem>
                                 <SelectItem value="manager">
                                   <div className="flex items-center gap-2">
                                     <ShieldCheck size={16} />
-                                    Manager
+                                    {t.teamOverview.roleManager}
                                   </div>
                                 </SelectItem>
                                 <SelectItem value="admin">
                                   <div className="flex items-center gap-2">
                                     <Crown size={16} />
-                                    Administrator
+                                    {t.teamOverview.roleAdmin}
                                   </div>
                                 </SelectItem>
                               </SelectContent>
@@ -1054,18 +1057,18 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Slet bruger?</AlertDialogTitle>
+                                  <AlertDialogTitle>{t.managerPanel.permissions.deleteTitle}</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Er du sikker på at du vil slette <strong>{user.fullName}</strong>? Denne handling kan ikke fortrydes.
+                                    {t.managerPanel.permissions.deleteConfirmPrefix} <strong>{user.fullName}</strong>{t.managerPanel.permissions.deleteConfirmSuffix}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                  <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={() => deleteUser(user.email)}
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   >
-                                    Slet bruger
+                                    {t.managerPanel.permissions.deleteAction}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -1073,7 +1076,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                           </>
                         ) : (
                           <Badge variant="outline" className="ml-2">
-                            Permanent Admin
+                            {t.managerPanel.permissions.permanentAdmin}
                           </Badge>
                         )}
                       </div>
@@ -1088,22 +1091,22 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                 <div className="flex items-start gap-3">
                   <Crown size={24} className="text-accent mt-0.5" weight="fill" />
                   <div>
-                    <h3 className="font-bold text-lg mb-1">Administrator</h3>
-                    <p className="text-sm text-muted-foreground">{getRoleDescription('admin')}</p>
+                    <h3 className="font-bold text-lg mb-1">{t.teamOverview.roleAdmin}</h3>
+                    <p className="text-sm text-muted-foreground">{getRoleDescription('admin', language)}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <ShieldCheck size={24} className="text-primary mt-0.5" weight="fill" />
                   <div>
-                    <h3 className="font-bold text-lg mb-1">Manager</h3>
-                    <p className="text-sm text-muted-foreground">{getRoleDescription('manager')}</p>
+                    <h3 className="font-bold text-lg mb-1">{t.teamOverview.roleManager}</h3>
+                    <p className="text-sm text-muted-foreground">{getRoleDescription('manager', language)}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <UserIcon size={24} className="text-secondary mt-0.5" />
                   <div>
-                    <h3 className="font-bold text-lg mb-1">Bruger</h3>
-                    <p className="text-sm text-muted-foreground">{getRoleDescription('user')}</p>
+                    <h3 className="font-bold text-lg mb-1">{t.teamOverview.userSingular}</h3>
+                    <p className="text-sm text-muted-foreground">{getRoleDescription('user', language)}</p>
                   </div>
                 </div>
               </div>
@@ -1115,10 +1118,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <FirstAidKit size={28} className="text-destructive" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Sygemeldinger</h2>
+                  <h2 className="text-2xl font-bold">{t.managerPanel.sickLeave.title}</h2>
                 </div>
                 <Badge variant="outline" className="text-sm">
-                  {sickLeaveEntries.length} {sickLeaveEntries.length === 1 ? 'sygemelding' : 'sygemeldinger'}
+                  {sickLeaveEntries.length} {sickLeaveEntries.length === 1 ? t.managerPanel.sickLeave.entrySingular : t.managerPanel.sickLeave.entryPlural}
                 </Badge>
               </div>
 
@@ -1162,51 +1165,51 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                     <>
                       <Card className="p-4 bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-medium text-muted-foreground">Egen Sygdom</div>
+                          <div className="text-sm font-medium text-muted-foreground">{t.managerPanel.sickLeave.selfSickness}</div>
                           <FirstAidKit size={20} className="text-destructive" weight="duotone" />
                         </div>
                         <div className="text-3xl font-bold text-destructive">{selfSickEntries.length}</div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          sygemeldinger
+                          {t.managerPanel.sickLeave.selfSicknessUnit}
                         </div>
                       </Card>
 
                       <Card className="p-4 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-medium text-muted-foreground">Barn Syg</div>
+                          <div className="text-sm font-medium text-muted-foreground">{t.managerPanel.sickLeave.childSick}</div>
                           <UserIcon size={20} className="text-orange-600" weight="duotone" />
                         </div>
                         <div className="text-3xl font-bold text-orange-600">{childSickEntries.length}</div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          barn syg meldinger
+                          {t.managerPanel.sickLeave.childSickUnit}
                         </div>
                       </Card>
 
                       <Card className="p-4 bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-medium text-muted-foreground">Total Sygemeldinger</div>
+                          <div className="text-sm font-medium text-muted-foreground">{t.managerPanel.sickLeave.totalSickness}</div>
                           <FirstAidKit size={20} className="text-accent" weight="duotone" />
                         </div>
                         <div className="text-3xl font-bold text-accent">{totalSickDays}</div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {employeesWithSickLeave} af {totalEmployees} medarbejdere
+                          {employeesWithSickLeave} {t.managerPanel.sickLeave.ofEmployees} {totalEmployees} {t.managerPanel.sickLeave.employeesUnit}
                         </div>
                       </Card>
 
                       <Card className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-medium text-muted-foreground">Mest Sygemeldinger</div>
+                          <div className="text-sm font-medium text-muted-foreground">{t.managerPanel.sickLeave.mostSickness}</div>
                           <Crown size={20} className="text-primary" weight="duotone" />
                         </div>
                         {sortedStats.length > 0 ? (
                           <>
                             <div className="text-sm leading-snug font-bold text-primary break-words line-clamp-2" title={sortedStats[0].name}>{sortedStats[0].name}</div>
                             <div className="text-xs text-muted-foreground mt-1">
-                              {sortedStats[0].count} {sortedStats[0].count === 1 ? 'sygemelding' : 'sygemeldinger'}
+                              {sortedStats[0].count} {sortedStats[0].count === 1 ? t.managerPanel.sickLeave.entrySingular : t.managerPanel.sickLeave.entryPlural}
                             </div>
                           </>
                         ) : (
-                          <div className="text-lg font-bold text-muted-foreground">Ingen data</div>
+                          <div className="text-lg font-bold text-muted-foreground">{t.managerPanel.sickLeave.noData}</div>
                         )}
                       </Card>
                     </>
@@ -1223,7 +1226,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   return !isNaN(d.getTime()) && now - d.getTime() <= 90 * DAY_MS
                 })
 
-                const weekdayLabels = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn']
+                const weekdayLabels = t.managerPanel.weekdaysShort
                 const weekdayCounts = new Array(7).fill(0)
                 last90.forEach(e => {
                   const d = parseLocalDate(e.startDate)
@@ -1248,8 +1251,8 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   <Card className="p-4 mb-6 border">
                     <div className="flex items-center gap-2 mb-4">
                       <WaveSine size={20} className="text-primary" weight="duotone" />
-                      <h3 className="font-bold text-lg">Mønstre & Alarmer</h3>
-                      <span className="text-xs text-muted-foreground ml-1">(seneste 90 dage)</span>
+                      <h3 className="font-bold text-lg">{t.managerPanel.sickLeave.patternsTitle}</h3>
+                      <span className="text-xs text-muted-foreground ml-1">{t.managerPanel.sickLeave.patternsSubtitle}</span>
                     </div>
 
                     <div className="grid grid-cols-7 gap-2 mb-2">
@@ -1265,7 +1268,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                                   ? 'transparent'
                                   : `oklch(0.55 0.18 25 / ${0.12 + intensity * 0.55})`
                               }}
-                              title={`${count} ${count === 1 ? 'sygemelding' : 'sygemeldinger'} på ${label.toLowerCase()}dage`}
+                              title={`${count} ${count === 1 ? t.managerPanel.sickLeave.entrySingular : t.managerPanel.sickLeave.entryPlural} ${t.managerPanel.sickLeave.weekdayTooltipOn} ${label}`}
                             >
                               <span className={cn("text-sm font-bold", count === 0 ? "text-muted-foreground/40" : "text-foreground")}>
                                 {count}
@@ -1277,27 +1280,27 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                       })}
                     </div>
                     <p className="text-xs text-muted-foreground mb-4">
-                      Ugedage hvor sygemeldinger typisk starter — en tydelig overvægt af mandage/fredage kan være værd at kigge nærmere på.
+                      {t.managerPanel.sickLeave.patternsHint}
                     </p>
 
                     {frequencyAlerts.length > 0 && (
                       <div className="p-4 rounded-lg border-2 border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-600/60">
                         <div className="flex items-center gap-2 mb-2">
                           <FirstAidKit size={18} className="text-amber-600 dark:text-amber-400" weight="fill" />
-                          <span className="font-semibold text-sm">Usædvanlig hyppighed (≥3 sygemeldinger på 30 dage)</span>
+                          <span className="font-semibold text-sm">{t.managerPanel.sickLeave.frequencyAlertTitle}</span>
                         </div>
                         <div className="space-y-1.5">
                           {frequencyAlerts.map(alert => (
                             <div key={alert.name} className="flex items-center justify-between text-sm">
                               <span className="font-medium">{alert.name}</span>
                               <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30">
-                                {alert.count} sygemeldinger
+                                {alert.count} {t.managerPanel.sickLeave.entryPlural}
                               </Badge>
                             </div>
                           ))}
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Overvej en omsorgssamtale — hyppigt fravær kan skyldes forhold der kræver støtte.
+                          {t.managerPanel.sickLeave.frequencyAlertHint}
                         </p>
                       </div>
                     )}
@@ -1338,7 +1341,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   <Card className="p-4 mb-6 bg-muted/30 border">
                     <div className="flex items-center gap-2 mb-4">
                       <UserIcon size={20} className="text-primary" weight="duotone" />
-                      <h3 className="font-bold text-lg">Medarbejder Statistik</h3>
+                      <h3 className="font-bold text-lg">{t.managerPanel.sickLeave.employeeStatsTitle}</h3>
                     </div>
                     <div className="space-y-2">
                       {sortedStats.map((stat, index) => (
@@ -1355,23 +1358,23 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                               <div className="text-xs text-muted-foreground">{stat.email}</div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4">
                             <div className="text-right">
                               <div className="font-bold text-lg text-destructive">{stat.count}</div>
                               <div className="text-xs text-muted-foreground">
-                                {stat.count === 1 ? 'sygemelding' : 'sygemeldinger'}
+                                {stat.count === 1 ? t.managerPanel.sickLeave.entrySingular : t.managerPanel.sickLeave.entryPlural}
                               </div>
                             </div>
                             <div className="text-right min-w-[100px]">
-                              <div className="text-xs text-muted-foreground">Seneste</div>
+                              <div className="text-xs text-muted-foreground">{t.managerPanel.sickLeave.latestLabel}</div>
                               <div className="text-sm font-medium">
                                 {(() => {
                                   try {
                                     const date = new Date(stat.lastDate)
-                                    if (isNaN(date.getTime())) return 'Ugyldig'
-                                    return format(date, 'd. MMM', { locale: da })
+                                    if (isNaN(date.getTime())) return t.managerPanel.sickLeave.invalidDate
+                                    return format(date, 'd. MMM', { locale: dateLocale })
                                   } catch {
-                                    return 'Ugyldig'
+                                    return t.managerPanel.sickLeave.invalidDate
                                   }
                                 })()}
                               </div>
@@ -1386,14 +1389,14 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
 
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
-                  Her kan du se og håndtere alle sygemeldinger. Du kan slette sygemeldinger hvis der er fejl eller dobbeltindberetninger.
+                  {t.managerPanel.sickLeave.managementDescription}
                 </p>
               </div>
 
               {sickLeaveEntries.length === 0 ? (
                 <div className="text-center py-12">
                   <FirstAidKit size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
-                  <p className="text-muted-foreground">Ingen sygemeldinger endnu</p>
+                  <p className="text-muted-foreground">{t.managerPanel.sickLeave.none}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1415,33 +1418,33 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                               {(() => {
                                 try {
                                   const startDate = parseLocalDate(entry.startDate)
-                                  if (isNaN(startDate.getTime())) return 'Ugyldig dato'
-                                  return format(startDate, 'd. MMM yyyy', { locale: da })
+                                  if (isNaN(startDate.getTime())) return t.managerPanel.sickLeave.invalidDateFull
+                                  return format(startDate, 'd. MMM yyyy', { locale: dateLocale })
                                 } catch {
-                                  return 'Ugyldig dato'
+                                  return t.managerPanel.sickLeave.invalidDateFull
                                 }
                               })()}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              Indsendt: {(() => {
+                              {t.managerPanel.sickLeave.submittedPrefix}: {(() => {
                                 try {
                                   const date = new Date(entry.submittedAt)
-                                  if (isNaN(date.getTime())) return 'Ugyldig dato'
-                                  return format(date, 'd. MMM yyyy HH:mm', { locale: da })
+                                  if (isNaN(date.getTime())) return t.managerPanel.sickLeave.invalidDateFull
+                                  return format(date, 'd. MMM yyyy HH:mm', { locale: dateLocale })
                                 } catch {
-                                  return 'Ugyldig dato'
+                                  return t.managerPanel.sickLeave.invalidDateFull
                                 }
                               })()}
                             </span>
                             {entry.reason && (
-                              <span className="text-muted-foreground mt-1">Bemærkninger: {entry.reason}</span>
+                              <span className="text-muted-foreground mt-1">{t.managerPanel.sickLeave.notesPrefix}: {entry.reason}</span>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <Badge className={entry.type === 'child' ? "bg-orange-500 text-white" : "bg-green-500 text-white"}>
                             <Check size={14} className="mr-1" />
-                            {entry.type === 'child' ? 'Barn syg' : 'Sygemeldt'}
+                            {entry.type === 'child' ? t.managerPanel.sickLeave.childSickBadge : t.managerPanel.sickLeave.sickBadge}
                           </Badge>
                         </div>
                       </div>
@@ -1457,18 +1460,18 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Slet sygemelding?</AlertDialogTitle>
+                            <AlertDialogTitle>{t.managerPanel.sickLeave.deleteTitle}</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Er du sikker på at du vil slette denne sygemelding for <strong>{entry.userName}</strong>? Denne handling kan ikke fortrydes.
+                              {t.managerPanel.sickLeave.deleteConfirmPrefix} <strong>{entry.userName}</strong>{t.managerPanel.sickLeave.deleteConfirmSuffix}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Annuller</AlertDialogCancel>
+                            <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => deleteSickLeave(entry.id)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
-                              Slet sygemelding
+                              {t.managerPanel.sickLeave.deleteAction}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -1485,16 +1488,16 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <Umbrella size={28} className="text-accent" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Ferie Anmodninger</h2>
+                  <h2 className="text-2xl font-bold">{t.managerPanel.vacationRequests.title}</h2>
                 </div>
                 <Badge variant="outline" className="text-sm">
-                  {vacationEntries.length} {vacationEntries.length === 1 ? 'anmodning' : 'anmodninger'}
+                  {vacationEntries.length} {vacationEntries.length === 1 ? t.managerPanel.vacationRequests.requestSingular : t.managerPanel.vacationRequests.requestPlural}
                 </Badge>
               </div>
 
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
-                  Her kan du se og håndtere alle afventende ferie anmodninger. Du kan godkende eller afvise hver anmodning, og medarbejderne vil automatisk få besked via email.
+                  {t.managerPanel.vacationRequests.description}
                 </p>
               </div>
 
@@ -1507,11 +1510,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                         setSelectedVacationIds(checked ? vacationEntries.map(v => v.id) : [])
                       }
                     />
-                    Vælg alle
+                    {t.managerPanel.vacationRequests.selectAll}
                   </label>
                   {selectedVacationIds.length > 0 && (
                     <>
-                      <Badge variant="secondary">{selectedVacationIds.length} valgt</Badge>
+                      <Badge variant="secondary">{selectedVacationIds.length} {t.managerPanel.vacationRequests.selectedCountSuffix}</Badge>
                       <div className="flex gap-2 ml-auto">
                         <Button
                           size="sm"
@@ -1520,7 +1523,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                           className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                         >
                           <Check size={16} weight="bold" />
-                          {isBulkProcessing ? 'Behandler…' : `Godkend valgte (${selectedVacationIds.length})`}
+                          {isBulkProcessing ? t.managerPanel.vacationRequests.processing : `${t.managerPanel.vacationRequests.approveSelectedPrefix} (${selectedVacationIds.length})`}
                         </Button>
                         <Button
                           size="sm"
@@ -1530,7 +1533,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                           className="gap-2"
                         >
                           <X size={16} weight="bold" />
-                          Afvis valgte
+                          {t.managerPanel.vacationRequests.rejectSelected}
                         </Button>
                       </div>
                     </>
@@ -1541,7 +1544,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               {vacationEntries.length === 0 ? (
                 <div className="text-center py-12">
                   <Umbrella size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
-                  <p className="text-muted-foreground">Ingen afventende ferie anmodninger</p>
+                  <p className="text-muted-foreground">{t.managerPanel.vacationRequests.none}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -1574,28 +1577,28 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                             <div className="font-bold text-lg mb-1">{displayName}</div>
                             <div className="flex flex-col gap-1 text-sm">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-muted-foreground">Fra:</span>
+                                <span className="font-medium text-muted-foreground">{t.managerPanel.vacationRequests.fromLabel}</span>
                                 <span className="font-semibold">
                                   {(() => {
                                     try {
                                       const date = parseLocalDate(vacation.startDate)
-                                      if (isNaN(date.getTime())) return 'Ugyldig dato'
-                                      return format(date, 'd. MMM yyyy', { locale: da })
+                                      if (isNaN(date.getTime())) return t.managerPanel.vacationRequests.invalidDate
+                                      return format(date, 'd. MMM yyyy', { locale: dateLocale })
                                     } catch {
-                                      return 'Ugyldig dato'
+                                      return t.managerPanel.vacationRequests.invalidDate
                                     }
                                   })()}
                                 </span>
                                 <span className="text-muted-foreground">→</span>
-                                <span className="font-medium text-muted-foreground">Til:</span>
+                                <span className="font-medium text-muted-foreground">{t.managerPanel.vacationRequests.toLabel}</span>
                                 <span className="font-semibold">
                                   {(() => {
                                     try {
                                       const date = parseLocalDate(vacation.endDate)
-                                      if (isNaN(date.getTime())) return 'Ugyldig dato'
-                                      return format(date, 'd. MMM yyyy', { locale: da })
+                                      if (isNaN(date.getTime())) return t.managerPanel.vacationRequests.invalidDate
+                                      return format(date, 'd. MMM yyyy', { locale: dateLocale })
                                     } catch {
-                                      return 'Ugyldig dato'
+                                      return t.managerPanel.vacationRequests.invalidDate
                                     }
                                   })()}
                                 </span>
@@ -1605,14 +1608,14 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                         </div>
                         <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
                           <ClockCounterClockwise size={14} className="mr-1" />
-                          Afventer
+                          {t.managerPanel.vacationRequests.pendingBadge}
                         </Badge>
                       </div>
 
                       {vacation.notes && (
                         <div className="pl-16">
                           <div className="text-sm bg-muted p-3 rounded-lg">
-                            <span className="font-semibold text-muted-foreground">Bemærkninger: </span>
+                            <span className="font-semibold text-muted-foreground">{t.managerPanel.vacationRequests.notesPrefix}: </span>
                             {vacation.notes}
                           </div>
                         </div>
@@ -1631,14 +1634,14 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                           className="gap-2"
                         >
                           <Eye size={18} weight="bold" />
-                          Preview
+                          {t.managerPanel.vacationRequests.preview}
                         </Button>
                         <Button
                           onClick={() => handleApproveVacation(vacation)}
                           className="flex-1 gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                         >
                           <Check size={18} weight="bold" />
-                          Godkend
+                          {t.managerPanel.vacationRequests.approve}
                         </Button>
                         <Button
                           onClick={() => handleRejectVacation(vacation)}
@@ -1646,7 +1649,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                           className="flex-1 gap-2"
                         >
                           <X size={18} weight="bold" />
-                          Afvis
+                          {t.managerPanel.vacationRequests.reject}
                         </Button>
                       </div>
                     </motion.div>
@@ -1661,7 +1664,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <CalendarBlank size={28} className="text-primary" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Ferie Oversigt</h2>
+                  <h2 className="text-2xl font-bold">{t.managerPanel.vacationOverview.title}</h2>
                 </div>
                 <div className="flex items-center gap-3">
                   <Button 
@@ -1669,34 +1672,34 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                     className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                   >
                     <Gift size={18} weight="bold" />
-                    Giv Ferie/Fridag
+                    {t.managerPanel.vacationOverview.grantButton}
                   </Button>
                   <Select value={vacationFilter} onValueChange={(value: 'all' | 'pending' | 'approved') => setVacationFilter(value)}>
                     <SelectTrigger className="w-40">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Alle</SelectItem>
-                      <SelectItem value="pending">Afventer</SelectItem>
-                      <SelectItem value="approved">Godkendte</SelectItem>
+                      <SelectItem value="all">{t.managerPanel.vacationOverview.filterAll}</SelectItem>
+                      <SelectItem value="pending">{t.managerPanel.vacationOverview.filterPending}</SelectItem>
+                      <SelectItem value="approved">{t.managerPanel.vacationOverview.filterApproved}</SelectItem>
                     </SelectContent>
                   </Select>
                   <Badge variant="outline" className="text-sm">
-                    {allVacations.filter(v => vacationFilter === 'all' || v.status === vacationFilter).length} {allVacations.filter(v => vacationFilter === 'all' || v.status === vacationFilter).length === 1 ? 'ferie' : 'ferier'}
+                    {allVacations.filter(v => vacationFilter === 'all' || v.status === vacationFilter).length} {allVacations.filter(v => vacationFilter === 'all' || v.status === vacationFilter).length === 1 ? t.managerPanel.vacationOverview.vacationSingular : t.managerPanel.vacationOverview.vacationPlural}
                   </Badge>
                 </div>
               </div>
 
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
-                  Her kan du se, redigere og slette alle ferier i systemet. Du kan filtrere efter status og redigere datoer og bemærkninger.
+                  {t.managerPanel.vacationOverview.description}
                 </p>
               </div>
 
               {allVacations.filter(v => vacationFilter === 'all' || v.status === vacationFilter).length === 0 ? (
                 <div className="text-center py-12">
                   <CalendarBlank size={64} className="text-muted-foreground mx-auto mb-4" weight="duotone" />
-                  <p className="text-muted-foreground">Ingen ferier at vise</p>
+                  <p className="text-muted-foreground">{t.managerPanel.vacationOverview.none}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1722,10 +1725,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                                 {(() => {
                                   try {
                                     const date = parseLocalDate(vacation.startDate)
-                                    if (isNaN(date.getTime())) return 'Ugyldig dato'
-                                    return format(date, 'd. MMM yyyy', { locale: da })
+                                    if (isNaN(date.getTime())) return t.managerPanel.vacationOverview.invalidDate
+                                    return format(date, 'd. MMM yyyy', { locale: dateLocale })
                                   } catch {
-                                    return 'Ugyldig dato'
+                                    return t.managerPanel.vacationOverview.invalidDate
                                   }
                                 })()}
                               </span>
@@ -1734,10 +1737,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                                 {(() => {
                                   try {
                                     const date = parseLocalDate(vacation.endDate)
-                                    if (isNaN(date.getTime())) return 'Ugyldig dato'
-                                    return format(date, 'd. MMM yyyy', { locale: da })
+                                    if (isNaN(date.getTime())) return t.managerPanel.vacationOverview.invalidDate
+                                    return format(date, 'd. MMM yyyy', { locale: dateLocale })
                                   } catch {
-                                    return 'Ugyldig dato'
+                                    return t.managerPanel.vacationOverview.invalidDate
                                   }
                                 })()}
                               </span>
@@ -1752,13 +1755,13 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                             {vacation.status === 'pending' && (
                               <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
                                 <ClockCounterClockwise size={14} className="mr-1" />
-                                Afventer
+                                {t.managerPanel.vacationOverview.pendingBadge}
                               </Badge>
                             )}
                             {vacation.status === 'approved' && (
                               <Badge className="bg-green-500/20 text-green-700 border-green-500/30">
                                 <Check size={14} className="mr-1" />
-                                Godkendt
+                                {t.managerPanel.vacationOverview.approvedBadge}
                               </Badge>
                             )}
                           </div>
@@ -1784,18 +1787,18 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Slet ferie?</AlertDialogTitle>
+                                <AlertDialogTitle>{t.managerPanel.vacationOverview.deleteTitle}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Er du sikker på at du vil slette denne ferie for <strong>{getUserName()}</strong>? Denne handling kan ikke fortrydes.
+                                  {t.managerPanel.vacationOverview.deleteConfirmPrefix} <strong>{getUserName()}</strong>{t.managerPanel.vacationOverview.deleteConfirmSuffix}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => deleteVacation(vacation.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  Slet ferie
+                                  {t.managerPanel.vacationOverview.deleteAction}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -1814,30 +1817,30 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <Gift size={28} className="text-accent" weight="duotone" />
-                  <h2 className="text-2xl font-bold">Medarbejder Fødselsdage</h2>
+                  <h2 className="text-2xl font-bold">{t.managerPanel.birthdays.title}</h2>
                 </div>
                 <Badge variant="outline" className="text-sm">
-                  {birthdays.length} {birthdays.length === 1 ? 'Fødselsdag' : 'Fødselsdage'}
+                  {birthdays.length} {birthdays.length === 1 ? t.managerPanel.birthdays.singular : t.managerPanel.birthdays.plural}
                 </Badge>
               </div>
 
               <div className="mb-4 p-4 bg-muted/50 rounded-lg border">
                 <p className="text-sm text-muted-foreground">
-                  Her kan du registrere og redigere medarbejdernes fødselsdage. Klik på en bruger for at tilføje eller ændre deres fødselsdag.
+                  {t.managerPanel.birthdays.description}
                 </p>
               </div>
 
               {isLoading ? (
-                <p className="text-muted-foreground text-center py-12">Indlæser brugere...</p>
+                <p className="text-muted-foreground text-center py-12">{t.managerPanel.birthdays.loading}</p>
               ) : users.length === 0 ? (
-                <p className="text-muted-foreground text-center py-12">Ingen brugere fundet</p>
+                <p className="text-muted-foreground text-center py-12">{t.managerPanel.birthdays.noneFound}</p>
               ) : (
                 <div className="space-y-3">
                   {users.map((user) => {
                     const birthdayEntry = birthdays.find(b => b.email === user.email)
                     const hasBirthday = !!birthdayEntry
                     
-                    let birthdayDisplay = 'Ingen fødselsdag registreret'
+                    let birthdayDisplay = t.managerPanel.birthdays.noneRegistered
                     let daysUntilBirthday: number | null = null
                     
                     if (birthdayEntry) {
@@ -1854,7 +1857,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                         const diffTime = nextBirthday.getTime() - today.getTime()
                         daysUntilBirthday = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
                         
-                        const monthNames = ['Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'December']
+                        const monthNames = t.managerPanel.birthdays.months
                         birthdayDisplay = `${day}. ${monthNames[month - 1]}`
                       } catch (error) {
                         birthdayDisplay = birthdayEntry.birthday
@@ -1887,7 +1890,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                               {birthdayDisplay}
                               {daysUntilBirthday !== null && daysUntilBirthday <= 7 && (
                                 <Badge className="ml-2 bg-accent/20 text-accent border-accent/30">
-                                  {daysUntilBirthday === 0 ? '🎉 I dag!' : daysUntilBirthday === 1 ? 'I morgen' : `Om ${daysUntilBirthday} dage`}
+                                  {daysUntilBirthday === 0 ? t.managerPanel.birthdays.todayBadge : daysUntilBirthday === 1 ? t.managerPanel.birthdays.tomorrowBadge : `${t.managerPanel.birthdays.inDaysPrefix} ${daysUntilBirthday} ${t.managerPanel.birthdays.inDaysSuffix}`}
                                 </Badge>
                               )}
                             </div>
@@ -1920,18 +1923,18 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                                 </AlertDialogTrigger>
                                 <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Slet fødselsdag?</AlertDialogTitle>
+                                    <AlertDialogTitle>{t.managerPanel.birthdays.deleteTitle}</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Er du sikker på at du vil slette fødselsdagen for <strong>{user.fullName}</strong>? Denne handling kan ikke fortrydes.
+                                      {t.managerPanel.birthdays.deleteConfirmPrefix} <strong>{user.fullName}</strong>{t.managerPanel.birthdays.deleteConfirmSuffix}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Annuller</AlertDialogCancel>
+                                    <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() => deleteBirthday(user.email)}
                                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                     >
-                                      Slet fødselsdag
+                                      {t.managerPanel.birthdays.deleteAction}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -1952,7 +1955,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                               className="gap-2"
                             >
                               <Plus size={16} weight="bold" />
-                              Tilføj fødselsdag
+                              {t.managerPanel.birthdays.addButton}
                             </Button>
                           )}
                         </div>
@@ -2037,7 +2040,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               leaderboardKey="tetris-global-leaderboard"
               playCountsKey="tetris-play-counts"
               categories={['all']}
-              categorySettings={{ all: { label: 'Highscores', color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', statBg: 'bg-primary/10', statBorder: 'border-primary/20', statText: 'text-primary' } }}
+              categorySettings={{ all: { label: t.managerPanel.games.highscores, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', statBg: 'bg-primary/10', statBorder: 'border-primary/20', statText: 'text-primary' } }}
               users={users}
             />
           </TabsContent>
@@ -2057,21 +2060,21 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       <Dialog open={isEditVacationDialogOpen} onOpenChange={setIsEditVacationDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Rediger ferie</DialogTitle>
+            <DialogTitle>{t.managerPanel.dialogs.editVacation.title}</DialogTitle>
             <DialogDescription>
-              Ændre datoer og bemærkninger for ferien
+              {t.managerPanel.dialogs.editVacation.description}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Startdato *</Label>
+              <Label>{t.managerPanel.dialogs.editVacation.startDate}</Label>
               <DatePickerField
                 value={editVacationStartDate ? format(editVacationStartDate, 'yyyy-MM-dd') : ''}
                 onChange={(value) => setEditVacationStartDate(value ? new Date(value) : undefined)}
               />
             </div>
             <div className="space-y-2">
-              <Label>Slutdato *</Label>
+              <Label>{t.managerPanel.dialogs.editVacation.endDate}</Label>
               <DatePickerField
                 value={editVacationEndDate ? format(editVacationEndDate, 'yyyy-MM-dd') : ''}
                 onChange={(value) => setEditVacationEndDate(value ? new Date(value) : undefined)}
@@ -2079,12 +2082,12 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-vacation-notes">Bemærkninger</Label>
+              <Label htmlFor="edit-vacation-notes">{t.managerPanel.dialogs.editVacation.notesLabel}</Label>
               <Textarea
                 id="edit-vacation-notes"
                 value={editVacationNotes}
                 onChange={(e) => setEditVacationNotes(e.target.value)}
-                placeholder="Tilføj evt. bemærkninger..."
+                placeholder={t.managerPanel.dialogs.editVacation.notesPlaceholder}
                 rows={3}
               />
             </div>
@@ -2097,11 +2100,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               setEditVacationEndDate(undefined)
               setEditVacationNotes('')
             }}>
-              Annuller
+              {t.common.cancel}
             </Button>
             <Button onClick={handleSaveVacationEdit} className="gap-2">
               <Check size={18} weight="bold" />
-              Gem ændringer
+              {t.managerPanel.dialogs.editVacation.saveChanges}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2110,33 +2113,33 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Rediger bruger</DialogTitle>
+            <DialogTitle>{t.managerPanel.dialogs.editUser.title}</DialogTitle>
             <DialogDescription>
-              Rediger information for brugeren {editingUser?.email}
+              {t.managerPanel.dialogs.editUser.descriptionPrefix} {editingUser?.email}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="user-name">Fulde navn *</Label>
+              <Label htmlFor="user-name">{t.managerPanel.dialogs.editUser.fullNameLabel}</Label>
               <Input
                 id="user-name"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Indtast fuldt navn"
+                placeholder={t.managerPanel.dialogs.editUser.fullNamePlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="user-email">Email *</Label>
+              <Label htmlFor="user-email">{t.managerPanel.dialogs.editUser.emailLabel}</Label>
               <Input
                 id="user-email"
                 type="email"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="f.eks. jacob@nexigroup.com"
+                placeholder={t.managerPanel.dialogs.editUser.emailPlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="user-phone">Telefon nummer</Label>
+              <Label htmlFor="user-phone">{t.managerPanel.dialogs.editUser.phoneLabel}</Label>
               <div className="flex gap-2">
                 <Phone size={20} className="text-muted-foreground mt-2.5" />
                 <Input
@@ -2144,31 +2147,31 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   type="tel"
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
-                  placeholder="f.eks. +45 12 34 56 78"
+                  placeholder={t.managerPanel.dialogs.editUser.phonePlaceholder}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="user-username">Brugernavn (valgfri)</Label>
+              <Label htmlFor="user-username">{t.managerPanel.dialogs.editUser.usernameLabel}</Label>
               <Input
                 id="user-username"
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
-                placeholder="f.eks. jremmer"
+                placeholder={t.managerPanel.dialogs.editUser.usernamePlaceholder}
               />
-              <p className="text-xs text-muted-foreground">Kan bruges til at logge ind i stedet for email. Begge dele virker.</p>
+              <p className="text-xs text-muted-foreground">{t.managerPanel.dialogs.editUser.usernameHint}</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="user-password">Ny adgangskode (valgfri)</Label>
+              <Label htmlFor="user-password">{t.managerPanel.dialogs.editUser.passwordLabel}</Label>
               <Input
                 id="user-password"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Lad være tom for at beholde nuværende"
+                placeholder={t.managerPanel.dialogs.editUser.passwordPlaceholder}
               />
               {newPassword && newPassword.length > 0 && newPassword.length < 6 && (
-                <p className="text-xs text-destructive">Adgangskode skal være mindst 6 tegn</p>
+                <p className="text-xs text-destructive">{t.managerPanel.validation.passwordTooShort}</p>
               )}
             </div>
           </div>
@@ -2182,10 +2185,10 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               setNewUsername('')
               setNewPassword('')
             }}>
-              Annuller
+              {t.common.cancel}
             </Button>
             <Button onClick={handleSaveUserName}>
-              Gem ændringer
+              {t.managerPanel.dialogs.editUser.saveChanges}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2194,43 +2197,43 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Opret ny bruger</DialogTitle>
+            <DialogTitle>{t.managerPanel.dialogs.createUser.title}</DialogTitle>
             <DialogDescription>
-              Udfyld alle felter for at oprette en ny bruger i systemet
+              {t.managerPanel.dialogs.createUser.description}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="new-user-name">Fulde navn *</Label>
+              <Label htmlFor="new-user-name">{t.managerPanel.dialogs.createUser.fullNameLabel}</Label>
               <Input
                 id="new-user-name"
                 value={newUserName}
                 onChange={(e) => setNewUserName(e.target.value)}
-                placeholder="f.eks. Jacob Remmer"
+                placeholder={t.managerPanel.dialogs.createUser.fullNamePlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-user-email">Email *</Label>
+              <Label htmlFor="new-user-email">{t.managerPanel.dialogs.createUser.emailLabel}</Label>
               <Input
                 id="new-user-email"
                 type="email"
                 value={newUserEmail}
                 onChange={(e) => setNewUserEmail(e.target.value)}
-                placeholder="f.eks. jacob@nexigroup.com"
+                placeholder={t.managerPanel.dialogs.createUser.emailPlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-user-password">Kode *</Label>
+              <Label htmlFor="new-user-password">{t.managerPanel.dialogs.createUser.passwordLabel}</Label>
               <Input
                 id="new-user-password"
                 type="password"
                 value={newUserPassword}
                 onChange={(e) => setNewUserPassword(e.target.value)}
-                placeholder="Indtast adgangskode"
+                placeholder={t.managerPanel.dialogs.createUser.passwordPlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-user-phone">Telefon nummer *</Label>
+              <Label htmlFor="new-user-phone">{t.managerPanel.dialogs.createUser.phoneLabel}</Label>
               <div className="flex gap-2">
                 <Phone size={20} className="text-muted-foreground mt-2.5" />
                 <Input
@@ -2238,7 +2241,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   type="tel"
                   value={newUserPhone}
                   onChange={(e) => setNewUserPhone(e.target.value)}
-                  placeholder="f.eks. +45 12 34 56 78"
+                  placeholder={t.managerPanel.dialogs.createUser.phonePlaceholder}
                 />
               </div>
             </div>
@@ -2251,11 +2254,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               setNewUserPassword('')
               setNewUserPhone('')
             }}>
-              Annuller
+              {t.common.cancel}
             </Button>
             <Button onClick={handleCreateUser} className="gap-2">
               <Plus size={18} weight="bold" />
-              Opret bruger
+              {t.managerPanel.dialogs.createUser.submit}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2266,18 +2269,15 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
           <DialogHeader>
             <DialogTitle className="text-2xl flex items-center gap-2">
               <Eye size={24} weight="duotone" className="text-accent" />
-              Feriekalender Preview
+              {t.managerPanel.dialogs.preview.title}
             </DialogTitle>
             <DialogDescription>
-              Sådan vil feriekalenderen se ud hvis du godkender denne anmodning
+              {t.managerPanel.dialogs.preview.description}
             </DialogDescription>
           </DialogHeader>
           
           {previewVacation && (() => {
-            const months = [
-              'Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni',
-              'Juli', 'August', 'September', 'Oktober', 'November', 'December'
-            ]
+            const months = t.managerPanel.birthdays.months
             
             const getDaysInMonth = (month: number, year: number) => {
               return new Date(year, month + 1, 0).getDate()
@@ -2367,7 +2367,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   </div>
                   <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
                     <Eye size={14} className="mr-1" />
-                    Preview Mode
+                    {t.managerPanel.dialogs.preview.previewMode}
                   </Badge>
                 </div>
 
@@ -2379,15 +2379,15 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                         backgroundColor: getEmployeeColorByEmail(previewVacation.userEmail).bg
                       }}
                     />
-                    <span className="font-semibold">Ny ferie anmodning:</span>
+                    <span className="font-semibold">{t.managerPanel.dialogs.preview.newRequestPrefix}</span>
                     <span>{getFirstName(previewVacation.userEmail)}</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {format(new Date(previewVacation.startDate), 'd. MMMM yyyy', { locale: da })} → {format(new Date(previewVacation.endDate), 'd. MMMM yyyy', { locale: da })}
+                    {format(new Date(previewVacation.startDate), 'd. MMMM yyyy', { locale: dateLocale })} → {format(new Date(previewVacation.endDate), 'd. MMMM yyyy', { locale: dateLocale })}
                   </div>
                   {previewVacation.notes && (
                     <div className="text-sm text-muted-foreground mt-1">
-                      Note: {previewVacation.notes}
+                      {t.managerPanel.dialogs.preview.noteLabel}: {previewVacation.notes}
                     </div>
                   )}
                 </div>
@@ -2395,9 +2395,9 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                 <div className="border-2 rounded-lg p-4">
                   <div className="grid grid-cols-8 gap-2">
                     <div className="text-center font-semibold text-xs py-2 text-muted-foreground">
-                      Uge
+                      {t.managerPanel.dialogs.preview.weekLabel}
                     </div>
-                    {['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'].map((day, index) => (
+                    {t.managerPanel.weekdaysShort.map((day, index) => (
                       <div
                         key={day}
                         className={cn(
@@ -2454,7 +2454,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                                 </div>
                                 {isWeekendDay ? (
                                   <div className="text-[8px] text-muted-foreground text-center mt-1">
-                                    Lukket
+                                    {t.managerPanel.dialogs.preview.closedLabel}
                                   </div>
                                 ) : (
                                   <div className="space-y-0.5">
@@ -2498,7 +2498,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               variant="outline" 
               onClick={() => setIsPreviewDialogOpen(false)}
             >
-              Luk Preview
+              {t.managerPanel.dialogs.preview.closePreview}
             </Button>
             {previewVacation && (
               <>
@@ -2510,7 +2510,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   className="gap-2 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
                 >
                   <Check size={18} weight="bold" />
-                  Godkend Ferie
+                  {t.managerPanel.dialogs.preview.approveVacation}
                 </Button>
                 <Button
                   onClick={() => {
@@ -2521,7 +2521,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                   className="gap-2"
                 >
                   <X size={18} weight="bold" />
-                  Afvis Ferie
+                  {t.managerPanel.dialogs.preview.rejectVacation}
                 </Button>
               </>
             )}
@@ -2559,14 +2559,14 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
       <Dialog open={isEditBirthdayDialogOpen} onOpenChange={setIsEditBirthdayDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Rediger fødselsdag</DialogTitle>
+            <DialogTitle>{t.managerPanel.dialogs.editBirthday.title}</DialogTitle>
             <DialogDescription>
-              Indtast fødselsdato for {editingBirthday?.fullName}
+              {t.managerPanel.dialogs.editBirthday.descriptionPrefix} {editingBirthday?.fullName}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="birthday-date">Fødselsdato *</Label>
+              <Label htmlFor="birthday-date">{t.managerPanel.dialogs.editBirthday.dateLabel}</Label>
               <DatePickerField
                 id="birthday-date"
                 value={birthdayDate && birthYear ? `${birthYear}-${birthdayDate}` : birthdayDate ? `2000-${birthdayDate}` : ''}
@@ -2583,7 +2583,7 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
                 }}
               />
               <p className="text-xs text-muted-foreground">
-                Vælg den fulde fødselsdato inklusive år for at vise alderen på kalenderen
+                {t.managerPanel.dialogs.editBirthday.dateHint}
               </p>
             </div>
           </div>
@@ -2594,11 +2594,11 @@ export function ManagerPanel({ onNavigateBack, onLogout, userEmail }: ManagerPan
               setBirthdayDate('')
               setBirthYear('')
             }}>
-              Annuller
+              {t.common.cancel}
             </Button>
             <Button onClick={handleSaveBirthday} className="gap-2">
               <Check size={18} weight="bold" />
-              Gem fødselsdag
+              {t.managerPanel.dialogs.editBirthday.saveButton}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -39,19 +39,20 @@ gennemgang af hver fil):
 5. `get_errors` + visuel sanity-check af diff
 
 ## Fase 1 — Højst synlighed: login + konto-menu (vises af ALLE, hele tiden)
-- [ ] Auth.tsx (~34 strenge) — login/signup-skærmen, det første alle ser
-- [ ] UserProfile.tsx (~15 strenge) — konto-dropdown, vises øverst på HVER skærm
+- [x] Auth.tsx (~34 strenge) — login/signup-skærmen, det første alle ser
+- [x] UserProfile.tsx (~15 strenge) — konto-dropdown, vises øverst på HVER skærm
 
 ## Fase 2 — Hurtige gevinster (små, selvstændige views)
-- [ ] TeamOverview.tsx (~11 strenge)
-- [ ] MealPlan.tsx (~26 strenge)
+- [x] TeamOverview.tsx (~11 strenge)
+- [x] MealPlan.tsx (~26 strenge)
 
 ## Fase 3 — AdminPanel.tsx (~80 strenge)
+- [x] AdminPanel.tsx + getRoleDisplayName/getRoleDescription i userRoles.ts gjort sprog-parameteriseret
 
 ## Fase 4 — ManagerPanel.tsx (~190 strenge, splittes i under-faser efter fane)
-- [ ] 4a: Rettigheder + Fødselsdage faner
-- [ ] 4b: Sygemeldinger + Anmodninger faner
-- [ ] 4c: Ferie Oversigt + Spil + Datalagring faner + delte dialoger
+- [x] 4a: Rettigheder + Fødselsdage faner
+- [x] 4b: Sygemeldinger + Anmodninger faner
+- [x] 4c: Ferie Oversigt + Spil + Datalagring faner + delte dialoger
 
 ## Fase 5 — Guide-bibliotek (browsing)
 - [ ] GuideLibrary.tsx (~50 strenge)
