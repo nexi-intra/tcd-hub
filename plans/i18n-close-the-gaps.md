@@ -77,6 +77,7 @@ gennemgang af hver fil):
 - [x] StorageConnectionBanner.tsx (~9 strenge)
 
 ## Fase 9 — ThemeBuilder.tsx (~75 strenge, tilføj DANSK — filen er i dag kun engelsk)
+- [x] ThemeBuilder.tsx: dansk tilføjet til alle labels/beskrivelser/knapper/toasts
 
 ## Efter hver fase (eller hver 2-3 faser givet omfanget)
 - `npm run build` + `npm test` for hurtig verifikation
