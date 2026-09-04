@@ -405,6 +405,78 @@ export const translations = {
         }
       }
     },
+    guideLibrary: {
+      title: "Guide Bibliotek",
+      guideSingular: "guide",
+      guidePlural: "guides",
+      available: "tilgængelig",
+      importing: "Importerer…",
+      importWordGuide: "Importér Word-guide",
+      newGuide: "Ny guide",
+      searchPlaceholder: "Søg i guides...",
+      needsReview: "Skal opdateres",
+      manageCategories: "Administrer kategorier",
+      categoriesShort: "Kategorier",
+      exportLibrary: "Eksport-bibliotek",
+      exportShort: "Eksport",
+      emptyState: {
+        allUpToDate: "Alt er opdateret!",
+        noneFoundFiltered: "Ingen guides fundet",
+        noneYet: "Ingen guides endnu",
+        allUpToDateDescription: "Ingen guides har overskredet deres opdaterings-interval",
+        tryAdjustFilters: "Prøv at justere dine filtre eller søgning",
+        getStarted: "Kom i gang ved at oprette din første guide",
+        createFirst: "Opret første guide"
+      },
+      exportDialog: {
+        title: "Eksport-bibliotek",
+        description: "Guides eksporteres som DOCX til en mappe (lokal eller netværksdrev) med automatisk kategoristruktur:",
+        folderLabel: "Eksport-mappe",
+        noFolderSelected: "Ingen mappe valgt",
+        chooseFolder: "Vælg mappe",
+        exporting: "Eksporterer…",
+        exportAll: "Eksportér alle guides"
+      },
+      chatAriaLabel: "Åbn guide-assistent",
+      toasts: {
+        markedReviewedSuffix: "markeret som gennemgået — timeren er nulstillet",
+        updatedPrefix: "Guide opdateret",
+        created: "Guide oprettet!",
+        deleted: "Guide slettet!",
+        importStartFailed: "Kunne ikke starte importen",
+        importEmptyContent: "Kunne ikke finde noget indhold i dokumentet — prøv at redigere det manuelt i editoren",
+        guideNoLongerExists: "Guiden findes ikke længere",
+        exportFolderChosen: "Eksport-mappe valgt",
+        chooseFolderFailed: "Kunne ikke vælge mappe",
+        selectExportFolderFirst: "Vælg først en eksport-mappe",
+        noExportableGuides: "Ingen guides med sektioner at eksportere",
+        exportingProgress: "Eksporterer",
+        exportedToLibrarySuffix: "eksporteret til biblioteket",
+        exportPartialPrefix: "eksporteret,",
+        exportPartialSuffix: "fejlede — se konsollen for detaljer"
+      }
+    },
+    guideCard: {
+      overdueBadge: "Skal opdateres",
+      dueSoonPrefix: "Opdateres senest",
+      nextCheckPrefix: "Næste tjek",
+      noInterval: "Intet interval",
+      matchPrefix: "Match",
+      relevanceSuffix: "% relevans",
+      deleteTitle: "Slet guide?",
+      deleteConfirmPrefix: "Er du sikker på at du vil slette",
+      deleteConfirmSuffix: "? Denne handling kan ikke fortrydes.",
+      deleteAction: "Slet guide",
+      markReviewed: "Gennemgået"
+    },
+    guideImportStatus: {
+      importedSuffix: "er importeret",
+      openLibraryDescription: "Åbn Guide Biblioteket for at gennemgå og gemme guiden.",
+      openLibrary: "Åbn bibliotek",
+      importingGuide: "Importerer guide…",
+      starting: "Starter…",
+      backgroundHint: "Fortsætter i baggrunden, uanset hvor du navigerer hen i appen."
+    },
     hub: {
       title: "Terminal Configuration & Dispatch Hub",
       modules: {
@@ -1400,6 +1472,78 @@ export const translations = {
           saveButton: "Save birthday"
         }
       }
+    },
+    guideLibrary: {
+      title: "Guide Library",
+      guideSingular: "guide",
+      guidePlural: "guides",
+      available: "available",
+      importing: "Importing…",
+      importWordGuide: "Import Word guide",
+      newGuide: "New guide",
+      searchPlaceholder: "Search guides...",
+      needsReview: "Needs review",
+      manageCategories: "Manage categories",
+      categoriesShort: "Categories",
+      exportLibrary: "Export library",
+      exportShort: "Export",
+      emptyState: {
+        allUpToDate: "Everything is up to date!",
+        noneFoundFiltered: "No guides found",
+        noneYet: "No guides yet",
+        allUpToDateDescription: "No guides have exceeded their review interval",
+        tryAdjustFilters: "Try adjusting your filters or search",
+        getStarted: "Get started by creating your first guide",
+        createFirst: "Create first guide"
+      },
+      exportDialog: {
+        title: "Export Library",
+        description: "Guides are exported as DOCX to a folder (local or network drive) with automatic category structure:",
+        folderLabel: "Export folder",
+        noFolderSelected: "No folder selected",
+        chooseFolder: "Choose folder",
+        exporting: "Exporting…",
+        exportAll: "Export all guides"
+      },
+      chatAriaLabel: "Open guide assistant",
+      toasts: {
+        markedReviewedSuffix: "marked as reviewed — the timer has been reset",
+        updatedPrefix: "Guide updated",
+        created: "Guide created!",
+        deleted: "Guide deleted!",
+        importStartFailed: "Could not start the import",
+        importEmptyContent: "Could not find any content in the document — try editing it manually in the editor",
+        guideNoLongerExists: "The guide no longer exists",
+        exportFolderChosen: "Export folder selected",
+        chooseFolderFailed: "Could not select folder",
+        selectExportFolderFirst: "Select an export folder first",
+        noExportableGuides: "No guides with sections to export",
+        exportingProgress: "Exporting",
+        exportedToLibrarySuffix: "exported to the library",
+        exportPartialPrefix: "exported,",
+        exportPartialSuffix: "failed — see the console for details"
+      }
+    },
+    guideCard: {
+      overdueBadge: "Needs review",
+      dueSoonPrefix: "Due by",
+      nextCheckPrefix: "Next check",
+      noInterval: "No interval",
+      matchPrefix: "Match",
+      relevanceSuffix: "% relevance",
+      deleteTitle: "Delete guide?",
+      deleteConfirmPrefix: "Are you sure you want to delete",
+      deleteConfirmSuffix: "? This action cannot be undone.",
+      deleteAction: "Delete guide",
+      markReviewed: "Reviewed"
+    },
+    guideImportStatus: {
+      importedSuffix: "has been imported",
+      openLibraryDescription: "Open the Guide Library to review and save the guide.",
+      openLibrary: "Open library",
+      importingGuide: "Importing guide…",
+      starting: "Starting…",
+      backgroundHint: "Continues in the background, no matter where you navigate in the app."
     },
     hub: {
       title: "Terminal Configuration & Dispatch Hub",
