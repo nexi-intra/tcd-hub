@@ -39,6 +39,6 @@ de spil der er lavet." → Game Corner skal IKKE omdøbes; Arcade skal være et 
 
 ## Fase 5 — Verifikation & udrulning
 - [x] `npm run build` + `npm test` (67/67 grønne)
-- [ ] `npm run electron:build` + smoke-test + robocopy til `TCD-Hub 1.4.2` + asar-verifikation
-- [ ] git commit
+- [x] `npm run electron:build` + smoke-test + robocopy til `TCD-Hub 1.4.2` + asar-verifikation
+- [x] git commit (`bf8f79e`)
 
